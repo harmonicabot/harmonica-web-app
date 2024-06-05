@@ -1,6 +1,7 @@
 {
   "private": true,
   "name": "harmonica-web-app",
+  "version": "0.1.0",
   "scripts": {
     "build": "next build",
     "dev": "next dev",
