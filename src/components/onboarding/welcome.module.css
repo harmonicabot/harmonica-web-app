@@ -1,0 +1,10 @@
+.title {
+    font-family: "FreightTextCmp Pro";
+    font-style: normal;
+    font-weight: 600;
+    font-size: 48px;
+    line-height: 48px;
+    /* identical to box height, or 100% */
+    text-align: center;
+    letter-spacing: -0.012em;
+}

@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@aws-amplify/ui-react": "^6.1.12",
     "@radix-ui/react-slot": "^1.0.2",
     "aws-amplify": "^6.3.4",
     "class-variance-authority": "^0.7.0",
@@ -23,6 +24,7 @@
     "node": ">=18"
   },
   "devDependencies": {
+    "@aws-amplify/adapter-nextjs": "^1.2.4",
     "@aws-amplify/backend": "^1.0.3",
     "@aws-amplify/backend-cli": "^1.0.4",
     "@types/node": "20.13.0",
