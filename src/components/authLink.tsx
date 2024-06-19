@@ -23,7 +23,7 @@ export default async function AuthLink() {
       default:
         return (
           <>
-            <p>Welcome {username}</p>
+            <p>Hello {username}</p>
             <button onClick={signOut}>Sign Out</button>
           </>
         );

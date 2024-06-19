@@ -17,61 +17,15 @@ const client = generateClient<Schema>();
 export default function App() {
   return (
     <>
-        <section className="flex flex-row items-center justify-center min-h-screen bg-gray-100">
-          <div className="w-1/2 mb-8 mr-8">
-            <h2 className="text-3xl font-bold mb-4">Welcome to Harmonica</h2>
-            <p className="text-lg mb-6">
-              Experience the power of our innovative solution.
-            </p>
-            <Button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-              <Link href="/about">Learn More</Link>
-            </Button>
+      <Authenticator className="p-8 items-center justify-center h-full">
+        {({ signOut, user }) => (
+          // This will be shown if the user is signed in
+          <div>
+            <Intro />
+            <button onClick={signOut}>Sign out</button>
           </div>
-          <div className="w-1/2">
-            <Image
-              src="/get_ideas_from_team.svg"
-              alt="Hero Image"
-              width={500}
-              height={300}
-            />
-          </div>
-        </section>
-
-        <section className="flex flex-row items-center justify-center min-h-screen bg-blue-100">
-          <div className="w-1/2 mb-8 mr-8">
-            <Image
-              src="/get_ideas_from_team.svg"
-              alt="Feature Image 1"
-              width={500}
-              height={300}
-            />
-          </div>
-          <div className="w-1/2">
-            <h2 className="text-3xl font-bold mb-4">Feature 1</h2>
-            <p className="text-lg">
-              Discover our cutting-edge feature that will revolutionize your
-              workflow.
-            </p>
-          </div>
-        </section>
-
-        <section className="flex flex-row items-center justify-center min-h-screen bg-green-100">
-          <div className="w-1/2 mb-8 mr-8">
-            <h2 className="text-3xl font-bold mb-4">Feature 2</h2>
-            <p className="text-lg">
-              Explore our powerful feature that will take your productivity to
-              new heights.
-            </p>
-          </div>
-          <div className="w-1/2">
-            <Image
-              src="/get_ideas_from_team.svg"
-              alt="Feature Image 2"
-              width={500}
-              height={300}
-            />
-          </div>
-        </section>
-      </>
+        )}
+      </Authenticator>
+    </>
   );
 }
