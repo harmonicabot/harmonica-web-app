@@ -5,7 +5,8 @@
     "paths": {
       "@/*": ["../*"],
       "@/components/*": ["components/*"],
-      "@/pages/*": ["pages/*"]
+      "@/pages/*": ["pages/*"],
+      "@/context/*": ["context/*"]
     },
     "allowJs": true,
     "skipLibCheck": true,

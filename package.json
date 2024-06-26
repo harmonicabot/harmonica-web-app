@@ -8,14 +8,16 @@
     "start": "next start"
   },
   "dependencies": {
+    "@aws-amplify/ui-react": "^6.1.12",
     "@radix-ui/react-slot": "^1.0.2",
-    "aws-amplify": "^6.3.4",
+    "aws-amplify": "^6.3.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.381.0",
     "next": "latest",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-hook-form": "^7.52.0",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7"
   },
@@ -23,6 +25,7 @@
     "node": ">=18"
   },
   "devDependencies": {
+    "@aws-amplify/adapter-nextjs": "^1.2.4",
     "@aws-amplify/backend": "^1.0.3",
     "@aws-amplify/backend-cli": "^1.0.4",
     "@types/node": "20.13.0",
