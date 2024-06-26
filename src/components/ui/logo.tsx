@@ -1,4 +1,4 @@
-export default function Logo({ className }: { className: string }) {
+export default function Logo({ className }: { className?: string }) {
     return (
         <div className={className}>
             <svg width="147" height="13" viewBox="0 0 147 13" fill="none" xmlns="http://www.w3.org/2000/svg">

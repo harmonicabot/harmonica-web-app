@@ -3,7 +3,7 @@ import './welcome.module.css';
 
 import { useState, useEffect } from 'react';
 
-export default function Intro() {
+export default function Intro({goToAfter}) {
   const [step, setStep] = useState(1);
   const [value, setValue] = useState({});
 
@@ -15,19 +15,23 @@ export default function Intro() {
   <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5H13.293l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 1 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z" />
   </svg>;
 
+  const lastStep = 2;
   const previousStep = () => {
     setStep(step - 1);
   };
 
   const nextStep = () => {
     setStep(step + 1);
-    console.log("Current Values: ", value);
   };
 
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Enter') {
-        nextStep();
+        if (step === lastStep) {
+          window.location.href = goToAfter;
+        } else {
+          nextStep();
+        }
       }
     };
 
@@ -96,10 +100,10 @@ export default function Intro() {
           className="absolute bottom-0 right-5 m-4 p-2 bg-[#000] text-white rounded-md"
           onClick={nextStep}
       >
-        {step < 2 ? (
-          arrowForward
+        {step === lastStep ? (
+          <Link href={goToAfter}>Finish</Link>
         ) : (
-          <Link href="">Finish</Link>
+          arrowForward
         )}
       </button>
     </div>
