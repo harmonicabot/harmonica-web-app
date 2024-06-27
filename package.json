@@ -1,16 +1,43 @@
 {
   "private": true,
+  "name": "harmonica-web-app",
+  "version": "0.1.0",
   "scripts": {
     "build": "next build",
     "dev": "next dev",
     "start": "next start"
   },
   "dependencies": {
+    "@aws-amplify/ui-react": "^6.1.12",
+    "@radix-ui/react-slot": "^1.0.2",
+    "aws-amplify": "^6.3.7",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.381.0",
     "next": "latest",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "react-hook-form": "^7.52.0",
+    "tailwind-merge": "^2.3.0",
+    "tailwindcss-animate": "^1.0.7"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "@aws-amplify/adapter-nextjs": "^1.2.4",
+    "@aws-amplify/backend": "^1.0.3",
+    "@aws-amplify/backend-cli": "^1.0.4",
+    "@types/node": "20.13.0",
+    "@types/react": "18.3.3",
+    "autoprefixer": "^10.4.19",
+    "aws-cdk": "^2.144.0",
+    "aws-cdk-lib": "^2.144.0",
+    "constructs": "^10.3.0",
+    "esbuild": "^0.21.4",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "tsx": "^4.11.2",
+    "typescript": "^5.4.5"
   }
 }
