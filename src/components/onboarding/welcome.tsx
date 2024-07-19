@@ -100,7 +100,7 @@ export default function Intro({goToAfter}) {
           className="absolute bottom-0 right-5 m-4 p-2 bg-[#000] text-white rounded-md"
           onClick={nextStep}
       >
-        {step === lastStep ? (
+        {step >= lastStep ? (
           <Link href={goToAfter}>Finish</Link>
         ) : (
           arrowForward
