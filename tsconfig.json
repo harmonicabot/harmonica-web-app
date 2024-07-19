@@ -6,7 +6,8 @@
       "@/*": ["../*"],
       "@/components/*": ["components/*"],
       "@/pages/*": ["pages/*"],
-      "@/context/*": ["context/*"]
+      "@/context/*": ["context/*"],
+      "@/stores/*": ["stores/*"],
     },
     "allowJs": true,
     "skipLibCheck": true,
