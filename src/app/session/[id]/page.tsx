@@ -5,49 +5,17 @@ import { useEffect, useState } from 'react';
 import { SessionData } from '../../home/page';
 import { useSessionStore } from '@/stores/SessionStore';
 import Markdown from 'react-markdown'
-
-type AccumulatedSessionData = {
-  num_sessions: number;
-  active: number;
-  finished: number;
-  summary: string;
-  template: string;
-  topic: string;
-  context: string;
-};
+import { AccumulatedSessionData, accumulateSessionData } from 'lib/utils';
 
 export default function Dashboard() {
   const { id } = useParams() as { id: string };
-  const [sessionData, setSessionData] = useState<AccumulatedSessionData>();
 
-  const existingSessionData = useSessionStore(
-    (state) => state.sessions[id]
+  const [sessionData, setAccumulated] = useSessionStore(
+    (state) => [
+      state.accumulated[id],
+      state.setAccumulatedSessions
+    ]
   )
-
-  function accumulateSessionData(data: SessionData[]) {
-    const accumulated: AccumulatedSessionData = {
-      num_sessions: data.length,
-      active: 0,
-      finished: 0,
-      summary: '',
-      template: '',
-      topic: '',
-      context: '',
-    }
-
-    console.log("SessionData being accumulated: ", data)
-    data.forEach((session) => {
-      accumulated.active += session.active ? 1 : 0
-      accumulated.finished += session.active ? 0 : 1
-      accumulated.summary = session.result_text || accumulated.summary
-      accumulated.template = session.template || accumulated.template
-      accumulated.topic = session.topic || accumulated.topic
-      accumulated.context = session.context || accumulated.context
-    })
-
-    setSessionData(accumulated)
-
-  }
 
   const fetchSessionData = async () => {
     console.log(`Fetching session data for ${id}...`)
@@ -66,18 +34,18 @@ export default function Dashboard() {
         })
     });
     const data = await response.json();
-    accumulateSessionData(data)
+    let accumulated = accumulateSessionData(data)
+    setAccumulated(id, accumulated)
   };
 
   useEffect(() => {
-    if (!existingSessionData) {
+    if (!sessionData) {
       // Fetch data from the database if not in store
       fetchSessionData()
     } else {
       console.log("Session data found in store")
-      accumulateSessionData(existingSessionData)
     }
-  }, [id, existingSessionData])
+  }, [id, sessionData])
   
   if (!sessionData) return <div>Loading...</div>;
 
