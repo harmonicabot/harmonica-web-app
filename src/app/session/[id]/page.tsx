@@ -2,10 +2,9 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { SessionData } from '../../home/page';
 import { useSessionStore } from '@/stores/SessionStore';
 import Markdown from 'react-markdown'
-import { AccumulatedSessionData, accumulateSessionData } from 'lib/utils';
+import { accumulateSessionData } from 'utils/utils';
 
 export default function Dashboard() {
   const { id } = useParams() as { id: string };

@@ -9,10 +9,12 @@
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.1.12",
+    "@aws-sdk/client-cognito-identity-provider": "^3.616.0",
     "@radix-ui/react-slot": "^1.0.2",
     "aws-amplify": "^6.3.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.381.0",
     "next": "latest",
     "react": "18.2.0",

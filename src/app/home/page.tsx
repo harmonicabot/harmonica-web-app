@@ -3,40 +3,14 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
-import { accumulateSessionData } from 'lib/utils';
+import { accumulateSessionData, sendApiCall } from 'utils/utils';
+import { Sessions } from "utils/types"
+import type { Schema } from "../../../amplify/data/resource"
+import { generateClient } from "aws-amplify/data"
 
-// All of the fields are marked as optional, 
-//  because sometimes we need only session_id, 
-//  and sometimes only some of the others;
-//  but splitting them out and making a union of either | or
-//  would result in having to do type narrowing and some other stuff
-//  which is kinda annoying. 🥴
-export type SessionData = {
-  session_id?: string;
-  active?: number | boolean;
-  user_id?: string;
-  template?: string;
-  feedback?: string;
-  chat_text?: string;
-  thread_id?: string;
-  result_text?: string;
-  context?: string;
-  topic?: string;
-};
-
-type RequestData = {
-  action: string;
-  data?: SessionData;
-}
-
-type Sessions = {
-  sessions: SessionData[];
-}
-
-type GroupedSessions = Record<string, SessionData[]>;
 
 export default function Home() {
-  const [apiResult, setApiResult] = useState<SessionData[] | Sessions>(null);
+  const [apiResult, setApiResult] = useState<Sessions>(null);
   const [resultElement, setResultElement] = useState(<></>);
   const [shouldUpdateResult, setShouldUpdateResult] = useState(false);
   const [filter, setFilter] = useState<{
@@ -60,32 +34,6 @@ export default function Home() {
     state.accumulated,
     state.setAccumulatedSessions
   ])
-
-  const handleStartNewSession = () => {
-    throw new Error("Not fully implemented, just need to add a form for template, context & topic.");
-    sendApiCall({
-      action: 'new_session',
-      data: {
-        template: 'Red-Teaming',
-        context: "Some context for this stuff, retrieved from a form or so",
-        topic: "Next-gen governance"
-      },
-    }).then((response) => {
-      setApiResult(response);
-      setResultElement(
-        <div>
-            <h2>API Result:</h2>
-            {JSON.stringify(apiResult, null, 2)
-              .split('\n')
-              .map((line) => {
-                return (
-                  <>{line}<br /></>
-                );
-              })}
-          </div>
-      )
-    })
-  };
 
   const handleViewResults = async () => {
     let response = await sendApiCall({
@@ -196,10 +144,10 @@ export default function Home() {
   const handleAll = () => {
     sendApiCall({
       action: 'stats'
-    }).then((response) => {
+    }).then((response: Sessions) => {
       setApiResult(response);
       console.log("All Sessions: ", response)
-      const groupedSessions = response.reduce<GroupedSessions>((acc, session) => {
+      const groupedSessions = response.reduce<Record<string, Sessions>>((acc, session) => {
         if (!acc[session.session_id]) {
           acc[session.session_id] = []
         }
@@ -217,39 +165,26 @@ export default function Home() {
     })
   };
 
-  const sendApiCall = async (body: RequestData): Promise<SessionData[]> => {
-    try {
-      const response = await fetch('/api/session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
+  async function manageAdminAccess() {
+    const client = generateClient<Schema>()
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('API response:', result);
-      return result;
-    } catch (error) {
-      console.error('Error sending API call:', error);
-      throw error;
-    }
-  };
+    await client.mutations.addUserToGroup({
+      groupName: "ADMINS",
+      userId: "5468d468-4061-70ed-8870-45c766d26225",
+    })
+  }
 
   return (
     <>
       <div className="flex justify-center">
         <div className="flex flex-col space-y-8">
+          <Link href="/session/create">
           <button
             className="bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-            onClick={handleStartNewSession}
           >
             Start new session
-          </button>
+            </button>
+          </Link>
           <button
             className="bg-secondary text-gray-800 py-2 px-4 rounded-md hover:bg-secondary/80 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
             onClick={handleViewResults}
@@ -261,6 +196,12 @@ export default function Home() {
             onClick={handleAll}
           >
             See all sessions
+          </button>
+          <button
+            className="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            onClick={manageAdminAccess}
+          >
+            Admin Area
           </button>
         </div>
       </div>
