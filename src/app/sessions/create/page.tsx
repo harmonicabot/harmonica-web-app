@@ -1,10 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { sendApiCall } from 'utils/utils'
-import { AccumulatedSessionData, RequestData, Sessions } from "utils/types"
-import { useRouter } from 'next/router'
-
 
 export default function CreateSession() {
   const [channelId, setChannelId] = useState('')
@@ -12,15 +9,6 @@ export default function CreateSession() {
   const [topic, setTopic] = useState('')
   const [context, setContext] = useState('')
   const [resultElement, setResultElement] = useState<JSX.Element>();
-
-  const router = useRouter();
-
-  useEffect(() => {
-    const token = document.cookie.replace(/(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/, "$1");
-    if (!token) {
-      router.push('/login');
-    }
-  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
