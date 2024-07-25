@@ -1,6 +1,5 @@
 import { create } from 'zustand'
-import { SessionData } from '../app/home/page'
-import { AccumulatedSessionData } from 'lib/utils'
+import { SessionData, AccumulatedSessionData } from 'utils/types'
 
 interface SessionStore {
   sessions: Record<string, SessionData[]>

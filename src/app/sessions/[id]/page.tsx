@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
 import Markdown from 'react-markdown'
 import { accumulateSessionData } from 'utils/utils';
