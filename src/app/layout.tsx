@@ -13,8 +13,8 @@ export default function RootLayout({
   return (
     <html lang="en">
         <body className="flex flex-col min-h-screen">         
-        <UserProvider>
-          <Auth>
+        {/* <UserProvider> */}
+          {/* <Auth> */}
           <nav className="flex flex-row justify-between items-center p-4">
             <Link href="/">
               <Logo />
@@ -24,8 +24,8 @@ export default function RootLayout({
           <main className="flex flex-col justify-center flex-grow">
             {children}
             </main>
-            </Auth>
-      </UserProvider>
+            {/* </Auth> */}
+      {/* </UserProvider> */}
         </body>
     </html>
   );

@@ -6,7 +6,7 @@ import { useSessionStore } from '@/stores/SessionStore';
 import Markdown from 'react-markdown'
 import { accumulateSessionData } from 'utils/utils';
 
-export default function Dashboard() {
+export default function DashboardIndividual() {
   const { id } = useParams() as { id: string };
 
   const [sessionData, setAccumulated] = useSessionStore(
