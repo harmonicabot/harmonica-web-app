@@ -2,7 +2,7 @@ import Link from 'next/link';
 import '../styles/global.css';
 import { UserProvider } from '../context/UserContext';
 import Auth from '@/components/Auth';
-import Logo from '@/components/ui/Logo';
+import Logo from '@/components/ui/logo';
 import UserStatus from '@/components/ui/UserStatus';
 
 
