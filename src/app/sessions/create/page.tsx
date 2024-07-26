@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { sendApiCall } from 'utils/utils'
 
 export default function CreateSession() {
-  const [channelId, setChannelId] = useState('')
+  const [botId, setBotId] = useState('')
   const [template, setTemplate] = useState('')
   const [topic, setTopic] = useState('')
   const [context, setContext] = useState('')
@@ -19,26 +19,27 @@ export default function CreateSession() {
         template: template,
         context: context,
         topic: topic,
-        channelId: channelId,
+        botId: botId,
         host_chat_id: 'WebApp',
       },
     }).then((response) => {
+      const botUrl = `https://t.me/${botId}?start=${response.session_id}`
       setResultElement(
         <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
           <h2 className="font-bold mb-2">Session Setup Successful!</h2>
           <p className="mb-2">Send this link to participants:</p>
           <div className="flex items-center space-x-2">
             <a
-              href={`https://t.me/harmomica_test_bot?start=${response.session_id}`}
+              href={botUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline"
             >
-              https://t.me/harmomica_test_bot?start={response.session_id}
+              {botUrl}
             </a>
             <button
               onClick={() => {
-                navigator.clipboard.writeText(`https://t.me/harmomica_test_bot?start=${response.session_id}`)
+                navigator.clipboard.writeText(botUrl)
                 document.getElementById('copyStatus').classList.remove('hidden')
                 setTimeout(() => {
                   document.getElementById('copyStatus').classList.add('hidden')
@@ -64,18 +65,6 @@ export default function CreateSession() {
           <h1 className="text-2xl font-bold mb-6">Create New Session</h1>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="channelId" className="block text-sm font-medium text-gray-700">
-                Channel ID
-              </label>
-              <input
-                type="text"
-                id="channelId"
-                value={channelId}
-                onChange={(e) => setChannelId(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-              />
-            </div>
-            <div>
               <label htmlFor="template" className="block text-sm font-medium text-gray-700">Template *</label>
               <select
                 id="template"
@@ -87,6 +76,22 @@ export default function CreateSession() {
                 <option value="">Select a template</option>
                 <option value="Daily review">Daily review</option>
                 <option value="Red-Teaming">Red-Teaming</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="botId" className="block text-sm font-medium text-gray-700">
+                Bot ID
+              </label>
+              <select
+                id="botId"
+                value={botId}
+                onChange={(e) => setBotId(e.target.value)}
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              >
+              <option value="">Select a template</option>
+              <option value="Harmonica_Daily_Review_bot">Daily Review Session</option>
+              <option value="Harmonica_RedTeam1Bot">Red-Teaming Session</option>
               </select>
             </div>
             <div>

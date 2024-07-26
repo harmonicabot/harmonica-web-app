@@ -30,7 +30,7 @@ export type SessionData = {
   result_text?: string;
   context?: string;
   topic?: string;
-  channelId?: string;
+  botId?: string;
   host_chat_id?: string;
   start_time?: string;
 };
