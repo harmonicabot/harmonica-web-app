@@ -12,7 +12,7 @@ export default function DashboardIndividual() {
   const [accumulated, setAccumulated] = useSessionStore(
     (state) => [
       state.accumulated[id],
-      state.setAccumulatedSessions
+      state.addAccumulatedSessions
     ]
   )
 

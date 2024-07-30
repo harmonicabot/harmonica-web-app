@@ -20,7 +20,7 @@ export function accumulateSessionData(data: RawSessionData): AccumulatedSessionD
       num_sessions: total_sessions,
       active: active,
       finished: finished,
-      summary: data.session_data.summary,
+      summary: data.session_data.result,
       template: data.session_data.template || '',
       topic: data.session_data.topic,
       context: data.session_data.context,

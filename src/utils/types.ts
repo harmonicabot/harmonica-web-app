@@ -29,9 +29,10 @@ export type RequestData = {
 export type RawSessionOverview = {
   topic: string;
   context: string;
-  summary: string;
+  result: string;
   template?: string;
-  session_id: string;
+  start_time?: Date;
+  botId?: string;
 }
 
 type SessionOverview = {
@@ -59,11 +60,7 @@ export type UserSessionData = {
   chat_text?: string;
   thread_id?: string;
   result_text?: string;
-  context?: string;
   topic?: string;
-  botId?: string;
-  host_chat_id?: string;
-  start_time?: string;
 };
 
 export type UserSessions = Record<string, UserSessionData>;
