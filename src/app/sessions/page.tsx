@@ -3,13 +3,23 @@
 import { useSessionStore } from "@/stores/SessionStore";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Sessions } from "utils/types";
+import { RawSessionData, RawSessionOverview, UserSessionData } from "utils/types";
 import { accumulateSessionData, sendApiCall } from "utils/utils";
 
 
+/**
+ * The `DashboardOverview` component is responsible for rendering the dashboard overview page. It fetches session data from an API and displays it in a grid layout, with filtering options to show all sessions, only active sessions, only finished sessions, or only sessions with a summary.
+ *
+ * The component uses the `useSessionStore` hook to manage the state of the accumulated session data, and the `useState` and `useEffect` hooks to handle loading, filtering, and rendering the session data.
+ *
+ * The component renders a loading spinner while the data is being fetched, and then displays the session data in a grid layout with various filtering options.
+ *
+ * @returns {JSX.Element} The rendered `DashboardOverview` component.
+ */
 export default function DashboardOverview() {
   const [loading, setIsLoading] = useState(true);
   const [resultElement, setResultElement] = useState(<></>);
+  const [selectedSessions, setSelectedSessions] = useState({});
   const [accumulated, setAccumulatedSessions] = useSessionStore((state) => [
     state.accumulated,
     state.setAccumulatedSessions
@@ -27,6 +37,7 @@ export default function DashboardOverview() {
     summary: false,
   });
 
+
   const loadingElement = (
     <div className="flex justify-center items-center h-screen">
       <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
@@ -38,34 +49,116 @@ export default function DashboardOverview() {
   useEffect(() => {
     console.log("Fetching data on page load...")
     if (!accumulated || Object.keys(accumulated).length === 0) {
-      console.log("No data in store, fetching...")
-      sendApiCall({
-        action: 'stats'
-      }).then((response: Sessions) => {
-        console.log("All Sessions: ", response)
-        const groupedSessions = response.reduce<Record<string, Sessions>>((acc, session) => {
-          if (!acc[session.session_id]) {
-            acc[session.session_id] = []
-          }
-          acc[session.session_id].push(session)
-          return acc
-        }, {})
-
-        // Add all sessions to the store
-        Object.entries(groupedSessions).forEach(([sessionId, sessions]) => {
-          let accumulated = accumulateSessionData(sessions)
-          setAccumulatedSessions(sessionId, accumulated)
-          setIsLoading(false);
-        })
-    
-        setShouldUpdateResult(true);
-      })
+      fetchUserAndSessionData();
     } else {
-      console.log(`Data found in store: ${accumulated}, not fetching...`)
+      console.log(`Data found in store, not fetching...`)
       setIsLoading(false);
       setShouldUpdateResult(true);
     }
-  }, [accumulated, setAccumulatedSessions]);
+  }, [accumulated, setAccumulatedSessions]); 
+
+  async function fetchUserAndSessionData() {
+    const response = await fetch('/api/sessions');
+    if (!response.ok) {
+      console.error('Network response was not ok: ', response.status, response.text);
+      return null;
+    }
+    const data = await response.json();
+    console.log('Data fetched from API:', data);
+    return parseDbItems(data.userData, data.sessionData);
+  }
+
+  type DbResponse = {
+    records: Records[];
+  }  
+
+  type Records = {
+    key: string;
+    data: UserSessionData | RawSessionOverview;
+  }
+
+  function parseDbItems(userData: DbResponse, sessionData: DbResponse) {
+    sessionData.records.forEach((record) => {
+      let entry: RawSessionData = {
+        session_data: record.data as RawSessionOverview,
+        user_data: userData.records.reduce((acc, userRecord) => {
+          const uData = userRecord.data as UserSessionData;
+          if (uData.session_id === record.key) {
+            acc[userRecord.key] = uData;
+          }
+          return acc;
+        }, {} as Record<string, UserSessionData>)
+      }
+      const accumulated = accumulateSessionData(entry);
+      setAccumulatedSessions(record.key, accumulated);
+    });
+    setIsLoading(false);
+    setShouldUpdateResult(true);
+  }
+
+  const toggleSessionSelection = (sessionId: string) => {
+    console.log("Adding session to selection:", sessionId);
+    console.log("Selection before updating:", selectedSessions);
+    setSelectedSessions(prev => ({
+      ...prev,
+      [sessionId]:!prev[sessionId]
+    }));
+    console.log("Selection after updating: ", selectedSessions);
+    setShouldUpdateResult(true);
+  };
+
+
+  const handleDeleteSelected = async () => {
+    // Show confirmation modal
+    const toDelete = Object.keys(selectedSessions).filter(id => selectedSessions[id]);
+    if (confirm(`Are you sure you want to delete ${toDelete.length} selected sessions?`)) {
+      
+      console.log(`Deleting ${toDelete} from host db...`)
+
+      // Before we can delete from the user store, we need to filter the entries that have the session_id and get their keys...
+      const ids = Object.values(accumulated)
+        .filter((data) =>
+          Object.entries(data.user_data)
+            .filter(([_, userSessionData]) => toDelete.includes(userSessionData.session_id))
+            .map(([id, _]) => id)
+      );
+
+      console.log(`Deleting ${ids} from user db...`)
+      
+      let response = await fetch('api/sessions', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ids: ids, database: 'user' })
+      });      
+
+      if (!response.ok) {
+        console.error('There was a problem deleting ids:', response.status, response.statusText);
+        return;
+      }
+      
+      response = await fetch('api/sessions', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ids: toDelete, database: 'session' })
+      });
+      
+      if (!response.ok) {
+        console.error('There was a problem deleting ids:', response.status, response.statusText);
+        return;
+      }
+
+      toDelete.forEach(sessionId => {
+        setAccumulatedSessions(sessionId, null);
+      });
+      
+      // Clear selected sessions
+      setSelectedSessions({});
+    }
+  };
 
   // Update Filter Effect:
   useEffect(() => {
@@ -106,22 +199,30 @@ export default function DashboardOverview() {
             </h2>
             {Object.entries(accumulated)
               .filter(([_, acc]) => {
+                console.log("Filtering:", filter);
                 if (filter.any) return true;
-                if (filter.active) return acc.active > 0;
-                if (filter.finished) return acc.finished > 0 && acc.active === 0;
-                if (filter.summary) return acc.summary;
+                if (filter.active) return acc.session_data.active > 0;
+                if (filter.finished) return acc.session_data.finished > 0 && acc.session_data.active === 0;
+                if (filter.summary) return acc.session_data.summary;
                 return false;
               })
-              .map(([sessionId, acc]) => {
+              .map(([sessionId, accumulatedSess]) => {
                 return (
                   <Link href={`/sessions/${sessionId}`} key={sessionId}>
                     <div
                       key={sessionId}
-                      className="bg-white shadow-md rounded-lg overflow-hidden transition-transform hover:scale-105 m-2"
+                      className="bg-white shadow-md rounded-lg overflow-hidden transition-transform hover:scale-105 m-2 relative"
                     >
+                      <input
+                        type="checkbox"
+                        className="absolute top-2 right-2 z-10 w-6 h-6 cursor-pointer"
+                        checked={!!selectedSessions[sessionId]}
+                        onChange={() => toggleSessionSelection(sessionId)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
                       <div className="bg-primary text-white p-4">
                         <h3 className="text-lg font-semibold">
-                          {acc.topic ? acc.topic : `Session ID: ${sessionId}`}
+                          {accumulatedSess.session_data.topic || (`Session ID: ${sessionId}` + (accumulatedSess.session_data.template ? ` - ${accumulatedSess.session_data.template}` : ""))}
                         </h3>
                       </div>
                       <div className="p-4">
@@ -129,17 +230,17 @@ export default function DashboardOverview() {
                           <span className="font-medium">
                             Active Participants:
                           </span>{' '}
-                          {acc.active}
+                          {accumulatedSess.session_data.active}
                         </p>
                         <p className="mb-2">
                           <span className="font-medium">
                             Finished Participants:
                           </span>{' '}
-                          {acc.finished}
+                          {accumulatedSess.session_data.finished}
                         </p>
                         <p>
                           <span className="font-medium">Summary:</span>{' '}
-                          {acc.summary ? 'Available' : 'Empty'}
+                          {accumulatedSess.session_data.summary ? 'Available' : 'Empty'}
                         </p>
                       </div>
                     </div>
@@ -147,6 +248,18 @@ export default function DashboardOverview() {
                 );
               })}
           </div>
+          {Object.values(selectedSessions).some(Boolean) && (
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">Selected Sessions:</h2>
+              <button
+                className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-md"
+                onClick={handleDeleteSelected}
+                disabled={Object.values(selectedSessions).some(Boolean) === false}
+              >
+                Delete Selected
+              </button>
+            </div>
+          )}
         </div>
       );
       setShouldUpdateResult(false);

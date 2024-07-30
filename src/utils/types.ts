@@ -1,4 +1,40 @@
+export type AllRawSessionData = {
+  all_session_data: RawSessionOverview[]
+  all_user_data: Record<string, UserSessionData>[];
+};
+
+export type RawSessionData = {
+  session_data: RawSessionOverview
+  user_data: Record<string, UserSessionData>;
+};
+
+export type AllAccumulatedSessionData = {
+  accumulated_data: Record<string, AccumulatedSessionData>
+};
+
 export type AccumulatedSessionData = {
+  session_data: SessionOverview
+  user_data: Record<string, UserSessionData>;
+};
+
+export type MultipleSessions = {
+  session_ids: Set<string>;
+};
+
+export type RequestData = {
+  action: string;
+  data?: UserSessionData | MultipleSessions;
+}
+
+export type RawSessionOverview = {
+  topic: string;
+  context: string;
+  summary: string;
+  template?: string;
+  session_id: string;
+}
+
+type SessionOverview = {
   num_sessions: number;
   active: number;
   finished: number;
@@ -6,11 +42,6 @@ export type AccumulatedSessionData = {
   template: string;
   topic: string;
   context: string;
-};
-
-export type RequestData = {
-  action: string;
-  data?: SessionData;
 }
 
 // All of the fields are marked as optional, 
@@ -19,7 +50,7 @@ export type RequestData = {
 //  but splitting them out and making a union of either | or
 //  would result in having to do type narrowing and some other stuff
 //  which is kinda annoying. 🥴
-export type SessionData = {
+export type UserSessionData = {
   session_id?: string;
   active?: number | boolean;
   user_id?: string;
@@ -35,4 +66,4 @@ export type SessionData = {
   start_time?: string;
 };
 
-export type Sessions = SessionData[];
+export type UserSessions = Record<string, UserSessionData>;

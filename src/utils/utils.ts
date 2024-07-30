@@ -1,32 +1,33 @@
 import { type ClassValue, clsx } from 'clsx';
-import { NextResponse } from 'next/server';
 import { twMerge } from 'tailwind-merge';
-import { AccumulatedSessionData, RequestData, Sessions } from 'utils/types';
+import { AccumulatedSessionData, RawSessionData, RequestData } from 'utils/types';
+import type { NextApiRequest, NextApiResponse } from 'next' 
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function accumulateSessionData(data: Sessions) {
+export function accumulateSessionData(data: RawSessionData): AccumulatedSessionData {
+  console.log('Raw session data:', data);
+
+  const userSessions = Object.values(data.user_data);
+  const total_sessions = userSessions.length;
+  const active = userSessions.filter((session) => session.active === true).length;
+  const finished = total_sessions - active;
+  
   const accumulated: AccumulatedSessionData = {
-    num_sessions: data.length,
-    active: 0,
-    finished: 0,
-    summary: '',
-    template: '',
-    topic: '',
-    context: '',
+    session_data: {
+      num_sessions: total_sessions,
+      active: active,
+      finished: finished,
+      summary: data.session_data.summary,
+      template: data.session_data.template || '',
+      topic: data.session_data.topic,
+      context: data.session_data.context,
+    },
+    user_data: data.user_data,
   };
-
-  data.forEach((session) => {
-    accumulated.active += session.active ? 1 : 0;
-    accumulated.finished += session.active ? 0 : 1;
-    accumulated.summary = session.result_text || accumulated.summary;
-    accumulated.template = session.template || accumulated.template;
-    accumulated.topic = session.topic || accumulated.topic;
-    accumulated.context = session.context || accumulated.context;
-  });
-
+  console.log('Accumulated session data:', accumulated);
   return accumulated;
 }
 
@@ -42,12 +43,10 @@ export const sendApiCall = async (body: RequestData) => {
 
   if (!response.ok) {
     console.error('Error from API:', response.status, response.statusText);
-    return [];
+    return null;
   }
 
   const responseText = await response.text();
-  console.log('Raw response: ', responseText);
   const result = JSON.parse(responseText);
-  console.log('API response:', result);
   return result;
 };
