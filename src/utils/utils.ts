@@ -27,7 +27,7 @@ export function accumulateSessionData(data: RawSessionData): AccumulatedSessionD
     },
     user_data: data.user_data,
   };
-  console.log('Accumulated session data:', accumulated);
+  console.log('Accumulated session data:', accumulated.session_data);
   return accumulated;
 }
 
