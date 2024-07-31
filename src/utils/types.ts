@@ -61,6 +61,9 @@ export type UserSessionData = {
   thread_id?: string;
   result_text?: string;
   topic?: string;
+  context?: string;
+  bot_id?: string;
+  host_chat_id?: string;
 };
 
 export type UserSessions = Record<string, UserSessionData>;

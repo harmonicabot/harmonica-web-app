@@ -19,7 +19,7 @@ export default function CreateSession() {
         template: template,
         context: context,
         topic: topic,
-        botId: botId,
+        bot_id: botId,
         host_chat_id: 'WebApp',
       },
     }).then((response) => {
