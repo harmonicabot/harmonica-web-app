@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
+  console.log("Sending server side request. Loading Env Var: ", process.env.TESTING_VAR)
   const url = process.env.DATABASE_URL;
   const req_body = await request.json();
   console.log('ReqBody: ', req_body);

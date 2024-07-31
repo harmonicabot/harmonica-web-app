@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 export default function Home() {
+  console.log("Home page loaded. Env Var loaded: ", process.env.TESTING_VAR);
   return (
     <>
       <div className="flex justify-center">
