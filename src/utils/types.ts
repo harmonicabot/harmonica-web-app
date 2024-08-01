@@ -1,3 +1,7 @@
+// TODO: Clean up types to make them more concise and intuitive.
+//  There's just too much going on right now and the separation between
+//  UserData, SessionData & AccumulatedData isn't clear enough.
+
 export type AllRawSessionData = {
   all_session_data: RawSessionOverview[]
   all_user_data: Record<string, UserSessionData>[];
@@ -51,6 +55,11 @@ type SessionOverview = {
 //  but splitting them out and making a union of either | or
 //  would result in having to do type narrowing and some other stuff
 //  which is kinda annoying. 🥴
+// TODO: This might also be a bit misrepresenting now and should probably be renamed: 
+//  the data types have changed and this isn't purely _USER_data, but more an amalgamation of 
+//  user AND Session Data, I think. Or possibly it is ONLY userData now 
+//  in which case some fields should be updated. 
+//  Whatever it is, right now it's difficult to know what it actually is 😵‍💫
 export type UserSessionData = {
   session_id?: string;
   active?: number | boolean;
