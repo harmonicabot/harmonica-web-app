@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { sendApiCall } from 'utils/utils'
+import QRCode from 'qrcode.react';
 
 export default function CreateSession() {
   const [botId, setBotId] = useState('')
@@ -53,6 +54,7 @@ export default function CreateSession() {
             </button>
           </div>
           <p id="copyStatus" className="text-sm text-green-600 mt-2 hidden">Link copied to clipboard!</p>
+          <QRCode className="m-6" value={botUrl} size={512} />
         </div>
       )
     })
