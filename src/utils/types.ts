@@ -27,7 +27,7 @@ export type MultipleSessions = {
 
 export type RequestData = {
   action: string;
-  data?: UserSessionData | MultipleSessions;
+  data?: WebhookData | MultipleSessions;
 }
 
 export type RawSessionOverview = {
@@ -73,6 +73,16 @@ export type UserSessionData = {
   context?: string;
   bot_id?: string;
   host_chat_id?: string;
+};
+
+export type WebhookData = {
+  session_id?: string;
+  template?: string;
+  topic?: string;
+  context?: string;
+  bot_id?: string;
+  host_chat_id?: string;
+  finished?: number;
 };
 
 export type UserSessions = Record<string, UserSessionData>;

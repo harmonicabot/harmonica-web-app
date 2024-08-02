@@ -42,9 +42,10 @@ export default function DashboardIndividual() {
   const createSummary = async () => {
     console.log(`Creating summary for ${id}...`)
     const data = await sendApiCall({
-      action: "summary",
+      action: "create summary",
       data: {
         session_id: id,
+        finished: accumulated.session_data.finished
       },
     });
     accumulated.session_data.summary = data;
