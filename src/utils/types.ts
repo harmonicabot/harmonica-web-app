@@ -3,21 +3,21 @@
 //  UserData, SessionData & AccumulatedData isn't clear enough.
 
 export type AllRawSessionData = {
-  all_session_data: RawSessionOverview[]
+  all_session_data: RawSessionOverview[];
   all_user_data: Record<string, UserSessionData>[];
 };
 
 export type RawSessionData = {
-  session_data: RawSessionOverview
+  session_data: RawSessionOverview;
   user_data: Record<string, UserSessionData>;
 };
 
 export type AllAccumulatedSessionData = {
-  accumulated_data: Record<string, AccumulatedSessionData>
+  accumulated_data: Record<string, AccumulatedSessionData>;
 };
 
 export type AccumulatedSessionData = {
-  session_data: SessionOverview
+  session_data: SessionOverview;
   user_data: Record<string, UserSessionData>;
 };
 
@@ -28,7 +28,7 @@ export type MultipleSessions = {
 export type RequestData = {
   action: string;
   data?: WebhookData | MultipleSessions;
-}
+};
 
 export type RawSessionOverview = {
   topic: string;
@@ -37,7 +37,8 @@ export type RawSessionOverview = {
   template?: string;
   start_time?: Date;
   botId?: string;
-}
+  final_report_sent?: boolean;
+};
 
 type SessionOverview = {
   num_sessions: number;
@@ -47,18 +48,19 @@ type SessionOverview = {
   template: string;
   topic: string;
   context: string;
-}
+  finalReportSent: boolean;
+};
 
-// All of the fields are marked as optional, 
-//  because sometimes we need only session_id, 
+// All of the fields are marked as optional,
+//  because sometimes we need only session_id,
 //  and sometimes only some of the others;
 //  but splitting them out and making a union of either | or
 //  would result in having to do type narrowing and some other stuff
 //  which is kinda annoying. 🥴
-// TODO: This might also be a bit misrepresenting now and should probably be renamed: 
-//  the data types have changed and this isn't purely _USER_data, but more an amalgamation of 
-//  user AND Session Data, I think. Or possibly it is ONLY userData now 
-//  in which case some fields should be updated. 
+// TODO: This might also be a bit misrepresenting now and should probably be renamed:
+//  the data types have changed and this isn't purely _USER_data, but more an amalgamation of
+//  user AND Session Data, I think. Or possibly it is ONLY userData now
+//  in which case some fields should be updated.
 //  Whatever it is, right now it's difficult to know what it actually is 😵‍💫
 export type UserSessionData = {
   session_id?: string;
