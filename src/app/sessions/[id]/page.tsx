@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
 import Markdown from 'react-markdown';
@@ -8,7 +8,6 @@ import { accumulateSessionData, sendApiCall } from 'utils/utils';
 
 export default function DashboardIndividual() {
   const { id } = useParams() as { id: string };
-  const router = useRouter();
 
   const [accumulated, setAccumulated] = useSessionStore((state) => [
     state.accumulated[id],
