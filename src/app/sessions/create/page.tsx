@@ -116,10 +116,10 @@ export default function CreateSession() {
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               >
                 <option value="">Select a template</option>
-                <option value="Harmonica_Daily_Review_bot">
+                <option value="harmonica_end_of_day_review_bot">
                   Daily Review Session
                 </option>
-                <option value="Harmonica_RedTeam1Bot">
+                <option value="harmonica_red_teaming_bot">
                   Red-Teaming Session
                 </option>
                 <option value="harmonica_chat_bot">End-Of-Talk Session</option>
