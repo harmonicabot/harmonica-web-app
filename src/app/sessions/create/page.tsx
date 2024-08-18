@@ -88,18 +88,20 @@ export default function CreateSession() {
               >
                 Template *
               </label>
-              <select
+              <input
+                list="templates"
                 id="template"
                 value={template}
                 onChange={(e) => setTemplate(e.target.value)}
                 required
+                placeholder="Select a template or enter an assistant ID"
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-              >
-                <option value="">Select a template</option>
+              />
+              <datalist id="templates">
                 <option value="Daily review">Daily review</option>
                 <option value="Red-Teaming">Red-Teaming</option>
                 <option value="End-Of-Talk">End-Of-Talk</option>
-              </select>
+              </datalist>
             </div>
             <div>
               <label
@@ -115,14 +117,10 @@ export default function CreateSession() {
                 required
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               >
-                <option value="">Select a template</option>
-                <option value="harmonica_end_of_day_review_bot">
-                  Daily Review Session
-                </option>
-                <option value="harmonica_red_teaming_bot">
-                  Red-Teaming Session
-                </option>
-                <option value="harmonica_chat_bot">End-Of-Talk Session</option>
+                <option value="">Select the bot channel that should be used.</option>
+                <option value="harmonica_chat_bot">Harmonica Chat Bot</option>
+                <option value="harmonica_end_of_day_review_bot">End of day Bot</option>
+                <option value="harmonica_red_teaming_bot">Red-Teaming Bot</option>
               </select>
             </div>
             <div>

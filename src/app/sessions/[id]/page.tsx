@@ -1,18 +1,18 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
 import Markdown from 'react-markdown';
 import { accumulateSessionData, sendApiCall } from 'utils/utils';
 
 export default function DashboardIndividual() {
   const { id } = useParams() as { id: string };
-
+  const [loadSummary, setLoadSummary] = useState(false)
   const [accumulated, setAccumulated] = useSessionStore((state) => [
-    state.accumulated[id],
-    state.addAccumulatedSessions,
-  ]);
+      state.accumulated[id],
+      state.addAccumulatedSessions,
+    ]);
 
   useEffect(() => {
     console.log('useEffect triggered to fetch session data for ', id);
@@ -49,6 +49,7 @@ export default function DashboardIndividual() {
 
   const createSummary = async () => {
     console.log(`Creating summary for ${id}...`);
+    setLoadSummary(true)
     const data = await sendApiCall({
       action: 'create summary',
       data: {
@@ -58,6 +59,12 @@ export default function DashboardIndividual() {
     });
     await fetchSessionData();
   };
+
+  useEffect(() => {
+    if (accumulated?.session_data.summary) {
+      setLoadSummary(false);
+    }
+  }, [accumulated?.session_data.summary]);
 
   const handleDelete = async () => {
     console.log(`Deleting session ${id}...`);
@@ -105,11 +112,24 @@ export default function DashboardIndividual() {
       <div className="mt-6 bg-white p-4 rounded shadow">
         <h2 className="text-xl font-semibold mb-2">Summary</h2>
         {accumulated.session_data.summary ? (
-          <Markdown>{accumulated.session_data.summary}</Markdown>
+          <>
+            <Markdown>{accumulated.session_data.summary}</Markdown>          
+          </>
         ) : (
-          <button className="bg-yellow-300" onClick={createSummary}>
-            Create
-          </button>
+          <>
+          {loadSummary ? (
+            <div className="flex justify-center items-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+          ) : (
+            <button
+              className='bg-yellow-300 px-4 py-2 rounded hover:bg-yellow-400 transition-colors'
+              onClick={createSummary}
+            >
+              Create Summary
+            </button>
+          )}
+        </>
         )}
       </div>
       <div className="m-6">
