@@ -8,6 +8,7 @@
       "@/pages/*": ["pages/*"],
       "@/context/*": ["context/*"],
       "@/stores/*": ["stores/*"],
+      "@/lib/*": ["utils/*"],
     },
     "allowJs": true,
     "skipLibCheck": true,

@@ -8,7 +8,7 @@ import {
   RawSessionOverview,
   UserSessionData,
 } from 'utils/types';
-import { accumulateSessionData, sendApiCall } from 'utils/utils';
+import { accumulateSessionData, sendCallToMake } from 'utils/utils';
 
 /**
  * The `DashboardOverview` component is responsible for rendering the dashboard overview page. It fetches session data from an API and displays it in a grid layout, with filtering options to show all sessions, only active sessions, only finished sessions, or only sessions with a summary.

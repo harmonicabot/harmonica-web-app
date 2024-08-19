@@ -1,20 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { sendApiCall } from 'utils/utils';
+import { sendCallToMake } from 'utils/utils';
 import QRCode from 'qrcode.react';
+import { useSearchParams } from 'next/navigation';
 
 export default function CreateSession() {
-  const [botId, setBotId] = useState('');
-  const [template, setTemplate] = useState('');
-  const [topic, setTopic] = useState('');
+  const searchParams = useSearchParams();
+  const assistantId = searchParams.get('assistantId');
+  const templateName = searchParams.get('templateName');
+  const botName = searchParams.get('botName');
+  
+  const [botId, setBotId] = useState(botName || '');
+  const [template, setTemplate] = useState(assistantId || '');
+  const [topic, setTopic] = useState(templateName || '');
   const [context, setContext] = useState('');
   const [resultElement, setResultElement] = useState<JSX.Element>();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Submitting form...: ', e);
-    sendApiCall({
+    sendCallToMake({
       action: 'new_session',
       data: {
         template: template,

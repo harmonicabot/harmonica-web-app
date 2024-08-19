@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
 import Markdown from 'react-markdown';
-import { accumulateSessionData, sendApiCall } from 'utils/utils';
+import { accumulateSessionData, sendCallToMake } from 'utils/utils';
 
 export default function DashboardIndividual() {
   const { id } = useParams() as { id: string };
@@ -27,7 +27,7 @@ export default function DashboardIndividual() {
 
   const fetchSessionData = async () => {
     console.log(`Fetching session data for ${id}...`);
-    const data = await sendApiCall({
+    const data = await sendCallToMake({
       action: 'stats',
       data: {
         session_id: id,
@@ -38,7 +38,7 @@ export default function DashboardIndividual() {
   };
 
   const sendFinalReport = async () => {
-    const data = await sendApiCall({
+    const data = await sendCallToMake({
       action: 'send final report',
       data: {
         session_id: id,
@@ -50,7 +50,7 @@ export default function DashboardIndividual() {
   const createSummary = async () => {
     console.log(`Creating summary for ${id}...`);
     setLoadSummary(true)
-    const data = await sendApiCall({
+    const data = await sendCallToMake({
       action: 'create summary',
       data: {
         session_id: id,
@@ -68,7 +68,7 @@ export default function DashboardIndividual() {
 
   const handleDelete = async () => {
     console.log(`Deleting session ${id}...`);
-    const data = await sendApiCall({
+    const data = await sendCallToMake({
       action: 'delete',
       data: {
         session_id: id,

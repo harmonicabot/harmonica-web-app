@@ -2,6 +2,7 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import {
   AccumulatedSessionData,
+  MakeRequestData,
   RawSessionData,
   RequestData,
 } from 'utils/types';
@@ -43,7 +44,7 @@ export function accumulateSessionData(
 
 export const sendApiCall = async (body: RequestData) => {
   console.log('Sending API call:', body);
-  const response = await fetch('/api/session', {
+  const response = await fetch('/api/' + body.target, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -59,4 +60,11 @@ export const sendApiCall = async (body: RequestData) => {
   const responseText = await response.text();
   const result = JSON.parse(responseText);
   return result;
+};
+
+export const sendCallToMake = async (body: MakeRequestData) => {
+  return sendApiCall({
+    target: 'session',
+    ...body,
+  });
 };

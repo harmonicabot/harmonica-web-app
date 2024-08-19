@@ -26,6 +26,11 @@ export type MultipleSessions = {
 };
 
 export type RequestData = {
+  target: string;
+  data?: WebhookData | MultipleSessions | TemplateBuilderData;
+};
+
+export type MakeRequestData = {
   action: string;
   data?: WebhookData | MultipleSessions;
 };
@@ -85,6 +90,20 @@ export type WebhookData = {
   bot_id?: string;
   host_chat_id?: string;
   finished?: number;
+};
+
+export type TemplateBuilderData = {
+  templateName: string;
+  templateDescription: string;
+  aiRole: string;
+  taskDescription: string;
+  actionSteps: string[];
+  otherInstructions: string;
+  createSummary: boolean;
+  summaryFeedback: boolean;
+  requireContext: boolean;
+  contextDescription: string;
+  enableSkipSteps: boolean;
 };
 
 export type UserSessions = Record<string, UserSessionData>;
