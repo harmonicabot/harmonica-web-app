@@ -38,14 +38,17 @@ export default function CreateSession() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const assistantTemplate = availableTemplates.find(tpl => tpl.name === template);
+    let templateId;
     if (assistantTemplate) {
-      setTemplate(assistantTemplate.id)
+      templateId = assistantTemplate.id;
+    } else {
+      templateId = template
     }
     const payload = {
       target: ApiTarget.Session,
       action: ApiAction.CreateSession,
       data: {
-        template: template,
+        template: templateId,
         context: context,
         topic: topic,
         bot_id: botId,
