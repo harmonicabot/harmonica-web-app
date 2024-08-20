@@ -79,11 +79,10 @@ async function handleCreatePrompt(data: TemplateBuilderData) {
 }
 
 async function handleCreateAssistant(data: AssistantBuilderData) {
-  return NextResponse.json({ assistantId: 'xyz123' })
-  // const assistant = await client.beta.assistants.create({
-  //   name: data.name,
-  //   instructions: data.prompt,
-  //   model: "gpt-4o-mini",
-  // }) 
-  // return NextResponse.json({ assistantId: assistant.id })
+  const assistant = await client.beta.assistants.create({
+    name: data.name,
+    instructions: data.prompt,
+    model: "gpt-4o-mini",
+  }) 
+  return NextResponse.json({ assistantId: assistant.id })
 }

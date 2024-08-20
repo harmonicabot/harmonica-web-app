@@ -150,9 +150,6 @@ export default function TemplatePage() {
       });
       const file = await fileHandle.getFile();
       const content = await file.text();
-      // Wait for 4 seconds before setting the prompt
-      await new Promise(resolve => setTimeout(resolve, 4000))
-
       setPrompt(content);
       setPromptComplete(true);
       setIsLoading(LoadingState.Finished);
