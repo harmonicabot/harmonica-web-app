@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { sendApiCall } from '@/lib/utils';
 import { ApiAction, ApiTarget, TemplateBuilderData } from '@/lib/types';
 import { useRouter } from 'next/navigation';
+import { set } from 'react-hook-form';
 
 export default function TemplatePage() {
   const [formData, setFormData] = useState<TemplateBuilderData>({
@@ -19,7 +20,14 @@ export default function TemplatePage() {
     contextDescription: '',
     enableSkipSteps: false,
   });
-
+  
+  enum LoadingState {
+    CreatingPrompt,
+    CreatingAssistant,
+    Finished,
+  }
+  const [isLoading, setIsLoading] = useState<LoadingState>(LoadingState.Finished)
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -35,9 +43,35 @@ export default function TemplatePage() {
   const [prompt, setPrompt] = useState('');
   const [promptComplete, setPromptComplete] = useState(false);
   const [isEditing, setIsEditing] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('');
+
+  const loadingMessages = [
+    "Brewing a witty prompt, hold tight!",
+    "Summoning the muses of AI, please wait...",
+    "Channeling the spirit of Shakespeare, one moment...",
+    "Consulting the oracle of algorithms, standby...",
+    "Decoding the matrix of creativity, almost there...",
+    "Stirring the cauldron of artificial intelligence...",
+    "Weaving a tapestry of digital brilliance...",
+    "Calibrating the flux capacitor of ideas...",
+    "Harnessing the power of a thousand CPUs...",
+    "Traversing the neural networks of imagination..."
+  ];
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLoading !== LoadingState.Finished) {
+      interval = setInterval(() => {
+        const randomIndex = Math.floor(Math.random() * loadingMessages.length);
+        setLoadingMessage(loadingMessages[randomIndex]);
+      }, 2500);
+    }
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(LoadingState.CreatingPrompt);
     if (prompt) {
       const confirmAppend = window.confirm(
         `This will append the prompt to the existing prompt. 
@@ -72,12 +106,14 @@ export default function TemplatePage() {
       setPrompt(prevPrompt => prevPrompt + chunk);
     }
     setPromptComplete(true);
+    setIsLoading(LoadingState.Finished);
   };
   
   const router = useRouter();
 
   const handleConfirmAssistantPrompt = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(LoadingState.CreatingAssistant);
     sendApiCall({
       action: ApiAction.CreateAssistant,
       target: ApiTarget.Builder,
@@ -86,15 +122,45 @@ export default function TemplatePage() {
         name: formData.templateName,
       },
     }).then((response) => {
-      router.push(`/sessions/create
-        ?assistantId=${response.assistantId}
-        &templateName=${formData.templateName}
-        &botName=harmonica_chat_bot
-        &contextDescription=${formData.contextDescription}`
+      setIsLoading(LoadingState.Finished);
+      router.push(
+        `/sessions/create?assistantId=${response.assistantId}` +
+        `&templateName=${formData.templateName}` +
+        `&botName=harmonica_chat_bot` +
+        `&contextDescription=${formData.contextDescription}`
       );
     })
   };
   
+  const handleUploadPrompt = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(LoadingState.CreatingPrompt);
+    // Remove any previous prompt. Should we warn users about it?
+    // The most common situation for this is probably if they upload one file, realize it was the wrong one, 
+    // and then upload a different one with the intention to replace the previous content.
+    setPrompt('');
+    try {
+      const [fileHandle] = await window.showOpenFilePicker({
+        types: [{
+            description: 'Text Files',
+            accept: {
+              'text/plain': ['.txt'],
+          },
+        }]
+      });
+      const file = await fileHandle.getFile();
+      const content = await file.text();
+      // Wait for 4 seconds before setting the prompt
+      await new Promise(resolve => setTimeout(resolve, 4000))
+
+      setPrompt(content);
+      setPromptComplete(true);
+      setIsLoading(LoadingState.Finished);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
+  };
+
   const handleDownloadPrompt = () => {
     const blob = new Blob([prompt], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -114,12 +180,14 @@ export default function TemplatePage() {
             value={formData.templateName}
             onChange={handleInputChange}
             placeholder="Template Name"
+            disabled={isLoading === LoadingState.CreatingPrompt}
           />
           <Textarea
             name="taskDescription"
             value={formData.taskDescription}
             onChange={handleInputChange}
             placeholder="Task Description"
+            disabled={isLoading === LoadingState.CreatingPrompt}
           />
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -127,6 +195,7 @@ export default function TemplatePage() {
                 id="create-summary"
                 checked={formData.createSummary}
                 onCheckedChange={handleSwitchChange('createSummary')}
+                disabled={isLoading === LoadingState.CreatingPrompt}
               />
               <label htmlFor="create-summary">Create Summary</label>
             </div>
@@ -135,6 +204,7 @@ export default function TemplatePage() {
                 id="summary-feedback"
                 checked={formData.summaryFeedback}
                 onCheckedChange={handleSwitchChange('summaryFeedback')}
+                disabled={isLoading === LoadingState.CreatingPrompt}
               />
               <label htmlFor="summary-feedback">Summary Feedback</label>
             </div>
@@ -143,6 +213,7 @@ export default function TemplatePage() {
                 id="require-context"
                 checked={formData.requireContext}
                 onCheckedChange={handleSwitchChange('requireContext')}
+                disabled={isLoading === LoadingState.CreatingPrompt}
               />
               <label htmlFor="require-context">Require Context</label>
               </div>
@@ -152,6 +223,7 @@ export default function TemplatePage() {
                 value={formData.contextDescription}
                 onChange={handleInputChange}
                 placeholder="What context is required?"
+                disabled={isLoading === LoadingState.CreatingPrompt}
               />
             )}
             <div className="flex items-center space-x-2">
@@ -159,6 +231,7 @@ export default function TemplatePage() {
                 id="enable-skip-steps"
                 checked={formData.enableSkipSteps}
                 onCheckedChange={handleSwitchChange('enableSkipSteps')}
+                disabled={isLoading === LoadingState.CreatingPrompt}
               />
               <label htmlFor="enable-skip-steps">Enable participants to skip steps</label>
             </div>
@@ -168,29 +241,16 @@ export default function TemplatePage() {
               type="submit"
               onClick={isEditing ? handleSubmit : () => setIsEditing(true)}
               className="w-full m-2"
+              disabled={isLoading === LoadingState.CreatingPrompt}
             >
-              {isEditing ? 'Submit' : 'Edit'}
+              {isLoading === LoadingState.CreatingPrompt ? (
+                showLoadingIndicator()
+              ) : (
+                isEditing ? 'Submit' : 'Edit'
+              )}
             </Button>
             <Button className="m-2 bg-accent text-gray-800 hover:bg-gray-400/50"
-              onClick={async (e) => {
-                e.preventDefault();
-                try {
-                  const [fileHandle] = await window.showOpenFilePicker({
-                    types: [{
-                        description: 'Text Files',
-                        accept: {
-                          'text/plain': ['.txt'],
-                      },
-                    }]
-                  });
-                  const file = await fileHandle.getFile();
-                  const content = await file.text();
-                  setPrompt(content);
-                  setPromptComplete(true);
-                } catch (error) {
-                  console.error('Error uploading file:', error);
-                }
-              }}
+              onClick={handleUploadPrompt}
             >
               Load Prompt
             </Button>
@@ -209,19 +269,38 @@ export default function TemplatePage() {
                 rows={12}
               />
             </div>
-            <div className="flex space-x-2">
-              <Button onClick={handleDownloadPrompt}>Download Prompt</Button>
+            <div className="flex justify-between">
+              <Button
+                type="button"
+                onClick={handleConfirmAssistantPrompt}
+                className="w-full m-2"
+                disabled={isLoading === LoadingState.CreatingAssistant}
+              >
+                {isLoading === LoadingState.CreatingAssistant ? (
+                  showLoadingIndicator()
+                ) : (
+                  'Submit Assistant Prompt'
+                )}
+              </Button>
+              <Button className="m-2 bg-white text-gray-800 hover:bg-gray-400/50"
+                onClick={handleDownloadPrompt}>Download Prompt
+              </Button>
             </div>
-          <Button
-            type="button"
-            onClick={handleConfirmAssistantPrompt}
-            className="w-full mt-4"
-          >
-            Submit Assistant Prompt
-            </Button>
             </>
           )}
       </main>
     </div>
   );
+
+  function showLoadingIndicator() {
+    return <>
+      <span className="mr-2">
+        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </span>
+      <span>{loadingMessage}</span>
+    </>;
+  }
 }

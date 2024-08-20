@@ -1,7 +1,6 @@
 import { ApiAction, AssistantBuilderData, RequestData, TemplateBuilderData } from '@/lib/types'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { resolve } from 'path'
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -80,10 +79,11 @@ async function handleCreatePrompt(data: TemplateBuilderData) {
 }
 
 async function handleCreateAssistant(data: AssistantBuilderData) {
-  const assistant = await client.beta.assistants.create({
-    name: data.name,
-    instructions: data.prompt,
-    model: "gpt-4o-mini",
-  }) 
-  return NextResponse.json({ assistantId: assistant.id })
+  return NextResponse.json({ assistantId: 'xyz123' })
+  // const assistant = await client.beta.assistants.create({
+  //   name: data.name,
+  //   instructions: data.prompt,
+  //   model: "gpt-4o-mini",
+  // }) 
+  // return NextResponse.json({ assistantId: assistant.id })
 }

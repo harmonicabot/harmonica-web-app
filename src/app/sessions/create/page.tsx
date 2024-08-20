@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { sendCallToMake } from 'utils/utils';
 import QRCode from 'qrcode.react';
 import { useSearchParams } from 'next/navigation';
@@ -18,6 +18,22 @@ export default function CreateSession() {
   const [topic, setTopic] = useState(templateName || '');
   const [context, setContext] = useState('');
   const [resultElement, setResultElement] = useState<JSX.Element>();
+
+  const [availableTemplates, setAvailableTemplates] = useState([])
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      const response = await fetch('/api/session', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const templates = await response.json()
+      setAvailableTemplates(templates);
+    };
+    fetchInitialData();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +126,11 @@ export default function CreateSession() {
                 <option value="Daily review">Daily review</option>
                 <option value="Red-Teaming">Red-Teaming</option>
                 <option value="End-Of-Talk">End-Of-Talk</option>
+                {availableTemplates?.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
               </datalist>
             </div>
             <div>

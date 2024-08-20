@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import OpenAI from 'openai';
 
 export async function POST(request: Request) {
   console.log("Sending server side request. Loading Env Var: ", process.env.TESTING_VAR)
@@ -32,4 +33,17 @@ export async function POST(request: Request) {
   const responseData = JSON.parse(responseText);
   console.log('Response data: ', responseData);
   return NextResponse.json(responseData);
+}
+
+export async function GET(request: Request) {
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
+  const assistants = await client.beta.assistants.list();
+  const assistantInfo = assistants.data.map(assistant => ({
+    name: assistant.name,
+    id: assistant.id
+  }))
+
+  return NextResponse.json(assistantInfo)
 }
