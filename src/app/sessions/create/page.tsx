@@ -4,13 +4,15 @@ import { useState } from 'react';
 import { sendCallToMake } from 'utils/utils';
 import QRCode from 'qrcode.react';
 import { useSearchParams } from 'next/navigation';
+import { ApiAction, ApiTarget } from '@/lib/types';
 
 export default function CreateSession() {
   const searchParams = useSearchParams();
   const assistantId = searchParams.get('assistantId');
   const templateName = searchParams.get('templateName');
   const botName = searchParams.get('botName');
-  
+  const contextDescription = searchParams.get('contextDescription');
+
   const [botId, setBotId] = useState(botName || '');
   const [template, setTemplate] = useState(assistantId || '');
   const [topic, setTopic] = useState(templateName || '');
@@ -21,7 +23,8 @@ export default function CreateSession() {
     e.preventDefault();
     console.log('Submitting form...: ', e);
     sendCallToMake({
-      action: 'new_session',
+      target: ApiTarget.Session,
+      action: ApiAction.CreateSession,
       data: {
         template: template,
         context: context,
@@ -114,7 +117,7 @@ export default function CreateSession() {
                 htmlFor="botId"
                 className="block text-sm font-medium text-gray-700"
               >
-                Bot ID
+                Bot ID *
               </label>
               <select
                 id="botId"
@@ -150,13 +153,15 @@ export default function CreateSession() {
                 htmlFor="context"
                 className="block text-sm font-medium text-gray-700"
               >
-                Context *
+                Context {contextDescription ? '*' : ''}
               </label>
               <textarea
                 id="context"
                 value={context}
+                placeholder={ contextDescription ? contextDescription : ''}
                 onChange={(e) => setContext(e.target.value)}
                 rows={4}
+                required={contextDescription ? true : false}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               ></textarea>
             </div>

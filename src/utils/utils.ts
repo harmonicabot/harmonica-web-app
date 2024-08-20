@@ -2,11 +2,9 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import {
   AccumulatedSessionData,
-  MakeRequestData,
   RawSessionData,
   RequestData,
 } from 'utils/types';
-import type { NextApiRequest, NextApiResponse } from 'next';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -62,7 +60,7 @@ export const sendApiCall = async (body: RequestData) => {
   return result;
 };
 
-export const sendCallToMake = async (body: MakeRequestData) => {
+export const sendCallToMake = async (body: RequestData) => {
   return sendApiCall({
     target: 'session',
     ...body,

@@ -25,14 +25,25 @@ export type MultipleSessions = {
   session_ids: Set<string>;
 };
 
-export type RequestData = {
-  target: string;
-  data?: WebhookData | MultipleSessions | TemplateBuilderData;
-};
+export enum ApiAction {
+  CreatePrompt = 'createPrompt',
+  CreateAssistant = 'createAssistant',
+  DeleteSession = 'deleteSession',
+  CreateSummary = 'create summary',
+  SendFinalReport = 'send final report',
+  Stats = 'stats',
+  CreateSession = 'create session',
+}
 
-export type MakeRequestData = {
-  action: string;
-  data?: WebhookData | MultipleSessions;
+export enum ApiTarget {
+  Builder = 'builder',
+  Session = 'session',
+}
+
+export type RequestData = {
+  action: ApiAction;
+  target: ApiTarget;
+  data: WebhookData | MultipleSessions | TemplateBuilderData | AssistantBuilderData;
 };
 
 export type RawSessionOverview = {
@@ -94,16 +105,17 @@ export type WebhookData = {
 
 export type TemplateBuilderData = {
   templateName: string;
-  templateDescription: string;
-  aiRole: string;
   taskDescription: string;
-  actionSteps: string[];
-  otherInstructions: string;
   createSummary: boolean;
   summaryFeedback: boolean;
   requireContext: boolean;
   contextDescription: string;
   enableSkipSteps: boolean;
 };
+
+export type AssistantBuilderData = {
+  prompt: string;
+  name: string;
+}
 
 export type UserSessions = Record<string, UserSessionData>;

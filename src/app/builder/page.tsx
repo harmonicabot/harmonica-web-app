@@ -5,27 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { sendApiCall, sendCallToMake } from '@/lib/utils';
-import { TemplateBuilderData } from '@/lib/types';
+import { sendApiCall } from '@/lib/utils';
+import { ApiAction, ApiTarget, TemplateBuilderData } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
-
-const sections = [
-  "Template Info",
-  "Facilitator Role & Goal",
-  "The Session",
-  "Template Settings"
-];
-
 export default function TemplatePage() {
-  const [currentSection, setCurrentSection] = useState(0);
   const [formData, setFormData] = useState<TemplateBuilderData>({
     templateName: '',
-    templateDescription: '',
-    aiRole: '',
     taskDescription: '',
-    actionSteps: [''],
-    otherInstructions: '',
     createSummary: false,
     summaryFeedback: false,
     requireContext: false,
@@ -35,101 +22,106 @@ export default function TemplatePage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    console.log(formData);
+  };
+
+  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setPrompt(e.target.value);
   };
 
   const handleSwitchChange = (name: string) => (checked: boolean) => {
     setFormData({ ...formData, [name]: checked });
   };
+  
+  const [prompt, setPrompt] = useState('');
+  const [promptComplete, setPromptComplete] = useState(false);
+  const [isEditing, setIsEditing] = useState(true);
 
-  const handleActionStepChange = (index: number, value: string) => {
-    const newActionSteps = [...formData.actionSteps];
-    newActionSteps[index] = value;
-    setFormData({ ...formData, actionSteps: newActionSteps });
-  };
-
-  const addActionStep = () => {
-    setFormData({ ...formData, actionSteps: [...formData.actionSteps, ''] });
-  };
-
-  const router = useRouter();
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submitting form...: ', e);
+    if (prompt) {
+      const confirmAppend = window.confirm(
+        `This will append the prompt to the existing prompt. 
+        If you want to start from scratch, please delete the existing prompt and try again.
+        Do you want to continue?`
+      );
+      if (!confirmAppend) {
+        return;
+      }
+    }
+    const response = await fetch('/api/builder', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        target: ApiTarget.Builder,
+        action: ApiAction.CreatePrompt,
+        data: {
+          ...formData
+        }
+      })
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      setPrompt(prevPrompt => prevPrompt + chunk);
+    }
+    setPromptComplete(true);
+  };
+  
+  const router = useRouter();
+
+  const handleConfirmAssistantPrompt = (e: React.FormEvent) => {
+    e.preventDefault();
     sendApiCall({
-      target: 'builder',
+      action: ApiAction.CreateAssistant,
+      target: ApiTarget.Builder,
       data: {
-        ...formData
+        prompt: prompt,
+        name: formData.templateName,
       },
     }).then((response) => {
-      router.push(`/sessions/create?assistantId=${response.assistantId}&templateName=${formData.templateName}&botName=harmonica_chat_bot`);
+      router.push(`/sessions/create
+        ?assistantId=${response.assistantId}
+        &templateName=${formData.templateName}
+        &botName=harmonica_chat_bot
+        &contextDescription=${formData.contextDescription}`
+      );
     })
   };
+  
+  const handleDownloadPrompt = () => {
+    const blob = new Blob([prompt], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'prompt.txt';
+    a.click();
+  };
 
-  const renderSection = () => {
-    switch (currentSection) {
-      case 0:
-        console.log("Rendering section 0");
-        return (
-          <div className="space-y-4">
-            <Input
-              name="templateName"
-              value={formData.templateName}
-              onChange={handleInputChange}
-              placeholder="Template Name"
-            />
-            <Textarea
-              name="templateDescription"
-              value={formData.templateDescription}
-              onChange={handleInputChange}
-              placeholder="Template Description"
-            />
-            <p className="text-sm text-gray-500">
-              Instructions: Use [CONTEXT], [TOPIC], [ACTION STEP] etc. during instructions for placeholders.
-            </p>
-          </div>
-        );
-      case 1:
-        console.log("Rendering section 1");
-        return (
-          <div className="space-y-4">
-            <Input
-              name="aiRole"
-              value={formData.aiRole}
-              onChange={handleInputChange}
-              placeholder="AI Role/Personality"
-            />
-            <Textarea
-              name="taskDescription"
-              value={formData.taskDescription}
-              onChange={handleInputChange}
-              placeholder="Task/Description/Goal"
-            />
-          </div>
-        );
-      case 2:
-        return (
-          <div className="space-y-4">
-            {formData.actionSteps.map((step, index) => (
-              <Input
-                key={index}
-                value={step}
-                onChange={(e) => handleActionStepChange(index, e.target.value)}
-                placeholder={`Action Step ${index + 1}`}
-              />
-            ))}
-            <Button onClick={(e) => {
-              e.preventDefault();
-              addActionStep();
-            }}>
-              + Add Action Step
-            </Button>
-            <Textarea
-              name="otherInstructions"
-              value={formData.otherInstructions}
-              onChange={handleInputChange}
-              placeholder="Other Instructions"
-            />
+  return (
+    <div className="min-h-screen bg-gray-100 p-6">
+      <main className="max-w-2xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6">Template Builder</h1>
+        <form className="bg-white p-6 rounded shadow space-y-4">
+          <Input
+            name="templateName"
+            value={formData.templateName}
+            onChange={handleInputChange}
+            placeholder="Template Name"
+          />
+          <Textarea
+            name="taskDescription"
+            value={formData.taskDescription}
+            onChange={handleInputChange}
+            placeholder="Task Description"
+          />
+          <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <Switch
                 id="create-summary"
@@ -146,11 +138,6 @@ export default function TemplatePage() {
               />
               <label htmlFor="summary-feedback">Summary Feedback</label>
             </div>
-          </div>
-        );
-      case 3:
-        return (
-          <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <Switch
                 id="require-context"
@@ -158,8 +145,8 @@ export default function TemplatePage() {
                 onCheckedChange={handleSwitchChange('requireContext')}
               />
               <label htmlFor="require-context">Require Context</label>
-            </div>
-            {formData.requireContext && (
+              </div>
+              {formData.requireContext && (
               <Input
                 name="contextDescription"
                 value={formData.contextDescription}
@@ -176,67 +163,64 @@ export default function TemplatePage() {
               <label htmlFor="enable-skip-steps">Enable participants to skip steps</label>
             </div>
           </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="flex min-h-screen bg-gray-100">
-      <aside className="w-64 bg-white p-6">
-        <nav>
-          <ul>
-            {sections.map((section, index) => (
-              <li key={index} className="mb-2">
-                <button
-                  onClick={() => setCurrentSection(index)}
-                  className={`w-full text-left p-2 rounded ${
-                    currentSection === index ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'
-                  }`}
-                >
-                  {section}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </aside>
-      <main className="flex-1 p-6">
-        <h1 className="text-2xl font-bold mb-6">{sections[currentSection]}</h1>
-        <form className="bg-white p-6 rounded shadow">
-          {renderSection()}
-          <div className="mt-6 flex justify-between">
-            {currentSection > 0 && (
-              <Button onClick={(e) => {
+          <div className="flex justify-between">
+            <Button
+              type="submit"
+              onClick={isEditing ? handleSubmit : () => setIsEditing(true)}
+              className="w-full m-2"
+            >
+              {isEditing ? 'Submit' : 'Edit'}
+            </Button>
+            <Button className="m-2 bg-accent text-gray-800 hover:bg-gray-400/50"
+              onClick={async (e) => {
                 e.preventDefault();
-                setCurrentSection(currentSection - 1)
-              }}>
-                Previous
-              </Button>
-            )}
-            {currentSection < sections.length - 1 && (
-              <Button onClick={(e) => {
-                e.preventDefault()
-                console.log(currentSection);
-                setCurrentSection(currentSection + 1);
-              }}>
-                Next
-              </Button>
-            )}
-            {currentSection === sections.length - 1 && (
-              <Button
-                type="submit"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleSubmit(e);
-                }}
-              >
-                Submit
-              </Button>
-            )}
+                try {
+                  const [fileHandle] = await window.showOpenFilePicker({
+                    types: [{
+                        description: 'Text Files',
+                        accept: {
+                          'text/plain': ['.txt'],
+                      },
+                    }]
+                  });
+                  const file = await fileHandle.getFile();
+                  const content = await file.text();
+                  setPrompt(content);
+                  setPromptComplete(true);
+                } catch (error) {
+                  console.error('Error uploading file:', error);
+                }
+              }}
+            >
+              Load Prompt
+            </Button>
           </div>
         </form>
+        {prompt && (
+          <>
+            <div className="mt-4 space-2">
+              <label htmlFor="assistant-prompt">Assistant Prompt</label>
+              <textarea
+                id="assistant-prompt"
+                name="assistantPrompt"
+                value={prompt}
+                onChange={promptComplete ? handlePromptChange : undefined}
+                className="w-full p-2 border rounded"
+                rows={12}
+              />
+            </div>
+            <div className="flex space-x-2">
+              <Button onClick={handleDownloadPrompt}>Download Prompt</Button>
+            </div>
+          <Button
+            type="button"
+            onClick={handleConfirmAssistantPrompt}
+            className="w-full mt-4"
+          >
+            Submit Assistant Prompt
+            </Button>
+            </>
+          )}
       </main>
     </div>
   );

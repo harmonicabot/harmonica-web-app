@@ -4,7 +4,8 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
 import Markdown from 'react-markdown';
-import { accumulateSessionData, sendCallToMake } from 'utils/utils';
+import { accumulateSessionData, sendApiCall, sendCallToMake } from 'utils/utils';
+import { ApiAction, ApiTarget } from '@/lib/types';
 
 export default function DashboardIndividual() {
   const { id } = useParams() as { id: string };
@@ -28,7 +29,8 @@ export default function DashboardIndividual() {
   const fetchSessionData = async () => {
     console.log(`Fetching session data for ${id}...`);
     const data = await sendCallToMake({
-      action: 'stats',
+      target: ApiTarget.Session,
+      action: ApiAction.Stats,
       data: {
         session_id: id,
       },
@@ -39,7 +41,8 @@ export default function DashboardIndividual() {
 
   const sendFinalReport = async () => {
     const data = await sendCallToMake({
-      action: 'send final report',
+      target: ApiTarget.Session,
+      action: ApiAction.SendFinalReport,
       data: {
         session_id: id,
       },
@@ -51,7 +54,8 @@ export default function DashboardIndividual() {
     console.log(`Creating summary for ${id}...`);
     setLoadSummary(true)
     const data = await sendCallToMake({
-      action: 'create summary',
+      target: ApiTarget.Session,
+      action: ApiAction.CreateSummary,
       data: {
         session_id: id,
         finished: accumulated.session_data.finished,
@@ -68,8 +72,9 @@ export default function DashboardIndividual() {
 
   const handleDelete = async () => {
     console.log(`Deleting session ${id}...`);
-    const data = await sendCallToMake({
-      action: 'delete',
+    const data = await sendApiCall({
+      target: ApiTarget.Session,
+      action: ApiAction.DeleteSession,
       data: {
         session_id: id,
       },
