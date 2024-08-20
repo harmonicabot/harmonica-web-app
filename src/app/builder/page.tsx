@@ -152,6 +152,9 @@ export default function TemplatePage() {
       const content = await file.text();
       setPrompt(content);
       setPromptComplete(true);
+      if (!formData.templateName) {
+        setFormData({ ...formData, templateName: file.name.substring(0, file.name.lastIndexOf('.')) });
+      }
       setIsLoading(LoadingState.Finished);
     } catch (error) {
       console.error('Error uploading file:', error);

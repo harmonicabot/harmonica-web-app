@@ -22,7 +22,7 @@ export default function CreateSession() {
   const [availableTemplates, setAvailableTemplates] = useState([])
 
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchAvailableAssistants = async () => {
       const response = await fetch('/api/session', {
         method: 'GET',
         headers: {
@@ -32,13 +32,16 @@ export default function CreateSession() {
       const templates = await response.json()
       setAvailableTemplates(templates);
     };
-    fetchInitialData();
+    fetchAvailableAssistants();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submitting form...: ', e);
-    sendCallToMake({
+    const assistantTemplate = availableTemplates.find(tpl => tpl.name === template);
+    if (assistantTemplate) {
+      setTemplate(assistantTemplate.id)
+    }
+    const payload = {
       target: ApiTarget.Session,
       action: ApiAction.CreateSession,
       data: {
@@ -48,7 +51,8 @@ export default function CreateSession() {
         bot_id: botId,
         host_chat_id: 'WebApp',
       },
-    }).then((response) => {
+    };
+    sendCallToMake(payload).then((response) => {
       const botUrl = `https://t.me/${botId}?start=${response.session_id}`;
       setResultElement(
         <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
@@ -127,8 +131,8 @@ export default function CreateSession() {
                 <option value="Red-Teaming">Red-Teaming</option>
                 <option value="End-Of-Talk">End-Of-Talk</option>
                 {availableTemplates?.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.name}
+                  <option key={template.id} value={template.name}>
+                    {template.id}
                   </option>
                 ))}
               </datalist>
