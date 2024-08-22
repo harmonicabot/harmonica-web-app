@@ -32,7 +32,7 @@
   "devDependencies": {
     "@aws-amplify/adapter-nextjs": "^1.2.4",
     "@aws-amplify/backend": "^1.0.3",
-    "@aws-amplify/backend-cli": "^0.11.1",
+    "@aws-amplify/backend-cli": "^1.0.4",
     "@types/node": "20.13.0",
     "@types/react": "18.3.3",
     "autoprefixer": "^10.4.19",
