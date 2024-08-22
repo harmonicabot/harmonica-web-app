@@ -4,15 +4,48 @@ import { useEffect, useState } from 'react';
 import { sendCallToMake } from 'utils/utils';
 import QRCode from 'qrcode.react';
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react'
 import { ApiAction, ApiTarget } from '@/lib/types';
 
 export default function CreateSession() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <Suspense fallback={<div>Loading...</div>}>
+        <SearchParamsWrapper />
+      </Suspense>
+    </div>
+  );
+}
+
+const SearchParamsWrapper = () => {
   const searchParams = useSearchParams();
   const assistantId = searchParams.get('assistantId');
   const templateName = searchParams.get('templateName');
   const botName = searchParams.get('botName');
   const contextDescription = searchParams.get('contextDescription');
 
+  return (
+    <CreateSessionForm
+      assistantId={assistantId}
+      templateName={templateName}
+      botName={botName}
+      contextDescription={contextDescription}
+    />
+  );
+};
+
+function CreateSessionForm({
+  assistantId,
+  templateName,
+  botName,
+  contextDescription,
+}: {
+  assistantId: string | null;
+  templateName: string | null;
+  botName: string | null;
+  contextDescription: string | null;
+}) {
+  
   const [botId, setBotId] = useState(botName || '');
   const [template, setTemplate] = useState(assistantId || '');
   const [topic, setTopic] = useState(templateName || '');
