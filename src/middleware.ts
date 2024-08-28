@@ -13,7 +13,6 @@ export function middleware(request: NextRequest) {
       Object.entries(JSON.parse(process.env.AUTH_USERS || '{}'))
     )
 
-    console.log(`Trying to log in with ${user.slice(0, 2)}${'*'.repeat(user.length - 2)}:${pwd.slice(0, 2)}${'*'.repeat(pwd.length - 2)}`)
     if (authUsers.get(user) && authUsers.get(user).password === pwd) {
       const userRole = authUsers.get(user).role;
       if (request.nextUrl.pathname === '/create' && (userRole === 'admin' || userRole === 'host')) {
