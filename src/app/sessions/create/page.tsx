@@ -188,6 +188,7 @@ function CreateSessionForm({
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               >
                 <option value="">Select the bot channel that should be used.</option>
+                <option value="octant_harmonibot">Octant Chat Bot</option>
                 <option value="harmonica_chat_bot">Harmonica Chat Bot</option>
                 <option value="harmonica_end_of_day_review_bot">End of day Bot</option>
                 <option value="harmonica_red_teaming_bot">Red-Teaming Bot</option>
