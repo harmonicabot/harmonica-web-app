@@ -1,9 +1,9 @@
 {
   "auth": {
-    "user_pool_id": "eu-central-x_xxx",
-    "aws_region": "eu-central-x",
-    "user_pool_client_id": "xxx",
-    "identity_pool_id": "eu-central-1:xxx",
+    "user_pool_id": "eu-central-1_kGW3Y88M8",
+    "aws_region": "eu-central-1",
+    "user_pool_client_id": "193lf9jvj3d1t0q3a7rbrgfrea",
+    "identity_pool_id": "eu-central-1:380b6403-f675-4727-9ec9-335fd6020c8f",
     "standard_required_attributes": [
       "email"
     ],
@@ -15,27 +15,25 @@
     ],
     "password_policy": {
       "min_length": 8,
-      "require_numbers": true,
       "require_lowercase": true,
-      "require_uppercase": true,
-      "require_symbols": true
+      "require_numbers": true,
+      "require_symbols": true,
+      "require_uppercase": true
     },
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://xxx.appsync-api.eu-central-x.amazonaws.com/graphql",
-    "aws_region": "eu-central-x",
-    "api_key": "da2-xxx",
-    "default_authorization_type": "API_KEY",
+    "url": "https://iecpdpiuczbmnalmkp4fbzyc2m.appsync-api.eu-central-1.amazonaws.com/graphql",
+    "aws_region": "eu-central-1",
+    "default_authorization_type": "AWS_IAM",
     "authorization_types": [
-      "AMAZON_COGNITO_USER_POOLS",
-      "AWS_IAM"
+      "AMAZON_COGNITO_USER_POOLS"
     ],
     "model_introspection": {
       "version": 1,
       "models": {
-        "Todo": {
-          "name": "Todo",
+        "Session": {
+          "name": "Session",
           "fields": {
             "id": {
               "name": "id",
@@ -69,7 +67,7 @@
             }
           },
           "syncable": true,
-          "pluralName": "Todos",
+          "pluralName": "Sessions",
           "attributes": [
             {
               "type": "model",
@@ -81,7 +79,7 @@
                 "rules": [
                   {
                     "allow": "public",
-                    "provider": "apiKey",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -104,5 +102,5 @@
       "nonModels": {}
     }
   },
-  "version": "1"
+  "version": "1.1"
 }
