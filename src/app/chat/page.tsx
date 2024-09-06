@@ -66,25 +66,28 @@ Help & Support:
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const sendMessage = async (messageText: string) => {
-    sendApiCall({
-      action: ApiAction.GenerateAnswer,
-      target: ApiTarget.Chat,
-      data: {
-        thredId: threadId,
-        messageText: messageText,
-        assistantId: 'asst_fHg4kGRWn357GnejZJQnVbJW',
-      },
-    })
-      .then((response) => {
-        setIsLoading(false);
-        setMessages(
-          response.messages ? [entryMessage, ...response.messages] : [],
-        );
-      })
-      .catch((error) => {
-        console.error(error);
-      });
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
+      if (e.metaKey) {
+        e.preventDefault();
+        const textarea = textareaRef.current;
+        if (textarea) {
+          const { selectionStart, selectionEnd, value } = textarea;
+          const newValue =
+            value.substring(0, selectionStart) +
+            '\n' +
+            value.substring(selectionEnd);
+          setFormData({ ...formData, messageText: newValue });
+          setTimeout(() => {
+            textarea.selectionStart = textarea.selectionEnd =
+              selectionStart + 1;
+          }, 0);
+        }
+      } else if (!e.shiftKey && !e.ctrlKey) {
+        e.preventDefault();
+        handleSubmit(e as unknown as React.FormEvent);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -191,6 +194,7 @@ Help & Support:
                 name="messageText"
                 value={formData.messageText}
                 onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
                 placeholder="Enter your message..."
                 className="flex-grow"
                 ref={textareaRef}
