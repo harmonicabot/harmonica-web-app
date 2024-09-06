@@ -41,18 +41,17 @@ async function handleGenerateAnswer(messageData: AssistantMessageData) {
 
   if (run.status === 'completed') {
     const messages = await client.beta.threads.messages.list(run.thread_id);
-    for (const message of messages.data.reverse()) {
-      console.log(`${message.role} > ${message.content[0].text?.value}`);
-    }
+
     return NextResponse.json({
-      messages: messages.data.map((messageData) => ({
+      messages: messages.data.reverse().map((messageData) => ({
         type: messageData.assistant_id ? 'ASSISTANT' : 'USER',
-        text: messageData.content[0].text?.value,
+        text:
+          messageData.content[0].type === 'text'
+            ? messageData.content[0].text?.value
+            : '',
         dateTime: messageData.created_at,
       })),
     });
-  } else {
-    console.log(run.status);
   }
   return NextResponse.json({ messages: [] });
 }
