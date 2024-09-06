@@ -33,17 +33,25 @@ export enum ApiAction {
   SendFinalReport = 'send final report',
   Stats = 'stats',
   CreateSession = 'create session',
+  CreateThread = 'createThread',
+  GenerateAnswer = 'generateAnswer',
 }
 
 export enum ApiTarget {
   Builder = 'builder',
   Session = 'session',
+  Chat = 'chat',
 }
 
 export type RequestData = {
   action: ApiAction;
   target: ApiTarget;
-  data: WebhookData | MultipleSessions | TemplateBuilderData | AssistantBuilderData;
+  data:
+    | WebhookData
+    | MultipleSessions
+    | TemplateBuilderData
+    | AssistantBuilderData
+    | AssistantMessageData;
 };
 
 export type RawSessionOverview = {
@@ -116,6 +124,12 @@ export type TemplateBuilderData = {
 export type AssistantBuilderData = {
   prompt: string;
   name: string;
-}
+};
+
+export type AssistantMessageData = {
+  thredId: string;
+  messageText: string;
+  assistantId: string;
+};
 
 export type UserSessions = Record<string, UserSessionData>;
