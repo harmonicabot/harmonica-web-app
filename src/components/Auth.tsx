@@ -35,7 +35,7 @@ export default function Auth({ children }: { children: ReactNode }) {
   };
 
   return (
-    <Authenticator services={services} socialProviders={['google', 'amazon', 'apple', 'facebook',]}>
+    <Authenticator services={services}>
         {children}
     </Authenticator>
   )
