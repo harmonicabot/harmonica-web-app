@@ -4,7 +4,7 @@ import {
   AccumulatedSessionData,
   RawSessionData,
   RequestData,
-} from 'utils/types';
+} from '@/lib/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

@@ -1,22 +1,34 @@
 'use client'
 
-import { useSession, signIn, signOut } from "next-auth/react"
+import { useState } from 'react'
+import { useSession, signOut } from "next-auth/react"
+import Authentication from "components/authentication"
+import { Button } from "components//ui/button"
 
 export default function UserStatus() {
   const { data: session } = useSession()
+  const [showAuth, setShowAuth] = useState(false)
 
   if (session) {
     return (
       <>
         Signed in as {session.user.email} <br/>
-        <button onClick={() => signOut()}>Sign out</button>
+        <Button onClick={() => signOut()}>Sign out</Button>
       </>
     )
   }
+
   return (
     <>
-      Not signed in <br/>
-      <button onClick={() => signIn()}>Sign in</button>
+      <Button onClick={() => setShowAuth(true)}>Sign in</Button>
+      {showAuth && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-4 rounded-lg">
+            <Authentication />
+            <Button onClick={() => setShowAuth(false)}>Close</Button>
+          </div>
+        </div>
+      )}
     </>
   )
 }

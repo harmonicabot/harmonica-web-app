@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { sendCallToMake } from 'utils/utils';
+import { sendCallToMake } from '@/lib/utils';
 import QRCode from 'qrcode.react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react'

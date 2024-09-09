@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { UserSessionData, AccumulatedSessionData } from 'utils/types'
+import { UserSessionData, AccumulatedSessionData } from '@/lib/types'
 
 interface SessionStore {
   sessions: Record<string, UserSessionData[]>

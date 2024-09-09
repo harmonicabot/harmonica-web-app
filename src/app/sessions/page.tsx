@@ -8,8 +8,8 @@ import {
   RawSessionData,
   RawSessionOverview,
   UserSessionData,
-} from 'utils/types';
-import { accumulateSessionData, sendCallToMake } from 'utils/utils';
+} from '@/lib/types';
+import { accumulateSessionData, sendCallToMake } from '@/lib/utils';
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -82,12 +82,10 @@ export default function DashboardOverview() {
   }
 
   type DbResponse = {
-    records: Records[];
-  };
-
-  type Records = {
-    key: string;
-    data: UserSessionData | RawSessionOverview;
+    records: {
+      key: string;
+      data: UserSessionData | RawSessionOverview;
+    }[];
   };
 
   function parseDbItems(userData: DbResponse, sessionData: DbResponse) {
