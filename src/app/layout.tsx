@@ -1,20 +1,19 @@
 import Link from 'next/link';
 import '../styles/global.css';
-import { UserProvider } from '../context/UserContext';
-import Auth from '@/components/Auth';
+// import { UserProvider } from '../context/UserContext';
+// import Auth from '@/components/Auth';
 import Logo from '@/components/ui/logo';
 import UserStatus from '@/components/ui/UserStatus';
-
-
+import NextAuthSessionProvider from "@/components/SessionProvider"
 
 export default function RootLayout({
-  children,
+  children
 }: Readonly<{ children: React.ReactNode }>) {
   
   return (
     <html lang="en">
         <body className="flex flex-col min-h-screen">         
-        {/* <UserProvider> */}
+        <NextAuthSessionProvider>
           {/* <Auth> */}
           <nav className="flex flex-row justify-between items-center p-4">
             <Link href="/">
@@ -26,7 +25,7 @@ export default function RootLayout({
             {children}
             </main>
             {/* </Auth> */}
-      {/* </UserProvider> */}
+      </NextAuthSessionProvider>
         </body>
     </html>
   );

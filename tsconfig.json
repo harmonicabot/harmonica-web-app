@@ -9,6 +9,7 @@
       "@/context/*": ["context/*"],
       "@/stores/*": ["stores/*"],
       "@/lib/*": ["utils/*"],
+      "@/auth": ["auth.ts"],
     },
     "allowJs": true,
     "skipLibCheck": true,
