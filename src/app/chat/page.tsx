@@ -67,7 +67,7 @@ Help & Support:
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !isLoading) {
       if (e.metaKey) {
         e.preventDefault();
         const textarea = textareaRef.current;
