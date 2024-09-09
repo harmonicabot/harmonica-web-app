@@ -201,7 +201,7 @@ Help & Support:
               />
               <div className="flex justify-between">
                 <Button type="submit" className="" disabled={isLoading}>
-                  Run
+                  Send
                 </Button>
               </div>
             </form>
