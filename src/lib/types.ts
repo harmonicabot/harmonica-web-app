@@ -112,8 +112,10 @@ export type WebhookData = {
 };
 
 export type TemplateBuilderData = {
-  templateName: string;
-  taskDescription: string;
+  sessionName: string;
+  goal: string;
+  critical: string;
+  context: string;
   createSummary: boolean;
   summaryFeedback: boolean;
   requireContext: boolean;

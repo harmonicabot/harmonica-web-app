@@ -39,8 +39,8 @@ async function handleCreatePrompt(data: TemplateBuilderData) {
       role: "user",
       content: `
         Create a template builder for a template with the following information:
-        Template Name: ${data.templateName}
-        Task Description: ${data.taskDescription}
+        Template Name: ${data.sessionName}
+        Task Description: ${data.goal}
         ${createSummaryInstructions}
         ${allowIterationsOnSummary}
         ${includeContextInstructions}
