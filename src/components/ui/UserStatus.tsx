@@ -26,9 +26,9 @@ export default function UserStatus() {
   }
 
   // If the user is not logged in, then the surrounding Auth component will render the sign in / sign up form.
-  // return user ? (
-  //   <Button onClick={handleSignOut}>Sign Out</Button>
-  // ) : (
-    return <></>
-  // );
+  return user ? (
+    <Button onClick={handleSignOut}>Sign Out</Button>
+  ) : (
+    <></>
+  );
 }

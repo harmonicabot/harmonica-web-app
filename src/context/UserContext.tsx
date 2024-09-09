@@ -28,14 +28,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 export const useUser = () => {
   const context = useContext(UserContext);
   if (!context) {
-    return {
-      user: {
-        username: 'Anonymous',
-        newUser: false,
-      },
-      setUser: () => {},
-    }
-    // throw new Error('useUser must be used within a UserProvider');
+    throw new Error('useUser must be used within a UserProvider');
   }
   return context;
 };
