@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useSession, signOut } from "next-auth/react"
-import Authentication from "@/components/authentication"
+import Login from "@/components/login"
 import { Button } from "components//ui/button"
 
 export default function UserStatus() {
@@ -24,7 +24,7 @@ export default function UserStatus() {
       {showAuth && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-4 rounded-lg">
-            <Authentication />
+            <Login />
             <Button onClick={() => setShowAuth(false)}>Close</Button>
           </div>
         </div>

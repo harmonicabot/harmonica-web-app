@@ -1,7 +1,7 @@
-import Authentication from '@/components/authentication';
+import Login from '@/components/login';
 
 export default function LoginPage() {
   return (
-    <Authentication/>
+    <Login />
   );
 }
