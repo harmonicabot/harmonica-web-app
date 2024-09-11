@@ -146,3 +146,10 @@ export type AssistantMessageData = {
 };
 
 export type UserSessions = Record<string, UserSessionData>;
+
+export type Session = {
+  id: string;
+  name: string;
+  status: string;
+  createdAt: Date;
+};

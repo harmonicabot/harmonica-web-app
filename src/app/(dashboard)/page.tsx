@@ -2,10 +2,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { File, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SessionsTable } from './sessions-table';
-import { getSessions as getSessions } from '@/lib/db';
+import { getSessions } from '@/lib/db';
 import Link from 'next/link';
 
-export default async function ProductsPage({
+export default async function Dashboard({
   searchParams
 }: {
   searchParams: { q: string; offset: string };

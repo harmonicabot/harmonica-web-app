@@ -10,11 +10,13 @@ import { MagicWand } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { sendApiCall } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { insertSession, insertX } from '@/lib/db';
+import { InsertSession } from 'db/schema';
 
 // Todo: This class has become unwieldy. Think about splitting more functionality out. (Might not be easy though, because this is the 'coordinator' page that needs to somehow bind together all the functionality of the three sub-steps.)
 // One possibility to do that might be to have better state management / a session store or so, into which sub-steps can write to.
 
-type VersionedPrompt = {
+export type VersionedPrompt = {
   id: number;
   summary: string;
   fullPrompt: string;
@@ -30,7 +32,8 @@ export default function CreationFlow() {
   const [activeStep, setActiveStep] = useState<Step>(STEPS[0]);
   const [threadId, setThreadId] = useState('');
   const [builderAssistantId, setBuilderAssistantId] = useState('');
-  const [latestFullPrompt, setLatestFullPrompt] = useState('');
+  const [sessionAssistantId, setSessionAssistantId] = useState('');
+  const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
   const [prompts, setPrompts] = useState<VersionedPrompt[]>([]);
@@ -38,8 +41,8 @@ export default function CreationFlow() {
   const [sessionId, setSessionId] = useState('');
   const [botId, setBotId] = useState('');
 
-  const addPrompt = (summary: string, fullPrompt: string) => {
-    setPrompts((prev) => [...prev, { id: prev.length +1, summary, fullPrompt }]);
+  const addPrompt = (versionedPrompt: VersionedPrompt) => {
+    setPrompts((prev) => [...prev, versionedPrompt]);
   };
   
   // TODO: Remove after development!
@@ -65,8 +68,14 @@ export default function CreationFlow() {
   // When streaming completes:
   const completeStreaming = () => {
     console.log('Streaming finished: ', streamingPromptRef);
-    setCurrentVersion(prompts.length+1);
-    addPrompt(streamingPromptRef.current, latestFullPrompt);
+    const versionedPrompt = {
+      id: prompts.length + 1,
+      summary: streamingPromptRef.current,
+      fullPrompt: latestFullPromptRef.current,
+    };
+    console.log('Versioned Prompt: ', versionedPrompt);
+    setCurrentVersion(versionedPrompt.id);
+    addPrompt(versionedPrompt);
     streamingPromptRef.current = '';
   };
 
@@ -115,7 +124,7 @@ export default function CreationFlow() {
     };
 
     const newPromptResponse = await sendApiCall(payload);
-    setLatestFullPrompt(newPromptResponse.fullPrompt);
+    latestFullPromptRef.current = newPromptResponse.fullPrompt;
 
     getStreamOfSummary({
       threadId,
@@ -132,12 +141,13 @@ export default function CreationFlow() {
       action: ApiAction.CreateAssistant,
       target: ApiTarget.Builder,
       data: {
-        prompt: prompts[currentVersion].fullPrompt,
+        prompt: prompts[currentVersion-1].fullPrompt,
         name: formData.sessionName,
       },
     });
 
     const botId = 'harmonica_chat_bot';
+    setSessionAssistantId(assistantResponse.assistantId);
     // Todo: How to do this better? Can we get a list of 'available' bots, i.e. where no session is running, and use that? Or 'intelligently' chose one whose name matches best? Later on with user management each user will probably have their own pool of bots.
     // Or maybe we can create a bot dynamically?
     const sessionResponse = await sendApiCall({
@@ -151,13 +161,15 @@ export default function CreationFlow() {
       },
     });
 
-    setSessionId(sessionResponse.sessionId);
+    setSessionId(sessionResponse.session_id);
     setBotId(botId);
+    setIsLoading(false);
   };
 
   
   const handleSaveSession = async () => {
-    
+    console.log('Saving session...');
+    insertSession({ name: formData.sessionName, botId, assistantId: sessionAssistantId, sessionId: sessionId, status: "active"});
   };
 
   const stepContent = {
@@ -279,7 +291,7 @@ export default function CreationFlow() {
 
     setThreadId(responseFullPrompt.threadId);
     setBuilderAssistantId(responseFullPrompt.assistantId);
-    setLatestFullPrompt(responseFullPrompt.fullPrompt);
+    latestFullPromptRef.current = responseFullPrompt.fullPrompt;
 
     getStreamOfSummary({
       threadId: responseFullPrompt.threadId,

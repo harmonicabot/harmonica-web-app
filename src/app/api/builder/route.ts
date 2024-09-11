@@ -2,7 +2,6 @@ import { ApiAction, AssistantBuilderData, RequestData, SessionBuilderData, Templ
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { finishedResponse, handleResponse, streamResponse, waitForRunCompletion } from './utils'
-import { finished } from 'stream'
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -33,7 +32,7 @@ async function createNewPrompt(data: SessionBuilderData) {
     const templateBuilder = await getTemplateBuilder()
     console.log("Template Builder assistant found, generating full prompt")
     const [threadId, fullPrompt] = await generateFullPrompt(data, templateBuilder.id)
-    return NextResponse.json({ threadId, assistantId: templateBuilder.id, fullPrompt })
+    return NextResponse.json({ threadId, assistantId: templateBuilder.id, fullPrompt: fullPrompt })
   } catch (error) {
     console.error('Error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
@@ -54,7 +53,7 @@ async function getTemplateBuilder() {
 async function generateFullPrompt(data: SessionBuilderData, assistantId: string) {
   const thread = await client.beta.threads.create()
   const content = await finishedResponse(client, thread.id, assistantId, createPromptContent(data))
-  return [thread.id, await content.json()]
+  return [thread.id, content]
 }
 
 function createPromptContent(data: SessionBuilderData) {

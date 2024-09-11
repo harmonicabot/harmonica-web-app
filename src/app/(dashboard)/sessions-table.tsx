@@ -15,8 +15,8 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
+import { SelectSession } from 'db/schema';
 import { Session } from './session';
-import { SelectSession } from '@/lib/db';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';

@@ -3,8 +3,6 @@ import '../styles/global.css';
 // import { UserProvider } from '../context/UserContext';
 // import Auth from '@/components/Auth';
 import Logo from '@/components/ui/logo';
-import UserStatus from '@/components/ui/UserStatus';
-import NextAuthSessionProvider from '@/components/SessionProvider';
 import { User } from '@/components/user';
 
 export default function RootLayout({

@@ -5,6 +5,7 @@ import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { VersionedPrompt } from './page';
 
 export default function ReviewPrompt({
   prompts,
@@ -13,7 +14,7 @@ export default function ReviewPrompt({
   setCurrentVersion,
   isEditing,
   handleEdit,
-}) {
+}: {prompts: VersionedPrompt[], streamingPrompt: string, currentVersion: number, setCurrentVersion: (version: number) => void, isEditing: boolean, handleEdit: (instructions: string) => void}) {
   const [editValue, setEditValue] = useState('');
 
   const handleInputChange = (
@@ -39,7 +40,7 @@ export default function ReviewPrompt({
         id="card-container"
         className="bg-white w-full mx-auto p-4 m-4 h-[calc(100vh-200px)] overflow-hidden">
         <div className="lg:flex h-full">
-          <div className={`${isEditing ? 'lg:w-2/3' : ''} `}>
+          <div className={`${isEditing ? 'lg:w-2/3' : ''} overflow-scroll`}>
             {streamingPrompt && (
               <Card className={`p-6 bg-purple-100 my-4`}>
                 <div className="flex justify-between items-center mb-4">
@@ -66,7 +67,7 @@ export default function ReviewPrompt({
                     </Button>
                   )}
                 </div>
-                <div dangerouslySetInnerHTML={sanitizeHtml(prompt.content)} />
+                <div dangerouslySetInnerHTML={sanitizeHtml(prompt.summary)} />
               </Card>
             ))}
           </div>

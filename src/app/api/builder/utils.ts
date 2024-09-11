@@ -12,8 +12,9 @@ export async function handleResponse(client: OpenAI, threadId: string, assistant
       },
     });
   } else {
-    const content = await finishedResponse(client, threadId, assistantId, instructions);
-    return NextResponse.json(content);
+    const response = await finishedResponse(client, threadId, assistantId, instructions);
+    console.log('response from finishedResponse:', response);
+    return NextResponse.json({ fullPrompt: response });
   }
 }
 
@@ -32,8 +33,9 @@ export async function finishedResponse(client: OpenAI, threadId: string, assista
 
   const messages = await client.beta.threads.messages.list(threadId)
   const content = getTextContent(messages.data[0].content)
+  console.log('Generated FullPrompt Content: ', content);
 
-  return NextResponse.json({ content })
+  return content
 }
 
 export async function waitForRunCompletion(client: OpenAI, threadId: string, runId: string) {

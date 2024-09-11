@@ -10,21 +10,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { SelectSession } from '@/lib/db';
 import { deleteSession as deleteSession } from './actions';
+import { SelectSession } from 'db/schema';
 
 export function Session({ session }: { session: SelectSession }) {
   return (
     <TableRow>
-      <TableCell className="hidden sm:table-cell">
-        <Image
-          alt="Session image"
-          className="aspect-square rounded-md object-cover"
-          height="64"
-          src={session.imageUrl}
-          width="64"
-        />
-      </TableCell>
       <TableCell className="font-medium">{session.name}</TableCell>
       <TableCell>
         <Badge variant="outline" className="capitalize">

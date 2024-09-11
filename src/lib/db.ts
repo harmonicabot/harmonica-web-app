@@ -1,33 +1,16 @@
-import 'server-only';
+
+import { count, eq, ilike } from 'drizzle-orm';
+import { sessions, InsertSession, SelectSession } from '../db/schema';
 
 import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
-import {
-  pgTable,
-  text,
-  numeric,
-  integer,
-  timestamp,
-  pgEnum,
-  serial
-} from 'drizzle-orm/pg-core';
-import { count, eq, ilike } from 'drizzle-orm';
-import { createInsertSchema } from 'drizzle-zod';
+import { drizzle } from "drizzle-orm/neon-http";
 
-export const db = drizzle(neon(process.env.POSTGRES_URL!));
+const sql = neon(process.env.POSTGRES_URL!);
+export const db = drizzle(sql);
 
-export const statusEnum = pgEnum('status', ['active', 'inactive', 'archived']);
-
-export const sessions = pgTable('sessions', {
-  id: serial('id').primaryKey(),
-  imageUrl: text('image_url').notNull(),
-  name: text('name').notNull(),
-  status: statusEnum('status').notNull(),
-  createdAt: timestamp('created_at').notNull()
-});
-
-export type SelectSession = typeof sessions.$inferSelect;
-export const insertSessionSchema = createInsertSchema(sessions);
+export async function insertSession(data: InsertSession):Promise<{ id: number }[]> {
+  return db.insert(sessions).values(data).returning({id:sessions.id});
+}
 
 export async function getSessions(
   search: string,
@@ -55,6 +38,9 @@ export async function getSessions(
   }
 
   let totalSessions = await db.select({ count: count() }).from(sessions);
+  if (totalSessions[0].count === 0) {
+    return { sessions: [], newOffset: null, totalSessions: 0 };
+  }
   let moreSessions = await db.select().from(sessions).limit(5).offset(offset);
   let newOffset = moreSessions.length >= 5 ? offset + 5 : null;
 
