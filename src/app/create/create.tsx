@@ -1,11 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { TemplateBuilderData } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 
 export default function CreateSession({ onSubmit, formData, onFormDataChange }) {
@@ -21,7 +18,7 @@ export default function CreateSession({ onSubmit, formData, onFormDataChange }) 
   };
 
   return (
-    <form className="bg-white p-6 rounded shadow space-y-4">
+    <form className="bg-white mx-auto p-6 rounded shadow space-y-4">
       <div className="space-y-2">
         <Label htmlFor="sessionName">Session Name</Label>
         <Input
@@ -30,6 +27,10 @@ export default function CreateSession({ onSubmit, formData, onFormDataChange }) 
           onChange={handleInputChange}
           placeholder='E.g. Team Brainstorm'
           required
+          data-1p-ignore
+          data-bwignore
+          data-lpignore="true"
+          data-form-type="other"
         />
         <p className="text-sm text-muted-foreground">
           This will be shared with your participants
@@ -61,10 +62,10 @@ export default function CreateSession({ onSubmit, formData, onFormDataChange }) 
     <div className="space-y-2">
       <Label htmlFor="context">What context will be helpful?</Label>
       <Textarea
-          id="context"
+          name="context"
           value={formData.context}
           onChange={handleInputChange}              
-        placeholder="Acme Co. is a company that does.."
+        placeholder="Acme Co. is a company that does..."
       />
     </div>
       <div className="space-y-2">
@@ -110,14 +111,6 @@ export default function CreateSession({ onSubmit, formData, onFormDataChange }) 
             Enable participants to skip steps
           </label>
         </div>
-      </div>
-      <div className="flex justify-between">
-        <Button
-          type="submit"
-          onClick={ onSubmit }
-          className="w-full m-2"
-        >
-        </Button>
       </div>
     </form>
   );

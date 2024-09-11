@@ -20,6 +20,8 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "sourceMap": true,
+    "inlineSourceMap": false,
     "jsx": "preserve",
     "plugins": [
       {

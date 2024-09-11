@@ -1,28 +1,93 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { sendApiCall } from '@/lib/utils';
-import { ApiAction, ApiTarget, TemplateBuilderData } from '@/lib/types';
-import { useRouter } from 'next/navigation';
-import { MagicWand } from '@/components/icons';
-import { Label } from '@/components/ui/label';
 
-export default function ReviewPrompt({ initialPrompt, onComplete }) {
-  
-  const [prompt, setPrompt] = useState(initialPrompt);
-  
+export default function ReviewPrompt({
+  prompts,
+  streamingPrompt,
+  currentVersion,
+  setCurrentVersion,
+  isEditing,
+  handleEdit,
+}) {
+  const [editValue, setEditValue] = useState('');
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    console.log(e.currentTarget.value);
+    setEditValue(e.currentTarget.value);
+  };
+
+  function sanitizeHtml(html: string) {
+    // Sometimes the string will start with a 'code-block indicator'
+    const cleaned = html.replace(/^```html|```$/g, '');
+    return {
+      __html: DOMPurify.sanitize(cleaned),
+    };
+  }
+
+  console.log(`#Prompts: ${prompts.length}, CurrentVersion: ${currentVersion}`, prompts);
+
   return (
-    <div className="flex justify-between">
-      <Button
-        type="submit"
-        onClick={onComplete}
-        className="w-full m-2"
-      >
-      </Button>
-    </div>
+    <>
+      <div
+        id="card-container"
+        className="bg-white w-full mx-auto p-4 m-4 h-[calc(100vh-200px)] overflow-hidden">
+        <div className="lg:flex h-full">
+          <div className={`${isEditing ? 'lg:w-2/3' : ''} `}>
+            {streamingPrompt && (
+              <Card className={`p-6 bg-purple-100 my-4`}>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold">v{prompts.length + 1}</h2>
+                </div>
+                <div dangerouslySetInnerHTML={sanitizeHtml(streamingPrompt)} />
+              </Card>
+            )}
+            {prompts.toReversed().map((prompt, index) => (
+              <Card
+                key={prompt.id}
+                className={`p-6 my-4 ${
+                  prompt.id === currentVersion ? 'bg-purple-100' : 'bg-white'
+                }`}
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold">v{prompts.length - index}</h2>
+                  {prompt.id !== currentVersion && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentVersion(prompt.id)}
+                    >
+                      Select
+                    </Button>
+                  )}
+                </div>
+                <div dangerouslySetInnerHTML={sanitizeHtml(prompt.content)} />
+              </Card>
+            ))}
+          </div>
+          <div className={`${isEditing ? 'lg:w-1/3 m-4' : ''}`}>
+            {isEditing && (
+              <>
+                <div className="flex mb-2">
+                  <Textarea
+                    name="Edit instructions"
+                    value={editValue}
+                    onChange={handleInputChange}
+                    placeholder="What would you like to change?"
+                    className="flex-grow"
+                  />
+                </div>
+                <Button onClick={() => handleEdit(editValue)}>Submit</Button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

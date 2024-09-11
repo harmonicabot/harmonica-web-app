@@ -40,24 +40,30 @@ export function accumulateSessionData(
   return accumulated;
 }
 
-export const sendApiCall = async (body: RequestData) => {
-  console.log('Sending API call:', body);
-  const response = await fetch('/api/' + body.target, {
+export const sendApiCall = async (request: RequestData) => {
+  console.log('Sending API call:', request);
+  const response = await fetch('/api/' + request.target, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(request),
   });
 
   if (!response.ok) {
     console.error('Error from API:', response.status, response.statusText);
     return null;
   }
-
-  const responseText = await response.text();
-  const result = JSON.parse(responseText);
-  return result;
+  
+  if (request.stream) {
+    console.log('Streaming response:', response.body);
+    return response.body;
+  } else {
+    const responseText = await response.text();
+    const result = JSON.parse(responseText);
+    console.log('API response:', result);
+    return result;
+  }
 };
 
 export const sendCallToMake = async (body: RequestData) => {
