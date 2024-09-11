@@ -7,7 +7,7 @@ const providers: Provider[] = [GitHub, Google];
 export const providerMap = providers
   .filter((provider) => typeof provider === "function")
   .map((provider) => {
-    const providerData = provider();
+    const providerData = (provider as () => any)();
     return { id: providerData.id, name: providerData.name}
   });
 

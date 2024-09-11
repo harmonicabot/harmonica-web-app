@@ -10,8 +10,7 @@ import { MagicWand } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { sendApiCall } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { insertSession, insertX } from '@/lib/db';
-import { InsertSession } from 'db/schema';
+import { insertSession } from '@/lib/db';
 
 // Todo: This class has become unwieldy. Think about splitting more functionality out. (Might not be easy though, because this is the 'coordinator' page that needs to somehow bind together all the functionality of the three sub-steps.)
 // One possibility to do that might be to have better state management / a session store or so, into which sub-steps can write to.
