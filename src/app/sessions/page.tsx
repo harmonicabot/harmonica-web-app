@@ -4,11 +4,16 @@ import { useSessionStore } from '@/stores/SessionStore';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import {
+  AccumulatedSessionData,
   RawSessionData,
   RawSessionOverview,
   UserSessionData,
-} from 'utils/types';
-import { accumulateSessionData, sendCallToMake } from 'utils/utils';
+} from '@/lib/types';
+import { accumulateSessionData, sendCallToMake } from '@/lib/utils';
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+
 
 /**
  * The `DashboardOverview` component is responsible for rendering the dashboard overview page. It fetches session data from an API and displays it in a grid layout, with filtering options to show all sessions, only active sessions, only finished sessions, or only sessions with a summary.
@@ -77,12 +82,10 @@ export default function DashboardOverview() {
   }
 
   type DbResponse = {
-    records: Records[];
-  };
-
-  type Records = {
-    key: string;
-    data: UserSessionData | RawSessionOverview;
+    records: {
+      key: string;
+      data: UserSessionData | RawSessionOverview;
+    }[];
   };
 
   function parseDbItems(userData: DbResponse, sessionData: DbResponse) {
@@ -260,6 +263,12 @@ export default function DashboardOverview() {
               Only Sessions with Summary
             </button>
           </div>
+
+          <div>
+            {getCardComponent(accumulated)}
+          </div>
+
+
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 m-10">
             <h2 className="col-span-full text-2xl font-bold mb-4">Sessions:</h2>
             {Object.entries(accumulated)
@@ -342,4 +351,66 @@ export default function DashboardOverview() {
   }, [accumulated, filter, selectedSessions]);
 
   return <div>{loading ? loadingElement : resultElement}</div>;
+}
+
+const getCardComponent = function (accumulated: Record<string, AccumulatedSessionData>): React.ReactElement {
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-4xl font-bold mb-2">Your Sessions</h1>
+      <p className="text-lg text-muted-foreground mb-8">
+        Create a new conversation, deliberation or sense-making session.
+      </p>
+      
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="flex flex-col items-center justify-center p-6 border-2 border-dashed">
+          <PlusIcon className="h-12 w-12 mb-4 text-muted-foreground" />
+          <h2 className="text-xl font-semibold text-center">Create new session</h2>
+        </Card>
+        {Object.entries(accumulated)
+          .map(([sessionId, session]) => (
+        
+          <Card key={sessionId} className="flex flex-col">
+            {session.session_data.active > 0 && (
+              <div className="bg-green-500 text-white text-center py-1 text-sm font-medium">
+                Active
+              </div>
+            )}
+            <CardHeader>
+              <CardTitle>{session.session_data.topic}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <p className="text-muted-foreground">{session.session_data.context}</p>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Link href={`/sessions/${sessionId}`}><Button variant="outline">View</Button></Link>
+              <Button variant={Math.random() < 0.5 ? "outline" : "default"}>
+                {Math.random() < 0.5 ? "Unshare" : "Share"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
+function PlusIcon(props) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 12h14" />
+      <path d="M12 5v14" />
+    </svg>
+  )
 }

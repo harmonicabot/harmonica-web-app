@@ -27,6 +27,7 @@ export type MultipleSessions = {
 
 export enum ApiAction {
   CreatePrompt = 'createPrompt',
+  EditPrompt = 'editPrompt',
   CreateAssistant = 'createAssistant',
   DeleteSession = 'deleteSession',
   CreateSummary = 'create summary',
@@ -46,13 +47,17 @@ export enum ApiTarget {
 export type RequestData = {
   action: ApiAction;
   target: ApiTarget;
+  stream?: boolean;
   data:
     | WebhookData
     | MultipleSessions
-    | TemplateBuilderData
+    | SessionBuilderData
     | AssistantBuilderData
-    | AssistantMessageData;
+    | AssistantMessageData
+    | TemplateEditingData;
 };
+
+
 
 export type RawSessionOverview = {
   topic: string;
@@ -111,15 +116,23 @@ export type WebhookData = {
   finished?: number;
 };
 
-export type TemplateBuilderData = {
-  templateName: string;
-  taskDescription: string;
+export type SessionBuilderData = {
+  sessionName: string;
+  goal: string;
+  critical: string;
+  context: string;
   createSummary: boolean;
   summaryFeedback: boolean;
   requireContext: boolean;
   contextDescription: string;
   enableSkipSteps: boolean;
 };
+
+export type TemplateEditingData = {
+  threadId: string;
+  assistantId: string;
+  instructions: string;
+}
 
 export type AssistantBuilderData = {
   prompt: string;
@@ -133,3 +146,10 @@ export type AssistantMessageData = {
 };
 
 export type UserSessions = Record<string, UserSessionData>;
+
+export type Session = {
+  id: string;
+  name: string;
+  status: string;
+  createdAt: Date;
+};

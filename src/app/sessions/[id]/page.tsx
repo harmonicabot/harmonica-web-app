@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
 import Markdown from 'react-markdown';
-import { accumulateSessionData, sendApiCall, sendCallToMake } from 'utils/utils';
+import { accumulateSessionData, sendApiCall, sendCallToMake } from '@/lib/utils';
 import { ApiAction, ApiTarget } from '@/lib/types';
 
 export default function DashboardIndividual() {

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { sendApiCall } from '@/lib/utils';
-import { ApiAction, ApiTarget, TemplateBuilderData } from '@/lib/types';
+import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { set } from 'react-hook-form';
 
@@ -127,7 +127,7 @@ Help & Support:
       className="flex flex-col bg-gray-100"
       style={{ height: 'calc(100vh - 45px)' }}
     >
-      <main className="h-full flex-grow flex flex-col items-center justify-center p-6">
+      <div className="h-full flex-grow flex flex-col items-center justify-center p-6">
         <div className="h-full w-full flex flex-col flex-grow">
           <h1 className="text-2xl font-bold mb-6">Web chat</h1>
           <div
@@ -207,7 +207,7 @@ Help & Support:
             </form>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

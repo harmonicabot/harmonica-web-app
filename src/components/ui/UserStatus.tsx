@@ -1,34 +1,34 @@
-'use client';
+'use client'
 
-import { useUser } from '@/context/UserContext';
-import { Button } from '@aws-amplify/ui-react';
-import { signOut, getCurrentUser } from 'aws-amplify/auth';
+import { useState } from 'react'
+import { useSession, signOut } from "next-auth/react"
+import Authentication from "components/authentication"
+import { Button } from "components//ui/button"
 
 export default function UserStatus() {
-  const { user, setUser } = useUser();
+  const { data: session } = useSession()
+  const [showAuth, setShowAuth] = useState(false)
 
-  // We need this at the beginning to init the state.
-  // I'm not quite sure why it doesn't have the state from the <Auth> component, but... it doesn't.
-  if (!user) {
-    getCurrentUser().then(({ username, userId, signInDetails }) => {
-      // If this worked, then set a user.
-      setUser({ username: signInDetails.loginId, newUser: false });
-    }).catch(error => {
-      // Otherwise, the user isn't logged in, or we just logged out. Set user to null
-      console.error("Error fetching current user: ", error);
-      setUser(null);
-    });
+  if (session) {
+    return (
+      <>
+        Signed in as {session.user.email} <br/>
+        <Button onClick={() => signOut()}>Sign out</Button>
+      </>
+    )
   }
 
-  async function handleSignOut() {
-    await signOut();
-    setUser(null);
-  }
-
-  // If the user is not logged in, then the surrounding Auth component will render the sign in / sign up form.
-  // return user ? (
-  //   <Button onClick={handleSignOut}>Sign Out</Button>
-  // ) : (
-    return <></>
-  // );
+  return (
+    <>
+      <Button onClick={() => setShowAuth(true)}>Sign in</Button>
+      {showAuth && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-4 rounded-lg">
+            <Authentication />
+            <Button onClick={() => setShowAuth(false)}>Close</Button>
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
