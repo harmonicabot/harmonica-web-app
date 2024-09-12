@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -24,9 +24,9 @@ export default function ReviewPrompt({
     handleEdit(editValue);
   };
 
-  if (streamingPrompt) {
-    setGenerating(false);
-  }
+  useEffect(() => {
+      setGenerating(false);
+  }, [streamingPrompt]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -63,15 +63,15 @@ export default function ReviewPrompt({
               <Card className={`p-6 bg-purple-100 my-4`}>
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold">Generating...</h2>
+                  <Spinner/>
                 </div>
-                <div><Spinner/></div>
               </Card>
             )}
             {prompts.toReversed().map((prompt, index) => (
               <Card
                 key={prompt.id}
                 className={`p-6 my-4 ${
-                  prompt.id === currentVersion ? 'bg-purple-100' : 'bg-white'
+                  (prompt.id === currentVersion && !generating) ? 'bg-purple-100' : 'bg-white'
                 }`}
               >
                 <div className="flex justify-between items-center mb-4">
@@ -101,7 +101,7 @@ export default function ReviewPrompt({
                     className="flex-grow"
                   />
                 </div>
-                <Button onClick={handleSubmit}>Submit</Button>
+                <Button onClick={handleSubmit}>{generating ? 'Generating' : 'Submit'}</Button>
               </>
             )}
           </div>
