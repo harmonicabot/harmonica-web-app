@@ -74,7 +74,6 @@ export default function Dashboard({
   return (
 
     <Tabs defaultValue="all">
-      <Button onClick={insertFake}>Insert fake entry</Button>
       <div className="flex items-center">
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
