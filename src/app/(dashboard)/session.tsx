@@ -11,22 +11,23 @@ import {
 import { MoreHorizontal } from 'lucide-react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { deleteSession as deleteSession } from './actions';
-import { SelectSession } from 'db/schema';
+import { AccumulatedSessionData } from '@/lib/types';
 
-export function Session({ session }: { session: SelectSession }) {
+export function Session({ session }: { session: AccumulatedSessionData }) {
   return (
     <TableRow>
-      <TableCell className="font-medium">{session.name}</TableCell>
+      <TableCell className="font-medium">{session.session_data.topic}</TableCell>
       <TableCell>
         <Badge variant="outline" className="capitalize">
-          {session.status}
+          {session.session_data.active ?  'active' : session.session_data.finished ? 'finished' : session.session_data.finalReportSent ? 'report sent' : 'report not sent'}
         </Badge>
       </TableCell>
+      <TableCell>{  }</TableCell>
       <TableCell className="hidden md:table-cell">
         {new Intl.DateTimeFormat(undefined, {
           dateStyle: 'medium',
           timeStyle: 'short'
-        }).format(session.createdAt)}
+        }).format(session.session_data.start_time)}
       </TableCell>
       <TableCell>
         <DropdownMenu>

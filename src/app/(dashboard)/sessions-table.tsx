@@ -15,21 +15,23 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { SelectSession } from 'db/schema';
+import { SelectSession } from '@/lib/schema';
 import { Session } from './session';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AccumulatedSessionData } from '@/lib/types';
 
 export function SessionsTable({
   sessions,
   offset,
   totalSessions
 }: {
-  sessions: SelectSession[];
+  sessions: Record<string, AccumulatedSessionData>;
   offset: number;
   totalSessions: number;
 }) {
+  console.log('offset: ', offset);
   let router = useRouter();
   let sessionsPerPage = 5;
 
@@ -53,14 +55,11 @@ export function SessionsTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="hidden w-[100px] sm:table-cell">
-                <span className="sr-only">Image</span>
-              </TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="hidden md:table-cell">Price</TableHead>
+              <TableHead className="hidden md:table-cell">Active Participants</TableHead>
               <TableHead className="hidden md:table-cell">
-                Total Sales
+                Finished Participants
               </TableHead>
               <TableHead className="hidden md:table-cell">Created at</TableHead>
               <TableHead>
@@ -69,8 +68,8 @@ export function SessionsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sessions.map((session) => (
-              <Session key={session.id} session={session} />
+            {Object.entries(sessions).map(([sessionId, session]) => (
+              <Session key={sessionId} session={session} />
             ))}
           </TableBody>
         </Table>

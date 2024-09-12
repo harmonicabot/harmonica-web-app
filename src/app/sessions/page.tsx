@@ -9,7 +9,7 @@ import {
   RawSessionOverview,
   UserSessionData,
 } from '@/lib/types';
-import { accumulateSessionData, sendCallToMake } from '@/lib/utils';
+import { accumulateSessionData } from '@/lib/utils';
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"

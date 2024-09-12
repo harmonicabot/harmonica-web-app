@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { VersionedPrompt } from './page';
+import { Spinner } from '@/components/icons';
 
 export default function ReviewPrompt({
   prompts,
@@ -16,6 +17,16 @@ export default function ReviewPrompt({
   handleEdit,
 }: {prompts: VersionedPrompt[], streamingPrompt: string, currentVersion: number, setCurrentVersion: (version: number) => void, isEditing: boolean, handleEdit: (instructions: string) => void}) {
   const [editValue, setEditValue] = useState('');
+  const [generating, setGenerating] = useState(false);
+
+  const handleSubmit = async () => {
+    setGenerating(true);
+    handleEdit(editValue);
+  };
+
+  if (streamingPrompt) {
+    setGenerating(false);
+  }
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -41,12 +52,19 @@ export default function ReviewPrompt({
         className="bg-white w-full mx-auto p-4 m-4 h-[calc(100vh-200px)] overflow-hidden">
         <div className="lg:flex h-full">
           <div className={`${isEditing ? 'lg:w-2/3' : ''} overflow-scroll`}>
-            {streamingPrompt && (
+            {streamingPrompt ? (
               <Card className={`p-6 bg-purple-100 my-4`}>
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold">v{prompts.length + 1}</h2>
                 </div>
                 <div dangerouslySetInnerHTML={sanitizeHtml(streamingPrompt)} />
+              </Card>
+            ) : generating && (
+              <Card className={`p-6 bg-purple-100 my-4`}>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold">Generating...</h2>
+                </div>
+                <div><Spinner/></div>
               </Card>
             )}
             {prompts.toReversed().map((prompt, index) => (
@@ -83,7 +101,7 @@ export default function ReviewPrompt({
                     className="flex-grow"
                   />
                 </div>
-                <Button onClick={() => handleEdit(editValue)}>Submit</Button>
+                <Button onClick={handleSubmit}>Submit</Button>
               </>
             )}
           </div>

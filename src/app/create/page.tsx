@@ -194,7 +194,7 @@ export default function CreationFlow() {
     Share: isLoading ? (
         <LoadingMessage />
     ) : (
-        <ShareSession botId={botId} sessionId={ sessionId} />
+        <ShareSession sessionName={formData.sessionName} telegramBotId={botId} makeSessionId={ sessionId} assistantId={sessionAssistantId} />
     ),
   };
 

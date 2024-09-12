@@ -78,6 +78,7 @@ type SessionOverview = {
   topic: string;
   context: string;
   finalReportSent: boolean;
+  start_time: Date;
 };
 
 // All of the fields are marked as optional,
@@ -140,7 +141,7 @@ export type AssistantBuilderData = {
 };
 
 export type AssistantMessageData = {
-  thredId: string;
+  threadId: string;
   messageText: string;
   assistantId: string;
 };

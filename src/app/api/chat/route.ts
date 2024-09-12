@@ -27,14 +27,14 @@ async function handleCreateThread() {
 
 async function handleGenerateAnswer(messageData: AssistantMessageData) {
   const message = await client.beta.threads.messages.create(
-    messageData.thredId,
+    messageData.threadId,
     {
       role: 'user',
       content: messageData.messageText,
     },
   );
 
-  let run = await client.beta.threads.runs.createAndPoll(messageData.thredId, {
+  let run = await client.beta.threads.runs.createAndPoll(messageData.threadId, {
     assistant_id: messageData.assistantId,
     instructions: '',
   });

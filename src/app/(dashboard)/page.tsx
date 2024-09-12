@@ -1,21 +1,39 @@
+'use client';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { File, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SessionsTable } from './sessions-table';
-import { getSessions } from '@/lib/db';
+import { getSessions, getSessionsFromMake } from '@/lib/db';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { AccumulatedSessionData } from '@/lib/types';
 
-export default async function Dashboard({
+export default function Dashboard({
   searchParams
 }: {
   searchParams: { q: string; offset: string };
 }) {
   const search = searchParams.q ?? '';
-  const offset = searchParams.offset ?? 0;
-  const { sessions, newOffset, totalSessions } = await getSessions(
-    search,
-    Number(offset)
-  );
+  const offset = searchParams.offset ?? 0;  
+ 
+  const [accumulated, setAccumulated] = useState<Record<string, AccumulatedSessionData>>({});
+  useEffect(() => {
+    callMakeAPI();
+    callNeonDB(search, offset);
+  }, [search, offset]);
+  
+  async function callMakeAPI() {
+    const accumulatedSessions = await getSessionsFromMake();
+    setAccumulated(accumulatedSessions);
+  }
+
+  async function callNeonDB(search, offset) {
+    const { sessions, newOffset, totalSessions } = await getSessions(
+      search,
+      Number(offset)
+    );
+  }
 
   return (
     <Tabs defaultValue="all">
@@ -47,9 +65,9 @@ export default async function Dashboard({
       </div>
       <TabsContent value="all">
         <SessionsTable
-          sessions={sessions}
-          offset={newOffset ?? 0}
-          totalSessions={totalSessions}
+          sessions={accumulated}
+          offset={0}
+          totalSessions={777}
         />
       </TabsContent>
     </Tabs>

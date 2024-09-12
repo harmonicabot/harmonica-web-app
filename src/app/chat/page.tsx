@@ -10,7 +10,7 @@ import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { set } from 'react-hook-form';
 
-export default function TemplatePage() {
+export default function TemplatePage({ assistantId }: { assistantId?: string }) {
   const entryMessage = {
     type: 'ASSISTANT',
     text: `Nice to meet you! Before we get started, here are a few things to keep in mind
@@ -104,9 +104,9 @@ Help & Support:
       action: ApiAction.GenerateAnswer,
       target: ApiTarget.Chat,
       data: {
-        thredId: threadId,
+        threadId: threadId,
         messageText: messageText,
-        assistantId: 'asst_fHg4kGRWn357GnejZJQnVbJW',
+        assistantId: assistantId ?? 'asst_fHg4kGRWn357GnejZJQnVbJW', // Fall back to 'Daily Review' by default
       },
     })
       .then((response) => {
