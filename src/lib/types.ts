@@ -69,7 +69,7 @@ export type RawSessionOverview = {
   final_report_sent?: boolean;
 };
 
-type SessionOverview = {
+export type SessionOverview = {
   num_sessions: number;
   active: number;
   finished: number;

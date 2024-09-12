@@ -1,16 +1,46 @@
-import { pgTable, serial, text, timestamp, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, integer, boolean, foreignKey, pgEnum } from "drizzle-orm/pg-core"
+import { relations, sql } from "drizzle-orm"
 
-export const statusEnum = pgEnum('status', ['active', 'draft', 'archived', 'finished']);
-export const sessions = pgTable('sessions', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  status: statusEnum('status').notNull(),
-  botId: text('botId').notNull(),
-  assistantId: text('assistantId').notNull(),
-  sessionId: text('sessionId').notNull(),
-  createdAt: timestamp('createdAt').defaultNow().notNull()
+export const hostData = pgTable("host_data", {
+	id: serial("id").primaryKey().notNull(),
+	numSessions: integer("num_sessions").notNull(),
+	active: integer("active").notNull(),
+	finished: integer("finished").notNull(),
+	summary: text("summary"),
+	template: text("template"),
+	topic: text("topic").notNull(),
+	context: text("context"),
+	finalReportSent: boolean("final_report_sent").notNull(),
+	startTime: timestamp("start_time", { mode: 'string' }).notNull(),
 });
 
+export const userData = pgTable("user_data", {
+	id: serial("id").primaryKey().notNull(),
+  sessionId: integer('session_id').references(() => hostData.id),
+	userId: text("user_id"),
+	active: boolean("active"),
+	template: text("template"),
+	feedback: text("feedback"),
+	chatText: text("chat_text"),
+	threadId: text("thread_id"),
+	resultText: text("result_text"),
+	botId: text("bot_id"),
+	hostChatId: text("host_chat_id"),
+});
 
-export type InsertSession = typeof sessions.$inferInsert;
-export type SelectSession = typeof sessions.$inferSelect;
+export const hostRelations = relations(hostData, ({ many }) => ({
+  userData: many(userData)
+}));
+
+export const userDataRelations = relations(userData, ({ one }) => ({
+  session: one(hostData, {
+    fields: [userData.sessionId],
+    references: [hostData.id],
+  }),
+}));
+
+export type InsertHostData = typeof hostData.$inferInsert;  // = 
+export type SelectHostData = typeof hostData.$inferSelect;
+
+export type InsertUserData = typeof userData.$inferInsert;
+export type SelectUserData = typeof userData.$inferSelect;

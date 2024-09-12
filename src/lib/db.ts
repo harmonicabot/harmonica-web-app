@@ -1,34 +1,77 @@
 
-import { count, eq, ilike } from 'drizzle-orm';
+import { count, eq, ilike, desc } from 'drizzle-orm';
 import * as s from './schema';
+import { hostData, userData, InsertHostData, SelectHostData, InsertUserData } from './schema';
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from "drizzle-orm/neon-http";
-import { AccumulatedSessionData, RawSessionData, RawSessionOverview, UserSessionData } from './types';
+import { AccumulatedSessionData, RawSessionData, RawSessionOverview, SessionOverview, UserSessionData,  } from './types';
 import { accumulateSessionData } from '@/lib/utils';
 
 const sql = neon(process.env.POSTGRES_URL!);
 export const db = drizzle(sql, {schema: s});
 
-export async function insertSession(data: s.InsertSession):Promise<{ id: number }[]> {
-  return db.insert(s.sessions).values(data).returning({id:s.sessions.id});
+export async function insertHostSession(data):Promise<{ id: number }[]> {
+  return db.insert(hostData).values(data).returning({id:hostData.id})[0].id;
+}
+
+export async function insertUserSession(data: InsertUserData):Promise<{ id: number }[]> {
+  return db.insert(userData).values(data).returning({id:userData.id})[0].id;
+}
+
+export async function getHostAndUserSessions(n: number = 100): Promise<Record<string, AccumulatedSessionData>> {
+  
+  console.log('Getting sessions from database...');
+
+  const sessions = await db.query.hostData.findMany({
+    orderBy: desc(hostData.startTime),
+    limit: n,
+    with: {
+      userData: true
+    }
+  });
+
+  const accumulatedSessions: Record<string, AccumulatedSessionData> = {};
+  sessions.forEach(session => {
+    accumulatedSessions[session.id.toString()] = {
+      session_data: {
+        num_sessions: session.numSessions,
+        active: session.active,
+        finished: session.finished,
+        summary: session.summary,
+        template: session.template,
+        topic: session.topic,
+        context: session.context,
+        finalReportSent: session.finalReportSent,
+        start_time: new Date(session.startTime),
+      },
+      user_data: session.userData.reduce((acc, user) => {
+        acc[user.id.toString()] = user;
+        return acc;
+      }, {} as Record<string, UserSessionData>)
+    };
+  });
+
+  console.log('Accumulated sessions from Vercel:', accumulatedSessions);
+
+  return accumulatedSessions;
 }
 
 export async function getSessions(
   search: string,
   offset: number
 ): Promise<{
-  sessions: s.SelectSession[];
+  sessions: SelectHostData[];
   newOffset: number | null;
   totalSessions: number;
 }> {
-  // Always search the full table, not per page
+  // Always search the full table (max 1000), not per page
   if (search) {
     return {
       sessions: await db
         .select()
-        .from(s.sessions)
-        .where(ilike(s.sessions.name, `%${search}%`))
+        .from(hostData)
+        .where(ilike(hostData.topic, `%${search}%`))
         .limit(1000),
       newOffset: null,
       totalSessions: 0
@@ -39,11 +82,11 @@ export async function getSessions(
     return { sessions: [], newOffset: null, totalSessions: 0 };
   }
 
-  let totalSessions = await db.select({ count: count() }).from(s.sessions);
+  let totalSessions = await db.select({ count: count() }).from(hostData);
   if (totalSessions[0].count === 0) {
     return { sessions: [], newOffset: null, totalSessions: 0 };
   }
-  let allSessions = await db.query.sessions.findMany({
+  let allSessions = await db.query.hostData.findMany({
     limit: 20,
     offset: offset,
     orderBy: (sessions, { desc }) => [desc(sessions.id)]
@@ -61,7 +104,7 @@ export async function getSessions(
 }
 
 export async function deleteSessionById(id: number) {
-  await db.delete(s.sessions).where(eq(s.sessions.id, id));
+  await db.delete(hostData).where(eq(hostData.id, id));
 }
 
 

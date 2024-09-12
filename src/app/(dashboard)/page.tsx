@@ -4,10 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { File, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SessionsTable } from './sessions-table';
-import { getSessions, getSessionsFromMake } from '@/lib/db';
+import { getHostAndUserSessions, getSessions, getSessionsFromMake } from '@/lib/db';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AccumulatedSessionData } from '@/lib/types';
+import * as db from '@/lib/db';
 
 export default function Dashboard({
   searchParams
@@ -20,23 +21,60 @@ export default function Dashboard({
   const [accumulated, setAccumulated] = useState<Record<string, AccumulatedSessionData>>({});
   useEffect(() => {
     callMakeAPI();
-    callNeonDB(search, offset);
+    callNeonDB();
   }, [search, offset]);
   
   async function callMakeAPI() {
-    const accumulatedSessions = await getSessionsFromMake();
+    // const accumulatedSessions = await getSessionsFromMake();
+    // setAccumulated(accumulatedSessions);
+  }
+
+  async function callNeonDB() {
+    const accumulatedSessions = await getHostAndUserSessions();
     setAccumulated(accumulatedSessions);
   }
 
-  async function callNeonDB(search, offset) {
-    const { sessions, newOffset, totalSessions } = await getSessions(
-      search,
-      Number(offset)
-    );
+  const insertFake = async () => {
+    const template = `Template ${Math.random().toString(36).substring(7)}`;
+    const topic = `Topic ${Math.random().toString(36).substring(7)}`;
+    const context = `Context ${Math.random().toString(36).substring(7)}`;
+    const sessionId = await db.insertHostSession({
+      numSessions: Math.floor(Math.random() * 100),
+      active: Math.floor(Math.random() * 50),
+      finished: Math.floor(Math.random() * 50),
+      summary: `Random summary ${Math.random().toString(36).substring(7)}`,
+      template: template,
+      topic: topic,
+      context: context,
+      finalReportSent: Math.random() < 0.5,
+      startTime: new Date()  
+    })
+
+    console.log('Session ID:', sessionId);
+    for (let i = 1; i <= 10; i++) {
+      await db.insertUserSession({
+        sessionId: sessionId,
+        active: Math.random() < 0.5,
+        userId: Math.random().toString(36).substring(7),
+        template: template,
+        feedback: `Feedback ${Math.random().toString(36).substring(7)}`,
+        chatText: `Chat text ${Math.random().toString(36).substring(7)}`,
+        threadId: Math.random().toString(36).substring(7),
+        resultText: `Result text ${Math.random().toString(36).substring(7)}`,
+        topic: topic,
+        context: context,
+        botId: Math.random().toString(36).substring(7),
+        hostChatId: Math.random().toString(36).substring(7)
+      })
+    }
   }
 
+
+
   return (
+
     <Tabs defaultValue="all">
+      <Button onClick={insertFake}>Insert fake entry</Button>
       <div className="flex items-center">
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
