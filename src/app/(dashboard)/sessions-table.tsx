@@ -48,7 +48,7 @@ export function SessionsTable({
       <CardHeader>
         <CardTitle>Sessions</CardTitle>
         <CardDescription>
-          Manage your sessions and view their sales performance.
+          Manage your sessions
         </CardDescription>
       </CardHeader>
       <CardContent>
