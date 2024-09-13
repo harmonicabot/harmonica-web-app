@@ -1,19 +1,13 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { sendApiCall } from '@/lib/utils';
-import { ApiAction, ApiTarget } from '@/lib/types';
-import { useRouter } from 'next/navigation';
-import ChatComponent from '@/components/chat';
-import { string } from 'zod';
+import { useEffect, useState } from 'react';
+import Chat from '@/components/chat';
 
 type Message = {
   type: string;
   text: string;
 };
-export default function Chat({ assistantId }: { assistantId?: string}) {
+export default function StandaloneChat({ assistantId }: { assistantId?: string}) {
   const [message, setMessage] = useState<Message>({
     type: 'ASSISTANT',
     text: `Nice to meet you! Before we get started, here are a few things to keep in mind
@@ -54,7 +48,7 @@ Help & Support:
       <div className="h-full flex-grow flex flex-col items-center justify-center p-6">
         <div className="h-full w-full flex flex-col flex-grow">
           <h1 className="text-2xl font-bold mb-6">Web chat</h1>
-          <ChatComponent entryMessage={message} assistantId={assistantId} />
+          <Chat entryMessage={message} assistantId={assistantId} />
         </div>
       </div>
     </div>
