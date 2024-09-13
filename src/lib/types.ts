@@ -54,10 +54,9 @@ export type RequestData = {
     | SessionBuilderData
     | AssistantBuilderData
     | AssistantMessageData
-    | TemplateEditingData;
+    | TemplateEditingData
+    | string;
 };
-
-
 
 export type RawSessionOverview = {
   topic: string;
@@ -133,7 +132,7 @@ export type TemplateEditingData = {
   threadId: string;
   assistantId: string;
   instructions: string;
-}
+};
 
 export type AssistantBuilderData = {
   prompt: string;

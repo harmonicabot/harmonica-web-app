@@ -11,7 +11,7 @@ export async function POST(req: Request) {
 
   switch (data.action) {
     case ApiAction.CreateThread:
-      return handleCreateThread();
+      return handleCreateThread(data.data as string);
     case ApiAction.GenerateAnswer:
       return handleGenerateAnswer(data.data as AssistantMessageData);
     default:
@@ -19,8 +19,15 @@ export async function POST(req: Request) {
   }
 }
 
-async function handleCreateThread() {
-  const thread = await client.beta.threads.create();
+async function handleCreateThread(entryMessage: string = '') {
+  const thread = await client.beta.threads.create({
+    messages: [
+      {
+        role: 'assistant',
+        content: entryMessage,
+      },
+    ],
+  });
 
   return NextResponse.json({ thread: thread });
 }

@@ -4,29 +4,35 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { File, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SessionsTable } from './sessions-table';
-import { getHostAndUserSessions, getSessions, getSessionsFromMake } from '@/lib/db';
+import {
+  getHostAndUserSessions,
+  getSessions,
+  getSessionsFromMake,
+} from '@/lib/db';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AccumulatedSessionData } from '@/lib/types';
 import * as db from '@/lib/db';
 
 export default function Dashboard({
-  searchParams
+  searchParams,
 }: {
   searchParams: { q: string; offset: string };
 }) {
   const search = searchParams.q ?? '';
-  const offset = searchParams.offset ?? 0;  
- 
-  const [accumulated, setAccumulated] = useState<Record<string, AccumulatedSessionData>>({});
+  const offset = searchParams.offset ?? 0;
+
+  const [accumulated, setAccumulated] = useState<
+    Record<string, AccumulatedSessionData>
+  >({});
   useEffect(() => {
     callMakeAPI();
     callNeonDB();
   }, [search, offset]);
-  
+
   async function callMakeAPI() {
-    // const accumulatedSessions = await getSessionsFromMake();
-    // setAccumulated(accumulatedSessions);
+    const accumulatedSessions = await getSessionsFromMake();
+    setAccumulated(accumulatedSessions);
   }
 
   async function callNeonDB() {
@@ -47,8 +53,8 @@ export default function Dashboard({
       topic: topic,
       context: context,
       finalReportSent: Math.random() < 0.5,
-      startTime: new Date()  
-    })
+      startTime: new Date(),
+    });
 
     console.log('Session ID:', sessionId);
     for (let i = 1; i <= 10; i++) {
@@ -64,13 +70,12 @@ export default function Dashboard({
         topic: topic,
         context: context,
         botId: Math.random().toString(36).substring(7),
-        hostChatId: Math.random().toString(36).substring(7)
-      })
+        hostChatId: Math.random().toString(36).substring(7),
+      });
     }
   }
 
   return (
-
     <Tabs defaultValue="all">
       <div className="flex items-center">
         <TabsList>
@@ -99,11 +104,7 @@ export default function Dashboard({
         </div>
       </div>
       <TabsContent value="all">
-        <SessionsTable
-          sessions={accumulated}
-          offset={0}
-          totalSessions={777}
-        />
+        <SessionsTable sessions={accumulated} offset={0} totalSessions={777} />
       </TabsContent>
     </Tabs>
   );
