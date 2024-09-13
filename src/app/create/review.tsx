@@ -9,7 +9,6 @@ import { VersionedPrompt } from './page';
 import { Spinner } from '@/components/icons';
 import { sendApiCall } from '@/lib/utils';
 import { ApiAction, ApiTarget } from '@/lib/types';
-import { ChatComponent } from '@/components/chat';
 import { Badge } from '@/components/ui/badge';
 import { Eye } from 'lucide-react';
 

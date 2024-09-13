@@ -30,7 +30,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import ParticipantSessionCell from './participant-session-cell';
-import Chat from '@/components/Chat';
+import Chat from '@/components/chat';
 
 export default function DashboardIndividual() {
   const { id } = useParams() as { id: string };

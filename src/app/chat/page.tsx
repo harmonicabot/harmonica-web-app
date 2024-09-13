@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { sendApiCall } from '@/lib/utils';
 import { ApiAction, ApiTarget } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { ChatComponent } from '@/components/chat';
+import ChatComponent from '@/components/chat';
 import { string } from 'zod';
 
 type Message = {
