@@ -36,8 +36,8 @@ export default function Dashboard({
   }
 
   async function callNeonDB() {
-    const accumulatedSessions = await getHostAndUserSessions();
-    setAccumulated(accumulatedSessions);
+    // const accumulatedSessions = await getHostAndUserSessions();
+    // setAccumulated(accumulatedSessions);
   }
 
   const insertFake = async () => {
@@ -53,8 +53,8 @@ export default function Dashboard({
       topic: topic,
       context: context,
       finalReportSent: Math.random() < 0.5,
-      startTime: new Date(),
-    });
+      startTime: ''+new Date()  
+    })
 
     console.log('Session ID:', sessionId);
     for (let i = 1; i <= 10; i++) {

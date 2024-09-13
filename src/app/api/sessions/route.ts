@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 const sessionStore = 17957
 const userStore = 17913
       
-let limit = 100
+let limit = 90
 const token = process.env.MAKE_AUTH_TOKEN;
 
 function getUrl(storeId: number, includeLimit: boolean = true, offset: number = 0) {

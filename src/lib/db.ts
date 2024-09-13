@@ -11,7 +11,7 @@ import { accumulateSessionData } from '@/lib/utils';
 const sql = neon(process.env.POSTGRES_URL!);
 export const db = drizzle(sql, {schema: s});
 
-export async function insertHostSession(data):Promise<{ id: number }[]> {
+export async function insertHostSession(data: InsertHostData):Promise<{ id: number }[]> {
   return db.insert(hostData).values(data).returning({id:hostData.id})[0].id;
 }
 
@@ -104,6 +104,7 @@ export async function getSessions(
 }
 
 export async function deleteSessionById(id: number) {
+  
   await db.delete(hostData).where(eq(hostData.id, id));
 }
 
@@ -138,15 +139,19 @@ function parseDbItems(userData: DbResponse, sessionData: DbResponse) {
       user_data: userData.records.reduce((acc, userRecord) => {
         const uData = userRecord.data as UserSessionData;
         if (uData.session_id === record.key) {
-          console.log(`UserData found for session ${record.key}:`, uData);
+          // console.log(`UserData found for session ${record.key}:`, uData);
           acc[userRecord.key] = uData;
         }
         return acc;
       }, {} as Record<string, UserSessionData>),
     };
-    console.log(`Accumulating session data for ${record.key}:`, entry);
+    // console.log(`Accumulating session data for ${record.key}:`, entry);
     const accumulated = accumulateSessionData(entry);
     accumulatedSessions[record.key] = accumulated;
   });
-  return accumulatedSessions;
+  const sortedSessions = Object.entries(accumulatedSessions)
+    .sort(([, a], [, b]) => new Date(b.session_data.start_time).getTime() - new Date(a.session_data.start_time).getTime())
+    .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
+
+  return sortedSessions;
 }

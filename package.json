@@ -28,6 +28,7 @@
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.33.0",
     "drizzle-zod": "^0.5.1",
+    "fontawesome-free": "^1.0.4",
     "lucide-react": "^0.381.0",
     "next": "latest",
     "next-auth": "^5.0.0-beta.20",

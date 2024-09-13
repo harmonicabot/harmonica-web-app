@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useSession, signOut } from "next-auth/react"
-import Login from "@/components/authentication"
+import Login from "@/components/login"
 import { Button } from "components//ui/button"
 
 export default function UserStatus() {

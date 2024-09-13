@@ -3,8 +3,14 @@ import QRCode from "qrcode.react";
 
 export default function ShareSession({ sessionName, telegramBotId, makeSessionId, assistantId }: { sessionName: string, telegramBotId: string, makeSessionId: string, assistantId: string }) {
   const telegramUrl = `https://t.me/${telegramBotId}?start=${makeSessionId}`;
-  
   const sendToChat = () => {
+    //router.push({
+    //   pathname: `/chat`,
+    //   query: {
+    //     assistantId,
+    //     entryMessage: "Hello, would you like to start this session?"
+    //   }
+    // });
     window.location.href = `/chat?assistantId=${assistantId}`;
   };
 

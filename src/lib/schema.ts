@@ -6,10 +6,10 @@ export const hostData = pgTable("host_data", {
 	numSessions: integer("num_sessions").notNull(),
 	active: integer("active").notNull(),
 	finished: integer("finished").notNull(),
-	summary: text("summary"),
-	template: text("template"),
+	summary: text("summary").notNull(),
+	template: text("template").notNull(),
 	topic: text("topic").notNull(),
-	context: text("context"),
+	context: text("context").notNull(),
 	finalReportSent: boolean("final_report_sent").notNull(),
 	startTime: timestamp("start_time", { mode: 'string' }).notNull(),
 });
@@ -39,7 +39,7 @@ export const userDataRelations = relations(userData, ({ one }) => ({
   }),
 }));
 
-export type InsertHostData = typeof hostData.$inferInsert;  // = 
+export type InsertHostData = typeof hostData.$inferInsert;
 export type SelectHostData = typeof hostData.$inferSelect;
 
 export type InsertUserData = typeof userData.$inferInsert;
