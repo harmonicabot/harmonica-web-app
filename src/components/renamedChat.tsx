@@ -2,13 +2,9 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { sendApiCall } from '@/lib/utils';
-import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
-import { useRouter } from 'next/navigation';
-import { set } from 'react-hook-form';
+import { ApiAction, ApiTarget } from '@/lib/types';
 
 export default function Chat({
   assistantId,

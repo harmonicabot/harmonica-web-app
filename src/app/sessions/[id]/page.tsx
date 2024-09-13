@@ -106,7 +106,6 @@ export default function DashboardIndividual() {
       return 'No match found';
     }
   }
-
   const sendFinalReport = async () => {
     const data = await sendCallToMake({
       target: ApiTarget.Session,
