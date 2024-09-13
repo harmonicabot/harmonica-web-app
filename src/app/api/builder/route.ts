@@ -29,10 +29,11 @@ export async function POST(req: Request) {
 async function createNewPrompt(data: SessionBuilderData) {
   console.log("Creating prompt for data: ", data)
   try {
-    const templateBuilder = await getTemplateBuilder()
+    // const templateBuilder = await getTemplateBuilder()
+    const templateBuilderId = "asst_5T4EakkOmaRfgna5qJnCc8sX";
     console.log("Template Builder assistant found, generating full prompt")
-    const [threadId, fullPrompt] = await generateFullPrompt(data, templateBuilder.id)
-    return NextResponse.json({ threadId, assistantId: templateBuilder.id, fullPrompt: fullPrompt })
+    const [threadId, fullPrompt] = await generateFullPrompt(data, templateBuilderId)
+    return NextResponse.json({ threadId, assistantId: templateBuilderId, fullPrompt: fullPrompt })
   } catch (error) {
     console.error('Error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

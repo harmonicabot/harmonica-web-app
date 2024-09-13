@@ -13,7 +13,7 @@ export function cn(...inputs: ClassValue[]) {
 export function accumulateSessionData(
   data: RawSessionData,
 ): AccumulatedSessionData {
-  console.log('Raw session data:', data);
+  // console.log('Raw session data:', data);
 
   const userSessions = Object.values(data.user_data);
   const total_sessions = userSessions.length;
@@ -33,10 +33,11 @@ export function accumulateSessionData(
       topic: data.session_data.topic,
       context: data.session_data.context,
       finalReportSent: data.session_data.final_report_sent,
+      start_time: data.session_data.start_time,
     },
     user_data: data.user_data,
   };
-  console.log('Accumulated session data:', accumulated.session_data);
+  // console.log('Accumulated session data:', accumulated.session_data);
   return accumulated;
 }
 

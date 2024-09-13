@@ -10,7 +10,7 @@ import { MagicWand } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { sendApiCall } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { insertSession } from '@/lib/db';
+import { insertHostSession } from '@/lib/db';
 
 // Todo: This class has become unwieldy. Think about splitting more functionality out. (Might not be easy though, because this is the 'coordinator' page that needs to somehow bind together all the functionality of the three sub-steps.)
 // One possibility to do that might be to have better state management / a session store or so, into which sub-steps can write to.
@@ -145,8 +145,10 @@ export default function CreationFlow() {
       },
     });
 
-    const botId = 'harmonica_chat_bot';
+    console.log('Assistant response from complete review: ', assistantResponse);
+
     setSessionAssistantId(assistantResponse.assistantId);
+    const botId = 'harmonica_chat_bot';
     // Todo: How to do this better? Can we get a list of 'available' bots, i.e. where no session is running, and use that? Or 'intelligently' chose one whose name matches best? Later on with user management each user will probably have their own pool of bots.
     // Or maybe we can create a bot dynamically?
     const sessionResponse = await sendApiCall({
@@ -168,7 +170,17 @@ export default function CreationFlow() {
   
   const handleSaveSession = async () => {
     console.log('Saving session...');
-    insertSession({ name: formData.sessionName, botId, assistantId: sessionAssistantId, sessionId: sessionId, status: "active"});
+    insertHostSession({
+      topic: formData.sessionName,
+      finished: 0,
+      numSessions: 0,
+      active: 0,
+      finalReportSent: false,
+      startTime: `${Date.now()}`,
+      summary: '',
+      template: sessionAssistantId, 
+      context: formData.context,
+    });
   };
 
   const stepContent = {
@@ -194,7 +206,7 @@ export default function CreationFlow() {
     Share: isLoading ? (
         <LoadingMessage />
     ) : (
-        <ShareSession botId={botId} sessionId={ sessionId} />
+        <ShareSession sessionName={formData.sessionName} telegramBotId={botId} makeSessionId={ sessionId} assistantId={sessionAssistantId} />
     ),
   };
 

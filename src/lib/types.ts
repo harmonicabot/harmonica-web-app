@@ -54,10 +54,9 @@ export type RequestData = {
     | SessionBuilderData
     | AssistantBuilderData
     | AssistantMessageData
-    | TemplateEditingData;
+    | TemplateEditingData
+    | string;
 };
-
-
 
 export type RawSessionOverview = {
   topic: string;
@@ -69,7 +68,7 @@ export type RawSessionOverview = {
   final_report_sent?: boolean;
 };
 
-type SessionOverview = {
+export type SessionOverview = {
   num_sessions: number;
   active: number;
   finished: number;
@@ -78,6 +77,7 @@ type SessionOverview = {
   topic: string;
   context: string;
   finalReportSent: boolean;
+  start_time: Date;
 };
 
 // All of the fields are marked as optional,
@@ -132,7 +132,7 @@ export type TemplateEditingData = {
   threadId: string;
   assistantId: string;
   instructions: string;
-}
+};
 
 export type AssistantBuilderData = {
   prompt: string;
@@ -140,7 +140,7 @@ export type AssistantBuilderData = {
 };
 
 export type AssistantMessageData = {
-  thredId: string;
+  threadId: string;
   messageText: string;
   assistantId: string;
 };

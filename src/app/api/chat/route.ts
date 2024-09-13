@@ -11,7 +11,7 @@ export async function POST(req: Request) {
 
   switch (data.action) {
     case ApiAction.CreateThread:
-      return handleCreateThread();
+      return handleCreateThread(data.data as string);
     case ApiAction.GenerateAnswer:
       return handleGenerateAnswer(data.data as AssistantMessageData);
     default:
@@ -19,22 +19,29 @@ export async function POST(req: Request) {
   }
 }
 
-async function handleCreateThread() {
-  const thread = await client.beta.threads.create();
+async function handleCreateThread(entryMessage: string = '') {
+  const thread = await client.beta.threads.create({
+    messages: [
+      {
+        role: 'assistant',
+        content: entryMessage,
+      },
+    ],
+  });
 
   return NextResponse.json({ thread: thread });
 }
 
 async function handleGenerateAnswer(messageData: AssistantMessageData) {
   const message = await client.beta.threads.messages.create(
-    messageData.thredId,
+    messageData.threadId,
     {
       role: 'user',
       content: messageData.messageText,
     },
   );
 
-  let run = await client.beta.threads.runs.createAndPoll(messageData.thredId, {
+  let run = await client.beta.threads.runs.createAndPoll(messageData.threadId, {
     assistant_id: messageData.assistantId,
     instructions: '',
   });
