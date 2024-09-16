@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AccumulatedSessionData } from '@/lib/types';
+import Link from 'next/link';
 
 export function SessionsTable({
   sessions,
@@ -68,7 +69,7 @@ export function SessionsTable({
           </TableHeader>
           <TableBody>
             {Object.entries(sessions).map(([sessionId, session]) => (
-              <Session key={sessionId} session={session} />
+                <Session key={sessionId} session={session} sessionId={sessionId} />
             ))}
           </TableBody>
         </Table>

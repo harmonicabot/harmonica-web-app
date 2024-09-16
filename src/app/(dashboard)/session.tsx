@@ -14,7 +14,7 @@ import { deleteSession as deleteSession } from './actions';
 import { AccumulatedSessionData } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
-export function Session({ session }: { session: AccumulatedSessionData }) {
+export function Session({ session, sessionId }: { session: AccumulatedSessionData, sessionId: string }) {
 
   console.log('Session data:', session);
   const totalUsers = Object.keys(session.user_data).length;
@@ -29,8 +29,16 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
     return null;
   }
   console.log('Start time: ', session.session_data.start_time);
+
+  const navigate = () => {
+    window.location.href = `/sessions/${sessionId}`;
+  };
+
   return (
-    <TableRow>
+    <TableRow
+      onClick={navigate}
+      className="hover:bg-gray-100 cursor-pointer"
+    >
       <TableCell className="font-medium">{(session.session_data.template && !session.session_data.template.startsWith("asst_")) ? session.session_data.template : session.session_data.topic}</TableCell>
       <TableCell>
         <Badge variant="outline" className="capitalize">
