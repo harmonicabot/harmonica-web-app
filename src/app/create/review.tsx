@@ -11,6 +11,7 @@ import { sendApiCall } from '@/lib/utils';
 import { ApiAction, ApiTarget } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Eye } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ReviewPrompt({
   prompts,
@@ -50,29 +51,21 @@ export default function ReviewPrompt({
   const [chatOpen, setChatOpen] = useState(false);
   const [tempAssistantId, setTempAssistant] = useState('');
 
-  const testVersion = async (promptId) => {
-    const assistantResponse = await sendApiCall({
-      action: ApiAction.CreateAssistant,
-      target: ApiTarget.Builder,
-      data: {
-        prompt: prompts[promptId - 1].fullPrompt,
-        name: `testing_v${promptId}`,
-      },
-    });
-
-    setTempAssistant(assistantResponse.id);
-    setChatOpen(true);
-    const params = { entryMessage: { type: 'ASSISTANT', text: 'Hello! Do you want to start this test-session?' } };
-    const newWindow = window.open('', '_blank');
-    if (newWindow) {
-      newWindow.opener = null; // For security reasons
-      newWindow.location.href = `/chat`;
-      // Pass data to the new window
-      newWindow.addEventListener('load', () => {
-        newWindow.postMessage(params, '*');
-      });
+  const generateRandomId = (length:number) => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
     }
-    
+    return result;
+  };
+  
+  const testVersion = (promptId, randomId) => {
+    console.log("Using temp id: ", randomId);
+    localStorage.setItem(randomId, JSON.stringify({"prompt": prompts[promptId - 1].fullPrompt, "version": promptId}));
+
+    setChatOpen(true);
+    return randomId;
   };  
 
   function showFullPrompt(version: number) {
@@ -105,51 +98,54 @@ export default function ReviewPrompt({
                 )}
               </Card>
             )}
-            {prompts.toReversed().map((prompt, index) => (
-              <Card
-                key={prompt.id}
-                className={`p-6 my-4 ${
-                  (prompt.id === currentVersion && !generating) ? 'bg-purple-100' : 'bg-white'
-                }`}
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <Badge variant='outline'>v{prompts.length - index}</Badge>
-                  <div>
-                    {/* <Button
-                    variant="secondary"
-                    className="ml-2"
-                    size='sm'
-                    onClick={() => {showFullPrompt(prompt.id)}}
-                    >
-                      <Eye/>
-                  </Button> */}
-                                  
-                  {!chatOpen &&
-                  (
-                    <Button
-                      variant="outline"
-                        onClick={() => testVersion(prompt.id)}
-                        className='mr-2'
-                    >
-                      Test
-                    </Button>  
-                    )}
-                    {prompt.id !== currentVersion ? (
-                      <Button
-                        onClick={() => setCurrentVersion(prompt.id)}
+            {prompts.toReversed().map((prompt, index) => {
+              const randomId = generateRandomId(6);
+    
+              return (
+                <Card
+                  key={prompt.id}
+                  className={`p-6 my-4 ${(prompt.id === currentVersion && !generating) ? 'bg-purple-100' : 'bg-white'
+                    }`}
+                >
+                  <div className="flex justify-between items-center mb-4">
+                    <Badge variant='outline'>v{prompts.length - index}</Badge>
+                    <div>
+                      {/* <Button
+                      variant="secondary"
+                      className="ml-2"
+                      size='sm'
+                      onClick={() => {showFullPrompt(prompt.id)}}
                       >
-                        Select
+                        <Eye/>
+                    </Button> */}
+                                    
+                    
+                      <Button
+                        variant="outline"
+                        className='mr-2'
+                        onClick={() => testVersion(prompt.id, randomId)}
+                      >
+                        <Link target='_blank' href={`./testChat?id=${randomId}`}>
+                          Test
+                        </Link>
                       </Button>
-                    ) : (
-                      <Button disabled>
-                      Selected
-                      </Button>
-                    )}
+                      {prompt.id !== currentVersion ? (
+                        <Button
+                          onClick={() => setCurrentVersion(prompt.id)}
+                        >
+                          Select
+                        </Button>
+                      ) : (
+                        <Button disabled>
+                          Selected
+                        </Button>
+                      )}
                     </div>
-                </div>
-                <div dangerouslySetInnerHTML={sanitizeHtml(prompt.summary)} />
-              </Card>
-            ))}
+                  </div>
+                  <div dangerouslySetInnerHTML={sanitizeHtml(prompt.summary)} />
+                </Card>
+              );
+            })}
           </div>
           <div className={`${isEditing ? 'lg:w-1/3 m-4' : ''}`}>
             {isEditing && (

@@ -16,9 +16,10 @@ export default function LoadingMessage() {
     'Harnessing the power of a thousand CPUs...',
     'Traversing the neural networks of imagination...',
   ];
-  const [loadingMessage, setLoadingMessage] = useState(loadingMessages[Math.floor(Math.random() * loadingMessages.length)]);
+  const [loadingMessage, setLoadingMessage] = useState('');
 
   useEffect(() => {
+    setLoadingMessage(loadingMessages[Math.floor(Math.random() * loadingMessages.length)])
     let interval: NodeJS.Timeout;
     interval = setInterval(() => {
         const randomIndex = Math.floor(Math.random() * loadingMessages.length);
