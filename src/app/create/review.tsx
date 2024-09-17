@@ -69,11 +69,12 @@ export default function ReviewPrompt({
   };  
 
   function showFullPrompt(version: number) {
-    // TODO
+    // TODO : For developers only
   }
 
   console.log(`#Prompts: ${prompts.length}, CurrentVersion: ${currentVersion}`, prompts);
 
+  // TODO: Update design to latest figma version
   return (
     <>
       <div

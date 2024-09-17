@@ -261,6 +261,9 @@ export default function CreationFlow() {
                   Edit
                 </Button>
               )}
+              {/* TODO: We want to have a 'Save' button for the Review step that would just save it as draft. Not sure what the logic would be, 
+              i.e. whether we would need to also create an assistant? Probs not, just store in DB with either the prompt so far, or maybe better with the thread_id?
+              Also, how to restore and pick up editing still needs to be figured out */}
               <Button
                 type="submit"
                 onClick={

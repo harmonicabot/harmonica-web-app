@@ -3,10 +3,11 @@ import { AccumulatedSessionData } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
 export async function deleteSession(session: AccumulatedSessionData) {
-  // TODO
+  // TODO - for vercel DB:
   // let id = Number(formData.get('id'));
   // await deleteSessionById(id);
 
+  // This here is for deleting from make.com db:
   console.log(`Deleting `, session);
   const userIds = Object.keys(session.user_data);
   const hostIds = [Object.values(session.user_data)[0].session_id];
