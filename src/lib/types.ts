@@ -34,6 +34,8 @@ export enum ApiAction {
   SendFinalReport = 'send final report',
   Stats = 'stats',
   CreateSession = 'create session',
+  CreateUserSession = 'create user session',
+  UpdateUserSession = 'update user session',
   CreateThread = 'createThread',
   GenerateAnswer = 'generateAnswer',
 }
@@ -55,10 +57,13 @@ export type RequestData = {
     | AssistantBuilderData
     | AssistantMessageData
     | TemplateEditingData
+    | UserSessionData
     | string;
 };
 
 export type RawSessionOverview = {
+  session_id?: string;
+  active?: number;
   topic: string;
   context: string;
   result: string;
@@ -69,6 +74,7 @@ export type RawSessionOverview = {
 };
 
 export type SessionOverview = {
+  session_id?: string;
   num_sessions: number;
   active: number;
   finished: number;

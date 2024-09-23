@@ -36,12 +36,12 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-  })
+  });
   const assistants = await client.beta.assistants.list();
-  const assistantInfo = assistants.data.map(assistant => ({
+  const assistantInfo = assistants.data.map((assistant) => ({
     name: assistant.name,
-    id: assistant.id
-  }))
+    id: assistant.id,
+  }));
 
-  return NextResponse.json(assistantInfo)
+  return NextResponse.json(assistantInfo);
 }
