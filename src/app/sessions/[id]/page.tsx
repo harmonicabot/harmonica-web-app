@@ -432,7 +432,6 @@ export default function SessionResult() {
                         <Markdown>
                           {extractDetails(accumulated.session_data.summary)}
                         </Markdown>
-                        <Markdown>{accumulated.session_data.summary}</Markdown>
                       </>
                     )}
                   </CardContent>
