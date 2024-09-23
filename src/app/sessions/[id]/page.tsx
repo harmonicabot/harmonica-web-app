@@ -4,6 +4,8 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
 import Markdown from 'react-markdown';
+import { format } from 'date-fns';
+
 import {
   accumulateSessionData,
   sendApiCall,
@@ -31,8 +33,9 @@ import {
 } from '@/components/ui/table';
 import ParticipantSessionCell from './participant-session-cell';
 import Chat from '@/components/chat';
+import QRCode from 'qrcode.react';
 
-export default function DashboardIndividual() {
+export default function SessionResult() {
   const { id } = useParams() as { id: string };
   const [loadSummary, setLoadSummary] = useState(false);
   const [userData, setUserData] = useState([]);
@@ -41,8 +44,11 @@ export default function DashboardIndividual() {
     state.addAccumulatedSessions,
   ]);
 
+  const [showToast, setShowToast] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   useEffect(() => {
-    console.log('useEffect triggered to fetch session data for ', id);
+    // console.log('useEffect triggered to fetch session data for ', id);
     if (!accumulated) {
       console.log('No data in store, fetching...');
       // Fetch data from the database if not in store
@@ -61,9 +67,26 @@ export default function DashboardIndividual() {
         session_id: id,
       },
     });
-    console.log(data.user_data);
     setUserData(data.user_data);
     setAccumulated(id, accumulateSessionData(data));
+  };
+
+  const toggleModal = () => {
+    setIsModalOpen(!isModalOpen);
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard
+      .writeText(
+        `${window.location.origin}/chat?s=${accumulated.session_data.session_id}`,
+      )
+      .then(() => {
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 2000);
+      })
+      .catch((err) => {
+        console.error('Failed to copy text: ', err);
+      });
   };
 
   function extractKeyTakeaways(summary: string): string {
@@ -74,16 +97,19 @@ export default function DashboardIndividual() {
     const match = summary.match(regex);
 
     if (match && match[1]) {
-      const cleanedText = match[1]
-        .replace(
-          /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\*]/gu,
-          '',
-        )
-        .trim();
-      return cleanedText;
+      return cleanedText(match[1]);
     } else {
       return 'No match found';
     }
+  }
+
+  function cleanedText(text: string): string {
+    return text
+      .replace(
+        /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\*]/gu,
+        '',
+      )
+      .trim();
   }
 
   function extractDetails(summary: string): string {
@@ -95,13 +121,7 @@ export default function DashboardIndividual() {
 
     if (match && match[1]) {
       // Remove all emojis and asterisks from the extracted text
-      const cleanedText = match[1]
-        .replace(
-          /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\*]/gu,
-          '',
-        )
-        .trim();
-      return cleanedText;
+      return cleanedText(match[1]);
     } else {
       return 'No match found';
     }
@@ -129,6 +149,11 @@ export default function DashboardIndividual() {
       },
     });
     await fetchSessionData();
+  };
+
+  const finishSession = async () => {
+    await createSummary();
+    await sendFinalReport();
   };
 
   useEffect(() => {
@@ -160,25 +185,43 @@ export default function DashboardIndividual() {
             ? accumulated.session_data.topic
             : 'Session name'}
         </h1>
-        <Badge variant="outline" className="bg-[#ECFCCB] text-black ms-4">
-          Active
-        </Badge>
+        {accumulated.session_data.finalReportSent ? (
+          <Badge variant="outline" className="text-black ms-4">
+            Finished
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="bg-[#ECFCCB] text-black ms-4">
+            Active
+          </Badge>
+        )}
       </div>
       <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between">
-              <CardTitle className="text-md">Session Controls</CardTitle>
-              <Settings />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div>
-              <Button className="me-2">Finish session</Button>
-              <Button variant="secondary">Cancel session</Button>
-            </div>
-          </CardContent>
-        </Card>
+        {!accumulated.session_data.finalReportSent && (
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between">
+                <CardTitle className="text-md">Session Controls</CardTitle>
+                <Settings />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {accumulated.session_data.finalReportSent ? (
+                <p>Session finished</p>
+              ) : (
+                <div>
+                  <Button
+                    className="me-2"
+                    onClick={finishSession}
+                    disabled={loadSummary}
+                  >
+                    Finish session
+                  </Button>
+                  {/* <Button variant="secondary">Cancel session</Button> */}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
         <div className="flex gap-4">
           <Card className="flex-1">
             <CardHeader>
@@ -188,10 +231,21 @@ export default function DashboardIndividual() {
               </div>
             </CardHeader>
             <CardContent>
-              <p>17th June 2024</p>
-              <Badge variant="outline" className="bg-[#ECFCCB] text-black mt-2">
-                Active
-              </Badge>
+              <p>
+                {format(accumulated.session_data.start_time, 'dd MMM yyyy')}
+              </p>
+              {accumulated.session_data.finalReportSent ? (
+                <Badge variant="outline" className="text-black mt-2">
+                  Finished
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="bg-[#ECFCCB] text-black mt-2"
+                >
+                  Active
+                </Badge>
+              )}
             </CardContent>
           </Card>
           <Card className="flex-1">
@@ -208,27 +262,62 @@ export default function DashboardIndividual() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between">
-              <CardTitle className="text-md">Session controls</CardTitle>
-              <Share />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div>
-              <Button className="me-2">Share link</Button>
-              <Button variant="outline">Copy QR Code Image</Button>
-            </div>
-          </CardContent>
-        </Card>
+        {!accumulated.session_data.finalReportSent && (
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between">
+                <CardTitle className="text-md">Share</CardTitle>
+                <Share />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div>
+                <Button className="me-2" onClick={copyToClipboard}>
+                  Copy link
+                </Button>
+                {showToast && (
+                  <div className="fixed top-4 right-4 bg-green-500 text-white py-2 px-4 rounded shadow-lg">
+                    URL copied to clipboard
+                  </div>
+                )}
+                <Button variant="outline" onClick={toggleModal}>
+                  Show QR Code Image
+                </Button>
+                {isModalOpen && (
+                  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div className="relative bg-white p-4 rounded shadow-lg">
+                      <QRCode
+                        className="m-4"
+                        size={250}
+                        value={`${window.location.origin}/chat?s=${accumulated.session_data.session_id}`}
+                      />
+                      <button
+                        className="absolute -top-14 -right-14 bg-white text-gray-500 text-2xl w-12 h-12 flex items-center justify-center rounded-full shadow-lg"
+                        onClick={toggleModal}
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
       <h3 className="text-2xl font-bold mb-4 mt-4">Results</h3>
-      <Tabs className="mb-4" defaultValue="SUMMARY">
+      <Tabs
+        className="mb-4"
+        defaultValue={
+          accumulated.session_data.finalReportSent ? 'SUMMARY' : 'RESPONSES'
+        }
+      >
         <TabsList>
-          <TabsTrigger className="ms-0" value="SUMMARY">
-            Summary
-          </TabsTrigger>
+          {accumulated.session_data.finalReportSent && (
+            <TabsTrigger className="ms-0" value="SUMMARY">
+              Summary
+            </TabsTrigger>
+          )}
           <TabsTrigger className="ms-0" value="RESPONSES">
             Responses
           </TabsTrigger>
@@ -237,7 +326,7 @@ export default function DashboardIndividual() {
           <div className="mt-4">
             <div className="flex gap-4">
               <div className="w-2/3">
-                <Card>
+                {/* <Card>
                   <CardHeader>
                     <div className="flex justify-between">
                       <CardTitle className="text-md">Key Stats</CardTitle>
@@ -321,8 +410,8 @@ export default function DashboardIndividual() {
                       )}
                     </CardContent>
                   </Card>
-                </div>
-                <Card className="mt-4">
+                </div> */}
+                <Card className="h-full">
                   <CardHeader>
                     <div className="flex justify-between">
                       <CardTitle className="text-md">In detail</CardTitle>
@@ -332,9 +421,18 @@ export default function DashboardIndividual() {
                   <CardContent>
                     {accumulated.session_data.summary && (
                       <>
+                        <p className="font-bold">Key Takeaways</p>
+                        <Markdown>
+                          {extractKeyTakeaways(
+                            accumulated.session_data.summary,
+                          )}
+                        </Markdown>
+                        <br />
+                        <p className="font-bold">Results Summary</p>
                         <Markdown>
                           {extractDetails(accumulated.session_data.summary)}
                         </Markdown>
+                        <Markdown>{accumulated.session_data.summary}</Markdown>
                       </>
                     )}
                   </CardContent>
@@ -343,10 +441,10 @@ export default function DashboardIndividual() {
               <div className="w-1/3 gap-4">
                 {userData && userData.length && (
                   <Chat
-                    context={`You will be asked questions based on the session data. The context of the session is: ${userData.map((user) => user.chat_text).join(' --- next USER ---')}
-                  
-                  ------------`}
-                    dontShowFirstMessage={true}
+                    //   context={`You will be asked questions based on the session data. The context of the session is: ${userData.map((user) => user.chat_text).join(' --- next USER ---')}
+
+                    // ------------`}
+                    // dontShowFirstMessage={true}
                     assistantId="asst_LQospxVfX4vMTONASzSkSUwb"
                     entryMessage={{
                       type: 'ASSISTANT',
