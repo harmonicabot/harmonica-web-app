@@ -5,21 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { sendApiCall } from '@/lib/utils';
+import { sendApiCall, sendCallToMake } from '@/lib/utils';
 import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { set } from 'react-hook-form';
 
 export default function Chat({
   assistantId,
-  context = '',
+  sessionId,
   entryMessage,
-  dontShowFirstMessage,
 }: {
   assistantId?: string;
-  context?: string;
+  sessionId?: string;
   entryMessage?: { type: string; text: string };
-  dontShowFirstMessage?: boolean; // TODO: Remove this prop
 }) {
   const defaultEntryMessage = {
     type: 'ASSISTANT',
@@ -55,7 +53,10 @@ Help & Support:
     sendApiCall({
       action: ApiAction.CreateThread,
       target: ApiTarget.Chat,
-      data: context,
+      data:
+        entryMessage && entryMessage.text
+          ? entryMessage.text
+          : defaultEntryMessage.text,
     })
       .then((response) => {
         setIsLoading(false);
@@ -102,6 +103,23 @@ Help & Support:
     }
   };
 
+  const updateChatText = (chatText: string) => {
+    sendCallToMake({
+      target: ApiTarget.Session,
+      action: ApiAction.UpdateUserSession,
+      data: {
+        session_id: sessionId,
+        chat_text: chatText,
+      },
+    })
+      .then((data) => {
+        console.log('[i] Chat text updated:', data);
+      })
+      .catch((error) =>
+        console.error('[!] error creating user session -> ', error),
+      );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -127,7 +145,16 @@ Help & Support:
         setIsLoading(false);
         const actualMessages = [...response.messages];
         actualMessages.shift();
-
+        if (sessionId && response.messages) {
+          updateChatText(
+            response.messages
+              .map(
+                (m) =>
+                  `${m.type === 'USER' ? 'Question' : 'Answer'} : ${m.text}`,
+              )
+              .join('\n'),
+          );
+        }
         setMessages(
           response.messages
             ? [

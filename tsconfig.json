@@ -16,6 +16,7 @@
     "noEmit": true,
     "incremental": true,
     "module": "esnext",
+    "target": "es6",
     "esModuleInterop": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,

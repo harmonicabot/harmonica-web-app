@@ -43,7 +43,7 @@ export default function CreationFlow() {
   const addPrompt = (versionedPrompt: VersionedPrompt) => {
     setPrompts((prev) => [...prev, versionedPrompt]);
   };
-  
+
   // TODO: Remove after development!
   // if (prompts.length < 1) {
   //   const prompt = "Some fake testing prompt that should be removed again.";
@@ -127,7 +127,7 @@ export default function CreationFlow() {
 
     getStreamOfSummary({
       threadId,
-      assistantId: builderAssistantId
+      assistantId: builderAssistantId,
     });
   };
 
@@ -140,7 +140,7 @@ export default function CreationFlow() {
       action: ApiAction.CreateAssistant,
       target: ApiTarget.Builder,
       data: {
-        prompt: prompts[currentVersion-1].fullPrompt,
+        prompt: prompts[currentVersion - 1].fullPrompt,
         name: formData.sessionName,
       },
     });
@@ -167,7 +167,6 @@ export default function CreationFlow() {
     setIsLoading(false);
   };
 
-  
   const handleSaveSession = async () => {
     console.log('Saving session...');
     insertHostSession({
@@ -178,7 +177,7 @@ export default function CreationFlow() {
       finalReportSent: false,
       startTime: `${Date.now()}`,
       summary: '',
-      template: sessionAssistantId, 
+      template: sessionAssistantId,
       context: formData.context,
     });
   };
@@ -204,9 +203,14 @@ export default function CreationFlow() {
       />
     ),
     Share: isLoading ? (
-        <LoadingMessage />
+      <LoadingMessage />
     ) : (
-        <ShareSession sessionName={formData.sessionName} telegramBotId={botId} makeSessionId={ sessionId} assistantId={sessionAssistantId} />
+      <ShareSession
+        sessionName={formData.sessionName}
+        telegramBotId={botId}
+        makeSessionId={sessionId}
+        assistantId={sessionAssistantId}
+      />
     ),
   };
 
@@ -261,22 +265,25 @@ export default function CreationFlow() {
                   Edit
                 </Button>
               )}
+              {/* TODO: We want to have a 'Save' button for the Review step that would just save it as draft. Not sure what the logic would be, 
+              i.e. whether we would need to also create an assistant? Probs not, just store in DB with either the prompt so far, or maybe better with the thread_id?
+              Also, how to restore and pick up editing still needs to be figured out */}
               <Button
                 type="submit"
                 onClick={
                   activeStep === 'Create'
                     ? handleCreateComplete
                     : activeStep === 'Review'
-                    ? handleReviewComplete
-                    : handleSaveSession
+                      ? handleReviewComplete
+                      : handleSaveSession
                 }
                 className="m-2"
               >
                 {activeStep === 'Create'
                   ? 'Next'
                   : activeStep === 'Review'
-                  ? 'Launch'
-                  : 'Save'}
+                    ? 'Launch'
+                    : 'Save'}
               </Button>
             </div>
           </div>
@@ -286,7 +293,6 @@ export default function CreationFlow() {
   );
 
   async function getInitialPrompt() {
-
     // We need to do two API calls here, one to create the main prompt and threadId/assistantId,
     // and one to create the summary. The reason for that is mainly so that we can
     // get the threadId separately from the summary _stream_,
@@ -306,11 +312,17 @@ export default function CreationFlow() {
 
     getStreamOfSummary({
       threadId: responseFullPrompt.threadId,
-      assistantId: responseFullPrompt.assistantId
+      assistantId: responseFullPrompt.assistantId,
     });
   }
 
-  async function getStreamOfSummary({ threadId, assistantId}: { threadId: string; assistantId: string;}) {
+  async function getStreamOfSummary({
+    threadId,
+    assistantId,
+  }: {
+    threadId: string;
+    assistantId: string;
+  }) {
     const response = await sendApiCall({
       target: ApiTarget.Builder,
       action: ApiAction.EditPrompt,
@@ -344,14 +356,13 @@ export default function CreationFlow() {
               A list of each participant's <span class="font-semibold">ideas</span> will be collected and <span class="font-semibold">sorted by priority</span>.
               Any <span class="font-semibold">concerns and downsides</span> will be highlighted. This should help to <span class="font-semibold">[achieve goal abc]</span>.
             </p>
-            `
+            `,
       },
     });
-  
 
     const reader = response.getReader();
     const decoder = new TextDecoder();
-  
+
     let message = '';
     setIsLoading(false);
     startStreaming();
@@ -360,7 +371,7 @@ export default function CreationFlow() {
       if (done) break;
       const chunk = decoder.decode(value);
       message += chunk;
-      console.log("\nChunk: ", chunk)
+      console.log('\nChunk: ', chunk);
       updateStreaming(message);
     }
     completeStreaming();

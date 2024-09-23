@@ -53,8 +53,8 @@ export default function Dashboard({
       topic: topic,
       context: context,
       finalReportSent: Math.random() < 0.5,
-      startTime: ''+new Date()  
-    })
+      startTime: '' + new Date(),
+    });
 
     console.log('Session ID:', sessionId);
     for (let i = 1; i <= 10; i++) {
@@ -73,26 +73,26 @@ export default function Dashboard({
         hostChatId: Math.random().toString(36).substring(7),
       });
     }
-  }
+  };
 
   return (
     <Tabs defaultValue="all">
       <div className="flex items-center">
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="active">Active</TabsTrigger>
+          {/* <TabsTrigger value="active">Active</TabsTrigger>
           <TabsTrigger value="draft">Draft</TabsTrigger>
           <TabsTrigger value="archived" className="hidden sm:flex">
             Archived
-          </TabsTrigger>
+          </TabsTrigger> */}
         </TabsList>
         <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" variant="outline" className="h-8 gap-1">
+          {/* <Button size="sm" variant="outline" className="h-8 gap-1">
             <File className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
               Export
             </span>
-          </Button>
+          </Button> */}
           <Link href="/create">
             <Button size="sm" className="h-8 gap-1">
               <PlusCircle className="h-3.5 w-3.5" />

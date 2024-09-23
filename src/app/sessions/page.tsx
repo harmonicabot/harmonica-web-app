@@ -11,9 +11,14 @@ import {
 } from '@/lib/types';
 import { accumulateSessionData } from '@/lib/utils';
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 /**
  * The `DashboardOverview` component is responsible for rendering the dashboard overview page. It fetches session data from an API and displays it in a grid layout, with filtering options to show all sessions, only active sessions, only finished sessions, or only sessions with a summary.
@@ -72,7 +77,7 @@ export default function DashboardOverview() {
       console.error(
         'Network response was not ok: ',
         response.status,
-        response.text
+        response.text,
       );
       return null;
     }
@@ -92,14 +97,17 @@ export default function DashboardOverview() {
     sessionData.records.forEach((record) => {
       let entry: RawSessionData = {
         session_data: record.data as RawSessionOverview,
-        user_data: userData.records.reduce((acc, userRecord) => {
-          const uData = userRecord.data as UserSessionData;
-          if (uData.session_id === record.key) {
-            console.log(`UserData found for session ${record.key}:`, uData);
-            acc[userRecord.key] = uData;
-          }
-          return acc;
-        }, {} as Record<string, UserSessionData>),
+        user_data: userData.records.reduce(
+          (acc, userRecord) => {
+            const uData = userRecord.data as UserSessionData;
+            if (uData.session_id === record.key) {
+              console.log(`UserData found for session ${record.key}:`, uData);
+              acc[userRecord.key] = uData;
+            }
+            return acc;
+          },
+          {} as Record<string, UserSessionData>,
+        ),
       };
       console.log(`Accumulating session data for ${record.key}:`, entry);
       const accumulated = accumulateSessionData(entry);
@@ -120,19 +128,24 @@ export default function DashboardOverview() {
   const handleDeleteSelected = async () => {
     // Show confirmation modal
     const hostIds = Object.keys(selectedSessions).filter(
-      (id) => selectedSessions[id]
+      (id) => selectedSessions[id],
     );
     // Before we can delete from the user store, we need to filter the entries that have the session_id and get their keys...
     const userIds = Object.values(accumulated).flatMap((data) =>
       Object.entries(data.user_data)
         .filter(([_, userSessionData]) =>
-          hostIds.includes(userSessionData.session_id)
+          hostIds.includes(userSessionData.session_id),
         )
-        .map(([id, _]) => id)
+        .map(([id, _]) => id),
     );
 
-    if (confirm(`Are you sure you want to delete these user entries? \n\n${userIds.join('\n')}`)
-      &&confirm(`Are you sure you want to delete these host entries? \n\n${hostIds.join('\n')}`)
+    if (
+      confirm(
+        `Are you sure you want to delete these user entries? \n\n${userIds.join('\n')}`,
+      ) &&
+      confirm(
+        `Are you sure you want to delete these host entries? \n\n${hostIds.join('\n')}`,
+      )
     ) {
       console.log(`Deleting ${userIds} from user db...`);
 
@@ -148,11 +161,13 @@ export default function DashboardOverview() {
         console.error(
           'There was a problem deleting ids:',
           response.status,
-          response.statusText
+          response.statusText,
         );
         return;
       }
-      console.log(`Deleted ${userIds} from user db...: ${await response.text()}`);
+      console.log(
+        `Deleted ${userIds} from user db...: ${await response.text()}`,
+      );
 
       console.log(`Deleting ${hostIds} from host db...`);
       response = await fetch('api/sessions', {
@@ -167,12 +182,14 @@ export default function DashboardOverview() {
         console.error(
           'There was a problem deleting ids:',
           response.status,
-          response.statusText
+          response.statusText,
         );
         return;
       }
 
-      console.log(`Deleted ${hostIds} from host db...: ${await response.text()}`);
+      console.log(
+        `Deleted ${hostIds} from host db...: ${await response.text()}`,
+      );
 
       hostIds.forEach((sessionId) => {
         removeAccumulatedSessions(sessionId);
@@ -264,10 +281,7 @@ export default function DashboardOverview() {
             </button>
           </div>
 
-          <div>
-            {getCardComponent(accumulated)}
-          </div>
-
+          <div>{getCardComponent(accumulated)}</div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 m-10">
             <h2 className="col-span-full text-2xl font-bold mb-4">Sessions:</h2>
@@ -345,7 +359,7 @@ export default function DashboardOverview() {
               </button>
             </div>
           )}
-        </div>
+        </div>,
       );
     }
   }, [accumulated, filter, selectedSessions]);
@@ -353,22 +367,24 @@ export default function DashboardOverview() {
   return <div>{loading ? loadingElement : resultElement}</div>;
 }
 
-const getCardComponent = function (accumulated: Record<string, AccumulatedSessionData>): React.ReactElement {
+const getCardComponent = function (
+  accumulated: Record<string, AccumulatedSessionData>,
+): React.ReactElement {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-4xl font-bold mb-2">Your Sessions</h1>
       <p className="text-lg text-muted-foreground mb-8">
         Create a new conversation, deliberation or sense-making session.
       </p>
-      
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="flex flex-col items-center justify-center p-6 border-2 border-dashed">
           <PlusIcon className="h-12 w-12 mb-4 text-muted-foreground" />
-          <h2 className="text-xl font-semibold text-center">Create new session</h2>
+          <h2 className="text-xl font-semibold text-center">
+            Create new session
+          </h2>
         </Card>
-        {Object.entries(accumulated)
-          .map(([sessionId, session]) => (
-        
+        {Object.entries(accumulated).map(([sessionId, session]) => (
           <Card key={sessionId} className="flex flex-col">
             {session.session_data.active > 0 && (
               <div className="bg-green-500 text-white text-center py-1 text-sm font-medium">
@@ -379,21 +395,24 @@ const getCardComponent = function (accumulated: Record<string, AccumulatedSessio
               <CardTitle>{session.session_data.topic}</CardTitle>
             </CardHeader>
             <CardContent className="flex-grow">
-              <p className="text-muted-foreground">{session.session_data.context}</p>
+              <p className="text-muted-foreground">
+                {session.session_data.context}
+              </p>
             </CardContent>
             <CardFooter className="flex justify-between">
-              <Link href={`/sessions/${sessionId}`}><Button variant="outline">View</Button></Link>
-              <Button variant={Math.random() < 0.5 ? "outline" : "default"}>
-                {Math.random() < 0.5 ? "Unshare" : "Share"}
+              <Link href={`/sessions/${sessionId}`}>
+                <Button variant="outline">View</Button>
+              </Link>
+              <Button variant={Math.random() < 0.5 ? 'outline' : 'default'}>
+                {Math.random() < 0.5 ? 'Unshare' : 'Share'}
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
     </div>
-  )
-}
-
+  );
+};
 
 function PlusIcon(props) {
   return (
@@ -412,5 +431,5 @@ function PlusIcon(props) {
       <path d="M5 12h14" />
       <path d="M12 5v14" />
     </svg>
-  )
+  );
 }

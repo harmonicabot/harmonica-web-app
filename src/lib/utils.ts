@@ -25,11 +25,12 @@ export function accumulateSessionData(
 
   const accumulated: AccumulatedSessionData = {
     session_data: {
+      session_id: data.session_data.session_id,
       num_sessions: total_sessions,
       active: active,
       finished: finished,
       summary: data.session_data.result,
-      template: data.session_data.template || '',
+      template: data.session_data.template,
       topic: data.session_data.topic,
       context: data.session_data.context,
       finalReportSent: data.session_data.final_report_sent,
@@ -55,7 +56,7 @@ export const sendApiCall = async (request: RequestData) => {
     console.error('Error from API:', response.status, response.statusText);
     return null;
   }
-  
+
   if (request.stream) {
     console.log('Streaming response:', response.body);
     return response.body;
