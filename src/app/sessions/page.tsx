@@ -62,7 +62,7 @@ export default function DashboardOverview() {
 
   // Fetch Data when Page loads:
   useEffect(() => {
-    console.log('Fetching data on page load...');
+    // console.log('Fetching data on page load...');
     if (!accumulated || Object.keys(accumulated).length === 0) {
       fetchUserAndSessionData();
     } else {
