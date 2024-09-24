@@ -33,11 +33,7 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
 
   // console.log('Start time: ', session.session_data.start_time);
   return (
-    <TableRow
-      onClick={() =>
-        router.push(`/sessions/${session.session_data.session_id}`)
-      }
-    >
+    <TableRow>
       <TableCell className="font-medium">
         {session.session_data.template &&
         !session.session_data.template.startsWith('asst_')
@@ -67,7 +63,14 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
       </TableCell>
       <TableCell>
         <Link href={`/sessions/${session.session_data.session_id}`}>
-          <Button variant="secondary">View</Button>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              router.push(`/sessions/${session.session_data.session_id}`)
+            }
+          >
+            View
+          </Button>
         </Link>
       </TableCell>
       {/* <TableCell>

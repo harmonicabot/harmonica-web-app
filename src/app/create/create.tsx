@@ -10,7 +10,7 @@ export default function CreateSession({
   onFormDataChange,
 }) {
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     onFormDataChange({ [e.target.name]: e.target.value });
   };
@@ -35,7 +35,7 @@ export default function CreateSession({
         </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="goal">What is the goal of your template?</Label>
+        <Label htmlFor="goal">What is the objective of your Session?</Label>
         <Textarea
           name="goal"
           value={formData.goal}
@@ -46,24 +46,31 @@ export default function CreateSession({
       </div>
       <div className="space-y-2">
         <Label htmlFor="critical">
-          What is critical for you to understand or gather?
+          What specific information is critical for you to understand or gather
+          from participants?
         </Label>
         <Textarea
           id="critical"
           name="critical"
           value={formData.critical}
           onChange={handleInputChange}
-          placeholder="What peoples opinion is of the topic"
+          placeholder="Participant team and role? Their experience of the topic? Their rating of the topic (ie. quantitative data) or their opinion of the topic (ie. qualitative data)"
           required
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="context">What context will be helpful?</Label>
+        <Label htmlFor="context">
+          Please provide any context to this deliberation session. eg. a brief
+          explanation of the wider situation in terms of what your broad aims
+          are, your deadlines or timing and the output you might ultimately need
+          to create. This helps Monica understand the level of detail for
+          questions and judge the responses based on your requirements.
+        </Label>
         <Textarea
           name="context"
           value={formData.context}
           onChange={handleInputChange}
-          placeholder="Acme Co. is a company that does..."
+          placeholder="Our company provides X services. Our team serves Y function. This session is part of our insight gathering for Z project with these objectives..."
         />
       </div>
     </form>

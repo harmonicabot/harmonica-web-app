@@ -61,7 +61,7 @@ export function SessionsTable({
               <TableHead className="hidden md:table-cell">
                 Finished Participants
               </TableHead>
-              <TableHead className="hidden md:table-cell">Created at</TableHead>
+              <TableHead className="hidden md:table-cell">Created on</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>

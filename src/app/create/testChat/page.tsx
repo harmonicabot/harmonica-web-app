@@ -43,8 +43,10 @@ export default function TestChat() {
     <div>
       {tempAssistantId ? (
         <Chat
-          // context={`The user wants to test the prompt, please guide them through it.`}
-          // dontShowFirstMessage={true}
+          context={{
+            role: 'assistant',
+            content: `The user wants to test the prompt, please guide them through it.`,
+          }}
           assistantId={tempAssistantId}
           entryMessage={{
             type: 'ASSISTANT',

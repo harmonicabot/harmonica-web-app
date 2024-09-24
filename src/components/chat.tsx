@@ -6,16 +6,24 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { sendApiCall, sendCallToMake } from '@/lib/utils';
-import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
+import {
+  ApiAction,
+  ApiTarget,
+  OpenAIMessage,
+  SessionBuilderData,
+} from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { set } from 'react-hook-form';
+import Markdown from 'react-markdown';
 
 export default function Chat({
   assistantId,
   sessionId,
   entryMessage,
+  context,
 }: {
   assistantId?: string;
+  context?: OpenAIMessage;
   sessionId?: string;
   entryMessage?: { type: string; text: string };
 }) {
@@ -53,10 +61,7 @@ Help & Support:
     sendApiCall({
       action: ApiAction.CreateThread,
       target: ApiTarget.Chat,
-      data:
-        entryMessage && entryMessage.text
-          ? entryMessage.text
-          : defaultEntryMessage.text,
+      data: context ? [context] : [],
     })
       .then((response) => {
         setIsLoading(false);
@@ -68,8 +73,11 @@ Help & Support:
   }, []);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current && messages.length > 1) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
     }
   }, [messages]);
 
@@ -144,7 +152,8 @@ Help & Support:
       .then((response) => {
         setIsLoading(false);
         const actualMessages = [...response.messages];
-        actualMessages.shift();
+
+        if (context) actualMessages.shift();
         if (sessionId && response.messages) {
           updateChatText(
             response.messages
@@ -191,14 +200,13 @@ Help & Support:
                   : ''
               }
             >
-              <p
+              <Markdown
                 className={
                   message.type === 'USER' ? 'text-sm' : 'pt-2 ps-2 text-sm'
                 }
-                style={{ whiteSpace: 'pre-wrap' }}
               >
                 {message.text}
-              </p>
+              </Markdown>
             </div>
           </div>
         ))}

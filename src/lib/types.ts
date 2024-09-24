@@ -58,8 +58,12 @@ export type RequestData = {
     | AssistantMessageData
     | TemplateEditingData
     | UserSessionData
+    | OpenAIMessage[]
     | string;
 };
+
+// use this insteads of Message
+export type OpenAIMessage = { role: 'assistant' | 'user'; content: string };
 
 export type RawSessionOverview = {
   session_id?: string;

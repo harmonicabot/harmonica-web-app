@@ -1,4 +1,9 @@
-import { ApiAction, AssistantMessageData, RequestData } from '@/lib/types';
+import {
+  ApiAction,
+  AssistantMessageData,
+  OpenAIMessage,
+  RequestData,
+} from '@/lib/types';
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
@@ -11,7 +16,7 @@ export async function POST(req: Request) {
 
   switch (data.action) {
     case ApiAction.CreateThread:
-      return handleCreateThread(data.data as string);
+      return handleCreateThread(data.data as Array<OpenAIMessage>);
     case ApiAction.GenerateAnswer:
       return handleGenerateAnswer(data.data as AssistantMessageData);
     default:
@@ -19,14 +24,12 @@ export async function POST(req: Request) {
   }
 }
 
-async function handleCreateThread(entryMessage: string = '') {
+async function handleCreateThread(messagesData: Array<OpenAIMessage>) {
   const thread = await client.beta.threads.create({
-    messages: [
-      {
-        role: 'assistant',
-        content: entryMessage,
-      },
-    ],
+    messages: messagesData.map((messageData) => ({
+      role: messageData.role,
+      content: messageData.content,
+    })),
   });
 
   return NextResponse.json({ thread: thread });
