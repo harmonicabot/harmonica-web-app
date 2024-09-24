@@ -1,40 +1,76 @@
-import { SessionData } from "app/home/page";
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import {
+  AccumulatedSessionData,
+  RawSessionData,
+  RequestData,
+} from '@/lib/types';
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-export type AccumulatedSessionData = {
-  num_sessions: number;
-  active: number;
-  finished: number;
-  summary: string;
-  template: string;
-  topic: string;
-  context: string;
-};
+export function accumulateSessionData(
+  data: RawSessionData,
+): AccumulatedSessionData {
+  // console.log('Raw session data:', data);
 
-export function accumulateSessionData(data: SessionData[]) {
+  const userSessions = Object.values(data.user_data);
+  const total_sessions = userSessions.length;
+  // This should always be a number, but the types between User&Session data aren't separated well enough... so let's handle both
+  const active = userSessions.filter((session) =>
+    typeof session.active === 'number' ? session.active > 0 : session.active,
+  ).length;
+  const finished = total_sessions - active;
+
   const accumulated: AccumulatedSessionData = {
-    num_sessions: data.length,
-    active: 0,
-    finished: 0,
-    summary: '',
-    template: '',
-    topic: '',
-    context: '',
+    session_data: {
+      session_id: data.session_data.session_id,
+      num_sessions: total_sessions,
+      active: active,
+      finished: finished,
+      summary: data.session_data.result,
+      template: data.session_data.template,
+      topic: data.session_data.topic,
+      context: data.session_data.context,
+      finalReportSent: data.session_data.final_report_sent,
+      start_time: data.session_data.start_time,
+    },
+    user_data: data.user_data,
+  };
+  // console.log('Accumulated session data:', accumulated.session_data);
+  return accumulated;
+}
+
+export const sendApiCall = async (request: RequestData) => {
+  console.log('Sending API call:', request);
+  const response = await fetch('/api/' + request.target, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    console.error('Error from API:', response.status, response.statusText);
+    return null;
   }
 
-  data.forEach((session) => {
-    accumulated.active += session.active ? 1 : 0
-    accumulated.finished += session.active ? 0 : 1
-    accumulated.summary = session.result_text || accumulated.summary
-    accumulated.template = session.template || accumulated.template
-    accumulated.topic = session.topic || accumulated.topic
-    accumulated.context = session.context || accumulated.context
-  })
+  if (request.stream) {
+    console.log('Streaming response:', response.body);
+    return response.body;
+  } else {
+    const responseText = await response.text();
+    const result = JSON.parse(responseText);
+    console.log('API response:', result);
+    return result;
+  }
+};
 
-  return accumulated
-}
+export const sendCallToMake = async (body: RequestData) => {
+  return sendApiCall({
+    target: 'session',
+    ...body,
+  });
+};

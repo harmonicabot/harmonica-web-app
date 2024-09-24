@@ -33,3 +33,7 @@ yarn-error.log*
 .amplify
 amplify_outputs*
 amplifyconfiguration*
+
+# vercel & co
+.vercel
+.migrations
