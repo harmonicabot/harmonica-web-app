@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   });
 
   if (!response.ok) {
-    // console.log('Error encountered! Status: ', response.status);
+    console.log('Error encountered! Status: ', response.status);
     return NextResponse.json({
       error: `HTTP error: ${response.status}`,
     });
