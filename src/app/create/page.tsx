@@ -250,7 +250,7 @@ export default function CreationFlow() {
               variant="outline"
               onClick={() =>
                 activeStep === STEPS[0]
-                  ? route.back
+                  ? route.push('/')
                   : setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])
               }
             >

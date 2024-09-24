@@ -440,19 +440,20 @@ export default function SessionResult() {
               <div className="w-1/3 gap-4">
                 {userData && userData.length && (
                   <Chat
-                    //   context={`You will be asked questions based on the session data. The context of the session is: ${userData.map((user) => user.chat_text).join(' --- next USER ---')}
+                    context={{
+                      role: 'assistant',
+                      content: `You will be asked questions based on the session data. Answer short. The context of the session is: ${userData.map((user) => user.chat_text).join(' --- next USER ---')}
 
-                    // ------------`}
-                    // dontShowFirstMessage={true}
+                     ------------`,
+                    }}
                     assistantId="asst_LQospxVfX4vMTONASzSkSUwb"
                     entryMessage={{
                       type: 'ASSISTANT',
-                      text: `Hi there, you can ask my anything about the session.
+                      text: `Hi there, you can ask me anything about the session.
 
 Here’s some examples
   - What was the most common response?
   - What were the most interesting insights?
-  - Create a graph that maps the responses of participants
                     `,
                     }}
                   />
@@ -462,7 +463,7 @@ Here’s some examples
           </div>
         </TabsContent>
         <TabsContent value="RESPONSES">
-          <Card className="mt-4">
+          <Card className="mt-4 w-2/3">
             <CardHeader>
               <CardTitle>Participants</CardTitle>
               <CardDescription>Manage your sessions</CardDescription>
@@ -473,7 +474,7 @@ Here’s some examples
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="hidden md:table-cell">
+                    {/* <TableHead className="hidden md:table-cell">
                       Include in summary
                     </TableHead>
                     <TableHead className="hidden md:table-cell">
@@ -481,9 +482,9 @@ Here’s some examples
                     </TableHead>
                     <TableHead className="hidden md:table-cell">
                       Finished at
-                    </TableHead>
+                    </TableHead> */}
                     <TableHead></TableHead>
-                    <TableHead></TableHead>
+                    {/* <TableHead></TableHead> */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
