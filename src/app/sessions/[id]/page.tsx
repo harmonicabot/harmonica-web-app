@@ -48,7 +48,6 @@ export default function SessionResult() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    // console.log('useEffect triggered to fetch session data for ', id);
     if (!accumulated) {
       console.log('No data in store, fetching...');
       // Fetch data from the database if not in store
