@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 export async function POST(request: Request) {
   const url = process.env.DATABASE_URL;
   const req_body = await request.json();
-  console.log('ReqBody: ', req_body);
+  // console.log('ReqBody: ', req_body);
   // This is just a middleman that 'forwards' the api call to the make.com database and back to the caller:
   console.warn('Doing a web call to URL: ', url); // 'warn' because we want to reduce web calls as much as possible
   const response = await fetch(url, {
