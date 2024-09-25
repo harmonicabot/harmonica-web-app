@@ -18,11 +18,11 @@ const StandaloneChat = () => {
     type: 'ASSISTANT',
     text: `Nice to meet you! Before we get started, here are a few things to keep in mind
 
-This is Daily Review Session, where you can share your experiences and insights from the day. We’ll ask you a few questions to help you reflect on your day and identify patterns in your behaviour and emotions.
+I’m going to ask you a few questions to help structure your contribution to this session.
 
-✨ After you share your experiences, we’ll synthesise these with feedback from other participants to create an AI-powered overview 
+✨ After you share your thoughts, we’ll synthesize these with feedback from other participants to create an AI-powered overview
 
-🗣️ We’d love to see as much detail as possible, though even a few sentences are helpful. You can skip any questions simply by asking to move on. 
+🗣️ We’d love to see as much detail as possible, though even a few sentences are helpful. You can skip any questions simply by asking to move on.
 
 Help & Support:
 

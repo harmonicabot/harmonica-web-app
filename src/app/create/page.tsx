@@ -156,7 +156,7 @@ export default function CreationFlow() {
       action: ApiAction.CreateSession,
       data: {
         template: assistantResponse.assistantId,
-        topic: formData.goal,
+        topic: formData.sessionName,
         bot_id: botId,
         host_chat_id: 'WebApp',
       },
@@ -169,17 +169,18 @@ export default function CreationFlow() {
 
   const handleSaveSession = async () => {
     console.log('Saving session...');
-    insertHostSession({
-      topic: formData.sessionName,
-      finished: 0,
-      numSessions: 0,
-      active: 0,
-      finalReportSent: false,
-      startTime: `${Date.now()}`,
-      summary: '',
-      template: sessionAssistantId,
-      context: formData.context,
-    });
+    // insertHostSession({
+    //   topic: formData.sessionName,
+    //   finished: 0,
+    //   numSessions: 0,
+    //   active: 0,
+    //   finalReportSent: false,
+    //   startTime: `${Date.now()}`,
+    //   summary: '',
+    //   template: sessionAssistantId,
+    //   context: formData.context,
+    // });
+    route.push('/');
   };
 
   const stepContent = {
@@ -283,7 +284,7 @@ export default function CreationFlow() {
                   ? 'Next'
                   : activeStep === 'Review'
                     ? 'Launch'
-                    : 'Save'}
+                    : 'Session List'}
               </Button>
             </div>
           </div>
