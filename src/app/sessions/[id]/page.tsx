@@ -439,6 +439,7 @@ export default function SessionResult() {
               <div className="w-1/3 gap-4">
                 {userData && userData.length && (
                   <Chat
+                    userNameInFirstMessage={false}
                     context={{
                       role: 'assistant',
                       content: `You will be asked questions based on the session data. Answer short. The context of the session is: ${userData.map((user) => user.chat_text).join(' --- next USER ---')}
