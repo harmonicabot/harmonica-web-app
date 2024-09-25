@@ -21,27 +21,29 @@ export default function Chat({
   sessionId,
   entryMessage,
   context,
+  userNameInFirstMessage = true,
 }: {
   assistantId?: string;
   context?: OpenAIMessage;
   sessionId?: string;
   entryMessage?: { type: string; text: string };
+  userNameInFirstMessage?: boolean;
 }) {
   const defaultEntryMessage = {
     type: 'ASSISTANT',
     text: `Nice to meet you! Before we get started, here are a few things to keep in mind
 
-This is Daily Review Session, where you can share your experiences and insights from the day. We’ll ask you a few questions to help you reflect on your day and identify patterns in your behaviour and emotions.
+I’m going to ask you a few questions to help structure your contribution to this session.
 
-✨ After you share your experiences, we’ll synthesise these with feedback from other participants to create an AI-powered overview 
+✨ After you share your thoughts, we’ll synthesize these with feedback from other participants to create an AI-powered overview
 
-🗣️ We’d love to see as much detail as possible, though even a few sentences are helpful. You can skip any questions simply by asking to move on. 
+🗣️ We’d love to see as much detail as possible, though even a few sentences are helpful. You can skip any questions simply by asking to move on.
 
 Help & Support:
 
 🌱 Harmonica is still in the early stages of development, so we would appreciate your patience and feedback
 
-💬 Type something to get started!
+💬 Could you please let me know your name?
 `,
   };
 
@@ -53,7 +55,7 @@ Help & Support:
     entryMessage ? entryMessage : defaultEntryMessage,
   ]);
   const [isLoading, setIsLoading] = useState(false);
-
+  const [userName, setUserName] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -132,6 +134,10 @@ Help & Support:
     e.preventDefault();
     setIsLoading(true);
     const messageText = formData.messageText;
+
+    if (userNameInFirstMessage && messages.length === 1) {
+      setUserName(messageText);
+    }
     setMessages([...messages, { text: messageText, type: 'USER' }]);
     setFormData({ messageText: '' });
     if (textareaRef.current) {
@@ -143,7 +149,10 @@ Help & Support:
       target: ApiTarget.Chat,
       data: {
         threadId: threadId,
-        messageText: messageText,
+        messageText:
+          userNameInFirstMessage && messages.length === 1
+            ? `User name is ${messageText}. Use it in comminication. Don't ask it again. Let’s dive right in.`
+            : messageText,
         assistantId: assistantId
           ? assistantId
           : 'asst_fHg4kGRWn357GnejZJQnVbJW', // Fall back to 'Daily Review' by default
@@ -151,9 +160,19 @@ Help & Support:
     })
       .then((response) => {
         setIsLoading(false);
-        const actualMessages = [...response.messages];
+        let actualMessages = [...response.messages];
 
         if (context) actualMessages.shift();
+        if (userNameInFirstMessage) {
+          actualMessages.shift();
+          actualMessages = [
+            {
+              text: userName.length ? userName : messageText,
+              type: 'USER',
+            },
+            ...actualMessages,
+          ];
+        }
         if (sessionId && response.messages) {
           updateChatText(
             response.messages
@@ -164,6 +183,7 @@ Help & Support:
               .join('\n'),
           );
         }
+
         setMessages(
           response.messages
             ? [
