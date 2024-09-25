@@ -28,7 +28,7 @@ Help & Support:
 
 🌱 Harmonica is still in the early stages of development, so we would appreciate your patience and feedback
 
-💬 Type something to get started!
+💬 Could you please let me know your name?
 `,
   });
 
