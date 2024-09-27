@@ -219,7 +219,11 @@ export default function CreationFlow() {
     <div className="min-h-screen bg-gray-100 p-6">
       <div
         className={`mx-auto items-center align-middle ${
-          isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
+          isEditingPrompt
+            ? 'lg:w-4/5'
+            : activeStep == 'Share'
+              ? 'lg:w-[550px]'
+              : 'lg:w-2/3'
         }`}
       >
         <div className="flex items-center justify-center mb-6">
@@ -284,7 +288,7 @@ export default function CreationFlow() {
                   ? 'Next'
                   : activeStep === 'Review'
                     ? 'Launch'
-                    : 'Session List'}
+                    : 'Save'}
               </Button>
             </div>
           </div>

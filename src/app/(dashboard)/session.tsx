@@ -35,10 +35,12 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
   return (
     <TableRow>
       <TableCell className="font-medium">
-        {session.session_data.template &&
-        !session.session_data.template.startsWith('asst_')
-          ? session.session_data.template
-          : session.session_data.topic}
+        <Link href={`/sessions/${session.session_data.session_id}`}>
+          {session.session_data.template &&
+          !session.session_data.template.startsWith('asst_')
+            ? session.session_data.template
+            : session.session_data.topic}
+        </Link>
       </TableCell>
       <TableCell>
         <Badge variant="outline" className="capitalize">
@@ -63,14 +65,7 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
       </TableCell>
       <TableCell>
         <Link href={`/sessions/${session.session_data.session_id}`}>
-          <Button
-            variant="secondary"
-            onClick={() =>
-              router.push(`/sessions/${session.session_data.session_id}`)
-            }
-          >
-            View
-          </Button>
+          <Button variant="secondary">View</Button>
         </Link>
       </TableCell>
       {/* <TableCell>
