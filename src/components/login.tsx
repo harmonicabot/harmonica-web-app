@@ -14,19 +14,26 @@ export default function Login() {
 
   const router = useRouter();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+  };
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+  };
+
+  const handleLoginClick = async () => {
     setError(''); // Clear any previous error
-    const result = await signIn('email', {
+    const result = await signIn('credentials', {
       email,
       password,
       redirect: false,
     });
 
     if (result.error) {
-      setError('Failed to sign in: ' + result.error);
+      setError('Sign-in failed. Check your credentials.');
     } else {
-      router.push('/');
+      // router.push('/');
     }
   };
 
@@ -40,8 +47,8 @@ export default function Login() {
               Enter your email below to login to your account
             </p>
           </div>
-          {error && <div className="text-red-500 text-center">{error}</div>}
-          <form onSubmit={handleSubmit} className="grid gap-4">
+
+          <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -49,50 +56,29 @@ export default function Login() {
                 type="email"
                 placeholder="m@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={handleEmailChange}
                 required
               />
             </div>
             <div className="grid gap-2">
               <div className="flex items-center">
                 <Label htmlFor="password">Password</Label>
-                {/* <Link
-                  href="/forgot-password"
-                  className="ml-auto inline-block text-sm underline"
-                >
-                  Forgot your password?
-                </Link> */}
               </div>
               <Input
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={handlePasswordChange}
                 required
               />
+              {error && <div className="text-red-500 text-center">{error}</div>}
             </div>
-            <Button type="submit" className="w-full">
+            <Button onClick={handleLoginClick} className="w-full">
               Login
             </Button>
-            {/* <LoginButtons /> */}
-          </form>
-          {/* <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{" "}
-            <Link href="#" className="underline">
-              Sign up
-            </Link>
-          </div> */}
+          </div>
         </div>
       </div>
-      {/* <div className="hidden bg-muted lg:block">
-        <Image
-          src="/placeholder.svg"
-          alt="Image"
-          width="1920"
-          height="1080"
-          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
-      </div> */}
     </div>
   );
 }

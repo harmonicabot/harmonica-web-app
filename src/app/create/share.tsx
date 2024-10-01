@@ -14,9 +14,6 @@ export default function ShareSession({
   assistantId: string;
 }) {
   const chatUrl = `${window.location.origin}/chat?s=${makeSessionId}`;
-  const sendToChat = () => {
-    window.location.href = `/chat?assistantId=${assistantId}`;
-  };
   const [showToast, setShowToast] = useState(false);
 
   const copyToClipboard = () => {
