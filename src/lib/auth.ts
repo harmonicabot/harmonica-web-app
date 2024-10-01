@@ -38,7 +38,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: '/login',
   },
   callbacks: {
-    authorized: async ({ auth }) => {
+    async redirect({ url, baseUrl }) {
+      // Redirect to the homepage after successful sign-in
+      console.log('[i] Redirecting to: ', baseUrl);
+      return baseUrl;
+    },
+    async authorized({ auth }) {
       // Logged in users are authenticated, otherwise redirect to login page
       return !!auth;
     },

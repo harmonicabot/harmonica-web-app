@@ -27,16 +27,13 @@ export default function Login() {
     const result = await signIn('email', {
       email,
       password,
-      redirect: false,
+      redirect: true,
     });
 
     console.log('[i] result: ', result);
     if (result.error) {
       setError('Sign-in failed. Check your credentials.');
       console.log('[i] Sign-in failed');
-    } else {
-      router.push('/');
-      console.log('[i] router push');
     }
   };
 
