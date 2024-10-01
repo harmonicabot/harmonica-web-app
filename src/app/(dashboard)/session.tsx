@@ -56,7 +56,7 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
       </TableCell>
       <TableCell className="hidden md:table-cell">
         <div className="flex items-center">
-          <User className="mr-2 h-4 w-4 opacity-50" />
+          <User />
           {activeUsers}
         </div>
       </TableCell>
