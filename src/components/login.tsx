@@ -23,7 +23,7 @@ export default function Login() {
   };
 
   const handleLoginClick = async () => {
-    // setError(''); // Clear any previous error
+    setError(''); // Clear any previous error
     const result = await signIn('email', {
       email,
       password,
@@ -33,8 +33,10 @@ export default function Login() {
     console.log('[i] result: ', result);
     if (result.error) {
       setError('Sign-in failed. Check your credentials.');
+      console.log('[i] Sign-in failed');
     } else {
       router.push('/');
+      console.log('[i] router push');
     }
   };
 
