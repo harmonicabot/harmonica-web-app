@@ -25,6 +25,8 @@ const STEPS = ['Create', 'Review', 'Share'] as const;
 type Step = (typeof STEPS)[number];
 const enabledSteps = [true, false, false];
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 export default function CreationFlow() {
   const route = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -216,7 +218,7 @@ export default function CreationFlow() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen pt-16 sm:px-14 pb-16">
       <div
         className={`mx-auto items-center align-middle ${
           isEditingPrompt
@@ -233,20 +235,26 @@ export default function CreationFlow() {
           <h1 className="text-3xl font-bold">New Session</h1>
         </div>
 
-        <div className="flex justify-center space-x-2 mb-6">
-          {STEPS.map((step, index) => (
-            <Button
-              key={step}
-              onClick={() => setActiveStep(step)}
-              variant={activeStep === step ? 'default' : 'outline'}
-              disabled={!enabledSteps[index]}
-            >
-              {step}
-            </Button>
+        <Tabs value={activeStep} onValueChange={(value) => setActiveStep(value as Step)}>
+          <div className="flex justify-center mb-4">
+            <TabsList>
+              {STEPS.map((step, index) => (
+                <TabsTrigger
+                  key={step}
+                  value={step}
+                  disabled={!enabledSteps[index]}
+                >
+                  {step}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+          {STEPS.map((step) => (
+            <TabsContent key={step} value={step}>
+              {stepContent[step]}
+            </TabsContent>
           ))}
-        </div>
-
-        {stepContent[activeStep]}
+        </Tabs>
 
         {!isLoading && (
           <div className="flex justify-between items-center pt-4">

@@ -15,6 +15,7 @@ import { AccumulatedSessionData, UserSessionData } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { User, UserCheck } from '@/components/icons';
 
 export function Session({ session }: { session: AccumulatedSessionData }) {
   const router = useRouter();
@@ -53,8 +54,18 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
                 : 'report not sent'}
         </Badge>
       </TableCell>
-      <TableCell>{activeUsers}</TableCell>
-      <TableCell>{inactiveUsers}</TableCell>
+      <TableCell className="hidden md:table-cell">
+        <div className="flex items-center">
+          <User className="mr-2 h-4 w-4 opacity-50" />
+          {activeUsers}
+        </div>
+      </TableCell>
+      <TableCell className="hidden md:table-cell">
+        <div className="flex items-center">
+          <UserCheck className="mr-2 h-4 w-4 opacity-50" />
+          {inactiveUsers}
+        </div>
+      </TableCell>
       <TableCell className="hidden md:table-cell">
         {session.session_data.start_time
           ? new Intl.DateTimeFormat(undefined, {

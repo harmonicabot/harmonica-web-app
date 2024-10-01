@@ -16,14 +16,14 @@ export default function CreateSession({
   };
 
   return (
-    <form className="bg-white mx-auto p-6 rounded shadow space-y-4">
+    <form className="bg-white mx-auto p-10 rounded-xl shadow space-y-12">
       <div className="space-y-2">
-        <Label htmlFor="sessionName">Session Name</Label>
+        <Label htmlFor="sessionName" size='lg'>Session Name*</Label>
         <Input
           name="sessionName"
           value={formData.sessionName}
           onChange={handleInputChange}
-          placeholder="E.g. Team Brainstorm"
+          placeholder="Marketing Strategy Brainstorm"
           required
           data-1p-ignore
           data-bwignore
@@ -31,47 +31,49 @@ export default function CreateSession({
           data-form-type="other"
         />
         <p className="text-sm text-muted-foreground">
-          This will be shared with your participants
+          Enter a clear session name that will be shared with participants
         </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="goal">What is the objective of your Session?</Label>
+        <Label htmlFor="goal" size='lg'>What is the objective of your Session?*</Label>
         <Textarea
           name="goal"
           value={formData.goal}
           onChange={handleInputChange}
-          placeholder="I want to understand..."
+          placeholder="I want to understand user preferences on our new product features."
           required
         />
+        <p className="text-sm text-muted-foreground">
+          Summarize what you aim to learn or achieve in this session
+        </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="critical">
-          What specific information is critical for you to understand or gather
-          from participants?
+        <Label htmlFor="critical" size='lg'>
+          What is critical for you to gather from your participants answers?
         </Label>
         <Textarea
           id="critical"
           name="critical"
           value={formData.critical}
           onChange={handleInputChange}
-          placeholder="Participant team and role? Their experience of the topic? Their rating of the topic (ie. quantitative data) or their opinion of the topic (ie. qualitative data)"
+          placeholder="Participants should provide examples of their workflows or describe challenges they face."
           required
         />
+        <p className="text-sm text-muted-foreground">
+          What context would be useful for our AI to know?
+        </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="context">
-          Please provide any context to this deliberation session. eg. a brief
-          explanation of the wider situation in terms of what your broad aims
-          are, your deadlines or timing and the output you might ultimately need
-          to create. This helps Monica understand the level of detail for
-          questions and judge the responses based on your requirements.
+        <Label htmlFor="context" size='lg'>
+          What context would be useful for our AI to know?
         </Label>
         <Textarea
           name="context"
           value={formData.context}
           onChange={handleInputChange}
-          placeholder="Our company provides X services. Our team serves Y function. This session is part of our insight gathering for Z project with these objectives..."
+          placeholder="Our company is developing a new app, and this session is part of our usability testing to gather user feedback on key features."
         />
+        <p className="text-sm text-muted-foreground">Provide background to help our AI to understand the purpose of your session.</p>
       </div>
     </form>
   );

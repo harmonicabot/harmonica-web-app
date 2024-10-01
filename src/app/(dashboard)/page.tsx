@@ -77,7 +77,15 @@ export default function Dashboard({
 
   return (
     <Tabs defaultValue="all">
-      <div className="flex items-center">
+      <div className="flex items-center justify-between sm:pb-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Your Sessions
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            View, manage, and review your active and past sessions
+          </p>
+        </div>
         {/* <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="active">Active</TabsTrigger>
@@ -94,10 +102,10 @@ export default function Dashboard({
             </span>
           </Button> */}
         <Link href="/create">
-          <Button size="sm" className="h-8 gap-1">
+          <Button size="lg" className="gap-1">
             <PlusCircle className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-              New Session
+              Create Session
             </span>
           </Button>
         </Link>
