@@ -5,16 +5,15 @@ import { useEffect, useState } from "react";
 
 export default function LoadingMessage() {
   const loadingMessages = [
-    'Brewing a witty prompt, hold tight!',
-    'Summoning the muses of AI, please wait...',
-    'Channeling the spirit of Shakespeare, one moment...',
-    'Consulting the oracle of algorithms, standby...',
-    'Decoding the matrix of creativity, almost there...',
-    'Stirring the cauldron of artificial intelligence...',
-    'Weaving a tapestry of digital brilliance...',
-    'Calibrating the flux capacitor of ideas...',
-    'Harnessing the power of a thousand CPUs...',
-    'Traversing the neural networks of imagination...',
+    'Crafting the perfect session structure, please wait...',
+    'Harmonizing ideas into an engaging flow...',
+    'Composing thought-provoking questions for your group...',
+    'Orchestrating a symphony of collaborative prompts...',
+    'Arranging discussion points for maximum impact...',
+    'Mixing creativity and structure for your ideal session...',
+    'Calibrating our AI facilitator to your needs...',
+    'Designing a session flow to amplify every voice...',
+    'Harmonizing your goals into a perfect session melody...',
   ];
   const [loadingMessage, setLoadingMessage] = useState('');
 

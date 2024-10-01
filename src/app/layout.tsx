@@ -4,20 +4,32 @@ import '../styles/global.css';
 // import Auth from '@/components/Auth';
 import Logo from '@/components/ui/logo';
 import { User } from '@/components/user';
+import { Instrument_Sans } from 'next/font/google';
+
+const instrumentSans = Instrument_Sans({ subsets: ['latin'] });
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={instrumentSans.className}>
       <body className="flex flex-col min-h-screen">
-        <nav className="flex flex-row justify-between items-center p-4">
-          <Link href="/">
-            <Logo />
-          </Link>
-          <User />
+        <nav className="p-4 px-14">
+          <div className="flex flex-row justify-between items-center px-6">
+            <Link href="/">
+              <Logo />
+            </Link>
+            <div className="flex items-center space-x-4">
+              <Link href="https://harmonica.chat/support">
+                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                  Help
+                </button>
+              </Link>
+              <User />
+            </div>
+          </div>
         </nav>
-        <main className="flex flex-col justify-center flex-grow">
+        <main className="flex flex-col justify-center flex-grow bg-purple-50">
           {children}
         </main>
       </body>
