@@ -4,8 +4,8 @@ import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -13,27 +13,37 @@ export default function Login() {
   const [error, setError] = useState('');
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      setError('Sign-in failed. Check your credentials.');
+    }
+    // Remove all query parameters from the URL
+    router.replace(window.location.pathname);
+  }, [searchParams]);
 
   const handleEmailChange = (e) => {
+    if (error.length) setError('');
     setEmail(e.target.value);
   };
 
   const handlePasswordChange = (e) => {
+    if (error.length) setError('');
     setPassword(e.target.value);
   };
 
   const handleLoginClick = async () => {
-    setError(''); // Clear any previous error
+    if (error.length) setError('');
     const result = await signIn('email', {
       email,
       password,
       redirect: true,
     });
 
-    console.log('[i] result: ', result);
     if (result.error) {
       setError('Sign-in failed. Check your credentials.');
-      console.log('[i] Sign-in failed');
     }
   };
 
