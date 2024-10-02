@@ -99,7 +99,11 @@ Help & Support:
     >
       <div className="h-full flex-grow flex flex-col items-center justify-center p-6">
         <div className="h-full w-full flex flex-col flex-grow">
-          <h1 className="text-2xl font-bold mb-6">Web chat</h1>
+          <h1 className="text-2xl font-bold mb-6">
+            {accumulated?.session_data?.topic
+              ? accumulated?.session_data?.topic
+              : 'Web Chat'}
+          </h1>
 
           {(accumulated?.session_data?.template || assistantId) && (
             <Chat
