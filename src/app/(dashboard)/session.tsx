@@ -35,7 +35,7 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
   // console.log('Start time: ', session.session_data.start_time);
   return (
     <TableRow>
-      <TableCell className="font-medium">
+      <TableCell className="font-medium text-base">
         <Link href={`/sessions/${session.session_data.session_id}`}>
           {session.session_data.template &&
           !session.session_data.template.startsWith('asst_')
@@ -44,7 +44,16 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
         </Link>
       </TableCell>
       <TableCell>
-        <Badge variant="outline" className="capitalize">
+        <Badge
+          variant="outline"
+          className={`capitalize ${
+            session.session_data.active
+              ? 'bg-lime-100 text-lime-900'
+              : session.session_data.finished
+                ? 'bg-purple-100 text-purple-900'
+                : ''
+          }`}
+        >
           {session.session_data.active
             ? 'active'
             : session.session_data.finished
@@ -62,7 +71,7 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
       </TableCell>
       <TableCell className="hidden md:table-cell">
         <div className="flex items-center">
-          <UserCheck className="mr-2 h-4 w-4 opacity-50" />
+          <UserCheck className="mr-1 h-4 w-4 opacity-50" />
           {inactiveUsers}
         </div>
       </TableCell>
@@ -76,7 +85,7 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
       </TableCell>
       <TableCell>
         <Link href={`/sessions/${session.session_data.session_id}`}>
-          <Button variant="secondary">View</Button>
+          <Button variant="outline">View</Button>
         </Link>
       </TableCell>
       {/* <TableCell>

@@ -25,8 +25,6 @@ const STEPS = ['Create', 'Review', 'Share'] as const;
 type Step = (typeof STEPS)[number];
 const enabledSteps = [true, false, false];
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
 export default function CreationFlow() {
   const route = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -236,19 +234,17 @@ export default function CreationFlow() {
         </div>
 
         <Tabs value={activeStep} onValueChange={(value) => setActiveStep(value as Step)}>
-          <div className="flex justify-center mb-4">
-            <TabsList>
-              {STEPS.map((step, index) => (
-                <TabsTrigger
-                  key={step}
-                  value={step}
-                  disabled={!enabledSteps[index]}
-                >
-                  {step}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
+          <TabsList className="grid w-full grid-cols-3">
+            {STEPS.map((step, index) => (
+              <TabsTrigger
+                key={step}
+                value={step}
+                disabled={!enabledSteps[index]}
+              >
+                {step}
+              </TabsTrigger>
+            ))}
+          </TabsList>
           {STEPS.map((step) => (
             <TabsContent key={step} value={step}>
               {stepContent[step]}

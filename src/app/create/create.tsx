@@ -60,7 +60,8 @@ export default function CreateSession({
           required
         />
         <p className="text-sm text-muted-foreground">
-          What context would be useful for our AI to know?
+          Specify what kind of information or details you need from participant
+          responses
         </p>
       </div>
       <div className="space-y-2">

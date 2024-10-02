@@ -83,7 +83,7 @@ export default function Dashboard({
             Your Sessions
           </h1>
           <p className="text-sm text-muted-foreground">
-            View, manage, and review your active and past sessions
+            View, manage and review your active and past sessions
           </p>
         </div>
         {/* <TabsList>

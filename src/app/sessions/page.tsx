@@ -401,7 +401,7 @@ const getCardComponent = function (
             </CardContent>
             <CardFooter className="flex justify-between">
               <Link href={`/sessions/${sessionId}`}>
-                <Button variant="outline">View</Button>
+                <Button variant="outline">View <ChevronRight className="ml-2 h-4 w-4" /></Button>
               </Link>
               <Button variant={Math.random() < 0.5 ? 'outline' : 'default'}>
                 {Math.random() < 0.5 ? 'Unshare' : 'Share'}

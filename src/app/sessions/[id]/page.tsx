@@ -20,7 +20,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Eye, Settings, Share, User } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
@@ -34,6 +33,7 @@ import {
 import ParticipantSessionCell from './participant-session-cell';
 import Chat from '@/components/chat';
 import QRCode from 'qrcode.react';
+import { Calendar, Eye, Settings, Share2, User } from 'lucide-react';
 
 export default function SessionResult() {
   const { id } = useParams() as { id: string };
@@ -178,29 +178,29 @@ export default function SessionResult() {
 
   return (
     <div>
-      <div className="flex  mb-4">
-        <h1 className="text-2xl font-bold">
+      <div className="flex mb-6 align-items-center">
+        <h1 className="text-3xl font-bold">
           {accumulated?.session_data?.topic
             ? accumulated.session_data.topic
             : 'Session name'}
         </h1>
         {accumulated.session_data.finalReportSent ? (
-          <Badge variant="outline" className="text-black ms-4">
+          <Badge variant="outline" className="text-purple-900 bg-purple-100 ms-4">
             Finished
           </Badge>
         ) : (
-          <Badge variant="outline" className="bg-[#ECFCCB] text-black ms-4">
+          <Badge variant="outline" className="bg-lime-100 text-lime-900 ms-4">
             Active
           </Badge>
         )}
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="flex gap-4">
         {!accumulated.session_data.finalReportSent && (
-          <Card>
+          <Card className="flex-grow">
             <CardHeader>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <CardTitle className="text-md">Session Controls</CardTitle>
-                <Settings />
+                <Settings className="w-4 h-4 text-muted-foreground" />
               </div>
             </CardHeader>
             <CardContent>
@@ -221,52 +221,52 @@ export default function SessionResult() {
             </CardContent>
           </Card>
         )}
-        <div className="flex gap-4">
-          <Card className="flex-1">
+        <div className="flex flex-grow gap-4">
+          <Card className="flex-grow">
             <CardHeader>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <CardTitle className="text-md">Status</CardTitle>
-                <Calendar />
+                <Calendar className="w-4 h-4 text-muted-foreground" />
               </div>
             </CardHeader>
             <CardContent>
-              <p>
-                {format(accumulated.session_data.start_time, 'dd MMM yyyy')}
-              </p>
               {accumulated.session_data.finalReportSent ? (
-                <Badge variant="outline" className="text-black mt-2">
+                <Badge variant="outline" className="text-purple-900 bg-purple-100 mb-3">
                   Finished
                 </Badge>
               ) : (
                 <Badge
                   variant="outline"
-                  className="bg-[#ECFCCB] text-black mt-2"
+                  className="bg-lime-100 text-lime-900 mb-3"
                 >
                   Active
                 </Badge>
               )}
+              <p> Started on
+                <span className="font-medium"> {format(accumulated.session_data.start_time, ' dd MMM yyyy')}</span>
+              </p>
             </CardContent>
           </Card>
-          <Card className="flex-1">
+          <Card className="flex-grow">
             <CardHeader>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <CardTitle className="text-md">Participants</CardTitle>
-                <User />
+                <User className="w-4 h-4 text-muted-foreground" />
               </div>
             </CardHeader>
             <CardContent>
-              <p>{accumulated.session_data.num_sessions} Started</p>
-              <p>{accumulated.session_data.active} Completed</p>
+              <p><span className="font-medium">{accumulated.session_data.num_sessions}</span> <span className="text-yellow-800">Started</span></p>
+              <p><span className="font-medium">{accumulated.session_data.active}</span> <span className="text-lime-800">Completed</span></p>
             </CardContent>
           </Card>
         </div>
 
         {!accumulated.session_data.finalReportSent && (
-          <Card>
+          <Card className="flex-grow">
             <CardHeader>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <CardTitle className="text-md">Share</CardTitle>
-                <Share />
+                <Share2 className="w-4 h-4 text-muted-foreground" />
               </div>
             </CardHeader>
             <CardContent>
@@ -304,7 +304,7 @@ export default function SessionResult() {
           </Card>
         )}
       </div>
-      <h3 className="text-2xl font-bold mb-4 mt-4">Results</h3>
+      <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
       <Tabs
         className="mb-4"
         defaultValue={
@@ -412,23 +412,57 @@ export default function SessionResult() {
                 </div> */}
                 <Card className="h-full">
                   <CardHeader>
-                    <div className="flex justify-between">
-                      <CardTitle className="text-md">In detail</CardTitle>
-                      <Eye />
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-md">Your Report</CardTitle>
+                      <Eye className="w-4 h-4 text-muted-foreground" />
                     </div>
                   </CardHeader>
                   <CardContent>
                     {accumulated.session_data.summary && (
                       <>
-                        <p className="font-bold">Key Takeaways</p>
-                        <Markdown>
+                        <p className="text-xl font-semibold mb-2">Summary</p>
+                        <Markdown
+                          components={{
+                            p: ({ node, ...props }) => <p className="text-base mb-3 last:mb-0" {...props} />,
+                            ul: ({ node, ...props }) => <ul className="my-2 ml-4 list-disc" {...props} />,
+                            ol: ({ node, ...props }) => <ol className="my-2 ml-4 list-decimal" {...props} />,
+                            li: ({ node, ...props }) => <li className="text-base mb-1" {...props} />,
+                            h1: ({ node, ...props }) => <h1 className="text-3xl font-bold mt-6 mb-4" {...props} />,
+                            h2: ({ node, ...props }) => <h2 className="text-2xl font-semibold mt-5 mb-3" {...props} />,
+                            h3: ({ node, ...props }) => <h3 className="text-xl font-semibold mt-4 mb-2" {...props} />,
+                            h4: ({ node, ...props }) => <h4 className="text-lg font-medium mt-3 mb-2" {...props} />,
+                            h5: ({ node, ...props }) => <h5 className="text-base font-medium mt-2 mb-1" {...props} />,
+                            h6: ({ node, ...props }) => <h6 className="text-sm font-medium mt-2 mb-1" {...props} />,
+                            blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-gray-300 pl-4 py-2 italic my-4" {...props} />,
+                            a: ({ node, ...props }) => <a className="text-blue-600 hover:underline" {...props} />,
+                            strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
+                            em: ({ node, ...props }) => <em className="italic" {...props} />,
+                            hr: ({ node, ...props }) => <hr className="my-6 border-t border-gray-300" {...props} />,
+                          }}
+                        >
                           {extractKeyTakeaways(
                             accumulated.session_data.summary,
                           )}
                         </Markdown>
-                        <br />
-                        <p className="font-bold">Results Summary</p>
-                        <Markdown>
+                        <p className="text-xl font-semibold mt-6 mb-2">Key Takeaways</p>
+                        <Markdown
+                          components={{
+                            p: ({ node, ...props }) => <p className="text-base mb-3 last:mb-0" {...props} />,
+                            ul: ({ node, ...props }) => <ul className="my-2 ml-4 list-disc" {...props} />,
+                            ol: ({ node, ...props }) => <ol className="my-1 ml-4 list-decimal" {...props} />,
+                            li: ({ node, ...props }) => <li className="text-base mb-1" {...props} />,
+                            h1: ({ node, ...props }) => <h1 className="text-3xl font-bold mt-6 mb-4" {...props} />,
+                            h2: ({ node, ...props }) => <h2 className="text-2xl font-semibold mt-5 mb-3" {...props} />,
+                            h3: ({ node, ...props }) => <h3 className="text-xl font-semibold mt-4 mb-2" {...props} />,
+                            h4: ({ node, ...props }) => <h4 className="text-lg font-medium mt-3 mb-2" {...props} />,
+                            h5: ({ node, ...props }) => <h5 className="text-base font-medium mt-2 mb-1" {...props} />,
+                            h6: ({ node, ...props }) => <h6 className="text-sm font-medium mt-2 mb-1" {...props} />,
+                            a: ({ node, ...props }) => <a className="text-blue-600 hover:underline" {...props} />,
+                            strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
+                            em: ({ node, ...props }) => <em className="italic" {...props} />,
+                            hr: ({ node, ...props }) => <hr className="my-6 border-t border-gray-300" {...props} />,
+                          }}
+                        >
                           {extractDetails(accumulated.session_data.summary)}
                         </Markdown>
                       </>
@@ -437,8 +471,13 @@ export default function SessionResult() {
                 </Card>
               </div>
               <div className="w-1/3 gap-4">
-                {userData && userData.length && (
-                  <Chat
+                <Card className="bg-purple-100 border-purple-200 h-auto">
+                  <CardHeader>
+                    <CardTitle className="text-md">Ask Monica</CardTitle>
+                  </CardHeader>
+                  <CardContent className="h-auto">
+                    {userData && userData.length && (
+                      <Chat
                     userNameInFirstMessage={false}
                     context={{
                       role: 'assistant',
@@ -449,15 +488,18 @@ export default function SessionResult() {
                     assistantId="asst_LQospxVfX4vMTONASzSkSUwb"
                     entryMessage={{
                       type: 'ASSISTANT',
-                      text: `Hi there, you can ask me anything about the session.
+                      text: `Hi there! Consider me your expert analyst, I can help you to better understand your session.
 
-Here’s some examples
+Here are a few examples of what you can ask me:
   - What was the most common response?
   - What were the most interesting insights?
+  - Generate a report on the session
                     `,
                     }}
                   />
                 )}
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>
@@ -465,8 +507,8 @@ Here’s some examples
         <TabsContent value="RESPONSES">
           <Card className="mt-4 w-2/3">
             <CardHeader>
-              <CardTitle>Participants</CardTitle>
-              <CardDescription>Manage your sessions</CardDescription>
+              <CardTitle className="text-xl">Participants</CardTitle>
+              <CardDescription>View participants progress and transcripts</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
