@@ -91,12 +91,12 @@ const StandaloneChat = () => {
     >
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-10 rounded-lg w-[calc(100%-2rem)] h-[calc(100%-2rem)] flex items-center justify-center m-4">
+          <div className="bg-white p-4 sm:p-6 md:p-10 rounded-lg w-[calc(100%-2rem)] h-[calc(100%-2rem)] flex items-center justify-center m-4 overflow-y-auto">
             <div className="max-w-6xl w-full">
-              <div className="flex">
-                <div className="w-1/2 pr-6 flex flex-col justify-between">
+              <div className="flex flex-col lg:flex-row">
+                <div className="w-full lg:w-1/2 lg:pr-6 flex flex-col justify-between mb-6 lg:mb-0">
                   <div>
-                    <h2 className="text-2xl font-bold mb-4"><a href="https://cmi.fi/" target="_blank" rel="noopener noreferrer" className="underline text-gray-500">CMI</a> invites you to share your thoughts</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold mb-4"><a href="https://cmi.fi/" target="_blank" rel="noopener noreferrer" className="underline text-gray-500">CMI</a> invites you to share your thoughts</h2>
                     <p className="mb-6">
                       Welcome to our interactive session! We value your input and would love to hear your thoughts on the topic at hand. Your responses will be combined with others to create an AI-powered overview.
                     </p>
@@ -108,7 +108,7 @@ const StandaloneChat = () => {
                     Powered by <Link href="https://harmonica.chat" className="underline">Harmonica</Link>
                   </p>
                 </div>
-                <div className="w-1/2 pl-8 border-l">
+                <div className="w-full lg:w-1/2 lg:pl-8 lg:border-l border-t lg:border-t-0 pt-6 lg:pt-0">
                   <h3 className="text-lg font-semibold mb-4">How to use</h3>
                   <ol className="space-y-4 text-sm text-gray-600">
                     <li>

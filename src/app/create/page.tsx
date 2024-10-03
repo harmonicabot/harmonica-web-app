@@ -25,6 +25,8 @@ const STEPS = ['Create', 'Review', 'Share'] as const;
 type Step = (typeof STEPS)[number];
 const enabledSteps = [true, false, false];
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 export default function CreationFlow() {
   const route = useRouter();
   const [isLoading, setIsLoading] = useState(false);
