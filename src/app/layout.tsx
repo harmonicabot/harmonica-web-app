@@ -14,8 +14,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={instrumentSans.className}>
       <body className="flex flex-col min-h-screen">
-        <nav className="p-4 px-14">
-          <div className="flex flex-row justify-between items-center px-6">
+        <nav className="p-4">
+          <div className="flex flex-row justify-between items-center px-2">
             <Link href="/">
               <Logo />
             </Link>

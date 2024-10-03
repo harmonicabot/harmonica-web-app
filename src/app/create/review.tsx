@@ -117,7 +117,7 @@ export default function ReviewPrompt({
       )}
       <div
         id="card-container"
-        className="bg-white w-full mx-auto p-4 m-4 h-[calc(100vh-200px)] overflow-hidden"
+        className="bg-white m-4 h-[calc(100vh-200px)] overflow-hidden mx-auto p-4 rounded-xl shadow space-y-12"
       >
         <div className="lg:flex h-full">
           <div className={`${isEditing ? 'lg:w-2/3' : ''} overflow-scroll`}>

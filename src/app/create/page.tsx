@@ -239,19 +239,18 @@ export default function CreationFlow() {
           value={activeStep}
           onValueChange={(value) => setActiveStep(value as Step)}
         >
-          <div className="flex justify-center mb-4">
-            <TabsList>
-              {STEPS.map((step, index) => (
-                <TabsTrigger
-                  key={step}
-                  value={step}
-                  disabled={!enabledSteps[index]}
-                >
-                  {step}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
+          <TabsList className="grid w-full grid-cols-3">
+            {STEPS.map((step, index) => (
+              <TabsTrigger
+                key={step}
+                value={step}
+                disabled={!enabledSteps[index]}
+              >
+                {step}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
           {STEPS.map((step) => (
             <TabsContent key={step} value={step}>
               {stepContent[step]}

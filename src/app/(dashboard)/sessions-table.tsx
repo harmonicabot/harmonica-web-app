@@ -53,7 +53,7 @@ export function SessionsTable({
               <TableHead>Name</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="hidden md:table-cell">
-                Active
+                Started
               </TableHead>
               <TableHead className="hidden md:table-cell">
                 Finished
