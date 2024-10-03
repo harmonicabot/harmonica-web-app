@@ -6,6 +6,7 @@ const userStore = 17913;
 
 let limit = 90;
 const token = process.env.MAKE_AUTH_TOKEN;
+const clientId = process.env.CLIENT_ID;
 
 function getUrl(
   storeId: number,
@@ -39,8 +40,19 @@ export async function GET(request: Request) {
     ]);
 
     const userJson: DbResponse = await userData.json();
-    const sessionJson: DbResponse = await sessionData.json();
-    // console.log('Got session data: ', sessionJson.records || []);
+    let sessionJson: DbResponse = await sessionData.json();
+    console.log('Got session data: ', sessionJson.records || [], clientId);
+    if (clientId && clientId.length) {
+      const clientSessions = sessionJson.records?.filter(
+        (sessionData) => sessionData.data.client === clientId,
+      );
+      sessionJson = {
+        ...sessionJson,
+        records: clientSessions,
+        count: clientSessions.length,
+      };
+    }
+    console.log('Got session data: ', sessionJson || [], clientId);
     // console.log("Got user data: ", userJson.records?.slice(0, 5) || []);
     const expected = userJson.count;
     let available = limit;

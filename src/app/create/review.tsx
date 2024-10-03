@@ -163,13 +163,13 @@ export default function ReviewPrompt({
                     >
                       <Eye/>
                   </Button> */}
-                    <Button
+                    {/* <Button
                       variant="outline"
                       onClick={() => showFullPrompt(prompt.id)}
                       className="mr-2"
                     >
                       Full Prompt
-                    </Button>
+                    </Button> */}
                     {!chatOpen && (
                       <Button
                         variant="outline"

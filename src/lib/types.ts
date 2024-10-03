@@ -74,6 +74,7 @@ export type RawSessionOverview = {
   template?: string;
   start_time?: Date;
   botId?: string;
+  client: string;
   final_report_sent?: boolean;
 };
 

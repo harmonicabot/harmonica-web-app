@@ -20,14 +20,14 @@ const client = new OpenAI({
 
 export async function POST(req: Request) {
   const data: RequestData = await req.json();
-  console.log('Received data: ', data);
+  // console.log('Received data: ', data);
   // Todo: We should possibly switch this to always use 'handleResponse',
   //  so that we can easier switch between streaming and not. But not now.
   switch (data.action) {
     case ApiAction.CreatePrompt:
       return await createNewPrompt(data.data as SessionBuilderData);
     case ApiAction.EditPrompt:
-      console.log('Editing prompt for data: ', data.data);
+      // console.log('Editing prompt for data: ', data.data);
       const d = data.data as TemplateEditingData;
       return handleResponse(
         client,
@@ -44,11 +44,11 @@ export async function POST(req: Request) {
 }
 
 async function createNewPrompt(data: SessionBuilderData) {
-  console.log('Creating prompt for data: ', data);
+  // console.log('Creating prompt for data: ', data);
   try {
     // const templateBuilder = await getTemplateBuilder()
     const templateBuilderId = 'asst_5T4EakkOmaRfgna5qJnCc8sX';
-    console.log('Template Builder assistant found, generating full prompt');
+    // console.log('Template Builder assistant found, generating full prompt');
     const [threadId, fullPrompt] = await generateFullPrompt(
       data,
       templateBuilderId,
@@ -76,7 +76,7 @@ async function getTemplateBuilder() {
     console.log('Template Builder assistant not found');
     throw new Error('Template Builder assistant not found');
   }
-  console.log('Template Builder assistant found: ', templateBuilder);
+  // console.log('Template Builder assistant found: ', templateBuilder);
   return templateBuilder;
 }
 
@@ -118,7 +118,7 @@ function createPromptContent(data: SessionBuilderData) {
 }
 
 async function handleCreateAssistant(data: AssistantBuilderData) {
-  console.log('Creating assistant for data: ', data);
+  // console.log('Creating assistant for data: ', data);
 
   const assistant = await client.beta.assistants.create({
     name: data.name,

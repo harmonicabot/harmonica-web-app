@@ -60,6 +60,7 @@ export async function getHostAndUserSessions(
         context: session.context,
         finalReportSent: session.finalReportSent,
         start_time: new Date(session.startTime),
+        client: session.client,
       },
       user_data: session.userData.reduce(
         (acc, user) => {
