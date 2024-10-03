@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 
     const userJson: DbResponse = await userData.json();
     let sessionJson: DbResponse = await sessionData.json();
-    console.log('Got session data: ', sessionJson.records || [], clientId);
+    // console.log('Got session data: ', sessionJson.records || [], clientId);
     if (clientId && clientId.length) {
       const clientSessions = sessionJson.records?.filter(
         (sessionData) => sessionData.data.client === clientId,
