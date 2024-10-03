@@ -19,7 +19,7 @@ export const hostData = pgTable('host_data', {
   template: text('template').notNull(),
   topic: text('topic').notNull(),
   context: text('context').notNull(),
-  client: text('client').notNull(),
+  client: text('client'),
   finalReportSent: boolean('final_report_sent').notNull(),
   startTime: timestamp('start_time', { mode: 'string' }).notNull(),
 });

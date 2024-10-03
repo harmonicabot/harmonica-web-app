@@ -40,40 +40,40 @@ export default function Dashboard({
     // setAccumulated(accumulatedSessions);
   }
 
-  const insertFake = async () => {
-    const template = `Template ${Math.random().toString(36).substring(7)}`;
-    const topic = `Topic ${Math.random().toString(36).substring(7)}`;
-    const context = `Context ${Math.random().toString(36).substring(7)}`;
-    const sessionId = await db.insertHostSession({
-      numSessions: Math.floor(Math.random() * 100),
-      active: Math.floor(Math.random() * 50),
-      finished: Math.floor(Math.random() * 50),
-      summary: `Random summary ${Math.random().toString(36).substring(7)}`,
-      template: template,
-      topic: topic,
-      context: context,
-      finalReportSent: Math.random() < 0.5,
-      startTime: '' + new Date(),
-    });
+  // const insertFake = async () => {
+  //   const template = `Template ${Math.random().toString(36).substring(7)}`;
+  //   const topic = `Topic ${Math.random().toString(36).substring(7)}`;
+  //   const context = `Context ${Math.random().toString(36).substring(7)}`;
+  //   const sessionId = await db.insertHostSession({
+  //     numSessions: Math.floor(Math.random() * 100),
+  //     active: Math.floor(Math.random() * 50),
+  //     finished: Math.floor(Math.random() * 50),
+  //     summary: `Random summary ${Math.random().toString(36).substring(7)}`,
+  //     template: template,
+  //     topic: topic,
+  //     context: context,
+  //     finalReportSent: Math.random() < 0.5,
+  //     startTime: '' + new Date(),
+  //   });
 
-    console.log('Session ID:', sessionId);
-    for (let i = 1; i <= 10; i++) {
-      await db.insertUserSession({
-        sessionId: sessionId,
-        active: Math.random() < 0.5,
-        userId: Math.random().toString(36).substring(7),
-        template: template,
-        feedback: `Feedback ${Math.random().toString(36).substring(7)}`,
-        chatText: `Chat text ${Math.random().toString(36).substring(7)}`,
-        threadId: Math.random().toString(36).substring(7),
-        resultText: `Result text ${Math.random().toString(36).substring(7)}`,
-        topic: topic,
-        context: context,
-        botId: Math.random().toString(36).substring(7),
-        hostChatId: Math.random().toString(36).substring(7),
-      });
-    }
-  };
+  //   console.log('Session ID:', sessionId);
+  //   for (let i = 1; i <= 10; i++) {
+  //     await db.insertUserSession({
+  //       sessionId: sessionId,
+  //       active: Math.random() < 0.5,
+  //       userId: Math.random().toString(36).substring(7),
+  //       template: template,
+  //       feedback: `Feedback ${Math.random().toString(36).substring(7)}`,
+  //       chatText: `Chat text ${Math.random().toString(36).substring(7)}`,
+  //       threadId: Math.random().toString(36).substring(7),
+  //       resultText: `Result text ${Math.random().toString(36).substring(7)}`,
+  //       topic: topic,
+  //       context: context,
+  //       botId: Math.random().toString(36).substring(7),
+  //       hostChatId: Math.random().toString(36).substring(7),
+  //     });
+  //   }
+  // };
 
   return (
     <Tabs defaultValue="all">
