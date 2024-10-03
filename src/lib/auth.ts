@@ -5,7 +5,11 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 
 import type { Provider } from 'next-auth/providers';
 
-const approvedEmails = ['hello@harmonica.chat', 'user@example.com'];
+const approvedEmails = [
+  'hello@harmonica.chat',
+  'felix.kufus@cmi.fi',
+  'johanna.poutanen@cmi.fi',
+];
 
 const customEmailProvider = CredentialsProvider({
   id: 'email',

@@ -7,12 +7,16 @@ export async function POST(request: Request) {
   // console.log('ReqBody: ', req_body);
   // This is just a middleman that 'forwards' the api call to the make.com database and back to the caller:
   console.warn('Doing a web call to URL: ', url); // 'warn' because we want to reduce web calls as much as possible
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(req_body),
+    body: JSON.stringify({
+      ...req_body,
+      data: { ...req_body.data, client: process.env.CLIENT_ID },
+    }),
   });
 
   if (!response.ok) {

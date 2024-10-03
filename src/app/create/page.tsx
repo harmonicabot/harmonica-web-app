@@ -235,7 +235,10 @@ export default function CreationFlow() {
           <h1 className="text-3xl font-bold">New Session</h1>
         </div>
 
-        <Tabs value={activeStep} onValueChange={(value) => setActiveStep(value as Step)}>
+        <Tabs
+          value={activeStep}
+          onValueChange={(value) => setActiveStep(value as Step)}
+        >
           <div className="flex justify-center mb-4">
             <TabsList>
               {STEPS.map((step, index) => (
@@ -384,7 +387,7 @@ export default function CreationFlow() {
       if (done) break;
       const chunk = decoder.decode(value);
       message += chunk;
-      console.log('\nChunk: ', chunk);
+      // console.log('\nChunk: ', chunk);
       updateStreaming(message);
     }
     completeStreaming();

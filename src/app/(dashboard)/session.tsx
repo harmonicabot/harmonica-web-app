@@ -45,13 +45,7 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
       </TableCell>
       <TableCell>
         <Badge variant="outline" className="capitalize">
-          {session.session_data.active
-            ? 'active'
-            : session.session_data.finished
-              ? 'finished'
-              : session.session_data.finalReportSent
-                ? 'report sent'
-                : 'report not sent'}
+          {session.session_data.finalReportSent ? 'finished' : 'active'}
         </Badge>
       </TableCell>
       <TableCell className="hidden md:table-cell">
