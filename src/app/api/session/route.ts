@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+export const maxDuration = 200;
 export async function POST(request: Request) {
   const url = process.env.DATABASE_URL;
   const req_body = await request.json();
