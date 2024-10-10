@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { NextResponse } from 'next/server';
 
+export const maxDuration = 200;
+
 const sessionStore = 17957;
 const userStore = 17913;
 

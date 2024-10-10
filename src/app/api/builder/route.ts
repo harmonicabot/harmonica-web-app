@@ -14,6 +14,7 @@ import {
   waitForRunCompletion,
 } from './utils';
 
+export const maxDuration = 200;
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
