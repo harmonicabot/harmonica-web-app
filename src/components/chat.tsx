@@ -6,34 +6,44 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { sendApiCall, sendCallToMake } from '@/lib/utils';
-import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
+import {
+  ApiAction,
+  ApiTarget,
+  OpenAIMessage,
+  SessionBuilderData,
+} from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { set } from 'react-hook-form';
+import Markdown from 'react-markdown';
 
 export default function Chat({
   assistantId,
   sessionId,
   entryMessage,
+  context,
+  userNameInFirstMessage = true,
 }: {
   assistantId?: string;
+  context?: OpenAIMessage;
   sessionId?: string;
   entryMessage?: { type: string; text: string };
+  userNameInFirstMessage?: boolean;
 }) {
   const defaultEntryMessage = {
     type: 'ASSISTANT',
     text: `Nice to meet you! Before we get started, here are a few things to keep in mind
 
-This is Daily Review Session, where you can share your experiences and insights from the day. We’ll ask you a few questions to help you reflect on your day and identify patterns in your behaviour and emotions.
+I’m going to ask you a few questions to help structure your contribution to this session.
 
-✨ After you share your experiences, we’ll synthesise these with feedback from other participants to create an AI-powered overview 
+✨ After you share your thoughts, we’ll synthesize these with feedback from other participants to create an AI-powered overview
 
-🗣️ We’d love to see as much detail as possible, though even a few sentences are helpful. You can skip any questions simply by asking to move on. 
+🗣️ We’d love to see as much detail as possible, though even a few sentences are helpful. You can skip any questions simply by asking to move on.
 
 Help & Support:
 
 🌱 Harmonica is still in the early stages of development, so we would appreciate your patience and feedback
 
-💬 Type something to get started!
+💬 Could you please let me know your name?
 `,
   };
 
@@ -45,7 +55,7 @@ Help & Support:
     entryMessage ? entryMessage : defaultEntryMessage,
   ]);
   const [isLoading, setIsLoading] = useState(false);
-
+  const [userName, setUserName] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -53,10 +63,7 @@ Help & Support:
     sendApiCall({
       action: ApiAction.CreateThread,
       target: ApiTarget.Chat,
-      data:
-        entryMessage && entryMessage.text
-          ? entryMessage.text
-          : defaultEntryMessage.text,
+      data: context ? [context] : [],
     })
       .then((response) => {
         setIsLoading(false);
@@ -68,8 +75,11 @@ Help & Support:
   }, []);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current && messages.length > 1) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
     }
   }, [messages]);
 
@@ -124,6 +134,10 @@ Help & Support:
     e.preventDefault();
     setIsLoading(true);
     const messageText = formData.messageText;
+
+    if (userNameInFirstMessage && messages.length === 1) {
+      setUserName(messageText);
+    }
     setMessages([...messages, { text: messageText, type: 'USER' }]);
     setFormData({ messageText: '' });
     if (textareaRef.current) {
@@ -135,7 +149,10 @@ Help & Support:
       target: ApiTarget.Chat,
       data: {
         threadId: threadId,
-        messageText: messageText,
+        messageText:
+          userNameInFirstMessage && messages.length === 1
+            ? `User name is ${messageText}. Use it in comminication. Don't ask it again. Let’s dive right in.`
+            : messageText,
         assistantId: assistantId
           ? assistantId
           : 'asst_fHg4kGRWn357GnejZJQnVbJW', // Fall back to 'Daily Review' by default
@@ -143,8 +160,19 @@ Help & Support:
     })
       .then((response) => {
         setIsLoading(false);
-        const actualMessages = [...response.messages];
-        actualMessages.shift();
+        let actualMessages = [...response.messages];
+
+        if (context) actualMessages.shift();
+        if (userNameInFirstMessage) {
+          actualMessages.shift();
+          actualMessages = [
+            {
+              text: userName.length ? userName : messageText,
+              type: 'USER',
+            },
+            ...actualMessages,
+          ];
+        }
         if (sessionId && response.messages) {
           updateChatText(
             response.messages
@@ -155,6 +183,7 @@ Help & Support:
               .join('\n'),
           );
         }
+
         setMessages(
           response.messages
             ? [
@@ -170,7 +199,7 @@ Help & Support:
   };
 
   return (
-    <div className="h-[600px] flex-grow bg-white p-6 rounded shadow flex flex-col">
+    <div className="h-full max-h-[90vh] flex-grow flex flex-col">
       <div className="h-full flex-grow overflow-y-auto">
         {messages.map((message, index) => (
           <div
@@ -179,7 +208,7 @@ Help & Support:
           >
             {message.type !== 'USER' && (
               <img
-                className="h-10 w-10 flex-none rounded-full bg-gray-50"
+                className="h-10 w-10 flex-none rounded-full"
                 src="/h_chat_icon.png"
                 alt=""
               />
@@ -187,29 +216,45 @@ Help & Support:
             <div
               className={
                 message.type === 'USER'
-                  ? 'md:ms-60 p-3 m-3 rounded-xl bg-gray-100'
+                  ? 'md:ms-60 px-3 py-2 m-3 rounded-lg bg-white shadow-sm'
                   : ''
               }
             >
-              <p
+              <Markdown
                 className={
                   message.type === 'USER' ? 'text-sm' : 'pt-2 ps-2 text-sm'
                 }
-                style={{ whiteSpace: 'pre-wrap' }}
+                components={{
+                  p: ({ node, ...props }) => <p className="text-base mb-4 last:mb-0" {...props} />,
+                  ul: ({ node, ...props }) => <ul className="my-2 ml-4 list-disc" {...props} />,
+                  ol: ({ node, ...props }) => <ol className="my-1 ml-4 list-decimal" {...props} />,
+                  li: ({ node, ...props }) => <li className="text-base mb-1" {...props} />,
+                  h1: ({ node, ...props }) => <h1 className="text-3xl font-bold mt-6 mb-4" {...props} />,
+                  h2: ({ node, ...props }) => <h2 className="text-2xl font-semibold mt-5 mb-3" {...props} />,
+                  h3: ({ node, ...props }) => <h3 className="text-xl font-semibold mt-4 mb-2 first:mt-0" {...props} />,
+                  h4: ({ node, ...props }) => <h4 className="text-lg font-medium mt-3 mb-2" {...props} />,
+                  h5: ({ node, ...props }) => <h5 className="text-base font-medium mt-2 mb-1" {...props} />,
+                  h6: ({ node, ...props }) => <h6 className="text-sm font-medium mt-2 mb-1" {...props} />,
+                  blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-gray-300 pl-4 py-2 italic my-4" {...props} />,
+                  a: ({ node, ...props }) => <a className="text-blue-600 hover:underline" {...props} />,
+                  strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
+                  em: ({ node, ...props }) => <em className="italic" {...props} />,
+                  hr: ({ node, ...props }) => <hr className="my-6 border-t border-gray-300" {...props} />,
+                }}
               >
                 {message.text}
-              </p>
+              </Markdown>
             </div>
           </div>
         ))}
         {isLoading && (
           <div className="flex">
             <img
-              className="h-10 w-10 flex-none rounded-full bg-gray-50"
+              className="h-10 w-10 flex-none rounded-full"
               src="/h_chat_icon.png"
               alt=""
             />
-            <div className="ps-2 flex space-x-1 justify-center items-center bg-white dark:invert">
+            <div className="ps-2 flex space-x-1 justify-center items-center dark:invert">
               <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
               <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
               <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce"></div>

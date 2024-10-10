@@ -25,6 +25,8 @@ const STEPS = ['Create', 'Review', 'Share'] as const;
 type Step = (typeof STEPS)[number];
 const enabledSteps = [true, false, false];
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 export default function CreationFlow() {
   const route = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -156,7 +158,7 @@ export default function CreationFlow() {
       action: ApiAction.CreateSession,
       data: {
         template: assistantResponse.assistantId,
-        topic: formData.goal,
+        topic: formData.sessionName,
         bot_id: botId,
         host_chat_id: 'WebApp',
       },
@@ -169,17 +171,18 @@ export default function CreationFlow() {
 
   const handleSaveSession = async () => {
     console.log('Saving session...');
-    insertHostSession({
-      topic: formData.sessionName,
-      finished: 0,
-      numSessions: 0,
-      active: 0,
-      finalReportSent: false,
-      startTime: `${Date.now()}`,
-      summary: '',
-      template: sessionAssistantId,
-      context: formData.context,
-    });
+    // insertHostSession({
+    //   topic: formData.sessionName,
+    //   finished: 0,
+    //   numSessions: 0,
+    //   active: 0,
+    //   finalReportSent: false,
+    //   startTime: `${Date.now()}`,
+    //   summary: '',
+    //   template: sessionAssistantId,
+    //   context: formData.context,
+    // });
+    route.push('/');
   };
 
   const stepContent = {
@@ -215,10 +218,14 @@ export default function CreationFlow() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen pt-16 sm:px-14 pb-16">
       <div
         className={`mx-auto items-center align-middle ${
-          isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
+          isEditingPrompt
+            ? 'lg:w-4/5'
+            : activeStep == 'Share'
+              ? 'lg:w-[550px]'
+              : 'lg:w-2/3'
         }`}
       >
         <div className="flex items-center justify-center mb-6">
@@ -228,20 +235,28 @@ export default function CreationFlow() {
           <h1 className="text-3xl font-bold">New Session</h1>
         </div>
 
-        <div className="flex justify-center space-x-2 mb-6">
-          {STEPS.map((step, index) => (
-            <Button
-              key={step}
-              onClick={() => setActiveStep(step)}
-              variant={activeStep === step ? 'default' : 'outline'}
-              disabled={!enabledSteps[index]}
-            >
-              {step}
-            </Button>
-          ))}
-        </div>
+        <Tabs
+          value={activeStep}
+          onValueChange={(value) => setActiveStep(value as Step)}
+        >
+          <TabsList className="grid w-full grid-cols-3">
+            {STEPS.map((step, index) => (
+              <TabsTrigger
+                key={step}
+                value={step}
+                disabled={!enabledSteps[index]}
+              >
+                {step}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        {stepContent[activeStep]}
+          {STEPS.map((step) => (
+            <TabsContent key={step} value={step}>
+              {stepContent[step]}
+            </TabsContent>
+          ))}
+        </Tabs>
 
         {!isLoading && (
           <div className="flex justify-between items-center pt-4">
@@ -250,7 +265,7 @@ export default function CreationFlow() {
               variant="outline"
               onClick={() =>
                 activeStep === STEPS[0]
-                  ? route.back
+                  ? route.push('/')
                   : setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])
               }
             >
@@ -371,7 +386,7 @@ export default function CreationFlow() {
       if (done) break;
       const chunk = decoder.decode(value);
       message += chunk;
-      console.log('\nChunk: ', chunk);
+      // console.log('\nChunk: ', chunk);
       updateStreaming(message);
     }
     completeStreaming();

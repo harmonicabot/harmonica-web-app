@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { sendCallToMake } from '@/lib/utils';
 import QRCode from 'qrcode.react';
 import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react'
+import { Suspense } from 'react';
 import { ApiAction, ApiTarget } from '@/lib/types';
 
 export default function CreateSession() {
@@ -45,14 +45,13 @@ function CreateSessionForm({
   botName: string | null;
   contextDescription: string | null;
 }) {
-  
   const [botId, setBotId] = useState(botName || '');
   const [template, setTemplate] = useState(assistantId || '');
   const [topic, setTopic] = useState(templateName || '');
   const [context, setContext] = useState('');
   const [resultElement, setResultElement] = useState<JSX.Element>();
 
-  const [availableTemplates, setAvailableTemplates] = useState([])
+  const [availableTemplates, setAvailableTemplates] = useState([]);
 
   useEffect(() => {
     const fetchAvailableAssistants = async () => {
@@ -62,7 +61,7 @@ function CreateSessionForm({
           'Content-Type': 'application/json',
         },
       });
-      const templates = await response.json()
+      const templates = await response.json();
       setAvailableTemplates(templates);
     };
     fetchAvailableAssistants();
@@ -70,12 +69,14 @@ function CreateSessionForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const assistantTemplate = availableTemplates.find(tpl => tpl.name === template);
+    const assistantTemplate = availableTemplates.find(
+      (tpl) => tpl.name === template,
+    );
     let templateId;
     if (assistantTemplate) {
       templateId = assistantTemplate.id;
     } else {
-      templateId = template
+      templateId = template;
     }
     const payload = {
       target: ApiTarget.Session,
@@ -187,11 +188,17 @@ function CreateSessionForm({
                 required
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               >
-                <option value="">Select the bot channel that should be used.</option>
+                <option value="">
+                  Select the bot channel that should be used.
+                </option>
                 <option value="octant_harmonibot">Octant Chat Bot</option>
                 <option value="harmonica_chat_bot">Harmonica Chat Bot</option>
-                <option value="harmonica_end_of_day_review_bot">End of day Bot</option>
-                <option value="harmonica_red_teaming_bot">Red-Teaming Bot</option>
+                <option value="harmonica_end_of_day_review_bot">
+                  End of day Bot
+                </option>
+                <option value="harmonica_red_teaming_bot">
+                  Red-Teaming Bot
+                </option>
               </select>
             </div>
             <div>
@@ -220,7 +227,7 @@ function CreateSessionForm({
               <textarea
                 id="context"
                 value={context}
-                placeholder={ contextDescription ? contextDescription : ''}
+                placeholder={contextDescription ? contextDescription : ''}
                 onChange={(e) => setContext(e.target.value)}
                 rows={4}
                 required={contextDescription ? true : false}

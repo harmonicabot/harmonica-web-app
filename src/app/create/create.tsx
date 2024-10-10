@@ -10,20 +10,20 @@ export default function CreateSession({
   onFormDataChange,
 }) {
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     onFormDataChange({ [e.target.name]: e.target.value });
   };
 
   return (
-    <form className="bg-white mx-auto p-6 rounded shadow space-y-4">
+    <form className="bg-white mx-auto p-10 rounded-xl shadow space-y-12">
       <div className="space-y-2">
-        <Label htmlFor="sessionName">Session Name</Label>
+        <Label htmlFor="sessionName" size='lg'>Session Name*</Label>
         <Input
           name="sessionName"
           value={formData.sessionName}
           onChange={handleInputChange}
-          placeholder="E.g. Team Brainstorm"
+          placeholder="Marketing Strategy Brainstorm"
           required
           data-1p-ignore
           data-bwignore
@@ -31,40 +31,50 @@ export default function CreateSession({
           data-form-type="other"
         />
         <p className="text-sm text-muted-foreground">
-          This will be shared with your participants
+          Enter a clear session name that will be shared with participants
         </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="goal">What is the goal of your template?</Label>
+        <Label htmlFor="goal" size='lg'>What is the objective of your Session?*</Label>
         <Textarea
           name="goal"
           value={formData.goal}
           onChange={handleInputChange}
-          placeholder="I want to understand..."
+          placeholder="I want to understand user preferences on our new product features."
           required
         />
+        <p className="text-sm text-muted-foreground">
+          Summarize what you aim to learn or achieve in this session
+        </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="critical">
-          What is critical for you to understand or gather?
+        <Label htmlFor="critical" size='lg'>
+          What is critical for you to gather from your participants answers?
         </Label>
         <Textarea
           id="critical"
           name="critical"
           value={formData.critical}
           onChange={handleInputChange}
-          placeholder="What peoples opinion is of the topic"
+          placeholder="Participants should provide examples of their workflows or describe challenges they face."
           required
         />
+        <p className="text-sm text-muted-foreground">
+          Specify what kind of information or details you need from participant
+          responses
+        </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="context">What context will be helpful?</Label>
+        <Label htmlFor="context" size='lg'>
+          What context would be useful for our AI to know?
+        </Label>
         <Textarea
           name="context"
           value={formData.context}
           onChange={handleInputChange}
-          placeholder="Acme Co. is a company that does..."
+          placeholder="Our company is developing a new app, and this session is part of our usability testing to gather user feedback on key features."
         />
+        <p className="text-sm text-muted-foreground">Provide background to help our AI to understand the purpose of your session.</p>
       </div>
     </form>
   );

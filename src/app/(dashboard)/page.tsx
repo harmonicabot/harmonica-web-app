@@ -40,68 +40,76 @@ export default function Dashboard({
     // setAccumulated(accumulatedSessions);
   }
 
-  const insertFake = async () => {
-    const template = `Template ${Math.random().toString(36).substring(7)}`;
-    const topic = `Topic ${Math.random().toString(36).substring(7)}`;
-    const context = `Context ${Math.random().toString(36).substring(7)}`;
-    const sessionId = await db.insertHostSession({
-      numSessions: Math.floor(Math.random() * 100),
-      active: Math.floor(Math.random() * 50),
-      finished: Math.floor(Math.random() * 50),
-      summary: `Random summary ${Math.random().toString(36).substring(7)}`,
-      template: template,
-      topic: topic,
-      context: context,
-      finalReportSent: Math.random() < 0.5,
-      startTime: '' + new Date(),
-    });
+  // const insertFake = async () => {
+  //   const template = `Template ${Math.random().toString(36).substring(7)}`;
+  //   const topic = `Topic ${Math.random().toString(36).substring(7)}`;
+  //   const context = `Context ${Math.random().toString(36).substring(7)}`;
+  //   const sessionId = await db.insertHostSession({
+  //     numSessions: Math.floor(Math.random() * 100),
+  //     active: Math.floor(Math.random() * 50),
+  //     finished: Math.floor(Math.random() * 50),
+  //     summary: `Random summary ${Math.random().toString(36).substring(7)}`,
+  //     template: template,
+  //     topic: topic,
+  //     context: context,
+  //     finalReportSent: Math.random() < 0.5,
+  //     startTime: '' + new Date(),
+  //   });
 
-    console.log('Session ID:', sessionId);
-    for (let i = 1; i <= 10; i++) {
-      await db.insertUserSession({
-        sessionId: sessionId,
-        active: Math.random() < 0.5,
-        userId: Math.random().toString(36).substring(7),
-        template: template,
-        feedback: `Feedback ${Math.random().toString(36).substring(7)}`,
-        chatText: `Chat text ${Math.random().toString(36).substring(7)}`,
-        threadId: Math.random().toString(36).substring(7),
-        resultText: `Result text ${Math.random().toString(36).substring(7)}`,
-        topic: topic,
-        context: context,
-        botId: Math.random().toString(36).substring(7),
-        hostChatId: Math.random().toString(36).substring(7),
-      });
-    }
-  };
+  //   console.log('Session ID:', sessionId);
+  //   for (let i = 1; i <= 10; i++) {
+  //     await db.insertUserSession({
+  //       sessionId: sessionId,
+  //       active: Math.random() < 0.5,
+  //       userId: Math.random().toString(36).substring(7),
+  //       template: template,
+  //       feedback: `Feedback ${Math.random().toString(36).substring(7)}`,
+  //       chatText: `Chat text ${Math.random().toString(36).substring(7)}`,
+  //       threadId: Math.random().toString(36).substring(7),
+  //       resultText: `Result text ${Math.random().toString(36).substring(7)}`,
+  //       topic: topic,
+  //       context: context,
+  //       botId: Math.random().toString(36).substring(7),
+  //       hostChatId: Math.random().toString(36).substring(7),
+  //     });
+  //   }
+  // };
 
   return (
     <Tabs defaultValue="all">
-      <div className="flex items-center">
-        <TabsList>
+      <div className="flex items-center justify-between sm:pb-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Your Sessions
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            View, manage and review your active and past sessions
+          </p>
+        </div>
+        {/* <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
-          {/* <TabsTrigger value="active">Active</TabsTrigger>
+          <TabsTrigger value="active">Active</TabsTrigger>
           <TabsTrigger value="draft">Draft</TabsTrigger>
           <TabsTrigger value="archived" className="hidden sm:flex">
             Archived
-          </TabsTrigger> */}
-        </TabsList>
-        <div className="ml-auto flex items-center gap-2">
-          {/* <Button size="sm" variant="outline" className="h-8 gap-1">
+          </TabsTrigger>
+        </TabsList> */}
+        {/* <div className="ml-auto flex items-center gap-2"> */}
+        {/* <Button size="sm" variant="outline" className="h-8 gap-1">
             <File className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
               Export
             </span>
           </Button> */}
-          <Link href="/create">
-            <Button size="sm" className="h-8 gap-1">
-              <PlusCircle className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                New Session
-              </span>
-            </Button>
-          </Link>
-        </div>
+        <Link href="/create">
+          <Button size="lg" className="gap-1">
+            <PlusCircle className="h-3.5 w-3.5" />
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+              Create Session
+            </span>
+          </Button>
+        </Link>
+        {/* </div> */}
       </div>
       <TabsContent value="all">
         <SessionsTable sessions={accumulated} offset={0} totalSessions={777} />

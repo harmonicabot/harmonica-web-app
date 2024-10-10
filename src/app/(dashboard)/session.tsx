@@ -15,6 +15,7 @@ import { AccumulatedSessionData, UserSessionData } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { User, UserCheck } from '@/components/icons';
 
 export function Session({ session }: { session: AccumulatedSessionData }) {
   const router = useRouter();
@@ -33,30 +34,41 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
 
   // console.log('Start time: ', session.session_data.start_time);
   return (
-    <TableRow
-      onClick={() =>
-        router.push(`/sessions/${session.session_data.session_id}`)
-      }
-    >
-      <TableCell className="font-medium">
-        {session.session_data.template &&
-        !session.session_data.template.startsWith('asst_')
-          ? session.session_data.template
-          : session.session_data.topic}
+    <TableRow>
+      <TableCell className="font-medium text-base">
+        <Link href={`/sessions/${session.session_data.session_id}`}>
+          {session.session_data.template &&
+          !session.session_data.template.startsWith('asst_')
+            ? session.session_data.template
+            : session.session_data.topic}
+        </Link>
       </TableCell>
       <TableCell>
-        <Badge variant="outline" className="capitalize">
-          {session.session_data.active
-            ? 'active'
-            : session.session_data.finished
-              ? 'finished'
-              : session.session_data.finalReportSent
-                ? 'report sent'
-                : 'report not sent'}
+        <Badge
+          variant="outline"
+          className={`capitalize ${
+            session.session_data.active
+              ? 'bg-lime-100 text-lime-900'
+              : session.session_data.finished
+                ? 'bg-purple-100 text-purple-900'
+                : ''
+          }`}
+        >
+          {session.session_data.finalReportSent ? 'finished' : 'active'}
         </Badge>
       </TableCell>
-      <TableCell>{activeUsers}</TableCell>
-      <TableCell>{inactiveUsers}</TableCell>
+      <TableCell className="hidden md:table-cell">
+        <div className="flex items-center">
+          <User />
+          {activeUsers}
+        </div>
+      </TableCell>
+      <TableCell className="hidden md:table-cell">
+        <div className="flex items-center">
+          <UserCheck className="mr-1 h-4 w-4 opacity-50" />
+          {inactiveUsers}
+        </div>
+      </TableCell>
       <TableCell className="hidden md:table-cell">
         {session.session_data.start_time
           ? new Intl.DateTimeFormat(undefined, {
@@ -67,7 +79,7 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
       </TableCell>
       <TableCell>
         <Link href={`/sessions/${session.session_data.session_id}`}>
-          <Button variant="secondary">View</Button>
+          <Button variant="outline">View</Button>
         </Link>
       </TableCell>
       {/* <TableCell>

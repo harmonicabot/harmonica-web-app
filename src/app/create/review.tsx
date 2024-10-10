@@ -11,6 +11,7 @@ import { sendApiCall } from '@/lib/utils';
 import { ApiAction, ApiTarget } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Eye } from 'lucide-react';
+import Markdown from 'react-markdown';
 
 export default function ReviewPrompt({
   prompts,
@@ -29,6 +30,7 @@ export default function ReviewPrompt({
 }) {
   const [editValue, setEditValue] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [modalState, setModalState] = useState({ open: false, text: '' });
 
   const handleSubmit = async () => {
     setGenerating(true);
@@ -56,6 +58,10 @@ export default function ReviewPrompt({
 
   const [chatOpen, setChatOpen] = useState(false);
   const [tempAssistantId, setTempAssistant] = useState('');
+
+  const showFullPrompt = (promptId: number) => {
+    setModalState({ open: true, text: prompts[promptId - 1].fullPrompt });
+  };
 
   const testVersion = async (promptId) => {
     const assistantResponse = await sendApiCall({
@@ -86,10 +92,6 @@ export default function ReviewPrompt({
     }
   };
 
-  function showFullPrompt(version: number) {
-    // TODO
-  }
-
   console.log(
     `#Prompts: ${prompts.length}, CurrentVersion: ${currentVersion}`,
     prompts,
@@ -97,9 +99,25 @@ export default function ReviewPrompt({
 
   return (
     <>
+      {modalState.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg w-full h-full overflow-auto">
+            <div className="flex justify-between">
+              <h2 className="text-2xl font-bold mb-4">Full Prompt</h2>
+              <Button onClick={() => setModalState({ open: false, text: '' })}>
+                Close
+              </Button>
+            </div>
+
+            <>
+              <Markdown>{modalState.text}</Markdown>
+            </>
+          </div>
+        </div>
+      )}
       <div
         id="card-container"
-        className="bg-white w-full mx-auto p-4 m-4 h-[calc(100vh-200px)] overflow-hidden"
+        className="bg-white m-4 h-[calc(100vh-200px)] overflow-hidden mx-auto p-4 rounded-xl shadow space-y-12"
       >
         <div className="lg:flex h-full">
           <div className={`${isEditing ? 'lg:w-2/3' : ''} overflow-scroll`}>
@@ -145,7 +163,13 @@ export default function ReviewPrompt({
                     >
                       <Eye/>
                   </Button> */}
-
+                    {/* <Button
+                      variant="outline"
+                      onClick={() => showFullPrompt(prompt.id)}
+                      className="mr-2"
+                    >
+                      Full Prompt
+                    </Button> */}
                     {!chatOpen && (
                       <Button
                         variant="outline"

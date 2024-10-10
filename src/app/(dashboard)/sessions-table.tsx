@@ -21,6 +21,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AccumulatedSessionData } from '@/lib/types';
 import { useEffect } from 'react';
+import { User } from '@/components/icons';
 
 export function SessionsTable({
   sessions,
@@ -45,23 +46,19 @@ export function SessionsTable({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Sessions</CardTitle>
-        <CardDescription>Manage your sessions</CardDescription>
-      </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="hover:bg-transparent">
               <TableHead>Name</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="hidden md:table-cell">
-                Active Participants
+                Started
               </TableHead>
               <TableHead className="hidden md:table-cell">
-                Finished Participants
+                Finished
               </TableHead>
-              <TableHead className="hidden md:table-cell">Created at</TableHead>
+              <TableHead className="hidden md:table-cell">Created on</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>

@@ -58,8 +58,12 @@ export type RequestData = {
     | AssistantMessageData
     | TemplateEditingData
     | UserSessionData
+    | OpenAIMessage[]
     | string;
 };
+
+// use this insteads of Message
+export type OpenAIMessage = { role: 'assistant' | 'user'; content: string };
 
 export type RawSessionOverview = {
   session_id?: string;
@@ -70,6 +74,7 @@ export type RawSessionOverview = {
   template?: string;
   start_time?: Date;
   botId?: string;
+  client?: string;
   final_report_sent?: boolean;
 };
 
@@ -82,6 +87,7 @@ export type SessionOverview = {
   template: string;
   topic: string;
   context: string;
+  client?: string;
   finalReportSent: boolean;
   start_time: Date;
 };
