@@ -43,18 +43,27 @@ export async function GET(request: Request) {
 
     const userJson: DbResponse = await userData.json();
     let sessionJson: DbResponse = await sessionData.json();
-    // console.log('Got session data: ', sessionJson.records || [], clientId);
-    if (clientId && clientId.length) {
-      const clientSessions = sessionJson.records?.filter(
-        (sessionData) => sessionData.data.client === clientId,
+    // console.log(`Got session data for ClientID '${clientId}': `, sessionJson.records || []);
+    let clientSessions: DbResponse['records'] = [];
+    if (clientId.length === 0) {
+      // get all sessions that do NOT belong to any client, mainly for internal testing purposes
+      clientSessions = sessionJson.records?.filter(
+        (sessionData) =>
+          !('client' in sessionData.data)
+          || sessionData.data.client === null
+          || sessionData.data.client === ''
       );
-      sessionJson = {
-        ...sessionJson,
-        records: clientSessions,
-        count: clientSessions.length,
-      };
+    } else {
+      clientSessions = sessionJson.records?.filter(
+        (sessionData) => sessionData.data.client === clientId
+      );
     }
-    console.log('Got session data: ', sessionJson || [], clientId);
+    sessionJson = {
+      ...sessionJson,
+      records: clientSessions,
+      count: clientSessions.length,
+    };
+    // console.log(`Session data after filtering ClientID '${clientId}': `, sessionJson.records || []);
     // console.log("Got user data: ", userJson.records?.slice(0, 5) || []);
     const expected = userJson.count;
     let available = limit;
