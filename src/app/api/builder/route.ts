@@ -48,7 +48,7 @@ async function createNewPrompt(data: SessionBuilderData) {
   // console.log('Creating prompt for data: ', data);
   try {
     // const templateBuilder = await getTemplateBuilder()
-    const templateBuilderId = 'asst_5T4EakkOmaRfgna5qJnCc8sX';
+    const templateBuilderId = process.env.TEMPLATE_BUILDER_ID;
     // console.log('Template Builder assistant found, generating full prompt');
     const [threadId, fullPrompt] = await generateFullPrompt(
       data,
