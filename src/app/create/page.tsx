@@ -1,5 +1,6 @@
 'use client';
 
+import { useSession } from 'next-auth/react';
 import { useRef, useState } from 'react';
 import CreateSession from './create';
 import ReviewPrompt from './review';
@@ -41,6 +42,7 @@ export default function CreationFlow() {
   const [currentVersion, setCurrentVersion] = useState(-1);
   const [sessionId, setSessionId] = useState('');
   const [botId, setBotId] = useState('');
+  const { data: authSession, status } = useSession();
 
   const addPrompt = (versionedPrompt: VersionedPrompt) => {
     setPrompts((prev) => [...prev, versionedPrompt]);
@@ -170,7 +172,6 @@ export default function CreationFlow() {
   };
 
   const handleSaveSession = async () => {
-    console.log('Saving session...');
     // insertHostSession({
     //   topic: formData.sessionName,
     //   finished: 0,
@@ -182,7 +183,7 @@ export default function CreationFlow() {
     //   template: sessionAssistantId,
     //   context: formData.context,
     // });
-    route.push('/');
+    route.push(authSession ? '/' : `/sessions/${sessionId}`);
   };
 
   const stepContent = {

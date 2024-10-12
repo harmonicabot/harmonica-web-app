@@ -14,11 +14,12 @@ export default function ShareSession({
   assistantId: string;
 }) {
   const chatUrl = `${window.location.origin}/chat?s=${makeSessionId}`;
+  const sessionResultUrl = `${window.location.origin}/sessions/${makeSessionId}`;
   const [showToast, setShowToast] = useState(false);
 
-  const copyToClipboard = () => {
+  const copyToClipboard = (url: string) => {
     navigator.clipboard
-      .writeText(chatUrl)
+      .writeText(url)
       .then(() => {
         setShowToast(true);
         setTimeout(() => setShowToast(false), 2000);
@@ -44,7 +45,7 @@ export default function ShareSession({
           {chatUrl}
         </a>
       </div>
-      <div className="mt-8 mb-8 bg-black p-4 rounded-lg inline-block">
+      <div className="mt-4 mb-4 bg-black p-4 rounded-lg inline-block">
         <QRCode
           className=" md:w-96 md:h-96 lg:w-[512px] lg:h-[512px]"
           value={chatUrl}
@@ -52,13 +53,20 @@ export default function ShareSession({
         />
       </div>
       <div>
-        <Button onClick={copyToClipboard}>Copy Link</Button>
+        <Button onClick={() => copyToClipboard(chatUrl)}>Copy Link</Button>
         {showToast && (
           <div className="fixed top-4 right-4 bg-green-500 text-white py-2 px-4 rounded shadow-lg">
             URL copied to clipboard
           </div>
         )}
       </div>
+      <h2 className="font-bold mb-2 mt-6 text-gray-500">
+        Session results page
+      </h2>
+      <p className="mb-2">{sessionResultUrl}</p>
+      <Button onClick={() => copyToClipboard(sessionResultUrl)}>
+        Copy Link
+      </Button>
     </div>
   );
 }

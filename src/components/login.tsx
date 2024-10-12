@@ -24,6 +24,10 @@ export default function Login() {
     router.replace(window.location.pathname);
   }, [searchParams]);
 
+  const handleTestSession = () => {
+    router.push('/create');
+  };
+
   const handleEmailChange = (e) => {
     if (error.length) setError('');
     setEmail(e.target.value);
@@ -83,8 +87,16 @@ export default function Login() {
               />
               {error && <div className="text-red-500 text-center">{error}</div>}
             </div>
+
             <Button onClick={handleLoginClick} className="w-full">
               Login
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleTestSession}
+              className="w-full mt-3"
+            >
+              Create test session
             </Button>
           </div>
         </div>

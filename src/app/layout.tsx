@@ -5,6 +5,7 @@ import '../styles/global.css';
 import Logo from '@/components/ui/logo';
 import { User } from '@/components/user';
 import { Instrument_Sans } from 'next/font/google';
+import NextAuthSessionProvider from '@/components/SessionProvider';
 
 const instrumentSans = Instrument_Sans({ subsets: ['latin'] });
 
@@ -34,7 +35,7 @@ export default function RootLayout({
           </div>
         </nav>
         <main className="flex flex-col justify-center flex-grow bg-purple-50">
-          {children}
+          <NextAuthSessionProvider>{children}</NextAuthSessionProvider>
         </main>
       </body>
     </html>
