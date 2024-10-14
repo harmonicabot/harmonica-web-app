@@ -21,7 +21,7 @@ export default function Dashboard({
 }) {
   const search = searchParams.q ?? '';
   const offset = searchParams.offset ?? 0;
-
+  
   const [accumulated, setAccumulated] = useState<
     Record<string, AccumulatedSessionData>
   >({});

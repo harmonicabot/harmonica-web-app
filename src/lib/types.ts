@@ -67,7 +67,7 @@ export type OpenAIMessage = { role: 'assistant' | 'user'; content: string };
 
 export type RawSessionOverview = {
   session_id?: string;
-  active?: number;
+  active?: number | boolean;
   topic: string;
   context: string;
   result: string;
@@ -80,9 +80,10 @@ export type RawSessionOverview = {
 
 export type SessionOverview = {
   session_id?: string;
+  session_active: boolean;
   num_sessions: number;
-  active: number;
-  finished: number;
+  num_active: number;
+  num_finished: number;
   summary: string;
   template: string;
   topic: string;

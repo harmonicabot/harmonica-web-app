@@ -6,11 +6,12 @@ import QRCode from 'qrcode.react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { ApiAction, ApiTarget } from '@/lib/types';
+import { Spinner } from '@/components/icons';
 
 export default function CreateSession() {
   return (
     <div className="container mx-auto px-4 py-8">
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<div>Loading... <Spinner/></div>}>
         <SearchParamsWrapper />
       </Suspense>
     </div>

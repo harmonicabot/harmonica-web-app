@@ -52,8 +52,8 @@ export async function getHostAndUserSessions(
     accumulatedSessions[session.id.toString()] = {
       session_data: {
         num_sessions: session.numSessions,
-        active: session.active,
-        finished: session.finished,
+        num_active: session.active,
+        num_finished: session.finished,
         summary: session.summary,
         template: session.template,
         topic: session.topic,

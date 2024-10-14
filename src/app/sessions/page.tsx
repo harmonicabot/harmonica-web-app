@@ -19,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Spinner } from '@/components/icons';
 
 /**
  * The `DashboardOverview` component is responsible for rendering the dashboard overview page. It fetches session data from an API and displays it in a grid layout, with filtering options to show all sessions, only active sessions, only finished sessions, or only sessions with a summary.
@@ -53,7 +54,7 @@ export default function DashboardOverview() {
 
   const loadingElement = (
     <div className="flex justify-center items-center h-screen">
-      <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+      <Spinner/>
       <span className="ml-3 text-lg font-semibold text-gray-700">
         Loading...
       </span>
@@ -288,11 +289,11 @@ export default function DashboardOverview() {
             {Object.entries(accumulated)
               .filter(([_, acc]) => {
                 if (filter.any) return true;
-                if (filter.active) return acc.session_data.active > 0;
+                if (filter.active) return acc.session_data.num_active > 0;
                 if (filter.finished)
                   return (
-                    acc.session_data.finished > 0 &&
-                    acc.session_data.active === 0
+                    acc.session_data.num_finished > 0 &&
+                    acc.session_data.num_active === 0
                   );
                 if (filter.summary) return acc.session_data.summary;
                 return false;
@@ -325,13 +326,13 @@ export default function DashboardOverview() {
                           <span className="font-medium">
                             Active Participants:
                           </span>{' '}
-                          {accumulatedSess.session_data.active}
+                          {accumulatedSess.session_data.num_active}
                         </p>
                         <p className="mb-2">
                           <span className="font-medium">
                             Finished Participants:
                           </span>{' '}
-                          {accumulatedSess.session_data.finished}
+                          {accumulatedSess.session_data.num_finished}
                         </p>
                         <p>
                           <span className="font-medium">Summary:</span>{' '}
@@ -386,7 +387,7 @@ const getCardComponent = function (
         </Card>
         {Object.entries(accumulated).map(([sessionId, session]) => (
           <Card key={sessionId} className="flex flex-col">
-            {session.session_data.active > 0 && (
+            {session.session_data.num_active > 0 && (
               <div className="bg-green-500 text-white text-center py-1 text-sm font-medium">
                 Active
               </div>
