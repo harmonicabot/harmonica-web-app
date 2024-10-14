@@ -13,14 +13,14 @@ import { AccumulatedSessionData } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Spinner } from '@/components/icons';
 
-type SessionData = {
+export type SessionData = {
   sessionId: string;
   name: string;
   status: string;
   active: boolean;
-  numStarted: string;
-  numFinished: string;
-  createdOn: string
+  numActive: number;
+  numFinished: number;
+  createdOn: string;
 };
 
 export function SessionsTable({
@@ -31,8 +31,7 @@ export function SessionsTable({
   sessions: Record<string, AccumulatedSessionData>;
   offset: number;
   totalSessions: number;
-  }) {
-  
+}) {
   const defaultSort = (sortDirection, a, b) => {
     if (a > b) return sortDirection === 'asc' ? 1 : -1;
     if (a < b) return sortDirection === 'asc' ? -1 : 1;
@@ -42,12 +41,12 @@ export function SessionsTable({
   const TableHeaders = {
     name: { label: 'Name', className: '', sortBy: defaultSort },
     status: { label: 'Status', className: '', sortBy: defaultSort },
-    started: {
+    numActive: {
       label: 'Started',
       className: 'hidden md:table-cell',
       sortBy: defaultSort,
     },
-    finished: {
+    numFinished: {
       label: 'Finished',
       className: 'hidden md:table-cell',
       sortBy: defaultSort,
@@ -55,10 +54,10 @@ export function SessionsTable({
     createdOn: {
       label: 'Created on',
       className: 'hidden md:table-cell',
-      sortBy: (sortDirection, aValue, bValue) => {
+      sortBy: (sortDirection, a, b) => {
         return sortDirection === 'asc'
-          ? new Date(aValue).getTime() - new Date(bValue).getTime()
-          : new Date(bValue).getTime() - new Date(aValue).getTime();
+          ? new Date(a).getTime() - new Date(b).getTime()
+          : new Date(b).getTime() - new Date(a).getTime();
       },
     },
   } as const;
@@ -69,19 +68,27 @@ export function SessionsTable({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [sortedSessions, setSortedSessions] = useState([]);
   console.log(sessions);
-  const cleanSessions: SessionData = Object.entries(sessions)
+  const cleanSessions: SessionData[] = Object.entries(sessions)
     .map(([sessionId, session]) => {
-      const name =
-        session.session_data.template &&
-        !session.session_data.template.startsWith('asst_')
-          ? session.session_data.template
-          : session.session_data.topic;
+      const topic = session.session_data.topic;
+      const template = session.session_data.template;
+      const name = topic
+        ? topic
+        : template && !template.startsWith('asst_')
+        ? template
+        : null;
 
-      const numSessions = session.session_data.num_sessions;
       const numActive = session.session_data.num_active;
       const numFinished = session.session_data.num_finished;
-      
       const finalReportSent = session.session_data.finalReportSent || false;
+      const session_active = session.session_data.session_active;
+
+      const activeFinishedDraft =
+        !session_active ? 'Finished'
+          : numActive === 0 ?
+            (numFinished > 0 ? 'Finished' : 'Draft')
+            : 'Active'
+      const statusText = `${activeFinishedDraft}${finalReportSent ? ' ✅' : ''}`;
 
       const createdOn = session.session_data.start_time
         ? new Intl.DateTimeFormat(undefined, {
@@ -93,9 +100,9 @@ export function SessionsTable({
       return {
         sessionId,
         name,
-        status: (numFinished < numSessions ? 'adad' : 'Finished') + finalReportSent ? ' ✅' : '',
+        status: statusText,
         active: session.session_data.session_active,
-        numStarted: numActive, 
+        numActive: numActive,
         numFinished,
         createdOn,
       };
@@ -119,6 +126,7 @@ export function SessionsTable({
         if (!sortColumn) return 0;
         const aValue = a[sortColumn as keyof TableHeaderKey];
         const bValue = b[sortColumn as keyof TableHeaderKey];
+        console.log(a, b);
 
         return TableHeaders[sortColumn].sortBy(sortDirection, aValue, bValue);
       })
@@ -156,8 +164,13 @@ export function SessionsTable({
               ))
             ) : (
               <TableRow>
-                <td colSpan={Object.keys(TableHeaders).length+1} className="text-center">
-                  <div className='flex items-center justify-center m-4'><Spinner /></div>
+                <td
+                  colSpan={Object.keys(TableHeaders).length + 1}
+                  className="text-center"
+                >
+                  <div className="flex items-center justify-center m-4">
+                    <Spinner />
+                  </div>
                 </td>
               </TableRow>
             )}

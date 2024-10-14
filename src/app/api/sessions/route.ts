@@ -8,7 +8,7 @@ const userStore = 17913;
 
 let limit = 90;
 const token = process.env.MAKE_AUTH_TOKEN;
-const clientId = process.env.CLIENT_ID;
+const clientId = process.env.CLIENT_ID || "";
 
 function getUrl(
   storeId: number,

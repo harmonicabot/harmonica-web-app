@@ -5,6 +5,8 @@ import { AccumulatedSessionData } from '@/lib/types';
 import Link from 'next/link';
 import { User, UserCheck } from '@/components/icons';
 
+import { SessionData } from './sessions-table';
+
 export function Session({ session }: { session: SessionData }) {
 
   return (
@@ -18,9 +20,9 @@ export function Session({ session }: { session: SessionData }) {
         <Badge
           variant="outline"
           className={`capitalize ${
-            session.active
+            session.numActive > 0
               ? 'bg-lime-100 text-lime-900'
-              : session.finished
+              : session.numFinished > 0
                 ? 'bg-purple-100 text-purple-900'
                 : ''
           }`}
@@ -31,7 +33,7 @@ export function Session({ session }: { session: SessionData }) {
       <TableCell className="hidden md:table-cell">
         <div className="flex items-center">
           <User />
-          {session.numStarted}
+          {session.numActive}
         </div>
       </TableCell>
       <TableCell className="hidden md:table-cell">
