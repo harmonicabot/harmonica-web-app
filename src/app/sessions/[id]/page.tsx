@@ -144,7 +144,7 @@ export default function SessionResult() {
       action: ApiAction.CreateSummary,
       data: {
         session_id: id,
-        finished: accumulated.session_data.finished,
+        finished: accumulated.session_data.num_finished,
       },
     });
     await fetchSessionData();
@@ -256,7 +256,7 @@ export default function SessionResult() {
             </CardHeader>
             <CardContent>
               <p><span className="font-medium">{accumulated.session_data.num_sessions}</span> <span className="text-yellow-800">Started</span></p>
-              <p><span className="font-medium">{accumulated.session_data.active}</span> <span className="text-lime-800">Completed</span></p>
+              <p><span className="font-medium">{accumulated.session_data.num_active}</span> <span className="text-lime-800">Completed</span></p>
             </CardContent>
           </Card>
         </div>

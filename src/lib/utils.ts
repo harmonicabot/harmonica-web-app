@@ -18,17 +18,18 @@ export function accumulateSessionData(
   const userSessions = Object.values(data.user_data);
   const total_sessions = userSessions.length;
   // This should always be a number, but the types between User&Session data aren't separated well enough... so let's handle both
-  const active = userSessions.filter((session) =>
+  const num_active = userSessions.filter((session) =>
     typeof session.active === 'number' ? session.active > 0 : session.active,
   ).length;
-  const finished = total_sessions - active;
+  const num_finished = total_sessions - num_active;
 
   const accumulated: AccumulatedSessionData = {
     session_data: {
       session_id: data.session_data.session_id,
+      session_active: typeof data.session_data.active === 'number' ? data.session_data.active > 0 : data.session_data.active,
       num_sessions: total_sessions,
-      active: active,
-      finished: finished,
+      num_active: num_active,
+      num_finished: num_finished,
       summary: data.session_data.result,
       template: data.session_data.template,
       topic: data.session_data.topic,

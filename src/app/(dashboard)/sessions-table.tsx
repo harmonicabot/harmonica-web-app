@@ -7,21 +7,21 @@ import {
   TableBody,
   Table,
 } from '@/components/ui/table';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Session } from './session';
-import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { AccumulatedSessionData } from '@/lib/types';
-import { useEffect } from 'react';
-import { User } from '@/components/icons';
+import { useEffect, useState } from 'react';
+import { Spinner } from '@/components/icons';
+
+type SessionData = {
+  sessionId: string;
+  name: string;
+  status: string;
+  active: boolean;
+  numStarted: string;
+  numFinished: string;
+  createdOn: string
+};
 
 export function SessionsTable({
   sessions,
@@ -31,18 +31,99 @@ export function SessionsTable({
   sessions: Record<string, AccumulatedSessionData>;
   offset: number;
   totalSessions: number;
-}) {
-  console.log('offset: ', offset);
-  let router = useRouter();
-  let sessionsPerPage = 5;
+  }) {
+  
+  const defaultSort = (sortDirection, a, b) => {
+    if (a > b) return sortDirection === 'asc' ? 1 : -1;
+    if (a < b) return sortDirection === 'asc' ? -1 : 1;
+    return 0;
+  };
 
-  function prevPage() {
-    router.back();
-  }
+  const TableHeaders = {
+    name: { label: 'Name', className: '', sortBy: defaultSort },
+    status: { label: 'Status', className: '', sortBy: defaultSort },
+    started: {
+      label: 'Started',
+      className: 'hidden md:table-cell',
+      sortBy: defaultSort,
+    },
+    finished: {
+      label: 'Finished',
+      className: 'hidden md:table-cell',
+      sortBy: defaultSort,
+    },
+    createdOn: {
+      label: 'Created on',
+      className: 'hidden md:table-cell',
+      sortBy: (sortDirection, aValue, bValue) => {
+        return sortDirection === 'asc'
+          ? new Date(aValue).getTime() - new Date(bValue).getTime()
+          : new Date(bValue).getTime() - new Date(aValue).getTime();
+      },
+    },
+  } as const;
 
-  function nextPage() {
-    router.push(`/?offset=${offset}`, { scroll: false });
-  }
+  type TableHeaderKey = keyof typeof TableHeaders;
+
+  const [sortColumn, setSortColumn] = useState<TableHeaderKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortedSessions, setSortedSessions] = useState([]);
+  console.log(sessions);
+  const cleanSessions: SessionData = Object.entries(sessions)
+    .map(([sessionId, session]) => {
+      const name =
+        session.session_data.template &&
+        !session.session_data.template.startsWith('asst_')
+          ? session.session_data.template
+          : session.session_data.topic;
+
+      const numSessions = session.session_data.num_sessions;
+      const numActive = session.session_data.num_active;
+      const numFinished = session.session_data.num_finished;
+      
+      const finalReportSent = session.session_data.finalReportSent || false;
+
+      const createdOn = session.session_data.start_time
+        ? new Intl.DateTimeFormat(undefined, {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          }).format(new Date(session.session_data.start_time))
+        : `No start time`;
+
+      return {
+        sessionId,
+        name,
+        status: (numFinished < numSessions ? 'adad' : 'Finished') + finalReportSent ? ' ✅' : '',
+        active: session.session_data.session_active,
+        numStarted: numActive, 
+        numFinished,
+        createdOn,
+      };
+    })
+    .filter((cleaned) => {
+      return !!cleaned.name;
+    });
+
+  const sortSessions = (column: TableHeaderKey) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  useEffect(() => {
+    setSortedSessions(
+      Object.entries(cleanSessions).sort(([, a], [, b]) => {
+        if (!sortColumn) return 0;
+        const aValue = a[sortColumn as keyof TableHeaderKey];
+        const bValue = b[sortColumn as keyof TableHeaderKey];
+
+        return TableHeaders[sortColumn].sortBy(sortDirection, aValue, bValue);
+      })
+    );
+  }, [sessions, sortColumn, sortDirection]);
 
   return (
     <Card>
@@ -50,24 +131,36 @@ export function SessionsTable({
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead>Name</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="hidden md:table-cell">
-                Started
-              </TableHead>
-              <TableHead className="hidden md:table-cell">
-                Finished
-              </TableHead>
-              <TableHead className="hidden md:table-cell">Created on</TableHead>
+              {Object.entries(TableHeaders).map(
+                ([key, { label, className }]) => (
+                  <TableHead
+                    key={key}
+                    onClick={() => sortSessions(key as TableHeaderKey)}
+                    className={`cursor-pointer ${className}`}
+                  >
+                    {label}{' '}
+                    {sortColumn === key &&
+                      (sortDirection === 'asc' ? '▲' : '▼')}
+                  </TableHead>
+                )
+              )}
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {Object.entries(sessions).map(([sessionId, session]) => (
-              <Session key={sessionId} session={session} />
-            ))}
+            {sortedSessions.length > 0 ? (
+              sortedSessions.map(([sessionId, session]) => (
+                <Session key={sessionId} session={session} />
+              ))
+            ) : (
+              <TableRow>
+                <td colSpan={Object.keys(TableHeaders).length+1} className="text-center">
+                  <div className='flex items-center justify-center m-4'><Spinner /></div>
+                </td>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>
