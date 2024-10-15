@@ -47,12 +47,15 @@ export async function getHostAndUserSessions(
     },
   });
 
+  console.log(`Session from hostAndUserDb: `, sessions);
+
   const accumulatedSessions: Record<string, AccumulatedSessionData> = {};
   sessions.forEach((session) => {
     accumulatedSessions[session.id.toString()] = {
       session_data: {
+        session_active: session.active,
         num_sessions: session.numSessions,
-        num_active: session.active,
+        num_active: session.numSessions - session.finished,
         num_finished: session.finished,
         summary: session.summary,
         template: session.template,

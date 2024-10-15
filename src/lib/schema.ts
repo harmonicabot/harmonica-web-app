@@ -10,10 +10,11 @@ import {
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
+// All except the numSessions are also in make.com db
 export const hostData = pgTable('host_data', {
   id: serial('id').primaryKey().notNull(),
   numSessions: integer('num_sessions').notNull(),
-  active: integer('active').notNull(),
+  active: boolean('active').notNull(),
   finished: integer('finished').notNull(),
   summary: text('summary').notNull(),
   template: text('template').notNull(),
@@ -24,11 +25,12 @@ export const hostData = pgTable('host_data', {
   startTime: timestamp('start_time', { mode: 'string' }).notNull(),
 });
 
+// Mapped basically 1-1 from make.com db
 export const userData = pgTable('user_data', {
   id: serial('id').primaryKey().notNull(),
   sessionId: integer('session_id').references(() => hostData.id),
   userId: text('user_id'),
-  active: boolean('active'),
+  active: integer('active'),
   template: text('template'),
   feedback: text('feedback'),
   chatText: text('chat_text'),
