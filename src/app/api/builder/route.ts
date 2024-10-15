@@ -39,6 +39,8 @@ export async function POST(req: Request) {
       );
     case ApiAction.CreateAssistant:
       return await handleCreateAssistant(data.data as AssistantBuilderData);
+    case ApiAction.DeleteSession:
+      return await deleteAssistants(data.data["assistantIds"]);
     default:
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   }
@@ -68,15 +70,20 @@ async function createNewPrompt(data: SessionBuilderData) {
   }
 }
 
-async function removeTemporaryAssistants() {
-  const assistants = await client.beta.assistants.list({ limit: 100, after: "asst_fHg4kGRWn357GnejZJQnVbJW"});
+async function getTempAssistants() {
+  // Currently unused, but could be used to periodically clean up or so.
+  const assistants = await client.beta.assistants.list({ limit: 100 /*, after: "asst_fHg4kGRWn357GnejZJQnVbJW"*/});  
   console.log(`Found assistants:\n${assistants.data.map(assistant => assistant.name + " " + assistant.id).join('\n')}`);
-  
-  assistants.data.filter((assistant) =>
-    assistant.name.startsWith('testing_'),
-  ).forEach(assistant => {
-    console.log('Deleting assistant: ', assistant.name);
-    // client.beta.assistants.del(assistant.id);
+  const tempAssistantIds = assistants.data
+    .filter((assistant) => assistant.name.startsWith('testing_'))
+    .map((assistant) => assistant.id)
+  return tempAssistantIds;
+}
+
+async function deleteAssistants(idsToDelete: string[]) {  
+  idsToDelete.forEach(id => {
+    console.log(`Deleting assistant with id ${id}`);
+    client.beta.assistants.del(id);
   });
   return NextResponse.json({ success: true });
 }
