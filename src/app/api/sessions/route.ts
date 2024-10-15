@@ -8,7 +8,7 @@ const userStore = 17913;
 
 let limit = 90;
 const token = process.env.MAKE_AUTH_TOKEN;
-const clientId = process.env.CLIENT_ID || "DEV";
+const clientId = process.env.CLIENT_ID;
 
 function getUrl(
   storeId: number,
@@ -113,6 +113,15 @@ export async function DELETE(request: Request) {
     },
     body: JSON.stringify({ keys: ids }),
   });
+
+  if (!response.ok) {
+    console.error(
+      'There was a problem deleting ids:',
+      response.status,
+      response.statusText
+    );
+    return NextResponse.json({ message: 'Deletion failed: ' + response.statusText }, { status: 500 });
+  }
 
   return NextResponse.json({ message: 'Deletion successful' });
 }

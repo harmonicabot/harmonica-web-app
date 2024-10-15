@@ -24,6 +24,7 @@ export async function POST(req: Request) {
   // console.log('Received data: ', data);
   // Todo: We should possibly switch this to always use 'handleResponse',
   //  so that we can easier switch between streaming and not. But not now.
+  console.log('Action: ', data.action);
   switch (data.action) {
     case ApiAction.CreatePrompt:
       return await createNewPrompt(data.data as SessionBuilderData);
@@ -40,6 +41,7 @@ export async function POST(req: Request) {
     case ApiAction.CreateAssistant:
       return await handleCreateAssistant(data.data as AssistantBuilderData);
     case ApiAction.DeleteSession:
+      console.log('About to delete sessions: ', data.data["assistantIds"].join(', '));
       return await deleteAssistants(data.data["assistantIds"]);
     default:
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

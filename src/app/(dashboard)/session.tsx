@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { User, UserCheck } from '@/components/icons';
 
 import { SessionData } from './sessions-table';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
+import { deleteSession } from './actions';
 
 export function Session({ session }: { session: SessionData }) {
 
@@ -49,8 +52,6 @@ export function Session({ session }: { session: SessionData }) {
         <Link href={`/sessions/${session.sessionId}`}>
           <Button variant="outline">View</Button>
         </Link>
-      </TableCell>
-      {/* <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -68,7 +69,7 @@ export function Session({ session }: { session: SessionData }) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </TableCell> */}
+      </TableCell>
     </TableRow>
   );
 }

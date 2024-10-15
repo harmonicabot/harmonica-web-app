@@ -201,7 +201,6 @@ export default function CreationFlow() {
     route.push(authSession ? '/' : `/sessions/${sessionId}`);
   };
 
-  setTemporaryAssistantIds((prev) => [...prev, ..."something"])
   const stepContent = {
     Create: (
       <CreateSession

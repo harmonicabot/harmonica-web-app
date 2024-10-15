@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
 import { Session } from './session';
-import { AccumulatedSessionData } from '@/lib/types';
+import { AccumulatedSessionData, SessionOverview, UserSessionData } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Spinner } from '@/components/icons';
 
@@ -21,6 +21,8 @@ export type SessionData = {
   numActive: number;
   numFinished: number;
   createdOn: string;
+  hostData: SessionOverview;
+  userData: Record<string, UserSessionData>;
 };
 
 export function SessionsTable({
@@ -105,6 +107,8 @@ export function SessionsTable({
         numActive: numActive,
         numFinished,
         createdOn,
+        hostData: session.session_data,
+        userData: session.user_data,
       };
     })
     .filter((cleaned) => {
