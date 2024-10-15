@@ -47,8 +47,8 @@ export async function POST(req: Request) {
 async function createNewPrompt(data: SessionBuilderData) {
   // console.log('Creating prompt for data: ', data);
   try {
-    // const templateBuilder = await getTemplateBuilder()
     const templateBuilderId = process.env.TEMPLATE_BUILDER_ID;
+    
     // console.log('Template Builder assistant found, generating full prompt');
     const [threadId, fullPrompt] = await generateFullPrompt(
       data,
@@ -68,17 +68,17 @@ async function createNewPrompt(data: SessionBuilderData) {
   }
 }
 
-async function getTemplateBuilder() {
-  const assistants = await client.beta.assistants.list();
-  const templateBuilder = assistants.data.find((assistant) =>
-    assistant.name.includes('Template Builder'),
-  );
-  if (!templateBuilder) {
-    console.log('Template Builder assistant not found');
-    throw new Error('Template Builder assistant not found');
-  }
-  // console.log('Template Builder assistant found: ', templateBuilder);
-  return templateBuilder;
+async function removeTemporaryAssistants() {
+  const assistants = await client.beta.assistants.list({ limit: 100, after: "asst_fHg4kGRWn357GnejZJQnVbJW"});
+  console.log(`Found assistants:\n${assistants.data.map(assistant => assistant.name + " " + assistant.id).join('\n')}`);
+  
+  assistants.data.filter((assistant) =>
+    assistant.name.startsWith('testing_'),
+  ).forEach(assistant => {
+    console.log('Deleting assistant: ', assistant.name);
+    // client.beta.assistants.del(assistant.id);
+  });
+  return NextResponse.json({ success: true });
 }
 
 async function generateFullPrompt(
