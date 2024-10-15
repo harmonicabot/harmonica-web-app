@@ -56,7 +56,6 @@ export default function ReviewPrompt({
     };
   }
 
-  const [chatOpen, setChatOpen] = useState(false);
   const [tempAssistantId, setTempAssistant] = useState('');
 
   const showFullPrompt = (promptId: number) => {
@@ -74,7 +73,6 @@ export default function ReviewPrompt({
     });
 
     setTempAssistant(assistantResponse.assistantId);
-    setChatOpen(true);
     const params = {
       entryMessage: {
         type: 'ASSISTANT',
@@ -170,15 +168,13 @@ export default function ReviewPrompt({
                     >
                       Full Prompt
                     </Button> */}
-                    {!chatOpen && (
-                      <Button
-                        variant="outline"
-                        onClick={() => testVersion(prompt.id)}
-                        className="mr-2"
-                      >
-                        Test
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      onClick={() => testVersion(prompt.id)}
+                      className="mr-2"
+                    >
+                      Test
+                    </Button>
                     {prompt.id !== currentVersion ? (
                       <Button onClick={() => setCurrentVersion(prompt.id)}>
                         Select
