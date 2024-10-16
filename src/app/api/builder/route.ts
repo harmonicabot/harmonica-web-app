@@ -40,10 +40,11 @@ export async function POST(req: Request) {
       );
     case ApiAction.CreateAssistant:
       return await handleCreateAssistant(data.data as AssistantBuilderData);
-    case ApiAction.DeleteSession:
+    case ApiAction.DeleteAssistants:
       console.log('About to delete sessions: ', data.data["assistantIds"].join(', '));
       return await deleteAssistants(data.data["assistantIds"]);
     default:
+      console.log('Invalid action: ', data.action);
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   }
 }
@@ -87,7 +88,7 @@ async function deleteAssistants(idsToDelete: string[]) {
     console.log(`Deleting assistant with id ${id}`);
     client.beta.assistants.del(id);
   });
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true }, { status: 200 });
 }
 
 async function generateFullPrompt(

@@ -21,55 +21,32 @@ export async function deleteSession(session: SessionData) {
       `Are you sure you want to delete this session and all associated data? \n\n${session.name} - ${hostId}`
     )
   ) {
-    console.log(`Deleting '${userIds}' from user db...`);
-
-    let response = await fetch('api/sessions', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ ids: userIds, database: 'user' }),
-    });
-
-    if (!response.ok) {
-      console.error(
-        'There was a problem deleting ids:',
-        response.status,
-        response.statusText
-      );
-      // return;
-    }
-    console.log(`Deleted ${userIds} from user db...: ${await response.text()}`);
-
-    console.log(`Deleting ${hostId} from host db...`);
-    response = await fetch('api/sessions', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ ids: hostId, database: 'session' }),
-    });
-
-    if (!response.ok) {
-      console.error(
-        'There was a problem deleting ids:',
-        response.status,
-        response.statusText
-      );
-      // return;
-    }
-
-    console.log(`Deleted ${hostId} from host db...: ${await response.text()}`);
 
     if (assistantId) {
       console.log(`Deleting ${assistantId} from OpenAI...`);
 
-      const response = await sendApiCall({
+      await sendApiCall({
         target: ApiTarget.Builder,
         action: ApiAction.DeleteAssistants,
         data: {
           assistantIds: [assistantId],
         },
+      }).catch((err) => {
+        console.error(err);
+      }).finally(() => {
+        console.log(`Deleted ${assistantId} from OpenAI.`);
+      });
+    }
+
+    if (userIds.length > 0) {
+      console.log(`Deleting ${userIds} from user db...`);
+
+      let response = await fetch('api/sessions', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ids: userIds, database: 'user' }),
       });
 
       if (!response.ok) {
@@ -78,12 +55,33 @@ export async function deleteSession(session: SessionData) {
           response.status,
           response.statusText
         );
-        return;
       }
-      console.log(`Deleted ${assistantId} from OpenAI...: ${await response.text()}`);
+      console.log(`Deleted ${userIds} from user db...: ${await response.text()}`);
+    }
+
+    if (hostId) {
+      console.log(`Deleting ${hostId} from host db...`);
+      let response = await fetch('api/sessions', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ids: hostId, database: 'session' }),
+      });
+
+      if (!response.ok) {
+        console.error(
+          'There was a problem deleting ids:',
+          response.status,
+          response.statusText
+        );
+      }
+
+      console.log(`Deleted ${hostId} from host db...: ${await response.text()}`);
     }
   }
 
-  console.log('deleteSession called');
-  revalidatePath('/');
+  console.log('Deleted Assistant, User Sessions & Host Session');
+  // Todo: Update the page so that the session is removed from the list.
+  // revalidatePath('/'); doesn't actually work, we might have to remove the entry manually from local state.
 }
