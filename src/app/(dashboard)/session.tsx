@@ -52,7 +52,7 @@ export function Session({ session }: { session: SessionData }) {
         <Link href={`/sessions/${session.sessionId}`}>
           <Button variant="outline">View</Button>
         </Link>
-        {/* <DropdownMenu>
+        <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button aria-haspopup="true" size="icon" variant="ghost">
               <MoreHorizontal className="h-4 w-4" />
@@ -61,14 +61,23 @@ export function Session({ session }: { session: SessionData }) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem>Edit</DropdownMenuItem>
+            {/* <DropdownMenuItem>
+              <form action={() => createNewSession(session)}>
+                <button type="submit">Use for new session</button>
+              </form>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+            <form action={() => archiveSession(session)}>
+                <button type="submit">Archive</button>
+              </form>
+            </DropdownMenuItem> */}
             <DropdownMenuItem>
               <form action={() => deleteSession(session)}>
                 <button type="submit">Delete</button>
               </form>
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu> */}
+        </DropdownMenu>
       </TableCell>
     </TableRow>
   );
