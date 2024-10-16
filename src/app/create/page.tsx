@@ -35,6 +35,9 @@ export default function CreationFlow() {
   const [threadId, setThreadId] = useState('');
   const [builderAssistantId, setBuilderAssistantId] = useState('');
   const [sessionAssistantId, setSessionAssistantId] = useState('');
+  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>(
+    []
+  );
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
@@ -151,6 +154,8 @@ export default function CreationFlow() {
 
     console.log('Assistant response from complete review: ', assistantResponse);
 
+    deleteTemporaryAssistants(temporaryAssistantIds);
+
     setSessionAssistantId(assistantResponse.assistantId);
     const botId = 'harmonica_chat_bot';
     // Todo: How to do this better? Can we get a list of 'available' bots, i.e. where no session is running, and use that? Or 'intelligently' chose one whose name matches best? Later on with user management each user will probably have their own pool of bots.
@@ -170,6 +175,16 @@ export default function CreationFlow() {
     setBotId(botId);
     setIsLoading(false);
   };
+
+  function deleteTemporaryAssistants(assistantIds: string[]) {
+    sendApiCall({
+      target: ApiTarget.Builder,
+      action: ApiAction.DeleteAssistants,
+      data: {
+        assistantIds: assistantIds,
+      },
+    });
+  }
 
   const handleSaveSession = async () => {
     // insertHostSession({
@@ -204,6 +219,7 @@ export default function CreationFlow() {
         setCurrentVersion={setCurrentVersion}
         isEditing={isEditingPrompt}
         handleEdit={handleEditPrompt}
+        setTemporaryAssistantIds={setTemporaryAssistantIds}
       />
     ),
     Share: isLoading ? (
@@ -225,8 +241,8 @@ export default function CreationFlow() {
           isEditingPrompt
             ? 'lg:w-4/5'
             : activeStep == 'Share'
-              ? 'lg:w-[550px]'
-              : 'lg:w-2/3'
+            ? 'lg:w-[550px]'
+            : 'lg:w-2/3'
         }`}
       >
         <div className="flex items-center justify-center mb-6">
@@ -290,16 +306,16 @@ export default function CreationFlow() {
                   activeStep === 'Create'
                     ? handleCreateComplete
                     : activeStep === 'Review'
-                      ? handleReviewComplete
-                      : handleSaveSession
+                    ? handleReviewComplete
+                    : handleSaveSession
                 }
                 className="m-2"
               >
                 {activeStep === 'Create'
                   ? 'Next'
                   : activeStep === 'Review'
-                    ? 'Launch'
-                    : 'Save'}
+                  ? 'Launch'
+                  : 'Save'}
               </Button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { SetStateAction, useEffect, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -20,6 +20,7 @@ export default function ReviewPrompt({
   setCurrentVersion,
   isEditing,
   handleEdit,
+  setTemporaryAssistantIds,
 }: {
   prompts: VersionedPrompt[];
   streamingPrompt: string;
@@ -27,6 +28,7 @@ export default function ReviewPrompt({
   setCurrentVersion: (version: number) => void;
   isEditing: boolean;
   handleEdit: (instructions: string) => void;
+  setTemporaryAssistantIds: (value: SetStateAction<string[]>) => void;
 }) {
   const [editValue, setEditValue] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -42,7 +44,7 @@ export default function ReviewPrompt({
   }, [streamingPrompt, prompts]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     console.log(e.currentTarget.value);
     setEditValue(e.currentTarget.value);
@@ -73,10 +75,16 @@ export default function ReviewPrompt({
     });
 
     setTempAssistant(assistantResponse.assistantId);
+    // All these temp assistants can be deleted again once the user chooses a final version.
+    setTemporaryAssistantIds((prev) => [...prev, assistantResponse.assistantId]);
     const params = {
       entryMessage: {
         type: 'ASSISTANT',
-        text: 'Hello! Do you want to start this test-session?',
+        text: `Hello! This is a test session for version ${promptId}.
+I'll run through the session with you so you get an idea how this would work once finalised, 
+but bear in mind that I might phrase some things differently depending on our interaction.
+I won't store any of your replies in this test chat.
+Shall we start?`,
       },
     };
     const newWindow = window.open('', '_blank');
@@ -92,7 +100,7 @@ export default function ReviewPrompt({
 
   console.log(
     `#Prompts: ${prompts.length}, CurrentVersion: ${currentVersion}`,
-    prompts,
+    prompts
   );
 
   return (

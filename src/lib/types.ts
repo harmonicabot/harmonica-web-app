@@ -38,6 +38,7 @@ export enum ApiAction {
   UpdateUserSession = 'update user session',
   CreateThread = 'createThread',
   GenerateAnswer = 'generateAnswer',
+  DeleteAssistants = 'delete assistants',
 }
 
 export enum ApiTarget {
@@ -59,7 +60,8 @@ export type RequestData = {
     | TemplateEditingData
     | UserSessionData
     | OpenAIMessage[]
-    | string;
+    | string
+    | { assistantIds: string[]; }
 };
 
 // use this insteads of Message
