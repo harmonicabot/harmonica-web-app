@@ -9,7 +9,11 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
 import { Session } from './session';
-import { AccumulatedSessionData, SessionOverview, UserSessionData } from '@/lib/types';
+import {
+  AccumulatedSessionData,
+  SessionOverview,
+  UserSessionData,
+} from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Spinner } from '@/components/icons';
 
@@ -68,8 +72,8 @@ export function SessionsTable({
 
   const [sortColumn, setSortColumn] = useState<TableHeaderKey | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [sortedSessions, setSortedSessions] = useState([]);
-  console.log(sessions);
+  const [sortedSessions, setSortedSessions] = useState<[string, SessionData][]>([]);
+  // console.log(sessions);
   const cleanSessions: SessionData[] = Object.entries(sessions)
     .map(([sessionId, session]) => {
       const topic = session.session_data.topic;
@@ -124,17 +128,21 @@ export function SessionsTable({
     }
   };
 
-  useEffect(() => {
-    setSortedSessions(
-      Object.entries(cleanSessions).sort(([, a], [, b]) => {
-        if (!sortColumn) return 0;
-        const aValue = a[sortColumn as keyof TableHeaderKey];
-        const bValue = b[sortColumn as keyof TableHeaderKey];
-        console.log(a, b);
-
-        return TableHeaders[sortColumn].sortBy(sortDirection, aValue, bValue);
-      })
+  const handleOnDelete = (deleted: SessionData) => {
+    setSortedSessions((prev) =>
+      prev.filter((sortedSession) => sortedSession[1].sessionId !== deleted.sessionId )
     );
+  };
+
+  useEffect(() => {
+    const sorted = Object.entries(cleanSessions).sort(([, a], [, b]) => {
+      if (!sortColumn) return 0;
+      const aValue = a[sortColumn as keyof TableHeaderKey];
+      const bValue = b[sortColumn as keyof TableHeaderKey];
+
+      return TableHeaders[sortColumn].sortBy(sortDirection, aValue, bValue);
+    });
+    setSortedSessions(sorted);
   }, [sessions, sortColumn, sortDirection]);
 
   return (
@@ -163,8 +171,12 @@ export function SessionsTable({
           </TableHeader>
           <TableBody>
             {sortedSessions.length > 0 ? (
-              sortedSessions.map(([sessionId, session]) => (
-                <Session key={sessionId} session={session} />
+              sortedSessions.map(([sortKey, session]) => (
+                <Session
+                  key={sortKey}
+                  session={session}
+                  onDelete={handleOnDelete}
+                />
               ))
             ) : (
               <TableRow>

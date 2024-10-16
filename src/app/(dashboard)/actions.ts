@@ -82,6 +82,5 @@ export async function deleteSession(session: SessionData) {
   }
 
   console.log('Deleted Assistant, User Sessions & Host Session');
-  // Todo: Update the page so that the session is removed from the list.
-  // revalidatePath('/'); doesn't actually work, we might have to remove the entry manually from local state.
+  return true;
 }
