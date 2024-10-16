@@ -6,18 +6,27 @@ import Link from 'next/link';
 import { User, UserCheck } from '@/components/icons';
 
 import { SessionData } from './sessions-table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
 import { deleteSession } from './actions';
 
-export function Session({ session }: { session: SessionData }) {
-
+export function Session({
+  session,
+  onDelete,
+}: {
+  session: SessionData;
+  onDelete: (session: SessionData) => void;
+}) {
   return (
     <TableRow>
       <TableCell className="font-medium text-base">
-        <Link href={`/sessions/${session.sessionId}`}>
-          {session.name}
-        </Link>
+        <Link href={`/sessions/${session.sessionId}`}>{session.name}</Link>
       </TableCell>
       <TableCell>
         <Badge
@@ -26,8 +35,8 @@ export function Session({ session }: { session: SessionData }) {
             session.numActive > 0
               ? 'bg-lime-100 text-lime-900'
               : session.numFinished > 0
-                ? 'bg-purple-100 text-purple-900'
-                : ''
+              ? 'bg-purple-100 text-purple-900'
+              : ''
           }`}
         >
           {session.status}
@@ -72,7 +81,13 @@ export function Session({ session }: { session: SessionData }) {
               </form>
             </DropdownMenuItem> */}
             <DropdownMenuItem>
-              <form action={() => deleteSession(session)}>
+              <form
+                action={() => {
+                  if (deleteSession(session)) {
+                    onDelete(session);
+                  }
+                }}
+              >
                 <button type="submit">Delete</button>
               </form>
             </DropdownMenuItem>
