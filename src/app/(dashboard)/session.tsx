@@ -52,7 +52,7 @@ export function Session({ session }: { session: SessionData }) {
         <Link href={`/sessions/${session.sessionId}`}>
           <Button variant="outline">View</Button>
         </Link>
-        <DropdownMenu>
+        {/* <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button aria-haspopup="true" size="icon" variant="ghost">
               <MoreHorizontal className="h-4 w-4" />
@@ -68,7 +68,7 @@ export function Session({ session }: { session: SessionData }) {
               </form>
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu>
+        </DropdownMenu> */}
       </TableCell>
     </TableRow>
   );
