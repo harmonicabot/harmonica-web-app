@@ -1,12 +1,60 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableHeader, TableHead, TableRow } from "@/components/ui/table"
 import ParticipantSessionCell from "./ParticipantSessionCell"
+import SortableTable from "../SortableTable"
+import { UserSessionData } from "@/lib/types"
 
-interface SessionResultParticipantsProp {
-  userData: any[]
-}
+export default function SessionResultParticipants({ userData }: { userData: UserSessionData[] }) {
+  
+  type Data = {
+    userName: string;
+    sessionStatus: string;
+    session: UserSessionData;
+  }
 
-export default function SessionResultParticipants({ userData }: SessionResultParticipantsProp) {
+  const tableHeaders: Array<{label: string; sortKey: keyof Data; className?: string}> = [
+    { label: 'Name', sortKey: 'userName', className: ''},
+    { label: 'Status', sortKey: 'sessionStatus' },
+  ];
+
+  const sortableData: Data[] = userData
+    .filter((session) => session.chat_text)
+    .map((session) => ({
+      userName: extractName(session.chat_text),
+      sessionStatus: session.active ? 'Started' : 'Finished',
+      session: session,
+    }));
+  
+  console.log('sortableData: ', sortableData);
+  console.log('sortableData[0]: ', sortableData[0]);
+
+
+  function extractName(input: string): string {
+    const prefix = "Question : User name is ";
+    const startIndex = input.indexOf(prefix);
+    if (startIndex === -1) return "anonymous";
+    
+    const nameStart = startIndex + prefix.length;
+    let nameEnd = input.length;
+    
+    for (let i = nameStart; i < input.length; i++) {
+      if (input[i] === '.' || input.slice(i, i + 6) === "Answer") {
+        nameEnd = i;
+        break;
+      }
+    }
+    
+    const name = input.slice(nameStart, nameEnd).trim();
+    return name || "anonymous";
+  }
+  
+  
+  const getTableCell = ((session: Data, index) => {
+    console.log('session before passing to ParticipantSessionCell: ', session);
+    return <ParticipantSessionCell key={index} {...session} />
+  }
+  );
+
   return (
     <Card className="mt-4 w-2/3">
       <CardHeader>
@@ -14,30 +62,7 @@ export default function SessionResultParticipants({ userData }: SessionResultPar
         <CardDescription>View participants progress and transcripts</CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Status</TableHead>
-              {/* <TableHead className="hidden md:table-cell">
-                Include in summary
-              </TableHead>
-              <TableHead className="hidden md:table-cell">
-                Started at
-              </TableHead>
-              <TableHead className="hidden md:table-cell">
-                Finished at
-              </TableHead> */}
-              <TableHead></TableHead>
-              {/* <TableHead></TableHead> */}
-            </TableRow>
-        </TableHeader>
-        <TableBody>
-          {userData.filter((session) => session.chat_text).map((session, index) => (
-              <ParticipantSessionCell key={index} session={session} />
-              ))}
-          </TableBody>
-        </Table>  
+        <SortableTable tableHeaders={tableHeaders} getTableCell={getTableCell} data={sortableData} />  
       </CardContent>
     </Card>
   )

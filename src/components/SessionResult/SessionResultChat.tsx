@@ -1,15 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Chat from '@/components/chat';
+import { UserSessionData } from "@/lib/types";
 
-interface UserData {
-  chat_text: string;
-}
-
-interface SessionResultChatProps {
-  userData: UserData[];
-}
-
-export default function SessionResultChat({ userData }: SessionResultChatProps) {
+export default function SessionResultChat({ userData }: { userData: UserSessionData[] }) {
   return (
     <Card className="bg-purple-100 border-purple-200 h-auto">
       <CardHeader>

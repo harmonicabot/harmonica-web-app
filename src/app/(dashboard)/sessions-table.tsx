@@ -44,7 +44,7 @@ export function SessionsTable({
     return 0;
   };
 
-  const TableHeaders = {
+  const tableHeaders = {
     name: { label: 'Name', className: '', sortBy: defaultSort },
     status: { label: 'Status', className: '', sortBy: defaultSort },
     numActive: {
@@ -68,7 +68,7 @@ export function SessionsTable({
     },
   } as const;
 
-  type TableHeaderKey = keyof typeof TableHeaders;
+  type TableHeaderKey = keyof typeof tableHeaders;
 
   const [sortColumn, setSortColumn] = useState<TableHeaderKey | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -140,7 +140,7 @@ export function SessionsTable({
       const aValue = a[sortColumn as keyof TableHeaderKey];
       const bValue = b[sortColumn as keyof TableHeaderKey];
 
-      return TableHeaders[sortColumn].sortBy(sortDirection, aValue, bValue);
+      return tableHeaders[sortColumn].sortBy(sortDirection, aValue, bValue);
     });
     setSortedSessions(sorted);
   }, [sessions, sortColumn, sortDirection]);
@@ -151,7 +151,7 @@ export function SessionsTable({
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              {Object.entries(TableHeaders).map(
+              {Object.entries(tableHeaders).map(
                 ([key, { label, className }]) => (
                   <TableHead
                     key={key}
@@ -181,7 +181,7 @@ export function SessionsTable({
             ) : (
               <TableRow>
                 <td
-                  colSpan={Object.keys(TableHeaders).length + 1}
+                  colSpan={Object.keys(tableHeaders).length + 1}
                   className="text-center"
                 >
                   <div className="flex items-center justify-center m-4">
