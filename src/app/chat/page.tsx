@@ -38,7 +38,7 @@ const StandaloneChat = () => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       let msg: Message;
-      console.log('Message event received: ', event);
+      // console.log('Message event received: ', event);
       if (event.data.type === 'message') {
         msg = event.data;
       }
