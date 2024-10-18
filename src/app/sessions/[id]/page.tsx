@@ -9,7 +9,7 @@ import {
   sendApiCall,
   sendCallToMake,
 } from '@/lib/utils';
-import { ApiAction, ApiTarget } from '@/lib/types';
+import { ApiAction, ApiTarget, UserSessionData } from '@/lib/types';
 
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
@@ -24,7 +24,7 @@ import SessionResultParticipants from '@/components/SessionResult/SessionResultP
 export default function SessionResult() {
   const { id } = useParams() as { id: string };
   const [loadSummary, setLoadSummary] = useState(false);
-  const [userData, setUserData] = useState([]);
+  const [userData, setUserData] = useState<UserSessionData[]>([]);
   const [accumulated, setAccumulated] = useSessionStore((state) => [
     state.accumulated[id],
     state.addAccumulatedSessions,

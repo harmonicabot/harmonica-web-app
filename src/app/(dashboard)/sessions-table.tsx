@@ -16,6 +16,7 @@ import {
 } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Spinner } from '@/components/icons';
+import SortableTable from '@/components/SortableTable';
 
 export type SessionData = {
   sessionId: string;
@@ -38,27 +39,30 @@ export function SessionsTable({
   offset: number;
   totalSessions: number;
 }) {
-  const defaultSort = (sortDirection, a, b) => {
-    if (a > b) return sortDirection === 'asc' ? 1 : -1;
-    if (a < b) return sortDirection === 'asc' ? -1 : 1;
-    return 0;
-  };
-
-  const TableHeaders = {
-    name: { label: 'Name', className: '', sortBy: defaultSort },
-    status: { label: 'Status', className: '', sortBy: defaultSort },
-    numActive: {
+  const tableHeaders = [
+    {
+      label: 'Name',
+      sortKey: 'name',
+      className: 'cursor-pointer',
+    },
+    {
+      label: 'Status',
+      sortKey: 'status',
+      className: 'cursor-pointer'
+    },
+    {
       label: 'Started',
+      sortKey: 'numActive',
       className: 'hidden md:table-cell',
-      sortBy: defaultSort,
     },
-    numFinished: {
+    {
       label: 'Finished',
+      sortKey: 'numFinished',
       className: 'hidden md:table-cell',
-      sortBy: defaultSort,
     },
-    createdOn: {
+    {
       label: 'Created on',
+      sortKey: 'createdOn',
       className: 'hidden md:table-cell',
       sortBy: (sortDirection, a, b) => {
         return sortDirection === 'asc'
@@ -66,14 +70,8 @@ export function SessionsTable({
           : new Date(b).getTime() - new Date(a).getTime();
       },
     },
-  } as const;
+  ];
 
-  type TableHeaderKey = keyof typeof TableHeaders;
-
-  const [sortColumn, setSortColumn] = useState<TableHeaderKey | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [sortedSessions, setSortedSessions] = useState<[string, SessionData][]>([]);
-  // console.log(sessions);
   const cleanSessions: SessionData[] = Object.entries(sessions)
     .map(([sessionId, session]) => {
       const topic = session.session_data.topic;
@@ -89,12 +87,16 @@ export function SessionsTable({
       const finalReportSent = session.session_data.finalReportSent || false;
       const session_active = session.session_data.session_active;
 
-      const activeFinishedDraft =
-        !session_active ? 'Finished'
-          : numActive === 0 ?
-            (numFinished > 0 ? 'Finished' : 'Draft')
-            : 'Active'
-      const statusText = `${activeFinishedDraft}${finalReportSent ? ' ✅' : ''}`;
+      const activeFinishedDraft = !session_active
+        ? 'Finished'
+        : numActive === 0
+        ? numFinished > 0
+          ? 'Finished'
+          : 'Draft'
+        : 'Active';
+      const statusText = `${activeFinishedDraft}${
+        finalReportSent ? ' ✅' : ''
+      }`;
 
       const createdOn = session.session_data.start_time
         ? new Intl.DateTimeFormat(undefined, {
@@ -119,79 +121,25 @@ export function SessionsTable({
       return !!cleaned.name;
     });
 
-  const sortSessions = (column: TableHeaderKey) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
-    }
-  };
-
   const handleOnDelete = (deleted: SessionData) => {
-    setSortedSessions((prev) =>
-      prev.filter((sortedSession) => sortedSession[1].sessionId !== deleted.sessionId )
+    const pos = cleanSessions.findIndex(
+      (cleaned) => cleaned.sessionId === deleted.sessionId
     );
+    cleanSessions.splice(pos,1);
   };
 
-  useEffect(() => {
-    const sorted = Object.entries(cleanSessions).sort(([, a], [, b]) => {
-      if (!sortColumn) return 0;
-      const aValue = a[sortColumn as keyof TableHeaderKey];
-      const bValue = b[sortColumn as keyof TableHeaderKey];
-
-      return TableHeaders[sortColumn].sortBy(sortDirection, aValue, bValue);
-    });
-    setSortedSessions(sorted);
-  }, [sessions, sortColumn, sortDirection]);
+  const getTableRow = (session: SessionData, index) => {
+    return <Session key={index} session={session} onDelete={handleOnDelete} />;
+  };
 
   return (
     <Card>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              {Object.entries(TableHeaders).map(
-                ([key, { label, className }]) => (
-                  <TableHead
-                    key={key}
-                    onClick={() => sortSessions(key as TableHeaderKey)}
-                    className={`cursor-pointer ${className}`}
-                  >
-                    {label}{' '}
-                    {sortColumn === key &&
-                      (sortDirection === 'asc' ? '▲' : '▼')}
-                  </TableHead>
-                )
-              )}
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedSessions.length > 0 ? (
-              sortedSessions.map(([sortKey, session]) => (
-                <Session
-                  key={sortKey}
-                  session={session}
-                  onDelete={handleOnDelete}
-                />
-              ))
-            ) : (
-              <TableRow>
-                <td
-                  colSpan={Object.keys(TableHeaders).length + 1}
-                  className="text-center"
-                >
-                  <div className="flex items-center justify-center m-4">
-                    <Spinner />
-                  </div>
-                </td>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        <SortableTable
+          tableHeaders={tableHeaders}
+          getTableRow={getTableRow}
+          data={cleanSessions}
+        />
       </CardContent>
       {/* <CardFooter>
         <form className="flex items-center w-full justify-between">
