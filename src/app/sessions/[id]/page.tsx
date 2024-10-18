@@ -13,13 +13,15 @@ import { ApiAction, ApiTarget } from '@/lib/types';
 
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
-import SessionResultHeader, { SessionStatus } from '@/components/SessionResult/SessionResultHeader';
+import SessionResultHeader, {
+  SessionStatus,
+} from '@/components/SessionResult/SessionResultHeader';
 import SessionResultControls from '@/components/SessionResult/SessionResultControls';
 import SessionResultStatus from '@/components/SessionResult/SessionResultStatus';
 import SessionResultShare from '@/components/SessionResult/SessionResultShare';
 import SessionResultChat from '@/components/SessionResult/SessionResultChat';
 import SessionResultSummary from '@/components/SessionResult/SessionResultSummary';
-import SessionResultParticipants from '@/components/SessionResult/SessionResultPartisipants';
+import SessionResultParticipants from '@/components/SessionResult/SessionResultParticipants';
 
 export default function SessionResult() {
   const { id } = useParams() as { id: string };
@@ -108,16 +110,18 @@ export default function SessionResult() {
   if (!accumulated) return <div>Loading...</div>;
 
   return (
-      <div>
-        <SessionResultHeader 
-          topic={accumulated.session_data.topic} 
-          status={
-            accumulated.session_data.finalReportSent ? SessionStatus.REPORT_SENT : SessionStatus.ACTIVE
-          } 
+    <div className="p-4 md:p-8">
+      <SessionResultHeader
+        topic={accumulated.session_data.topic}
+        status={
+          accumulated.session_data.finalReportSent
+            ? SessionStatus.REPORT_SENT
+            : SessionStatus.ACTIVE
+        }
       />
-      <div className="flex gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
         {!accumulated.session_data.finalReportSent && (
-          <SessionResultControls 
+          <SessionResultControls
             id={id}
             isFinished={accumulated.session_data.finalReportSent}
             onFinishSession={finishSession}
@@ -130,7 +134,7 @@ export default function SessionResult() {
           activeSessions={numSessions}
         />
         {!accumulated.session_data.finalReportSent && (
-           <SessionResultShare sessionId={accumulated.session_data.session_id} />
+          <SessionResultShare sessionId={accumulated.session_data.session_id} />
         )}
       </div>
       <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
@@ -152,13 +156,16 @@ export default function SessionResult() {
         </TabsList>
         <TabsContent value="SUMMARY">
           <div className="mt-4">
-            <div className="flex gap-4">
-              <div className="w-2/3">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="w-full md:w-2/3">
                 {accumulated.session_data.summary && (
-                  <SessionResultSummary summary={accumulated.session_data.summary} sessionData={accumulated.session_data} />
+                  <SessionResultSummary
+                    summary={accumulated.session_data.summary}
+                    sessionData={accumulated.session_data}
+                  />
                 )}
               </div>
-              <div className="w-1/3 gap-4">
+              <div className="w-full md:w-1/3 gap-4">
                 <SessionResultChat userData={userData} />
               </div>
             </div>

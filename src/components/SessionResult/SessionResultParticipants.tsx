@@ -1,17 +1,33 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Table, TableBody, TableHeader, TableHead, TableRow } from "@/components/ui/table"
-import ParticipantSessionCell from "./ParticipantSessionCell"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableHeader,
+  TableHead,
+  TableRow,
+} from '@/components/ui/table';
+import ParticipantSessionCell from './ParticipantSessionCell';
 
 interface SessionResultParticipantsProp {
-  userData: any[]
+  userData: any[];
 }
 
-export default function SessionResultParticipants({ userData }: SessionResultParticipantsProp) {
+export default function SessionResultParticipants({
+  userData,
+}: SessionResultParticipantsProp) {
   return (
-    <Card className="mt-4 w-2/3">
+    <Card className="mt-4 w-full md:w-2/3">
       <CardHeader>
         <CardTitle className="text-xl">Participants</CardTitle>
-        <CardDescription>View participants progress and transcripts</CardDescription>
+        <CardDescription>
+          View participants progress and transcripts
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
@@ -31,14 +47,16 @@ export default function SessionResultParticipants({ userData }: SessionResultPar
               <TableHead></TableHead>
               {/* <TableHead></TableHead> */}
             </TableRow>
-        </TableHeader>
-        <TableBody>
-          {userData.filter((session) => session.chat_text).map((session, index) => (
-              <ParticipantSessionCell key={index} session={session} />
+          </TableHeader>
+          <TableBody>
+            {userData
+              .filter((session) => session.chat_text)
+              .map((session, index) => (
+                <ParticipantSessionCell key={index} session={session} />
               ))}
           </TableBody>
-        </Table>  
+        </Table>
       </CardContent>
     </Card>
-  )
+  );
 }
