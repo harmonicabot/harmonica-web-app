@@ -83,6 +83,11 @@ export default function Login() {
                 type="password"
                 value={password}
                 onChange={handlePasswordChange}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleLoginClick();
+                  }
+                }}
                 required
               />
               {error && <div className="text-red-500 text-center">{error}</div>}
