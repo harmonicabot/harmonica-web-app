@@ -11,7 +11,7 @@ interface SessionData {
   sessionStatus: string;
   session: UserSessionData;
 }
-export default function ParicipantSessionCell({
+export default function ParicipantSessionRow({
   userName,
   sessionStatus,
   session,

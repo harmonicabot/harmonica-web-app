@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableHeader, TableHead, TableRow } from "@/components/ui/table"
-import ParticipantSessionCell from "./ParticipantSessionCell"
+import ParticipantSessionRow from "./ParticipantSessionRow"
 import SortableTable from "../SortableTable"
 import { UserSessionData } from "@/lib/types"
 
@@ -49,9 +49,9 @@ export default function SessionResultParticipants({ userData }: { userData: User
   }
   
   
-  const getTableCell = ((session: Data, index) => {
+  const getTableRow = ((session: Data, index) => {
     console.log('session before passing to ParticipantSessionCell: ', session);
-    return <ParticipantSessionCell key={index} {...session} />
+    return <ParticipantSessionRow key={index} {...session} />
   }
   );
 
@@ -62,7 +62,7 @@ export default function SessionResultParticipants({ userData }: { userData: User
         <CardDescription>View participants progress and transcripts</CardDescription>
       </CardHeader>
       <CardContent>
-        <SortableTable tableHeaders={tableHeaders} getTableCell={getTableCell} data={sortableData} />  
+        <SortableTable tableHeaders={tableHeaders} getTableRow={getTableRow} data={sortableData} />  
       </CardContent>
     </Card>
   )
