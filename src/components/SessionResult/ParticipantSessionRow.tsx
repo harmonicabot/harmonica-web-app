@@ -23,13 +23,36 @@ export default function ParicipantSessionRow({
   };
 
   const handleCloseClick = () => {
+    console.log('Close clicked');
     setIsPopupVisible(false);
   };
 
-  console.log('session: ', session);
+  // const userName = session.chat_text
+  //   ? extractName(session.chat_text)
+  //   : `User ${session.user_id}`;
+  const transcript = session.chat_text
+    ? removeFirstQuestion(session.chat_text)
+    : '';
+  const messages = session.chat_text ? parseMessages(transcript) : [];
 
-  const transcript = removeFirstQuestion(session.chat_text);
-  const messages = parseMessages(transcript);
+  function extractName(input: string): string {
+    const prefix = 'Question : User name is ';
+    const startIndex = input.indexOf(prefix);
+    if (startIndex === -1) return 'anonymous';
+
+    const nameStart = startIndex + prefix.length;
+    let nameEnd = input.length;
+
+    for (let i = nameStart; i < input.length; i++) {
+      if (input[i] === '.' || input.slice(i, i + 6) === 'Answer') {
+        nameEnd = i;
+        break;
+      }
+    }
+
+    const name = input.slice(nameStart, nameEnd).trim();
+    return name || 'anonymous';
+  }
 
   function removeFirstQuestion(input: string): string {
     const answerIndex = input.indexOf('Answer');
@@ -37,7 +60,7 @@ export default function ParicipantSessionRow({
   }
 
   function parseMessages(
-    input: string
+    input: string,
   ): Array<{ type: 'AI' | 'USER'; text: string }> {
     try {
       const regex =
@@ -56,25 +79,10 @@ export default function ParicipantSessionRow({
 
   return (
     <TableRow>
-      <TableCell className="font-medium">{userName}</TableCell>
+      <TableCell onClick={handleViewClick} className="font-medium">
+        {userName}
+      </TableCell>
       <TableCell>
-        <Badge
-          variant="outline"
-          className={session.active ? 'capitalize' : 'capitalize bg-[#ECFCCB]'}
-        >
-          {sessionStatus}
-        </Badge>
-      </TableCell>
-      {/* <TableCell>
-        <Switch></Switch>
-      </TableCell> */}
-      {/* <TableCell className="hidden md:table-cell">
-        2023-07-12 10:42 AM
-      </TableCell>
-      <TableCell className="hidden md:table-cell">
-        2023-07-12 12:42 AM
-      </TableCell> */}
-      <TableCell className="hidden md:table-cell">
         {isPopupVisible && (
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
             <div className="bg-purple-100 border-purple-200 p-8 rounded-lg w-4/5 h-4/5 md:w-3/5 md:h-3/5 lg:w-1/2 lg:h-3/4 flex flex-col">
@@ -95,6 +103,23 @@ export default function ParicipantSessionRow({
             </div>
           </div>
         )}
+        <Badge
+          variant="outline"
+          className={session.active ? 'capitalize' : 'capitalize bg-[#ECFCCB]'}
+        >
+          {sessionStatus}
+        </Badge>
+      </TableCell>
+      {/* <TableCell>
+        <Switch></Switch>
+      </TableCell> */}
+      {/* <TableCell className="hidden md:table-cell">
+        2023-07-12 10:42 AM
+      </TableCell>
+      <TableCell className="hidden md:table-cell">
+        2023-07-12 12:42 AM
+      </TableCell> */}
+      <TableCell className="hidden md:table-cell">
         {session.chat_text && session.chat_text.length && (
           <Button variant="secondary" onClick={handleViewClick}>
             View

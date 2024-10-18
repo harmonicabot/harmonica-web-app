@@ -41,8 +41,11 @@ export async function POST(req: Request) {
     case ApiAction.CreateAssistant:
       return await handleCreateAssistant(data.data as AssistantBuilderData);
     case ApiAction.DeleteAssistants:
-      console.log('About to delete sessions: ', data.data["assistantIds"].join(', '));
-      return await deleteAssistants(data.data["assistantIds"]);
+      console.log(
+        'About to delete sessions: ',
+        data.data['assistantIds'].join(', '),
+      );
+      return await deleteAssistants(data.data['assistantIds']);
     default:
       console.log('Invalid action: ', data.action);
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -50,10 +53,14 @@ export async function POST(req: Request) {
 }
 
 async function createNewPrompt(data: SessionBuilderData) {
-  // console.log('Creating prompt for data: ', data);
+  console.log(
+    'Creating prompt for data: ',
+    data,
+    process.env.TEMPLATE_BUILDER_ID,
+  );
   try {
     const templateBuilderId = process.env.TEMPLATE_BUILDER_ID;
-    
+
     // console.log('Template Builder assistant found, generating full prompt');
     const [threadId, fullPrompt] = await generateFullPrompt(
       data,
@@ -65,7 +72,7 @@ async function createNewPrompt(data: SessionBuilderData) {
       fullPrompt: fullPrompt,
     });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in creating new prompt:', error);
     return NextResponse.json(
       { error: 'Internal Server Error' },
       { status: 500 },
@@ -75,16 +82,20 @@ async function createNewPrompt(data: SessionBuilderData) {
 
 async function getTempAssistants() {
   // Currently unused, but could be used to periodically clean up or so.
-  const assistants = await client.beta.assistants.list({ limit: 100 /*, after: "asst_fHg4kGRWn357GnejZJQnVbJW"*/});  
-  console.log(`Found assistants:\n${assistants.data.map(assistant => assistant.name + " " + assistant.id).join('\n')}`);
+  const assistants = await client.beta.assistants.list({
+    limit: 100 /*, after: "asst_fHg4kGRWn357GnejZJQnVbJW"*/,
+  });
+  console.log(
+    `Found assistants:\n${assistants.data.map((assistant) => assistant.name + ' ' + assistant.id).join('\n')}`,
+  );
   const tempAssistantIds = assistants.data
     .filter((assistant) => assistant.name.startsWith('testing_'))
-    .map((assistant) => assistant.id)
+    .map((assistant) => assistant.id);
   return tempAssistantIds;
 }
 
-async function deleteAssistants(idsToDelete: string[]) {  
-  idsToDelete.forEach(id => {
+async function deleteAssistants(idsToDelete: string[]) {
+  idsToDelete.forEach((id) => {
     console.log(`Deleting assistant with id ${id}`);
     client.beta.assistants.del(id);
   });
