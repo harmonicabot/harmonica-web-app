@@ -38,7 +38,7 @@ const StandaloneChat = () => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       let msg: Message;
-      console.log('Message event received: ', event);
+      // console.log('Message event received: ', event);
       if (event.data.type === 'message') {
         msg = event.data;
       }
@@ -96,16 +96,36 @@ const StandaloneChat = () => {
               <div className="flex flex-col lg:flex-row">
                 <div className="w-full lg:w-1/2 lg:pr-6 flex flex-col justify-between mb-6 lg:mb-0">
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-bold mb-4"><a href="https://cmi.fi/" target="_blank" rel="noopener noreferrer" className="underline text-gray-500">CMI</a> invites you to share your thoughts</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold mb-4">
+                      <a
+                        href="https://cmi.fi/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline text-gray-500"
+                      >
+                        CMI
+                      </a>{' '}
+                      invites you to share your thoughts
+                    </h2>
                     <p className="mb-6">
-                      Welcome to our interactive session! We value your input and would love to hear your thoughts on the topic at hand. Your responses will be combined with others to create an AI-powered overview.
+                      Welcome to our interactive session! We value your input
+                      and would love to hear your thoughts on the topic at hand.
+                      Your responses will be combined with others to create an
+                      AI-powered overview.
                     </p>
-                    <Button onClick={() => setShowModal(false)} size="lg" className="mt-4">
+                    <Button
+                      onClick={() => setShowModal(false)}
+                      size="lg"
+                      className="mt-4"
+                    >
                       Get Started <ArrowRight className="ml-2" />
                     </Button>
                   </div>
                   <p className="text-sm text-gray-500 mt-2">
-                    Powered by <Link href="https://harmonica.chat" className="underline">Harmonica</Link>
+                    Powered by{' '}
+                    <Link href="https://harmonica.chat" className="underline">
+                      Harmonica
+                    </Link>
                   </p>
                 </div>
                 <div className="w-full lg:w-1/2 lg:pl-8 lg:border-l border-t lg:border-t-0 pt-6 lg:pt-0">
@@ -113,15 +133,25 @@ const StandaloneChat = () => {
                   <ol className="space-y-4 text-sm text-gray-600">
                     <li>
                       <h4 className="font-medium">1. Answer Questions</h4>
-                      <p>Respond to the AI's prompts with your thoughts and ideas. Be as detailed as you'd like.</p>
+                      <p>
+                        Respond to the AI's prompts with your thoughts and
+                        ideas. Be as detailed as you'd like.
+                      </p>
                     </li>
                     <li>
                       <h4 className="font-medium">2. Engage in Dialogue</h4>
-                      <p>Feel free to ask questions or request clarification. The AI is here to guide you through the process.</p>
+                      <p>
+                        Feel free to ask questions or request clarification. The
+                        AI is here to guide you through the process.
+                      </p>
                     </li>
                     <li>
                       <h4 className="font-medium">3. Review and Submit</h4>
-                      <p>Once you've shared your thoughts, review your responses and submit them to contribute to the collective insights.</p>
+                      <p>
+                        Once you've shared your thoughts, review your responses
+                        and submit them to contribute to the collective
+                        insights.
+                      </p>
                     </li>
                   </ol>
                 </div>
@@ -140,14 +170,14 @@ const StandaloneChat = () => {
       </div>
       <div className="w-3/4 h-full flex-grow flex flex-col p-6">
         <div className="h- max-w-2xl flex m-4">
-        {(accumulated?.session_data?.template || assistantId) && (
-          <Chat
-            entryMessage={message}
-            assistantId={
-              accumulated ? accumulated.session_data.template : assistantId
-            }
-            sessionId={userSessionId}
-          />
+          {(accumulated?.session_data?.template || assistantId) && (
+            <Chat
+              entryMessage={message}
+              assistantId={
+                accumulated ? accumulated.session_data.template : assistantId
+              }
+              sessionId={userSessionId}
+            />
           )}
         </div>
       </div>
