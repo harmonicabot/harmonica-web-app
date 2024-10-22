@@ -12,7 +12,7 @@ import {
   handleResponse,
   streamResponse,
   waitForRunCompletion,
-} from './utils';
+} from '../utils';
 
 export const maxDuration = 200;
 const client = new OpenAI({

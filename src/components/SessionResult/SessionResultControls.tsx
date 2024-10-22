@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings } from 'lucide-react';
 import { ApiAction, ApiTarget } from '@/lib/types';
-import { sendCallToMake } from '@/lib/utils';
+import { sendApiCall, sendCallToMake } from '@/lib/utils';
 
 interface SessionResultControlsProps {
   id: string;

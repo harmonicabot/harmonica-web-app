@@ -39,12 +39,14 @@ export enum ApiAction {
   CreateThread = 'createThread',
   GenerateAnswer = 'generateAnswer',
   DeleteAssistants = 'delete assistants',
+  ExportSession = 'export session',
 }
 
 export enum ApiTarget {
   Builder = 'builder',
   Session = 'session',
   Chat = 'chat',
+  Export = 'export',
 }
 
 export type RequestData = {
@@ -62,6 +64,7 @@ export type RequestData = {
     | OpenAIMessage[]
     | string
     | { assistantIds: string[]; }
+    | { chatMessages: string[]; exportDataQuery: string; };
 };
 
 // use this insteads of Message
