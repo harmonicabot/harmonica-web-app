@@ -64,7 +64,6 @@ export default function SessionResultParticipants({
   }
 
   const getTableRow = (session: Data, index) => {
-    console.log('session before passing to ParticipantSessionCell: ', session);
     return <ParticipantSessionRow key={index} {...session} />;
   };
 

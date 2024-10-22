@@ -17,12 +17,10 @@ import SessionResultHeader, {
 import SessionResultControls from '@/components/SessionResult/SessionResultControls';
 import SessionResultStatus from '@/components/SessionResult/SessionResultStatus';
 import SessionResultShare from '@/components/SessionResult/SessionResultShare';
-import ShareSession from '@/components/SessionResult/ShareSession';
-import SessionParticipantResults from '@/components/SessionResult/SessionParticipantResults';
+import SessionResults from '@/components/SessionResult/SessionResults';
 
 export default function SessionResult() {
   const { id } = useParams() as { id: string };
-  const [loadSummary, setLoadSummary] = useState(false);
   const [userData, setUserData] = useState<UserSessionData[]>([]);
   const [accumulated, setAccumulated] = useSessionStore((state) => [
     state.accumulated[id],
@@ -51,8 +49,9 @@ export default function SessionResult() {
         session_id: id,
       },
     });
+    const allData = accumulateSessionData(data);
     setUserData(data.user_data);
-    setAccumulated(id, accumulateSessionData(data));
+    setAccumulated(id, allData);
   };
 
   const sendFinalReport = async () => {
@@ -68,7 +67,6 @@ export default function SessionResult() {
 
   const createSummary = async () => {
     console.log(`Creating summary for ${id}...`);
-    setLoadSummary(true);
     const data = await sendCallToMake({
       target: ApiTarget.Session,
       action: ApiAction.CreateSummary,
@@ -85,11 +83,6 @@ export default function SessionResult() {
     await sendFinalReport();
   };
 
-  useEffect(() => {
-    if (accumulated?.session_data.summary) {
-      setLoadSummary(false);
-    }
-  }, [accumulated?.session_data.summary]);
 
   const handleDelete = async () => {
     console.log(`Deleting session ${id}...`);
@@ -134,7 +127,7 @@ export default function SessionResult() {
           <SessionResultShare sessionId={accumulated.session_data.session_id} />
         )}
       </div>
-      <SessionParticipantResults userData={userData} accumulated={accumulated} id={id} />
+      <SessionResults userData={userData} accumulated={accumulated} id={id} handleCreateSummary={createSummary} />
     </div>
   );
 }

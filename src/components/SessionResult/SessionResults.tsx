@@ -3,7 +3,9 @@ import {
   ApiTarget,
   UserSessionData,
 } from '@/lib/types';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@radix-ui/react-tabs';
+
+import { TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@radix-ui/react-tabs';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -14,19 +16,21 @@ import SessionResultParticipants from './SessionResultParticipants';
 import SessionResultSummary from './SessionResultSummary';
 import ShareSession from './ShareSession';
 
-export default function SessionParticipantResults({
+export default function SessionResults({
   userData,
   accumulated,
   id,
+  handleCreateSummary,
 }: {
   userData: UserSessionData[];
   accumulated: AccumulatedSessionData;
   id: string;
+  handleCreateSummary: () => void;
 }) {
   const [exportInProgress, setExportInProgress] = useState(false);
   const exportSessionResults = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsPopupVisible(true);
+    setIsExportPopupVisible(true);
     setExportInProgress(true);
 
     const response = await fetch('/api/' + ApiTarget.Export, {
@@ -55,18 +59,18 @@ export default function SessionParticipantResults({
     document.body.removeChild(link);
 
     setExportInProgress(false);
-    setIsPopupVisible(false);
+    setIsExportPopupVisible(false);
   };
 
-  const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [isPopupVisible, setIsExportPopupVisible] = useState(false);
 
-  const handleViewClick = () => {
-    setIsPopupVisible(true);
+  const handleShowExportPopup = () => {
+    setIsExportPopupVisible(true);
   };
 
-  const handleCloseClick = () => {
+  const handleCloseExportPopup = () => {
     console.log('Close clicked');
-    setIsPopupVisible(false);
+    setIsExportPopupVisible(false);
   };
 
   const [exportInstructions, setExportInstructions] = useState('');
@@ -80,10 +84,20 @@ export default function SessionParticipantResults({
         }
       >
         <TabsList>
-          {accumulated.session_data.finalReportSent && (
+          {accumulated.session_data.summary ? (
             <TabsTrigger className="ms-0" value="SUMMARY">
               Summary
             </TabsTrigger>
+          ) : (
+            <>
+              <TabsTrigger
+                className="ms-0"
+                value="SUMMARY"
+                onClick={() => handleCreateSummary()}
+              >
+                Create Summary
+              </TabsTrigger>
+            </>
           )}
           <TabsTrigger className="ms-0" value="RESPONSES">
             Responses
@@ -93,11 +107,15 @@ export default function SessionParticipantResults({
           <div className="mt-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="w-full md:w-2/3">
-                {accumulated.session_data.summary && (
+                {accumulated.session_data.summary ? (
                   <SessionResultSummary
                     summary={accumulated.session_data.summary}
                     sessionData={accumulated.session_data}
                   />
+                ) : (
+                  <>
+                    <Spinner /> Creating your session summary...
+                  </>
                 )}
               </div>
               <div className="w-full md:w-1/3 gap-4">
@@ -112,7 +130,7 @@ export default function SessionParticipantResults({
       </Tabs>
 
       {userData.map((data) => data.chat_text).filter(Boolean).length > 0 && (
-        <Button onClick={handleViewClick}>Export Session Details</Button>
+        <Button onClick={handleShowExportPopup}>Export Session Details</Button>
       )}
 
       {isPopupVisible && (
@@ -120,7 +138,7 @@ export default function SessionParticipantResults({
           <div className="bg-purple-100 border-purple-200 p-8 rounded-lg w-4/5 md:w-3/5 lg:w-1/2 flex flex-col">
             <div className="flex justify-between mb-4">
               <h2 className="text-2xl font-bold">JSON Export</h2>
-              <Button onClick={handleCloseClick} variant="ghost">
+              <Button onClick={handleCloseExportPopup} variant="ghost">
                 X
               </Button>
             </div>
