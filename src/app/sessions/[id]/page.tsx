@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/icons';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import ShareSession from '@/components/SessionResult/ShareSession';
 
 export default function SessionResult() {
   const { id } = useParams() as { id: string };
@@ -255,7 +256,7 @@ export default function SessionResult() {
 
   const showShareResultsCard = () => {
     return (
-      <>No results yet.</>
+      <ShareSession makeSessionId={id} />
     );
   };
 
