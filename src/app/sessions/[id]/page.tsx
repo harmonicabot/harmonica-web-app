@@ -143,7 +143,7 @@ export default function SessionResult() {
     document.body.removeChild(link);
 
     setExportInProgress(false);
-    setIsPopupVisible(false);    
+    setIsPopupVisible(false);
   };
 
   const [isPopupVisible, setIsPopupVisible] = useState(false);
@@ -158,6 +158,106 @@ export default function SessionResult() {
   };
 
   const [exportInstructions, setExportInstructions] = useState('');
+
+  const showResultsSection = () => {
+    console.log('Showing results section, because we have some replies: ', userData.map((data) => data.chat_text).filter(Boolean));
+    return (
+      <>
+        <Tabs
+          className="mb-4"
+          defaultValue={
+            accumulated.session_data.finalReportSent ? 'SUMMARY' : 'RESPONSES'
+          }
+        >
+          <TabsList>
+            {accumulated.session_data.finalReportSent && (
+              <TabsTrigger className="ms-0" value="SUMMARY">
+                Summary
+              </TabsTrigger>
+            )}
+            <TabsTrigger className="ms-0" value="RESPONSES">
+              Responses
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="SUMMARY">
+            <div className="mt-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="w-full md:w-2/3">
+                  {accumulated.session_data.summary && (
+                    <SessionResultSummary
+                      summary={accumulated.session_data.summary}
+                      sessionData={accumulated.session_data}
+                    />
+                  )}
+                </div>
+                <div className="w-full md:w-1/3 gap-4">
+                  <SessionResultChat userData={userData} />
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="RESPONSES">
+            <SessionResultParticipants userData={userData} />
+          </TabsContent>
+        </Tabs>
+
+        {userData.map((data) => data.chat_text).filter(Boolean).length > 0 && (
+          <Button onClick={handleViewClick}>Export Session Details</Button>
+        )}
+
+        {isPopupVisible && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+            <div className="bg-purple-100 border-purple-200 p-8 rounded-lg w-4/5 md:w-3/5 lg:w-1/2 flex flex-col">
+              <div className="flex justify-between mb-4">
+                <h2 className="text-2xl font-bold">JSON Export</h2>
+                <Button onClick={handleCloseClick} variant="ghost">
+                  X
+                </Button>
+              </div>
+
+              <div className="flex-1 overflow-auto rounded-lg">
+                <div className="space-y-2">
+                  <form
+                    className="bg-white mx-auto p-10 rounded-xl shadow space-y-4"
+                    onSubmit={exportSessionResults}
+                  >
+                    <Label htmlFor="export" size="lg">
+                      What would you like to export?
+                    </Label>
+                    <Textarea
+                      name="export"
+                      onChange={(e) => setExportInstructions(e.target.value)}
+                      placeholder="Export 'names' of participants and their 'opinions'"
+                      required
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Enter some human-readable instructions, or a JSON scheme.
+                    </p>
+                    {exportInProgress ? (
+                      <>
+                        <Spinner />
+                        Exporting...
+                      </>
+                    ) : (
+                      <>
+                        <Button type="submit">Submit</Button>
+                      </>
+                    )}
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  const showShareResultsCard = () => {
+    return (
+      <>No results yet.</>
+    );
+  };
 
   if (!accumulated) return <div>Loading...</div>;
 
@@ -190,91 +290,9 @@ export default function SessionResult() {
         )}
       </div>
       <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
-
-      <Tabs
-        className="mb-4"
-        defaultValue={
-          accumulated.session_data.finalReportSent ? 'SUMMARY' : 'RESPONSES'
-        }
-      >
-        <TabsList>
-          {accumulated.session_data.finalReportSent && (
-            <TabsTrigger className="ms-0" value="SUMMARY">
-              Summary
-            </TabsTrigger>
-          )}
-          <TabsTrigger className="ms-0" value="RESPONSES">
-            Responses
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="SUMMARY">
-          <div className="mt-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="w-full md:w-2/3">
-                {accumulated.session_data.summary && (
-                  <SessionResultSummary
-                    summary={accumulated.session_data.summary}
-                    sessionData={accumulated.session_data}
-                  />
-                )}
-              </div>
-              <div className="w-full md:w-1/3 gap-4">
-                <SessionResultChat userData={userData} />
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-        <TabsContent value="RESPONSES">
-          <SessionResultParticipants userData={userData} />
-        </TabsContent>
-      </Tabs>
-
-      <Button onClick={handleViewClick}>
-        Export Session Details
-      </Button>
-
-      {isPopupVisible && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-purple-100 border-purple-200 p-8 rounded-lg w-4/5 md:w-3/5 lg:w-1/2 flex flex-col">
-            <div className="flex justify-between mb-4">
-              <h2 className="text-2xl font-bold">JSON Export</h2>
-              <Button onClick={handleCloseClick} variant='ghost'>X</Button>
-            </div>
-
-            <div className="flex-1 overflow-auto rounded-lg">
-              <div className="space-y-2">
-                <form
-                  className="bg-white mx-auto p-10 rounded-xl shadow space-y-4"
-                  onSubmit={exportSessionResults}
-                >
-                  <Label htmlFor="export" size="lg">
-                    What would you like to export?
-                  </Label>
-                  <Textarea
-                    name="export"
-                    onChange={e => setExportInstructions(e.target.value)}
-                    placeholder="Export 'names' of participants and their 'opinions'"
-                    required
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Enter some human-readable instructions, or a JSON scheme.
-                  </p>
-                  {exportInProgress ? (
-                    <>
-                      <Spinner />
-                      Exporting...
-                    </>
-                  ) : (
-                    <><Button
-                    type="submit"
-                  >Submit</Button></>
-                  )}
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {userData.map((data) => data.chat_text).filter(Boolean).length > 0
+        ? showResultsSection()
+        : showShareResultsCard()}
     </div>
   );
 }

@@ -44,9 +44,6 @@ export default function SessionResultParticipants({
       session: session,
     }));
 
-  console.log('sortableData: ', sortableData);
-  console.log('sortableData[0]: ', sortableData[0]);
-
   function extractName(input: string): string {
     const prefix = 'Question : User name is ';
     const startIndex = input.indexOf(prefix);
