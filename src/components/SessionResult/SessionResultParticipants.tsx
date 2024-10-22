@@ -72,7 +72,7 @@ export default function SessionResultParticipants({
   };
 
   return (
-    <Card className="mt-4 w-full md:w-2/3">
+    <Card>
       <CardHeader>
         <CardTitle className="text-xl">Participants</CardTitle>
         <CardDescription>

@@ -2,6 +2,7 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import {
   AccumulatedSessionData,
+  ApiTarget,
   RawSessionData,
   RequestData,
 } from '@/lib/types';
@@ -51,7 +52,10 @@ export const sendApiCall = async (request: RequestData) => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(request),
-  });
+  }).catch((error) => {
+    console.error('Error sending or receiving API call:', error);
+    return error;
+  })
 
   if (!response.ok) {
     console.error('Error from API:', response.status, response.statusText);
@@ -71,7 +75,7 @@ export const sendApiCall = async (request: RequestData) => {
 
 export const sendCallToMake = async (body: RequestData) => {
   return sendApiCall({
-    target: 'session',
+    target: ApiTarget.Session,
     ...body,
   });
 };

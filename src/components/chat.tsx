@@ -153,7 +153,7 @@ Help & Support:
         threadId: threadId,
         messageText:
           userNameInFirstMessage && messages.length === 1
-            ? `User name is ${messageText}. Use it in comminication. Don't ask it again. Let’s dive right in.`
+            ? `User name is ${messageText}. Use it in communication. Don't ask it again. Let’s dive right in.`
             : messageText,
         assistantId: assistantId
           ? assistantId
