@@ -343,7 +343,7 @@ export function Send() {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g clip-path="url(#clip0_521_1956)">
+      <g clipPath="url(#clip0_521_1956)">
         <path
           d="M14.6663 1.33325L7.33301 8.66659"
           stroke="#FAFAF9"
