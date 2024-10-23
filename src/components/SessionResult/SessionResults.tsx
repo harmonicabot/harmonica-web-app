@@ -82,9 +82,11 @@ export default function SessionResults({
       <Tabs
         className="mb-4"
         defaultValue={
-          hostType && !accumulated.session_data.finalReportSent
-            ? 'RESPONSES'
-            : 'SUMMARY'
+          accumulated.session_data.summary
+            ? 'SUMMARY'
+            : hostType
+              ? 'RESPONSES'
+              : 'SUMMARY'
         }
       >
         <TabsList>
