@@ -21,10 +21,12 @@ export default function SessionResults({
   accumulated,
   id,
   handleCreateSummary,
+  hostType,
 }: {
   userData: UserSessionData[];
   accumulated: AccumulatedSessionData;
   id: string;
+  hostType: boolean;
   handleCreateSummary: () => void;
 }) {
   const [exportInProgress, setExportInProgress] = useState(false);
@@ -80,7 +82,9 @@ export default function SessionResults({
       <Tabs
         className="mb-4"
         defaultValue={
-          accumulated.session_data.finalReportSent ? 'SUMMARY' : 'RESPONSES'
+          hostType && !accumulated.session_data.finalReportSent
+            ? 'RESPONSES'
+            : 'SUMMARY'
         }
       >
         <TabsList>
@@ -99,26 +103,30 @@ export default function SessionResults({
               </TabsTrigger>
             </>
           )}
-          <TabsTrigger className="ms-0" value="RESPONSES">
-            Responses
-          </TabsTrigger>
+          {hostType && (
+            <TabsTrigger className="ms-0" value="RESPONSES">
+              Responses
+            </TabsTrigger>
+          )}
         </TabsList>
         <div className="flex flex-col md:flex-row gap-4">
           <div className="w-full md:w-2/3">
             <TabsContent value="SUMMARY" className="mt-4">
-                {accumulated.session_data.summary ? (
-                  <SessionResultSummary
-                    summary={accumulated.session_data.summary}
-                  />
-                ) : (
-                  <>
-                    <Spinner /> Creating your session summary...
-                  </>
-                )}
+              {accumulated.session_data.summary ? (
+                <SessionResultSummary
+                  summary={accumulated.session_data.summary}
+                />
+              ) : (
+                <>
+                  <Spinner /> Creating your session summary...
+                </>
+              )}
             </TabsContent>
-            <TabsContent value="RESPONSES" className="mt-4">
-              <SessionResultParticipants userData={userData} />
-            </TabsContent>
+            {hostType && (
+              <TabsContent value="RESPONSES" className="mt-4">
+                <SessionResultParticipants userData={userData} />
+              </TabsContent>
+            )}
           </div>
           <div className="w-full md:w-1/3 mt-4 gap-4">
             <SessionResultChat userData={userData} />

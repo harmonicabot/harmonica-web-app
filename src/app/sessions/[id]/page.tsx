@@ -28,6 +28,42 @@ export default function SessionResult() {
   ]);
 
   const numSessions = userData.filter((user) => user.chat_text).length;
+  const [hostType, setHostType] = useState(false);
+
+  useEffect(() => {
+    if (!hostType) {
+      // Check if the sessionId in cookies matches the current session id
+      const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        acc[key] = value;
+        return acc;
+      }, {});
+
+      if (cookies['sessionId'] === id) {
+        setHostType(true);
+      }
+    }
+  }, [id, hostType]);
+
+  useEffect(() => {
+    if (!hostType) {
+      // Check authentication status
+      const checkAuth = async () => {
+        try {
+          const session = await fetch('/api/auth/session').then((res) =>
+            res.json(),
+          );
+          if (session && session.user) {
+            setHostType(true);
+          }
+        } catch (error) {
+          console.error('Error checking authentication:', error);
+        }
+      };
+
+      checkAuth();
+    }
+  }, [hostType]);
 
   useEffect(() => {
     if (!accumulated) {
@@ -83,7 +119,6 @@ export default function SessionResult() {
     await sendFinalReport();
   };
 
-
   const handleDelete = async () => {
     console.log(`Deleting session ${id}...`);
     const data = await sendApiCall({
@@ -110,7 +145,7 @@ export default function SessionResult() {
         }
       />
       <div className="flex flex-col md:flex-row gap-4">
-        {!accumulated.session_data.finalReportSent && (
+        {!accumulated.session_data.finalReportSent && hostType && (
           <SessionResultControls
             id={id}
             isFinished={accumulated.session_data.finalReportSent}
@@ -127,7 +162,13 @@ export default function SessionResult() {
           <SessionResultShare sessionId={accumulated.session_data.session_id} />
         )}
       </div>
-      <SessionResults userData={userData} accumulated={accumulated} id={id} handleCreateSummary={createSummary} />
+      <SessionResults
+        hostType={hostType}
+        userData={userData}
+        accumulated={accumulated}
+        id={id}
+        handleCreateSummary={createSummary}
+      />
     </div>
   );
 }
