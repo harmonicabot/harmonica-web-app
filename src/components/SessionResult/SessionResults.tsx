@@ -109,7 +109,6 @@ export default function SessionResults({
                 {accumulated.session_data.summary ? (
                   <SessionResultSummary
                     summary={accumulated.session_data.summary}
-                    sessionData={accumulated.session_data}
                   />
                 ) : (
                   <>
