@@ -17,6 +17,7 @@ import { set } from 'react-hook-form';
 import Markdown from 'react-markdown';
 import { HRMarkdown } from './HRMarkdown';
 import { ChatMessage } from './ChatMessage';
+import { Send } from './icons';
 
 export default function Chat({
   assistantId,
@@ -226,21 +227,21 @@ Help & Support:
         <div ref={messagesEndRef} />
       </div>
 
-      <form className="space-y-4 mt-4 flex flex-col" onSubmit={handleSubmit}>
+      <form className="space-y-4 mt-4 -mx-6 -mb-6" onSubmit={handleSubmit}>
+        <div className="relative">
         <Textarea
           name="messageText"
           value={formData.messageText}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Enter your message..."
-          className="flex-grow"
+          placeholder="What would you like to know?"
+          className="flex-grow pr-12 focus:ring-0 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-yellow-300"
           ref={textareaRef}
         />
-        <div className="flex justify-between">
-          <Button type="submit" className="" disabled={isLoading}>
-            Send
+          <Button type="submit" className="absolute bottom-2 right-4 rounded-full p-3" disabled={isLoading}>
+            <Send/>
           </Button>
-        </div>
+          </div>
       </form>
     </div>
   );

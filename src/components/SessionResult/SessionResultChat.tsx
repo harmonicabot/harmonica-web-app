@@ -4,9 +4,11 @@ import { UserSessionData } from "@/lib/types";
 
 export default function SessionResultChat({ userData }: { userData: UserSessionData[] }) {
   return (
-    <Card className="bg-purple-100 border-purple-200 h-auto">
-      <CardHeader>
-        <CardTitle className="text-md">Ask Monica</CardTitle>
+    <Card className="h-auto border-yellow-400">
+      <CardHeader className="bg-yellow-50 border-gray-200 rounded-md">
+        <CardTitle className="text-md flex justify-normal items-center">
+          <img src="/monica_chat_icon.svg" alt="" className="h-10 w-10 mr-2" />Ask AI
+        </CardTitle>
       </CardHeader>
       <CardContent className="h-auto">
         {userData && userData.length > 0 && (
