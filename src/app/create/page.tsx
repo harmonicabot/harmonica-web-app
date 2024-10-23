@@ -168,6 +168,16 @@ export default function CreationFlow() {
       },
     });
 
+    if (sessionResponse.session_id) {
+      const sessionId = sessionResponse.session_id;
+      setSessionId(sessionId);
+
+      // Set the cookie using document.cookie
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30); // Cookie expires in 30 days
+      document.cookie = `sessionId=${sessionId}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
+    }
+
     route.push(`/sessions/${sessionResponse.session_id}`);
   };
 
