@@ -5,8 +5,6 @@ import { File, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SessionsTable } from './sessions-table';
 import {
-  getHostAndUserSessions,
-  getSessions,
   getSessionsFromMake,
 } from '@/lib/db';
 import Link from 'next/link';

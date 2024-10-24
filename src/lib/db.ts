@@ -22,16 +22,75 @@ import { accumulateSessionData } from '@/lib/utils';
 const sql = neon(process.env.POSTGRES_URL!);
 export const db = drizzle(sql, { schema: s });
 
+export async function getHostSessionById(id: number): Promise<SelectHostData | null> {
+  const result = await db.query.hostData.findFirst({
+    where: eq(hostData.id, id),
+    with: {
+      userData: true,
+    },
+  });
+  return result;
+}
+
 export async function insertHostSession(
   data: InsertHostData,
 ): Promise<{ id: number }[]> {
   return db.insert(hostData).values(data).returning({ id: hostData.id })[0].id;
 }
 
+export async function updateHostSession(
+  id: number,
+  data: Partial<InsertHostData>,
+): Promise<void> {
+  await db
+    .update(hostData)
+    .set(data)
+    .where(eq(hostData.id, id));
+}
+
+export async function deleteHostSession(id: number): Promise<void> {
+  await db
+    .delete(hostData)
+    .where(eq(hostData.id, id));
+}
+
+export async function getUserSessionById(id: number): Promise<UserSessionData | null> {
+  const result = await db.query.userData.findFirst({
+    where: eq(userData.id, id),
+  });
+  return result;
+}
+
 export async function insertUserSession(
   data: InsertUserData,
 ): Promise<{ id: number }[]> {
   return db.insert(userData).values(data).returning({ id: userData.id })[0].id;
+}
+
+export async function updateUserSession(
+  id: number,
+  data: Partial<InsertUserData>,
+): Promise<void> {
+  await db
+    .update(userData)
+    .set(data)
+    .where(eq(userData.id, id));
+}
+
+export async function deleteUserSession(id: number): Promise<void> {
+  await db
+    .delete(userData)
+    .where(eq(userData.id, id));
+}
+
+export async function searchHostSessions(searchTerm: string): Promise<SelectHostData[]> {
+  return db.query.hostData.findMany({
+    where: ilike(hostData.topic, `%${searchTerm}%`),
+    with: {
+      userData: true,
+    },
+    orderBy: desc(hostData.startTime),
+  });
 }
 
 export async function getHostAndUserSessions(
@@ -80,7 +139,7 @@ export async function getHostAndUserSessions(
   return accumulatedSessions;
 }
 
-export async function getSessions(
+export async function searchByTopic(
   search: string,
   offset: number,
 ): Promise<{
@@ -152,6 +211,7 @@ type DbResponse = {
     data: UserSessionData | RawSessionOverview;
   }[];
 };
+
 function parseDbItems(userData: DbResponse, sessionData: DbResponse) {
   let accumulatedSessions: Record<string, AccumulatedSessionData> = {};
   sessionData.records.forEach((record) => {
