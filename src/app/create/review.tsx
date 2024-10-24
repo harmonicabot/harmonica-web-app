@@ -12,6 +12,7 @@ import { ApiAction, ApiTarget } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Eye } from 'lucide-react';
 import Markdown from 'react-markdown';
+import ChatPopupButton from '@/components/ChatPopupButton';
 
 export default function ReviewPrompt({
   prompts,
@@ -44,7 +45,7 @@ export default function ReviewPrompt({
   }, [streamingPrompt, prompts]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     console.log(e.currentTarget.value);
     setEditValue(e.currentTarget.value);
@@ -76,7 +77,10 @@ export default function ReviewPrompt({
 
     setTempAssistant(assistantResponse.assistantId);
     // All these temp assistants can be deleted again once the user chooses a final version.
-    setTemporaryAssistantIds((prev) => [...prev, assistantResponse.assistantId]);
+    setTemporaryAssistantIds((prev) => [
+      ...prev,
+      assistantResponse.assistantId,
+    ]);
     const params = {
       entryMessage: {
         type: 'ASSISTANT',
@@ -100,7 +104,7 @@ Shall we start?`,
 
   console.log(
     `#Prompts: ${prompts.length}, CurrentVersion: ${currentVersion}`,
-    prompts
+    prompts,
   );
 
   return (
@@ -176,13 +180,7 @@ Shall we start?`,
                     >
                       Full Prompt
                     </Button> */}
-                    <Button
-                      variant="outline"
-                      onClick={() => testVersion(prompt.id)}
-                      className="mr-2"
-                    >
-                      Test
-                    </Button>
+                    <ChatPopupButton assistantId={tempAssistantId} />
                     {prompt.id !== currentVersion ? (
                       <Button onClick={() => setCurrentVersion(prompt.id)}>
                         Select
