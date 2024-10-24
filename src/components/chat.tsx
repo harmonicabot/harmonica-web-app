@@ -123,6 +123,7 @@ Help & Support:
       data: {
         session_id: sessionId,
         chat_text: chatText,
+        active: 1,
       },
     })
       .then((data) => {
@@ -229,19 +230,23 @@ Help & Support:
 
       <form className="space-y-4 mt-4 -mx-6 -mb-6" onSubmit={handleSubmit}>
         <div className="relative">
-        <Textarea
-          name="messageText"
-          value={formData.messageText}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder="What would you like to know?"
-          className="flex-grow pr-12 focus:ring-0 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-yellow-300"
-          ref={textareaRef}
-        />
-          <Button type="submit" className="absolute bottom-2 right-4 rounded-full p-3" disabled={isLoading}>
-            <Send/>
+          <Textarea
+            name="messageText"
+            value={formData.messageText}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder="What would you like to know?"
+            className="flex-grow pr-12 focus:ring-0 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-yellow-300"
+            ref={textareaRef}
+          />
+          <Button
+            type="submit"
+            className="absolute bottom-2 right-4 rounded-full p-3"
+            disabled={isLoading}
+          >
+            <Send />
           </Button>
-          </div>
+        </div>
       </form>
     </div>
   );
