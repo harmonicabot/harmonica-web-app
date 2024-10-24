@@ -9,8 +9,8 @@ import { accumulateSessionData, sendCallToMake } from '@/lib/utils';
 import { ApiAction, ApiTarget } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+
 
 type Message = {
   type: string;
@@ -35,7 +35,17 @@ const StandaloneChat = () => {
 
   const [userSessionId, setUserSessionId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(true);
+  const [sessionFinished, setSessionFinished] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFirstMessage, setIsFirstMessage] = useState(true);
+
+  const finishSession = () => {
+    setIsLoading(true)
+    //  setSessionActive = 0
+    setIsLoading(false)
+    setSessionFinished(true)
+
+  }
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -65,8 +75,6 @@ const StandaloneChat = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, [sessionId, accumulated]);
 
-  const [isFirstMessage, setIsFirstMessage] = useState(true);
-
   useEffect(() => {
     if (isFirstMessage && message.type === 'ASSISTANT') {
       setIsFirstMessage(false);
@@ -74,6 +82,7 @@ const StandaloneChat = () => {
   }, [message, isFirstMessage]);
 
   useEffect(() => {
+    console.log("[i] accumulated -> ", accumulated)
     if (accumulated && accumulated.session_data.template) {
       sendCallToMake({
         target: ApiTarget.Session,
@@ -224,6 +233,11 @@ const StandaloneChat = () => {
                     ? accumulated?.session_data?.topic
                     : 'Test'}
                 </h1>
+              <Button
+                onClick={finishSession}
+              >
+                Finish the session
+              </Button>
               </div>
               <div className="w-full md:w-3/4 h-full flex-grow flex flex-col p-6">
                 <div className="h-full max-w-2xl flex m-4">
