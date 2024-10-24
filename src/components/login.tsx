@@ -96,13 +96,13 @@ export default function Login() {
             <Button onClick={handleLoginClick} className="w-full">
               Login
             </Button>
-            <Button
+            {/* <Button
               variant="outline"
               onClick={handleTestSession}
               className="w-full mt-3"
             >
               Create test session
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>
