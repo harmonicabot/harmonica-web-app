@@ -48,7 +48,7 @@ export function SessionsTable({
     {
       label: 'Status',
       sortKey: 'status',
-      className: 'cursor-pointer'
+      className: 'cursor-pointer',
     },
     {
       label: 'Started',
@@ -72,6 +72,24 @@ export function SessionsTable({
     },
   ];
 
+  const getActiveFinished = (
+    objects: UserSessionData[],
+  ): { started: number; finished: number } => {
+    let started = 0;
+    let finished = 0;
+
+    objects.forEach((obj) => {
+      if (obj.chat_text && obj.chat_text.length > 0) {
+        started++;
+        if (obj.active === 0) {
+          finished++;
+        }
+      }
+    });
+
+    return { started, finished };
+  };
+
   const cleanSessions: SessionData[] = Object.entries(sessions)
     .map(([sessionId, session]) => {
       const topic = session.session_data.topic;
@@ -79,24 +97,24 @@ export function SessionsTable({
       const name = topic
         ? topic
         : template && !template.startsWith('asst_')
-        ? template
-        : null;
+          ? template
+          : null;
 
-      const numActive = session.session_data.num_active;
-      const numFinished = session.session_data.num_finished;
-      const finalReportSent = session.session_data.finalReportSent || false;
+      const { started, finished } = getActiveFinished(
+        Object.values(session.user_data),
+      );
+
+      const finalReportSent = session.session_data.finalReportSent === true;
       const session_active = session.session_data.session_active;
 
-      const activeFinishedDraft = !session_active
+      // is finalReportSent- means that the session is finished
+      const activeFinishedDraft = finalReportSent
         ? 'Finished'
-        : numActive === 0
-        ? numFinished > 0
-          ? 'Finished'
-          : 'Draft'
-        : 'Active';
-      const statusText = `${activeFinishedDraft}${
-        finalReportSent ? ' ✅' : ''
-      }`;
+        : started === 0
+          ? 'Draft'
+          : 'Active';
+
+      const statusText = `${activeFinishedDraft}`;
 
       const createdOn = session.session_data.start_time
         ? new Intl.DateTimeFormat(undefined, {
@@ -109,9 +127,9 @@ export function SessionsTable({
         sessionId,
         name,
         status: statusText,
-        active: session.session_data.session_active,
-        numActive: numActive,
-        numFinished,
+        active: !finalReportSent,
+        numActive: started,
+        numFinished: finished,
         createdOn,
         hostData: session.session_data,
         userData: session.user_data,
@@ -123,9 +141,9 @@ export function SessionsTable({
 
   const handleOnDelete = (deleted: SessionData) => {
     const pos = cleanSessions.findIndex(
-      (cleaned) => cleaned.sessionId === deleted.sessionId
+      (cleaned) => cleaned.sessionId === deleted.sessionId,
     );
-    cleanSessions.splice(pos,1);
+    cleanSessions.splice(pos, 1);
   };
 
   const getTableRow = (session: SessionData, index) => {

@@ -28,6 +28,10 @@ export default function SessionResult() {
   ]);
 
   const numSessions = userData.filter((user) => user.chat_text).length;
+  const activeSessions = userData.filter(
+    (user) => user.active === 0 && user.chat_text?.length > 0,
+  ).length;
+
   const [hostType, setHostType] = useState(false);
 
   useEffect(() => {
@@ -73,6 +77,7 @@ export default function SessionResult() {
     } else {
       console.log('Session data found in store', accumulated);
       setAccumulated(id, accumulated);
+      setUserData(Object.values(accumulated.user_data)); // Convert to array
     }
   }, [id, accumulated]);
 
@@ -150,13 +155,15 @@ export default function SessionResult() {
             id={id}
             isFinished={accumulated.session_data.finalReportSent}
             onFinishSession={finishSession}
+            onCreateSummary={createSummary}
+            readyToGetSummary={numSessions > 0}
           />
         )}
         <SessionResultStatus
           finalReportSent={accumulated.session_data.finalReportSent}
           startTime={accumulated.session_data.start_time}
-          numSessions={userData.length}
-          activeSessions={numSessions}
+          numSessions={numSessions}
+          activeSessions={activeSessions}
         />
         {!accumulated.session_data.finalReportSent && (
           <SessionResultShare sessionId={accumulated.session_data.session_id} />
