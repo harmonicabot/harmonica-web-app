@@ -208,7 +208,7 @@ const StandaloneChat = () => {
                         </p>
                       </div>
                       {!accumulated?.session_data?.finalReportSent && (
-                        <div className="w-full lg:w-1/2 lg:pl-8 lg:border-l border-t lg:border-t-0 pt-6 lg:pt-0">
+                        <div className="hidden lg:block w-full lg:w-1/2 lg:pl-8 lg:border-l border-t lg:border-t-0 pt-6 lg:pt-0">
                           <h3 className="text-lg font-semibold mb-4">
                             How to use
                           </h3>
