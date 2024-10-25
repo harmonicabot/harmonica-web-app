@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { UserSessionData } from '@/lib/types';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { HRMarkdown } from '../HRMarkdown';
 import { ChatMessage } from '../ChatMessage';
 
@@ -76,6 +76,17 @@ export default function ParicipantSessionRow({
       return [];
     }
   }
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleCloseClick();
+      }
+    };
+  
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <TableRow>

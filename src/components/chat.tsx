@@ -25,12 +25,14 @@ export default function Chat({
   entryMessage,
   context,
   userNameInFirstMessage = true,
+  placeholderText,
 }: {
   assistantId?: string;
   context?: OpenAIMessage;
   sessionId?: string;
   entryMessage?: { type: string; text: string };
   userNameInFirstMessage?: boolean;
+  placeholderText?: string;
 }) {
   const defaultEntryMessage = {
     type: 'ASSISTANT',
@@ -49,6 +51,8 @@ Help & Support:
 💬 Could you please let me know your name?
 `,
   };
+
+  const placeholder = placeholderText ? placeholderText : "Type your message here...";
 
   const [formData, setFormData] = useState<{ messageText: string }>({
     messageText: '',
@@ -235,7 +239,7 @@ Help & Support:
             value={formData.messageText}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="What would you like to know?"
+            placeholder={placeholder}
             className="flex-grow pr-12 focus:ring-0 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-yellow-300"
             ref={textareaRef}
           />

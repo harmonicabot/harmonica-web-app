@@ -29,8 +29,9 @@ Here are a few examples of what you can ask me:
   - What was the most common response?
   - What were the most interesting insights?
   - Generate a report on the session
-            `,
-            }}
+            `
+          }}
+          placeholderText="What would you like to know?"
           />
         )}
       </CardContent>
