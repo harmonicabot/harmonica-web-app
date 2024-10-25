@@ -1,6 +1,11 @@
-import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { TableCell, TableRow } from '@/components/ui/table';
+import { AccumulatedSessionData } from '@/lib/types';
+import Link from 'next/link';
+import { User, UserCheck } from '@/components/icons';
+
+import { SessionData } from './sessions-table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,80 +14,53 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
-import { TableCell, TableRow } from '@/components/ui/table';
-import { deleteSession as deleteSession } from './actions';
-import { AccumulatedSessionData, UserSessionData } from '@/lib/types';
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { User, UserCheck } from '@/components/icons';
+import { deleteSession } from './actions';
 
-export function Session({ session }: { session: AccumulatedSessionData }) {
-  const router = useRouter();
-  // console.log('Session data:', session);
-  const totalUsers = Object.keys(session.user_data).length;
-
-  const activeUsers = Object.values(session.user_data)
-    .map((user) => (user.active ? 1 : 0))
-    .reduce((a, b) => a + b, 0);
-
-  const inactiveUsers = totalUsers - activeUsers;
-
-  if (!session.session_data.topic) {
-    return null;
-  }
-
-  // console.log('Start time: ', session.session_data.start_time);
+export function Session({
+  session,
+  onDelete,
+}: {
+  session: SessionData;
+  onDelete: (session: SessionData) => void;
+}) {
   return (
     <TableRow>
       <TableCell className="font-medium text-base">
-        <Link href={`/sessions/${session.session_data.session_id}`}>
-          {session.session_data.template &&
-          !session.session_data.template.startsWith('asst_')
-            ? session.session_data.template
-            : session.session_data.topic}
-        </Link>
+        <Link href={`/sessions/${session.sessionId}`}>{session.name}</Link>
       </TableCell>
       <TableCell>
         <Badge
           variant="outline"
           className={`capitalize ${
-            session.session_data.active
+            session.active && session.numActive > 0
               ? 'bg-lime-100 text-lime-900'
-              : session.session_data.finished
+              : session.active && session.numActive === 0
                 ? 'bg-purple-100 text-purple-900'
                 : ''
           }`}
         >
-          {session.session_data.finalReportSent ? 'finished' : 'active'}
+          {session.status}
         </Badge>
       </TableCell>
       <TableCell className="hidden md:table-cell">
         <div className="flex items-center">
           <User />
-          {activeUsers}
+          {session.numActive}
         </div>
       </TableCell>
       <TableCell className="hidden md:table-cell">
         <div className="flex items-center">
           <UserCheck className="mr-1 h-4 w-4 opacity-50" />
-          {inactiveUsers}
+          {session.numFinished}
         </div>
       </TableCell>
       <TableCell className="hidden md:table-cell">
-        {session.session_data.start_time
-          ? new Intl.DateTimeFormat(undefined, {
-              dateStyle: 'medium',
-              timeStyle: 'short',
-            }).format(new Date(session.session_data.start_time))
-          : `No start time`}
+        {session.createdOn}
       </TableCell>
       <TableCell>
-        <Link href={`/sessions/${session.session_data.session_id}`}>
+        <Link href={`/sessions/${session.sessionId}`}>
           <Button variant="outline">View</Button>
         </Link>
-      </TableCell>
-      {/* <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -92,15 +70,30 @@ export function Session({ session }: { session: AccumulatedSessionData }) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem>Edit</DropdownMenuItem>
+            {/* <DropdownMenuItem>
+              <form action={() => createNewSession(session)}>
+                <button type="submit">Use for new session</button>
+              </form>
+            </DropdownMenuItem>
             <DropdownMenuItem>
-              <form action={() => deleteSession(session)}>
+            <form action={() => archiveSession(session)}>
+                <button type="submit">Archive</button>
+              </form>
+            </DropdownMenuItem> */}
+            <DropdownMenuItem>
+              <form
+                action={() => {
+                  if (deleteSession(session)) {
+                    onDelete(session);
+                  }
+                }}
+              >
                 <button type="submit">Delete</button>
               </form>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </TableCell> */}
+      </TableCell>
     </TableRow>
   );
 }

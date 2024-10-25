@@ -10,25 +10,28 @@ import {
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
-export const hostData = pgTable('host_data', {
-  id: serial('id').primaryKey().notNull(),
+// All except the numSessions & prompt are also in make.com db
+export const host_data = pgTable('host_data', {
+  id: text('id').primaryKey().notNull(),  // Todo: HRM-264 Change 'text' to 'serial' or UUID or so once we swap over to using this as our main db so that it creates the id on insert
+  prompt: text('prompt').notNull(),
   numSessions: integer('num_sessions').notNull(),
-  active: integer('active').notNull(),
-  finished: integer('finished').notNull(),
-  summary: text('summary').notNull(),
+  active: boolean('active').notNull(),
+  finished: integer('finished'),
+  summary: text('summary'),
   template: text('template').notNull(),
   topic: text('topic').notNull(),
-  context: text('context').notNull(),
+  context: text('context'),
   client: text('client'),
-  finalReportSent: boolean('final_report_sent').notNull(),
+  finalReportSent: boolean('final_report_sent'),
   startTime: timestamp('start_time', { mode: 'string' }).notNull(),
 });
 
-export const userData = pgTable('user_data', {
-  id: serial('id').primaryKey().notNull(),
-  sessionId: integer('session_id').references(() => hostData.id),
+// Mapped basically 1-1 from make.com db
+export const user_data = pgTable('user_data', {
+  id: text('id').primaryKey().notNull(),  // Todo: HRM-264 Change 'text' to 'serial' or UUID or so once we swap over to using this as our main db so that it creates the id on insert
+  sessionId: text('session_id').references(() => host_data.id),
   userId: text('user_id'),
-  active: boolean('active'),
+  active: integer('active'),
   template: text('template'),
   feedback: text('feedback'),
   chatText: text('chat_text'),
@@ -38,19 +41,19 @@ export const userData = pgTable('user_data', {
   hostChatId: text('host_chat_id'),
 });
 
-export const hostRelations = relations(hostData, ({ many }) => ({
-  userData: many(userData),
+export const hostRelations = relations(host_data, ({ many }) => ({
+  userData: many(user_data),
 }));
 
-export const userDataRelations = relations(userData, ({ one }) => ({
-  session: one(hostData, {
-    fields: [userData.sessionId],
-    references: [hostData.id],
+export const userDataRelations = relations(user_data, ({ one }) => ({
+  session: one(host_data, {
+    fields: [user_data.sessionId],
+    references: [host_data.id],
   }),
 }));
 
-export type InsertHostData = typeof hostData.$inferInsert;
-export type SelectHostData = typeof hostData.$inferSelect;
+export type InsertHostData = typeof host_data.$inferInsert;
+export type SelectHostData = typeof host_data.$inferSelect;
 
-export type InsertUserData = typeof userData.$inferInsert;
-export type SelectUserData = typeof userData.$inferSelect;
+export type InsertUserData = typeof user_data.$inferInsert;
+export type SelectUserData = typeof user_data.$inferSelect;

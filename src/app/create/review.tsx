@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { SetStateAction, useEffect, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { ApiAction, ApiTarget } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Eye } from 'lucide-react';
 import Markdown from 'react-markdown';
+import ChatPopupButton from '@/components/ChatPopupButton';
 
 export default function ReviewPrompt({
   prompts,
@@ -20,6 +21,7 @@ export default function ReviewPrompt({
   setCurrentVersion,
   isEditing,
   handleEdit,
+  setTemporaryAssistantIds,
 }: {
   prompts: VersionedPrompt[];
   streamingPrompt: string;
@@ -27,6 +29,7 @@ export default function ReviewPrompt({
   setCurrentVersion: (version: number) => void;
   isEditing: boolean;
   handleEdit: (instructions: string) => void;
+  setTemporaryAssistantIds: (value: SetStateAction<string[]>) => void;
 }) {
   const [editValue, setEditValue] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -56,7 +59,6 @@ export default function ReviewPrompt({
     };
   }
 
-  const [chatOpen, setChatOpen] = useState(false);
   const [tempAssistantId, setTempAssistant] = useState('');
 
   const showFullPrompt = (promptId: number) => {
@@ -74,11 +76,19 @@ export default function ReviewPrompt({
     });
 
     setTempAssistant(assistantResponse.assistantId);
-    setChatOpen(true);
+    // All these temp assistants can be deleted again once the user chooses a final version.
+    setTemporaryAssistantIds((prev) => [
+      ...prev,
+      assistantResponse.assistantId,
+    ]);
     const params = {
       entryMessage: {
         type: 'ASSISTANT',
-        text: 'Hello! Do you want to start this test-session?',
+        text: `Hello! This is a test session for version ${promptId}.
+I'll run through the session with you so you get an idea how this would work once finalised, 
+but bear in mind that I might phrase some things differently depending on our interaction.
+I won't store any of your replies in this test chat.
+Shall we start?`,
       },
     };
     const newWindow = window.open('', '_blank');
@@ -170,15 +180,7 @@ export default function ReviewPrompt({
                     >
                       Full Prompt
                     </Button> */}
-                    {!chatOpen && (
-                      <Button
-                        variant="outline"
-                        onClick={() => testVersion(prompt.id)}
-                        className="mr-2"
-                      >
-                        Test
-                      </Button>
-                    )}
+                    <ChatPopupButton assistantId={tempAssistantId} />
                     {prompt.id !== currentVersion ? (
                       <Button onClick={() => setCurrentVersion(prompt.id)}>
                         Select
