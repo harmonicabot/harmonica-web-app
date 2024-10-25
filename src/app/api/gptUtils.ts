@@ -32,7 +32,7 @@ export async function handleGenerateAnswer(messageData: AssistantMessageData) {
   });
 
   if (run.status === 'completed') {
-    const messages = await client.beta.threads.messages.list(run.thread_id);
+    const messages = await client.beta.threads.messages.list(run.thread_id, {limit: 100});
 
     return NextResponse.json({
       messages: messages.data.reverse().map((messageData) => ({
