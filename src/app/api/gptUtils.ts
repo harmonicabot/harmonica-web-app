@@ -32,10 +32,10 @@ export async function handleGenerateAnswer(messageData: AssistantMessageData) {
   });
 
   if (run.status === 'completed') {
-    const messages = await client.beta.threads.messages.list(run.thread_id, {limit: 100});
+    const allMessages = await getAllMessages(messageData.threadId);
 
     return NextResponse.json({
-      messages: messages.data.reverse().map((messageData) => ({
+      messages: allMessages.map((messageData) => ({
         type: messageData.assistant_id ? 'ASSISTANT' : 'USER',
         text:
           messageData.content[0].type === 'text'
@@ -46,5 +46,29 @@ export async function handleGenerateAnswer(messageData: AssistantMessageData) {
     });
   }
   return NextResponse.json({ messages: [] });
+}
+
+async function getAllMessages(threadId: string) {
+  let allMessages = [];
+  let cursor = undefined;
+  
+  while (true) {
+    console.log("iterating over answers...")
+    const messages = await client.beta.threads.messages.list(
+      threadId, 
+      { 
+        limit: 100,
+        after: cursor, 
+        order: 'asc'
+      }
+    );
+    
+    allMessages.push(...messages.data);
+    
+    if (!messages || messages.data.length === 0) break;
+    cursor = messages.data[messages.data.length - 1].id;
+  }
+  
+  return allMessages;
 }
 
