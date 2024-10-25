@@ -11,21 +11,16 @@ import {
 } from '@/lib/utils';
 import { ApiAction, ApiTarget, UserSessionData } from '@/lib/types';
 
-import { TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Tabs, TabsContent } from '@radix-ui/react-tabs';
 import SessionResultHeader, {
   SessionStatus,
 } from '@/components/SessionResult/SessionResultHeader';
 import SessionResultControls from '@/components/SessionResult/SessionResultControls';
 import SessionResultStatus from '@/components/SessionResult/SessionResultStatus';
 import SessionResultShare from '@/components/SessionResult/SessionResultShare';
-import SessionResultChat from '@/components/SessionResult/SessionResultChat';
-import SessionResultSummary from '@/components/SessionResult/SessionResultSummary';
-import SessionResultParticipants from '@/components/SessionResult/SessionResultParticipants';
+import SessionResults from '@/components/SessionResult/SessionResults';
 
 export default function SessionResult() {
   const { id } = useParams() as { id: string };
-  const [loadSummary, setLoadSummary] = useState(false);
   const [userData, setUserData] = useState<UserSessionData[]>([]);
   const [accumulated, setAccumulated] = useSessionStore((state) => [
     state.accumulated[id],
@@ -33,6 +28,46 @@ export default function SessionResult() {
   ]);
 
   const numSessions = userData.filter((user) => user.chat_text).length;
+  const activeSessions = userData.filter(
+    (user) => user.active === 0 && user.chat_text?.length > 0,
+  ).length;
+
+  const [hostType, setHostType] = useState(false);
+
+  useEffect(() => {
+    if (!hostType) {
+      // Check if the sessionId in cookies matches the current session id
+      const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        acc[key] = value;
+        return acc;
+      }, {});
+
+      if (cookies['sessionId'] === id) {
+        setHostType(true);
+      }
+    }
+  }, [id, hostType]);
+
+  useEffect(() => {
+    if (!hostType) {
+      // Check authentication status
+      const checkAuth = async () => {
+        try {
+          const session = await fetch('/api/auth/session').then((res) =>
+            res.json(),
+          );
+          if (session && session.user) {
+            setHostType(true);
+          }
+        } catch (error) {
+          console.error('Error checking authentication:', error);
+        }
+      };
+
+      checkAuth();
+    }
+  }, [hostType]);
 
   useEffect(() => {
     if (!accumulated) {
@@ -42,6 +77,7 @@ export default function SessionResult() {
     } else {
       console.log('Session data found in store', accumulated);
       setAccumulated(id, accumulated);
+      setUserData(Object.values(accumulated.user_data)); // Convert to array
     }
   }, [id, accumulated]);
 
@@ -54,8 +90,9 @@ export default function SessionResult() {
         session_id: id,
       },
     });
+    const allData = accumulateSessionData(data);
     setUserData(data.user_data);
-    setAccumulated(id, accumulateSessionData(data));
+    setAccumulated(id, allData);
   };
 
   const sendFinalReport = async () => {
@@ -71,7 +108,6 @@ export default function SessionResult() {
 
   const createSummary = async () => {
     console.log(`Creating summary for ${id}...`);
-    setLoadSummary(true);
     const data = await sendCallToMake({
       target: ApiTarget.Session,
       action: ApiAction.CreateSummary,
@@ -87,12 +123,6 @@ export default function SessionResult() {
     await createSummary();
     await sendFinalReport();
   };
-
-  useEffect(() => {
-    if (accumulated?.session_data.summary) {
-      setLoadSummary(false);
-    }
-  }, [accumulated?.session_data.summary]);
 
   const handleDelete = async () => {
     console.log(`Deleting session ${id}...`);
@@ -120,61 +150,32 @@ export default function SessionResult() {
         }
       />
       <div className="flex flex-col md:flex-row gap-4">
-        {!accumulated.session_data.finalReportSent && (
+        {!accumulated.session_data.finalReportSent && hostType && (
           <SessionResultControls
             id={id}
             isFinished={accumulated.session_data.finalReportSent}
             onFinishSession={finishSession}
+            onCreateSummary={createSummary}
+            readyToGetSummary={numSessions > 0}
           />
         )}
         <SessionResultStatus
           finalReportSent={accumulated.session_data.finalReportSent}
           startTime={accumulated.session_data.start_time}
-          numSessions={userData.length}
-          activeSessions={numSessions}
+          numSessions={numSessions}
+          activeSessions={activeSessions}
         />
         {!accumulated.session_data.finalReportSent && (
           <SessionResultShare sessionId={accumulated.session_data.session_id} />
         )}
       </div>
-      <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
-      <Tabs
-        className="mb-4"
-        defaultValue={
-          accumulated.session_data.finalReportSent ? 'SUMMARY' : 'RESPONSES'
-        }
-      >
-        <TabsList>
-          {accumulated.session_data.finalReportSent && (
-            <TabsTrigger className="ms-0" value="SUMMARY">
-              Summary
-            </TabsTrigger>
-          )}
-          <TabsTrigger className="ms-0" value="RESPONSES">
-            Responses
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="SUMMARY">
-          <div className="mt-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="w-full md:w-2/3">
-                {accumulated.session_data.summary && (
-                  <SessionResultSummary
-                    summary={accumulated.session_data.summary}
-                    sessionData={accumulated.session_data}
-                  />
-                )}
-              </div>
-              <div className="w-full md:w-1/3 gap-4">
-                <SessionResultChat userData={userData} />
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-        <TabsContent value="RESPONSES">
-          <SessionResultParticipants userData={userData} />
-        </TabsContent>
-      </Tabs>
+      <SessionResults
+        hostType={hostType}
+        userData={userData}
+        accumulated={accumulated}
+        id={id}
+        handleCreateSummary={createSummary}
+      />
     </div>
   );
 }

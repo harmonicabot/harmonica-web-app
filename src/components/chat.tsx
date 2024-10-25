@@ -17,6 +17,7 @@ import { set } from 'react-hook-form';
 import Markdown from 'react-markdown';
 import { HRMarkdown } from './HRMarkdown';
 import { ChatMessage } from './ChatMessage';
+import { Send } from './icons';
 
 export default function Chat({
   assistantId,
@@ -24,12 +25,14 @@ export default function Chat({
   entryMessage,
   context,
   userNameInFirstMessage = true,
+  placeholderText,
 }: {
   assistantId?: string;
   context?: OpenAIMessage;
   sessionId?: string;
   entryMessage?: { type: string; text: string };
   userNameInFirstMessage?: boolean;
+  placeholderText?: string;
 }) {
   const defaultEntryMessage = {
     type: 'ASSISTANT',
@@ -48,6 +51,8 @@ Help & Support:
 💬 Could you please let me know your name?
 `,
   };
+
+  const placeholder = placeholderText ? placeholderText : "Type your message here...";
 
   const [formData, setFormData] = useState<{ messageText: string }>({
     messageText: '',
@@ -122,6 +127,7 @@ Help & Support:
       data: {
         session_id: sessionId,
         chat_text: chatText,
+        active: 1,
       },
     })
       .then((data) => {
@@ -153,7 +159,7 @@ Help & Support:
         threadId: threadId,
         messageText:
           userNameInFirstMessage && messages.length === 1
-            ? `User name is ${messageText}. Use it in comminication. Don't ask it again. Let’s dive right in.`
+            ? `User name is ${messageText}. Use it in communication. Don't ask it again. Start the session.`
             : messageText,
         assistantId: assistantId
           ? assistantId
@@ -226,19 +232,23 @@ Help & Support:
         <div ref={messagesEndRef} />
       </div>
 
-      <form className="space-y-4 mt-4 flex flex-col" onSubmit={handleSubmit}>
-        <Textarea
-          name="messageText"
-          value={formData.messageText}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Enter your message..."
-          className="flex-grow"
-          ref={textareaRef}
-        />
-        <div className="flex justify-between">
-          <Button type="submit" className="" disabled={isLoading}>
-            Send
+      <form className="space-y-4 mt-4 -mx-6 -mb-6" onSubmit={handleSubmit}>
+        <div className="relative">
+          <Textarea
+            name="messageText"
+            value={formData.messageText}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className="flex-grow pr-12 focus:ring-0 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-yellow-300"
+            ref={textareaRef}
+          />
+          <Button
+            type="submit"
+            className="absolute bottom-2 right-4 rounded-full p-3"
+            disabled={isLoading}
+          >
+            <Send />
           </Button>
         </div>
       </form>

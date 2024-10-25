@@ -32,11 +32,11 @@ export function Session({
         <Badge
           variant="outline"
           className={`capitalize ${
-            session.numActive > 0
+            session.active && session.numActive > 0
               ? 'bg-lime-100 text-lime-900'
-              : session.numFinished > 0
-              ? 'bg-purple-100 text-purple-900'
-              : ''
+              : session.active && session.numActive === 0
+                ? 'bg-purple-100 text-purple-900'
+                : ''
           }`}
         >
           {session.status}

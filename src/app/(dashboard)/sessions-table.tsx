@@ -48,7 +48,7 @@ export function SessionsTable({
     {
       label: 'Status',
       sortKey: 'status',
-      className: 'cursor-pointer'
+      className: 'cursor-pointer',
     },
     {
       label: 'Started',
@@ -72,60 +72,83 @@ export function SessionsTable({
     },
   ];
 
-  const cleanSessions: SessionData[] = Object.entries(sessions)
-    .map(([sessionId, session]) => {
-      const topic = session.session_data.topic;
-      const template = session.session_data.template;
-      const name = topic
-        ? topic
-        : template && !template.startsWith('asst_')
-        ? template
-        : null;
+  const getActiveFinished = (
+    objects: UserSessionData[]
+  ): { started: number; finished: number } => {
+    let started = 0;
+    let finished = 0;
 
-      const numActive = session.session_data.num_active;
-      const numFinished = session.session_data.num_finished;
-      const finalReportSent = session.session_data.finalReportSent || false;
-      const session_active = session.session_data.session_active;
+    objects.forEach((obj) => {
+      if (obj.chat_text && obj.chat_text.length > 0) {
+        started++;
+        if (obj.active === 0) {
+          finished++;
+        }
+      }
+    });
 
-      const activeFinishedDraft = !session_active
-        ? 'Finished'
-        : numActive === 0
-        ? numFinished > 0
+    return { started, finished };
+  };
+
+  const [cleanSessions, setCleanSessions] = useState<SessionData[]>([]);
+
+  useEffect(() => {
+    const cleaned = Object.entries(sessions)
+      .map(([sessionId, session]) => {
+        const topic = session.session_data.topic;
+        const template = session.session_data.template;
+        const name = topic
+          ? topic
+          : template && !template.startsWith('asst_')
+            ? template
+            : null;
+
+        const { started, finished } = getActiveFinished(
+          Object.values(session.user_data)
+        );
+
+        const finalReportSent = session.session_data.finalReportSent === true;
+        const session_active = session.session_data.session_active;
+
+        // is finalReportSent- means that the session is finished
+        const activeFinishedDraft = finalReportSent
           ? 'Finished'
-          : 'Draft'
-        : 'Active';
-      const statusText = `${activeFinishedDraft}${
-        finalReportSent ? ' ✅' : ''
-      }`;
+          : started === 0
+            ? 'Draft'
+            : 'Active';
 
-      const createdOn = session.session_data.start_time
-        ? new Intl.DateTimeFormat(undefined, {
+        const statusText = `${activeFinishedDraft}`;
+
+        const createdOn = session.session_data.start_time
+          ? new Intl.DateTimeFormat(undefined, {
             dateStyle: 'medium',
             timeStyle: 'short',
           }).format(new Date(session.session_data.start_time))
-        : `No start time`;
+          : `No start time`;
 
-      return {
-        sessionId,
-        name,
-        status: statusText,
-        active: session.session_data.session_active,
-        numActive: numActive,
-        numFinished,
-        createdOn,
-        hostData: session.session_data,
-        userData: session.user_data,
-      };
-    })
-    .filter((cleaned) => {
-      return !!cleaned.name;
-    });
+        return {
+          sessionId,
+          name,
+          status: statusText,
+          active: !finalReportSent,
+          numActive: started,
+          numFinished: finished,
+          createdOn,
+          hostData: session.session_data,
+          userData: session.user_data,
+        };
+      })
+      .filter((cleaned) => {
+        return !!cleaned.name;
+      })
+    setCleanSessions(cleaned);
+  }, [sessions]);
 
   const handleOnDelete = (deleted: SessionData) => {
-    const pos = cleanSessions.findIndex(
-      (cleaned) => cleaned.sessionId === deleted.sessionId
+    console.log('Deleted session, now updating table');
+    setCleanSessions(prevSessions => 
+      prevSessions.filter(session => session.sessionId !== deleted.sessionId)
     );
-    cleanSessions.splice(pos,1);
   };
 
   const getTableRow = (session: SessionData, index) => {

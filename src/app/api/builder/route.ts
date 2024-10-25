@@ -12,7 +12,7 @@ import {
   handleResponse,
   streamResponse,
   waitForRunCompletion,
-} from './utils';
+} from '../utils';
 
 export const maxDuration = 200;
 const client = new OpenAI({
@@ -53,15 +53,20 @@ export async function POST(req: Request) {
 }
 
 async function createNewPrompt(data: SessionBuilderData) {
+  const templateBuilderId = process.env.TEMPLATE_BUILDER_ID;
+  if (!templateBuilderId) {
+    return NextResponse.json(
+      { error: 'Template builder not set!' },
+      { status: 500 },
+    );
+  }
+
   console.log(
     'Creating prompt for data: ',
     data,
-    process.env.TEMPLATE_BUILDER_ID,
+    templateBuilderId,
   );
-  try {
-    const templateBuilderId = process.env.TEMPLATE_BUILDER_ID;
-
-    // console.log('Template Builder assistant found, generating full prompt');
+  try { 
     const [threadId, fullPrompt] = await generateFullPrompt(
       data,
       templateBuilderId,

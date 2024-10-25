@@ -5,18 +5,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings } from 'lucide-react';
 import { ApiAction, ApiTarget } from '@/lib/types';
-import { sendCallToMake } from '@/lib/utils';
+import { sendApiCall, sendCallToMake } from '@/lib/utils';
 
 interface SessionResultControlsProps {
   id: string;
   isFinished: boolean;
+  readyToGetSummary: boolean;
   onFinishSession: () => Promise<void>;
+  onCreateSummary: () => Promise<void>;
 }
 
 export default function SessionResultControls({
   id,
   isFinished,
   onFinishSession,
+  readyToGetSummary,
+  onCreateSummary,
 }: SessionResultControlsProps) {
   const [loadSummary, setLoadSummary] = useState(false);
 
@@ -31,6 +35,13 @@ export default function SessionResultControls({
         finished: isFinished ? 1 : 0,
       },
     });
+    setLoadSummary(false);
+  };
+
+  const updateSummary = async () => {
+    setLoadSummary(true);
+    await onCreateSummary();
+    setLoadSummary(false);
   };
 
   const sendFinalReport = async () => {
@@ -64,13 +75,21 @@ export default function SessionResultControls({
         ) : (
           <div>
             <Button
-              className="me-2"
+              className="me-4"
               onClick={finishSession}
               disabled={loadSummary}
             >
-              Finish session
+              Finish
             </Button>
-            {/* <Button variant="secondary">Cancel session</Button> */}
+            {readyToGetSummary && (
+              <Button
+                variant="secondary"
+                onClick={updateSummary}
+                disabled={loadSummary}
+              >
+                Get summary
+              </Button>
+            )}
           </div>
         )}
       </CardContent>

@@ -23,7 +23,7 @@ export  default function SessionResultShare({ sessionId }: SessionResultSharePro
   const toggleModal = () => setIsModalOpen(!isModalOpen);
 
   return (
-    <Card className="flex-grow">
+    <Card className="flex-grow bg-yellow-50">
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle className="text-md">Share</CardTitle>
@@ -31,6 +31,9 @@ export  default function SessionResultShare({ sessionId }: SessionResultSharePro
         </div>
       </CardHeader>
       <CardContent>
+        <h2 className="font-bold mb-2">
+          Share your session with participants
+        </h2>
         <div>
           <Button className="me-2" onClick={copyToClipboard}>
             Copy link
@@ -40,9 +43,6 @@ export  default function SessionResultShare({ sessionId }: SessionResultSharePro
               URL copied to clipboard
             </div>
           )}
-          <Button variant="outline" onClick={toggleModal}>
-            Show QR Code Image
-          </Button>
           {isModalOpen && (
             <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
               <div className="relative bg-white p-4 rounded shadow-lg">
