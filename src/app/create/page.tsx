@@ -140,16 +140,16 @@ export default function CreationFlow() {
   const handleReviewComplete = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    const prompt = prompts[currentVersion - 1].fullPrompt;
+    console.log("Creating assistant");
     const assistantResponse = await sendApiCall({
       action: ApiAction.CreateAssistant,
       target: ApiTarget.Builder,
       data: {
-        prompt: prompts[currentVersion - 1].fullPrompt,
+        prompt: prompt,
         name: formData.sessionName,
       },
     });
-
-    // console.log('Assistant response from complete review: ', assistantResponse);
 
     deleteTemporaryAssistants(temporaryAssistantIds);
 
@@ -157,15 +157,17 @@ export default function CreationFlow() {
     const botId = 'harmonica_chat_bot';
     // Todo: How to do this better? Can we get a list of 'available' bots, i.e. where no session is running, and use that? Or 'intelligently' chose one whose name matches best? Later on with user management each user will probably have their own pool of bots.
     // Or maybe we can create a bot dynamically?
+    const data = {
+      template: assistantResponse.assistantId,
+      topic: formData.sessionName,
+      bot_id: botId,
+      host_chat_id: 'WebApp',
+    }
+    console.log("Create session in make.com")
     const sessionResponse = await sendApiCall({
       target: ApiTarget.Session,
       action: ApiAction.CreateSession,
-      data: {
-        template: assistantResponse.assistantId,
-        topic: formData.sessionName,
-        bot_id: botId,
-        host_chat_id: 'WebApp',
-      },
+      data: data,
     });
 
     if (sessionResponse.session_id) {
@@ -176,9 +178,12 @@ export default function CreationFlow() {
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 30); // Cookie expires in 30 days
       document.cookie = `sessionId=${sessionId}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
-    }
+      
+      const dataForDb = { id: sessionId, prompt: prompt, numSessions: 0, active: true, template: data.template, topic: data.topic, startTime: new Date().toISOString() };
+      insertHostSession(dataForDb);
 
-    route.push(`/sessions/${sessionResponse.session_id}`);
+      route.push(`/sessions/${sessionResponse.session_id}`);
+    }
   };
 
   function deleteTemporaryAssistants(assistantIds: string[]) {

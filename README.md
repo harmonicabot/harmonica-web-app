@@ -37,6 +37,17 @@ Make sure you have the following installed on your machine:
    npm install
    ```
 
+### Databases
+
+This project is using a mix of make.com & drizzle+postges neon databases.
+To update the pg db schema with drizzle:
+1. (Install drizzle: `npm i drizzle-kit`) <-- it's in our package.json, so should already be installed by now
+1. Update `./src/lib/schema.ts`
+1. Run `npx drizzle-kit generate` --> This will generate a SQL migration file
+1. Run `npx drizzle-kit migrate` --> This will update the db schema
+1. Run `npx drizzle-kit push` --> Update it on the host
+1. Commit the changes to `./src/lib/schema.ts`
+
 ## Available Scripts
 
 In the project directory, you can run the following scripts:
