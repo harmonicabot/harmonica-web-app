@@ -1,9 +1,9 @@
 'use client';
 
+import { useSession } from 'next-auth/react';
 import { useRef, useState } from 'react';
 import CreateSession from './create';
 import ReviewPrompt from './review';
-import ShareSession from './share';
 import LoadingMessage from './loading';
 import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
 import { MagicWand } from '@/components/icons';
@@ -21,7 +21,7 @@ export type VersionedPrompt = {
   fullPrompt: string;
 };
 
-const STEPS = ['Create', 'Review', 'Share'] as const;
+const STEPS = ['Create', 'Review'] as const;
 type Step = (typeof STEPS)[number];
 const enabledSteps = [true, false, false];
 
@@ -34,6 +34,9 @@ export default function CreationFlow() {
   const [threadId, setThreadId] = useState('');
   const [builderAssistantId, setBuilderAssistantId] = useState('');
   const [sessionAssistantId, setSessionAssistantId] = useState('');
+  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>(
+    [],
+  );
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
@@ -41,6 +44,7 @@ export default function CreationFlow() {
   const [currentVersion, setCurrentVersion] = useState(-1);
   const [sessionId, setSessionId] = useState('');
   const [botId, setBotId] = useState('');
+  const { data: authSession, status } = useSession();
 
   const addPrompt = (versionedPrompt: VersionedPrompt) => {
     setPrompts((prev) => [...prev, versionedPrompt]);
@@ -136,54 +140,61 @@ export default function CreationFlow() {
   const handleReviewComplete = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setActiveStep('Share');
-    enabledSteps[2] = true;
+    const prompt = prompts[currentVersion - 1].fullPrompt;
+    console.log("Creating assistant");
     const assistantResponse = await sendApiCall({
       action: ApiAction.CreateAssistant,
       target: ApiTarget.Builder,
       data: {
-        prompt: prompts[currentVersion - 1].fullPrompt,
+        prompt: prompt,
         name: formData.sessionName,
       },
     });
 
-    console.log('Assistant response from complete review: ', assistantResponse);
+    deleteTemporaryAssistants(temporaryAssistantIds);
 
     setSessionAssistantId(assistantResponse.assistantId);
     const botId = 'harmonica_chat_bot';
     // Todo: How to do this better? Can we get a list of 'available' bots, i.e. where no session is running, and use that? Or 'intelligently' chose one whose name matches best? Later on with user management each user will probably have their own pool of bots.
     // Or maybe we can create a bot dynamically?
+    const data = {
+      template: assistantResponse.assistantId,
+      topic: formData.sessionName,
+      bot_id: botId,
+      host_chat_id: 'WebApp',
+    }
+    console.log("Create session in make.com")
     const sessionResponse = await sendApiCall({
       target: ApiTarget.Session,
       action: ApiAction.CreateSession,
-      data: {
-        template: assistantResponse.assistantId,
-        topic: formData.sessionName,
-        bot_id: botId,
-        host_chat_id: 'WebApp',
-      },
+      data: data,
     });
 
-    setSessionId(sessionResponse.session_id);
-    setBotId(botId);
-    setIsLoading(false);
+    if (sessionResponse.session_id) {
+      const sessionId = sessionResponse.session_id;
+      setSessionId(sessionId);
+
+      // Set the cookie using document.cookie
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30); // Cookie expires in 30 days
+      document.cookie = `sessionId=${sessionId}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
+      
+      const dataForDb = { id: sessionId, prompt: prompt, numSessions: 0, active: true, template: data.template, topic: data.topic, startTime: new Date().toISOString() };
+      insertHostSession(dataForDb);
+
+      route.push(`/sessions/${sessionResponse.session_id}`);
+    }
   };
 
-  const handleSaveSession = async () => {
-    console.log('Saving session...');
-    // insertHostSession({
-    //   topic: formData.sessionName,
-    //   finished: 0,
-    //   numSessions: 0,
-    //   active: 0,
-    //   finalReportSent: false,
-    //   startTime: `${Date.now()}`,
-    //   summary: '',
-    //   template: sessionAssistantId,
-    //   context: formData.context,
-    // });
-    route.push('/');
-  };
+  function deleteTemporaryAssistants(assistantIds: string[]) {
+    sendApiCall({
+      target: ApiTarget.Builder,
+      action: ApiAction.DeleteAssistants,
+      data: {
+        assistantIds: assistantIds,
+      },
+    });
+  }
 
   const stepContent = {
     Create: (
@@ -203,16 +214,7 @@ export default function CreationFlow() {
         setCurrentVersion={setCurrentVersion}
         isEditing={isEditingPrompt}
         handleEdit={handleEditPrompt}
-      />
-    ),
-    Share: isLoading ? (
-      <LoadingMessage />
-    ) : (
-      <ShareSession
-        sessionName={formData.sessionName}
-        telegramBotId={botId}
-        makeSessionId={sessionId}
-        assistantId={sessionAssistantId}
+        setTemporaryAssistantIds={setTemporaryAssistantIds}
       />
     ),
   };
@@ -221,11 +223,7 @@ export default function CreationFlow() {
     <div className="min-h-screen pt-16 sm:px-14 pb-16">
       <div
         className={`mx-auto items-center align-middle ${
-          isEditingPrompt
-            ? 'lg:w-4/5'
-            : activeStep == 'Share'
-              ? 'lg:w-[550px]'
-              : 'lg:w-2/3'
+          isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
         }`}
       >
         <div className="flex items-center justify-center mb-6">
@@ -239,7 +237,7 @@ export default function CreationFlow() {
           value={activeStep}
           onValueChange={(value) => setActiveStep(value as Step)}
         >
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             {STEPS.map((step, index) => (
               <TabsTrigger
                 key={step}
@@ -288,17 +286,11 @@ export default function CreationFlow() {
                 onClick={
                   activeStep === 'Create'
                     ? handleCreateComplete
-                    : activeStep === 'Review'
-                      ? handleReviewComplete
-                      : handleSaveSession
+                    : handleReviewComplete
                 }
                 className="m-2"
               >
-                {activeStep === 'Create'
-                  ? 'Next'
-                  : activeStep === 'Review'
-                    ? 'Launch'
-                    : 'Save'}
+                {activeStep === 'Create' ? 'Next' : 'Launch'}
               </Button>
             </div>
           </div>

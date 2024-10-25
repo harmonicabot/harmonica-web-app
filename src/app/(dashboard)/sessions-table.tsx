@@ -7,21 +7,28 @@ import {
   TableBody,
   Table,
 } from '@/components/ui/table';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Session } from './session';
-import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { AccumulatedSessionData } from '@/lib/types';
-import { useEffect } from 'react';
-import { User } from '@/components/icons';
+import {
+  AccumulatedSessionData,
+  SessionOverview,
+  UserSessionData,
+} from '@/lib/types';
+import { useEffect, useState } from 'react';
+import { Spinner } from '@/components/icons';
+import SortableTable from '@/components/SortableTable';
+
+export type SessionData = {
+  sessionId: string;
+  name: string;
+  status: string;
+  active: boolean;
+  numActive: number;
+  numFinished: number;
+  createdOn: string;
+  hostData: SessionOverview;
+  userData: Record<string, UserSessionData>;
+};
 
 export function SessionsTable({
   sessions,
@@ -32,44 +39,130 @@ export function SessionsTable({
   offset: number;
   totalSessions: number;
 }) {
-  console.log('offset: ', offset);
-  let router = useRouter();
-  let sessionsPerPage = 5;
+  const tableHeaders = [
+    {
+      label: 'Name',
+      sortKey: 'name',
+      className: 'cursor-pointer',
+    },
+    {
+      label: 'Status',
+      sortKey: 'status',
+      className: 'cursor-pointer',
+    },
+    {
+      label: 'Started',
+      sortKey: 'numActive',
+      className: 'hidden md:table-cell',
+    },
+    {
+      label: 'Finished',
+      sortKey: 'numFinished',
+      className: 'hidden md:table-cell',
+    },
+    {
+      label: 'Created on',
+      sortKey: 'createdOn',
+      className: 'hidden md:table-cell',
+      sortBy: (sortDirection, a, b) => {
+        return sortDirection === 'asc'
+          ? new Date(a).getTime() - new Date(b).getTime()
+          : new Date(b).getTime() - new Date(a).getTime();
+      },
+    },
+  ];
 
-  function prevPage() {
-    router.back();
-  }
+  const getActiveFinished = (
+    objects: UserSessionData[]
+  ): { started: number; finished: number } => {
+    let started = 0;
+    let finished = 0;
 
-  function nextPage() {
-    router.push(`/?offset=${offset}`, { scroll: false });
-  }
+    objects.forEach((obj) => {
+      if (obj.chat_text && obj.chat_text.length > 0) {
+        started++;
+        if (obj.active === 0) {
+          finished++;
+        }
+      }
+    });
+
+    return { started, finished };
+  };
+
+  const [cleanSessions, setCleanSessions] = useState<SessionData[]>([]);
+
+  useEffect(() => {
+    const cleaned = Object.entries(sessions)
+      .map(([sessionId, session]) => {
+        const topic = session.session_data.topic;
+        const template = session.session_data.template;
+        const name = topic
+          ? topic
+          : template && !template.startsWith('asst_')
+            ? template
+            : null;
+
+        const { started, finished } = getActiveFinished(
+          Object.values(session.user_data)
+        );
+
+        const finalReportSent = session.session_data.finalReportSent === true;
+        const session_active = session.session_data.session_active;
+
+        // is finalReportSent- means that the session is finished
+        const activeFinishedDraft = finalReportSent
+          ? 'Finished'
+          : started === 0
+            ? 'Draft'
+            : 'Active';
+
+        const statusText = `${activeFinishedDraft}`;
+
+        const createdOn = session.session_data.start_time
+          ? new Intl.DateTimeFormat(undefined, {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          }).format(new Date(session.session_data.start_time))
+          : `No start time`;
+
+        return {
+          sessionId,
+          name,
+          status: statusText,
+          active: !finalReportSent,
+          numActive: started,
+          numFinished: finished,
+          createdOn,
+          hostData: session.session_data,
+          userData: session.user_data,
+        };
+      })
+      .filter((cleaned) => {
+        return !!cleaned.name;
+      })
+    setCleanSessions(cleaned);
+  }, [sessions]);
+
+  const handleOnDelete = (deleted: SessionData) => {
+    console.log('Deleted session, now updating table');
+    setCleanSessions(prevSessions => 
+      prevSessions.filter(session => session.sessionId !== deleted.sessionId)
+    );
+  };
+
+  const getTableRow = (session: SessionData, index) => {
+    return <Session key={index} session={session} onDelete={handleOnDelete} />;
+  };
 
   return (
     <Card>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Name</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="hidden md:table-cell">
-                Started
-              </TableHead>
-              <TableHead className="hidden md:table-cell">
-                Finished
-              </TableHead>
-              <TableHead className="hidden md:table-cell">Created on</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Object.entries(sessions).map(([sessionId, session]) => (
-              <Session key={sessionId} session={session} />
-            ))}
-          </TableBody>
-        </Table>
+        <SortableTable
+          tableHeaders={tableHeaders}
+          getTableRow={getTableRow}
+          data={cleanSessions}
+        />
       </CardContent>
       {/* <CardFooter>
         <form className="flex items-center w-full justify-between">

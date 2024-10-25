@@ -5,8 +5,6 @@ import { File, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SessionsTable } from './sessions-table';
 import {
-  getHostAndUserSessions,
-  getSessions,
   getSessionsFromMake,
 } from '@/lib/db';
 import Link from 'next/link';
@@ -21,7 +19,7 @@ export default function Dashboard({
 }) {
   const search = searchParams.q ?? '';
   const offset = searchParams.offset ?? 0;
-
+  
   const [accumulated, setAccumulated] = useState<
     Record<string, AccumulatedSessionData>
   >({});
