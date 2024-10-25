@@ -158,7 +158,7 @@ const StandaloneChat = () => {
                             className={`mb-6 ${accumulated?.session_data?.finalReportSent ? 'sm:mb-8' : ''}`}
                           >
                             {accumulated?.session_data?.finalReportSent
-                              ? "If you were unable to participate, you can still view the session results and even ask questions about other users' feedback or engage with their responses. Alternatively, you can create a new session on any topic and invite others to participate."
+                              ? "If you were unable to participate, you can still view the session results and even ask questions about other users' feedback or engage with their responses."
                               : 'Welcome to our interactive session! We value your input and would love to hear your thoughts on the topic at hand. Your responses will be combined with others to create an AI-powered overview.'}
                           </p>
                           {accumulated?.session_data?.finalReportSent ? (
@@ -170,19 +170,6 @@ const StandaloneChat = () => {
                               >
                                 <Button size="lg" className="w-full sm:w-auto">
                                   View Session Results
-                                </Button>
-                              </Link>
-                              <Link
-                                href="/create"
-                                passHref
-                                className="w-full sm:w-auto"
-                              >
-                                <Button
-                                  size="lg"
-                                  variant="ghost"
-                                  className="w-full sm:w-auto"
-                                >
-                                  Start a New Session
                                 </Button>
                               </Link>
                             </div>
