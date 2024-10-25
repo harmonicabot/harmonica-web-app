@@ -22,7 +22,7 @@ const ChatPopupButton = ({ assistantId }: { assistantId: string }) => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] md:max-w-[700px] lg:max-w-[900px]">
         <DialogHeader>
-          <DialogTitle>Chat</DialogTitle>
+          <DialogTitle>Test</DialogTitle>
         </DialogHeader>
         <div className="h-[60vh]">
           <Chat
