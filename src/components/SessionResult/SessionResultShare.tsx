@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Share2 } from "lucide-react";
+import { Copy, Share2 } from "lucide-react";
 import QRCode from 'qrcode.react';
 
 interface SessionResultShareProps {
@@ -12,8 +12,12 @@ export  default function SessionResultShare({ sessionId }: SessionResultSharePro
   const [showToast, setShowToast] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  function getUrl() {
+    return `${window.location.origin}/chat?s=${sessionId}`;
+  }
+
   const copyToClipboard = () => {
-    const url = `${window.location.origin}/chat?s=${sessionId}`;
+    const url = getUrl();
     navigator.clipboard.writeText(url).then(() => {
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
@@ -32,9 +36,8 @@ export  default function SessionResultShare({ sessionId }: SessionResultSharePro
       </CardHeader>
       <CardContent>
         <h2 className="font-bold mb-2">
-          Share your session with participants
+          Share <a className="underline" href={getUrl()}>your session</a> with participants:
         </h2>
-        <div>
           <Button className="me-2" onClick={copyToClipboard}>
             Copy link
           </Button>
@@ -43,24 +46,7 @@ export  default function SessionResultShare({ sessionId }: SessionResultSharePro
               URL copied to clipboard
             </div>
           )}
-          {isModalOpen && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-              <div className="relative bg-white p-4 rounded shadow-lg">
-                <QRCode
-                  className="m-4"
-                  size={250}
-                  value={`${window.location.origin}/chat?s=${sessionId}`}
-                />
-                <button
-                  className="absolute -top-14 -right-14 bg-white text-gray-500 text-2xl w-12 h-12 flex items-center justify-center rounded-full shadow-lg"
-                  onClick={toggleModal}
-                >
-                  &times;
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+
       </CardContent>
     </Card>
   );
