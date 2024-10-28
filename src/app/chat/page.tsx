@@ -40,6 +40,15 @@ const StandaloneChat = () => {
 
   const finishSession = () => {
     setIsLoading(true);
+    // Find the submit button by looking for all buttons and matching text content
+    const buttons = document.querySelectorAll('button');
+    const submitButton = Array.from(buttons).find((button) =>
+      button.textContent?.includes('Try me!'),
+    ) as HTMLButtonElement;
+
+    if (submitButton) {
+      submitButton.click();
+    }
 
     sendCallToMake({
       target: ApiTarget.Session,
@@ -120,6 +129,10 @@ const StandaloneChat = () => {
         height: 'calc(100vh - 100px)',
       }}
     >
+      <div className="hidden">
+        <div data-tf-live="01JB9CRNXPX488VHX879VNF3E6"></div>
+        <script src="//embed.typeform.com/next/embed.js"></script>
+      </div>
       {isLoading ? (
         <div className="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
           <Loader2 className="w-8 h-8 animate-spin text-gray-600" />
