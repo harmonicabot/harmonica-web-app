@@ -88,7 +88,7 @@ async function createNewPrompt(data: SessionBuilderData) {
 async function getTempAssistants() {
   // Currently unused, but could be used to periodically clean up or so.
   const assistants = await client.beta.assistants.list({
-    limit: 100 /*, after: "asst_fHg4kGRWn357GnejZJQnVbJW"*/,
+    limit: 100 /*, after: "asst_someId"*/,
   });
   console.log(
     `Found assistants:\n${assistants.data.map((assistant) => assistant.name + ' ' + assistant.id).join('\n')}`,
