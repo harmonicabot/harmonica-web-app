@@ -9,14 +9,63 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Chat from '@/components/chat';
+import LoadingMessage from 'app/create/loading';
+import { sendApiCall } from '@/lib/utils';
+import { ApiAction, ApiTarget } from '@/lib/types';
+import { VersionedPrompt } from 'app/create/page';
 
-const ChatPopupButton = ({ assistantId }: { assistantId: string }) => {
+interface TestInputProps {
+  onTest: () => Promise<{
+    assistantId: string;
+    entryMessage: { type: string; text: string };
+  }>;
+}
+
+const ChatPopupButton = ({
+  prompt,
+  handleSetTempAssistantIds,
+}: {
+  prompt: VersionedPrompt;
+  handleSetTempAssistantIds: (value: React.SetStateAction<string[]>) => void;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [assistantId, setAssistantId] = useState('');
+  const [entryMessage, setEntryMessage] = useState(null);
+
+  const handleTestVersion = async () => {
+    const assistantResponse = await sendApiCall({
+      action: ApiAction.CreateAssistant,
+      target: ApiTarget.Builder,
+      data: {
+        prompt: prompt.fullPrompt,
+        name: `testing_v${prompt.id}`,
+      },
+    });
+
+    setAssistantId(assistantResponse.assistantId);
+    setEntryMessage({
+      type: 'ASSISTANT',
+      text: `Hello! This is a test session for version ${prompt.id}.\n
+I'll run through the session with you so you get an idea how this would work once finalised, 
+but bear in mind that I might phrase some things differently depending on our interaction.\n
+I won't store any of your replies in this test chat.\n
+If you're ready to start: What is your name?`,
+    });
+    // All these temp assistants can be deleted again once the user chooses a final version.
+    handleSetTempAssistantIds((prev) => [
+      ...prev,
+      assistantResponse.assistantId,
+    ]);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="mr-2">
+        <Button
+          variant="outline"
+          className="mr-2"
+          onClick={handleTestVersion}
+        >
           Test
         </Button>
       </DialogTrigger>
@@ -25,13 +74,11 @@ const ChatPopupButton = ({ assistantId }: { assistantId: string }) => {
           <DialogTitle>Test</DialogTitle>
         </DialogHeader>
         <div className="h-[60vh]">
-          <Chat
-            entryMessage={{
-              type: 'ASSISTANT',
-              text: `Nice to meet you! Could you please let me know your name?`,
-            }}
-            assistantId={assistantId}
-          />
+          {assistantId && entryMessage ? (
+            <Chat entryMessage={entryMessage} assistantId={assistantId} />
+          ) : (
+            <LoadingMessage />
+          )}
         </div>
       </DialogContent>
     </Dialog>
