@@ -7,6 +7,7 @@ import { User } from '@/components/user';
 import { Instrument_Sans } from 'next/font/google';
 import NextAuthSessionProvider from '@/components/SessionProvider';
 import { PHProvider } from './providers';
+import PostHogPageView from './PostHogPageView';
 
 const instrumentSans = Instrument_Sans({ subsets: ['latin'] });
 
@@ -37,7 +38,9 @@ export default function RootLayout({
         </nav>
         <main className="flex flex-col justify-center flex-grow bg-purple-50">
           <NextAuthSessionProvider>
-            <PHProvider>{children}</PHProvider>
+            <PHProvider>{children} 
+              <PostHogPageView />
+            </PHProvider>
           </NextAuthSessionProvider>
         </main>
       </body>
