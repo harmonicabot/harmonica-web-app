@@ -4,6 +4,6 @@ export { auth as middleware } from '@/lib/auth';
 export const config = {
   matcher: [
     // Exclude specific paths including sessions with any string after it
-    '/((?!api|_next/static|_next/image|favicon.ico|login|chat|create|h_chat_icon.png).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|login|chat|create|h_chat_icon.png|sessions/[^/]+).*)',
   ],
 };

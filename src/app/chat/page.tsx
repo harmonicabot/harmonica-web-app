@@ -141,20 +141,14 @@ const StandaloneChat = () => {
         <>
           {(showModal || sessionFinished) && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div
-                className={`bg-white p-4 sm:p-6 md:p-10 rounded-lg ${
-                  sessionFinished
-                    ? 'w-[90vw] md:w-[50vw] h-[50vh] md:h-[50vh]'
-                    : 'w-[calc(100%-2rem)] h-[calc(100%-2rem)]'
-                } flex items-center justify-center m-4 overflow-y-auto`}
-              >
+              <div className="bg-white p-4 sm:p-6 md:p-10 rounded-lg w-[calc(100%-2rem)] h-[calc(100%-2rem)] flex items-center justify-center m-4 overflow-y-auto">
                 <div className="max-w-6xl w-full">
                   {sessionFinished ? (
                     <div className="flex flex-col items-center justify-center">
                       <h2 className="text-xl font-bold mb-4">
                         Thank You for Your Participation!
                       </h2>
-                      {/* <p className="mb-4">
+                      <p className="mb-4">
                         We appreciate your input. Please wait until all
                         participants have finished to receive the final report.
                       </p>
@@ -162,7 +156,7 @@ const StandaloneChat = () => {
                         <Button size="lg" className="mt-4">
                           View Session Results
                         </Button>
-                      </Link> */}
+                      </Link>
                     </div>
                   ) : (
                     <div className="flex flex-col lg:flex-row">
@@ -177,7 +171,7 @@ const StandaloneChat = () => {
                             className={`mb-6 ${accumulated?.session_data?.finalReportSent ? 'sm:mb-8' : ''}`}
                           >
                             {accumulated?.session_data?.finalReportSent
-                              ? "If you were unable to participate, you can still view the session results and even ask questions about other users' feedback or engage with their responses."
+                              ? "If you were unable to participate, you can still view the session results and even ask questions about other users' feedback or engage with their responses. Alternatively, you can create a new session on any topic and invite others to participate."
                               : 'Welcome to our interactive session! We value your input and would love to hear your thoughts on the topic at hand. Your responses will be combined with others to create an AI-powered overview.'}
                           </p>
                           {accumulated?.session_data?.finalReportSent ? (
@@ -189,6 +183,19 @@ const StandaloneChat = () => {
                               >
                                 <Button size="lg" className="w-full sm:w-auto">
                                   View Session Results
+                                </Button>
+                              </Link>
+                              <Link
+                                href="/create"
+                                passHref
+                                className="w-full sm:w-auto"
+                              >
+                                <Button
+                                  size="lg"
+                                  variant="ghost"
+                                  className="w-full sm:w-auto"
+                                >
+                                  Start a New Session
                                 </Button>
                               </Link>
                             </div>
