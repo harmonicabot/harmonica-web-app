@@ -9,6 +9,11 @@ const approvedEmails = [
   'hello@harmonica.chat',
   'felix.kufus@cmi.fi',
   'johanna.poutanen@cmi.fi',
+  'lauren.petre@cmi.fi',
+  'harri.kettunen@cmi.fi',
+  'saara.vuorensola-barnes@cmi.fi',
+  'kati.ruskola@cmi.fi',
+  'annika.strohbehn@cmi.fi',
 ];
 
 const customEmailProvider = CredentialsProvider({
