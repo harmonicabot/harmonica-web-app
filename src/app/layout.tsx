@@ -15,8 +15,9 @@ const instrumentSans = Instrument_Sans({ subsets: ['latin'] });
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={instrumentSans.className}>
-      <UserProvider>
-        <body className="flex flex-col min-h-screen">
+      <body className="flex flex-col min-h-screen">
+      <Suspense fallback={<div>Loading...</div>}>
+        <UserProvider>
           <nav className="p-4">
             <div className="flex flex-row justify-between items-center px-2">
               <Link href="/">
@@ -38,14 +39,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </nav>
           <main className="flex flex-col justify-center flex-grow bg-purple-50">
             <PHProvider>
-              <Suspense fallback={<div>Loading...</div>}>
-                {children}
-              </Suspense>
+              {children}
               <PostHogPageView />
             </PHProvider>
           </main>
-        </body>
-      </UserProvider>
+        </UserProvider>
+        </Suspense>
+      </body>
+
     </html>
   );
 }
