@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 import {
   accumulateSessionData,
@@ -27,6 +28,8 @@ export default function SessionResult() {
     state.addAccumulatedSessions,
   ]);
 
+  const { user } = useUser();
+
   const numSessions = userData.filter((user) => user.chat_text).length;
   const activeSessions = userData.filter(
     (user) => user.active === 0 && user.chat_text?.length > 0,
@@ -50,24 +53,10 @@ export default function SessionResult() {
   }, [id, hostType]);
 
   useEffect(() => {
-    if (!hostType) {
-      // Check authentication status
-      const checkAuth = async () => {
-        try {
-          const session = await fetch('/api/auth/session').then((res) =>
-            res.json(),
-          );
-          if (session && session.user) {
-            setHostType(true);
-          }
-        } catch (error) {
-          console.error('Error checking authentication:', error);
-        }
-      };
-
-      checkAuth();
+    if (!hostType && user && user.sub) {
+      setHostType(true);
     }
-  }, [hostType]);
+  }, [user]);
 
   useEffect(() => {
     if (!accumulated) {

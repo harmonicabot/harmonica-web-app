@@ -1,6 +1,5 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
 import { useRef, useState } from 'react';
 import CreateSession from './create';
 import ReviewPrompt from './review';
@@ -44,7 +43,6 @@ export default function CreationFlow() {
   const [currentVersion, setCurrentVersion] = useState(-1);
   const [sessionId, setSessionId] = useState('');
   const [botId, setBotId] = useState('');
-  const { data: authSession, status } = useSession();
 
   const addPrompt = (versionedPrompt: VersionedPrompt) => {
     setPrompts((prev) => [...prev, versionedPrompt]);

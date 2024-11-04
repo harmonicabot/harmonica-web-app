@@ -38,6 +38,12 @@ export default function SortableTable({
   type SortColumn = TableHeaderData['sortKey'];
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<Direction>('asc');
+  const [showSpinner, setShowSpinner] = useState(true);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setShowSpinner(false), 5000);
+    return () => clearTimeout(timeout);
+  }, []);
 
   const sortSessions = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -61,6 +67,7 @@ export default function SortableTable({
       return sortBy(sortDirection, aValue, bValue);
     });
   }, [data, sortColumn, sortDirection, tableHeaders]);
+
 
 
   return (
@@ -91,9 +98,11 @@ export default function SortableTable({
               colSpan={Object.keys(tableHeaders).length + 1}
               className="text-center"
             >
-              <div className="flex items-center justify-center m-4">
-                <Spinner />
-              </div>
+              {showSpinner && (
+                <div className="flex items-center justify-center m-4">
+                  <Spinner />
+                </div>
+              )}
             </td>
           </TableRow>
         )}

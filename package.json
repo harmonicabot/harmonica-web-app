@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@auth0/nextjs-auth0": "^3.5.0",
     "@aws-amplify/ui-react": "^6.1.14",
     "@neondatabase/serverless": "^0.10.1",
     "@next/env": "^14.2.9",

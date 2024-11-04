@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { getSession } from '@auth0/nextjs-auth0';
 import { NextResponse } from 'next/server';
 
 export const maxDuration = 200;
@@ -6,14 +7,14 @@ export const maxDuration = 200;
 const sessionStore = 17957;
 const userStore = 17913;
 
-let limit = 90;
+let limit = 100;
 const token = process.env.MAKE_AUTH_TOKEN;
-const clientId = process.env.CLIENT_ID || "";
+
 
 function getUrl(
   storeId: number,
   includeLimit: boolean = true,
-  offset: number = 0,
+  offset: number = 20,
 ) {
   return (
     `https://eu2.make.com/api/v2/data-stores/${storeId}/data` +
@@ -23,6 +24,8 @@ function getUrl(
 }
 
 export async function GET(request: Request) {
+  const { user } = await getSession();
+  const clientId = process.env.CLIENT_ID ? process.env.CLIENT_ID : user?.sub || "";
   try {
     const [sessionData, userData] = await Promise.all([
       fetch(getUrl(sessionStore), {
@@ -45,7 +48,7 @@ export async function GET(request: Request) {
     let sessionJson: DbResponse = await sessionData.json();
     // console.log(`Got session data for ClientID '${clientId}': `, sessionJson.records || []);
     let clientSessions: DbResponse['records'] = [];
-    if (clientId.length === 0) {
+    if (clientId && clientId.length === 0) {
       // get all sessions that do NOT belong to any client, mainly for internal testing purposes
       clientSessions = sessionJson.records?.filter(
         (sessionData) =>

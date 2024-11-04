@@ -37,6 +37,16 @@ const StandaloneChat = () => {
   const [sessionFinished, setSessionFinished] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isFirstMessage, setIsFirstMessage] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const loadData = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setIsLoading(false);
+    };
+    loadData();
+  }, []);
 
   const finishSession = () => {
     setIsLoading(true);
@@ -275,7 +285,9 @@ const StandaloneChat = () => {
                     ? accumulated?.session_data?.topic
                     : 'Test'}
                 </h1>
-                {sessionId && <Button onClick={finishSession}>Finish</Button>}
+                {isMounted && !isLoading && (
+                  <Button onClick={finishSession}>Finish</Button>
+                )}
               </div>
               <div className="w-full md:w-3/4 h-full flex-grow flex flex-col p-6">
                 <div className="h-full max-w-2xl flex m-4">
