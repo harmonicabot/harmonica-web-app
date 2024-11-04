@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { handleCreateThread, handleGenerateAnswer } from "../gptUtils";
 
 // Expected: { sessionId: string, exportDataQuery: string }
+export const maxDuration = 200;
 
 export type ExportRequest = Request & RequestData & {
   data: {

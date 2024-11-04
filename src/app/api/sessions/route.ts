@@ -6,14 +6,14 @@ export const maxDuration = 200;
 const sessionStore = 17957;
 const userStore = 17913;
 
-let limit = 90;
+let limit = 100;
 const token = process.env.MAKE_AUTH_TOKEN;
 const clientId = process.env.CLIENT_ID || "";
 
 function getUrl(
   storeId: number,
   includeLimit: boolean = true,
-  offset: number = 0,
+  offset: number = 20,
 ) {
   return (
     `https://eu2.make.com/api/v2/data-stores/${storeId}/data` +
