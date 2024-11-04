@@ -9,7 +9,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Analytics } from '@vercel/analytics/react';
-import { User } from '../../components/user';
+import User from '../../components/user';
 import Providers from './providers';
 import { SearchInput } from './search';
 
