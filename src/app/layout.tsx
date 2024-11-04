@@ -1,17 +1,18 @@
-import Link from 'next/link';
+'use client';
+
+import { Suspense } from 'react';
+import { UserProvider } from '@auth0/nextjs-auth0/client';
+import { PHProvider } from './providers';
 import '../styles/global.css';
 import Logo from '@/components/ui/logo';
 import { Instrument_Sans } from 'next/font/google';
-import { PHProvider } from './providers';
-import { UserProvider } from '@auth0/nextjs-auth0/client';
 import PostHogPageView from './PostHogPageView';
-import  User  from '@/components/user';
+import User from '@/components/user';
+import Link from 'next/link';
 
 const instrumentSans = Instrument_Sans({ subsets: ['latin'] });
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={instrumentSans.className}>
       <UserProvider>
@@ -37,13 +38,14 @@ export default function RootLayout({
           </nav>
           <main className="flex flex-col justify-center flex-grow bg-purple-50">
             <PHProvider>
-              {children}
+              <Suspense fallback={<div>Loading...</div>}>
+                {children}
+              </Suspense>
               <PostHogPageView />
             </PHProvider>
           </main>
-        
-      </body>
-      </UserProvider>  
+        </body>
+      </UserProvider>
     </html>
   );
 }
