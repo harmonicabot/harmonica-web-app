@@ -49,12 +49,12 @@ export async function handleGenerateAnswer(messageData: AssistantMessageData) {
 }
 
 async function getAllMessages(threadId: string) {
-  let allMessages = [];
-  let cursor = undefined;
+  let allMessages: any[] = [];
+  let cursor: string | undefined = undefined;
   
   while (true) {
     console.log("iterating over answers...")
-    const messages = await client.beta.threads.messages.list(
+    const messages: OpenAI.Beta.Threads.Messages.MessagesPage = await client.beta.threads.messages.list(
       threadId, 
       { 
         limit: 100,
@@ -65,10 +65,9 @@ async function getAllMessages(threadId: string) {
     
     allMessages.push(...messages.data);
     
-    if (!messages || messages.data.length === 0) break;
+    if (!messages.data || messages.data.length === 0) break;
     cursor = messages.data[messages.data.length - 1].id;
   }
   
   return allMessages;
 }
-

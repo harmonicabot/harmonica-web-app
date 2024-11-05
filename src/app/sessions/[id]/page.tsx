@@ -32,7 +32,7 @@ export default function SessionResult() {
 
   const numSessions = userData.filter((user) => user.chat_text).length;
   const activeSessions = userData.filter(
-    (user) => user.active === 0 && user.chat_text?.length > 0,
+    (user) => user.active === 0 && user.chat_text && user.chat_text.length > 0,
   ).length;
 
   const [hostType, setHostType] = useState(false);
@@ -40,7 +40,7 @@ export default function SessionResult() {
   useEffect(() => {
     if (!hostType) {
       // Check if the sessionId in cookies matches the current session id
-      const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+      const cookies = document.cookie.split(';').reduce<Record<string, string>>((acc, cookie) => {
         const [key, value] = cookie.trim().split('=');
         acc[key] = value;
         return acc;
@@ -133,28 +133,28 @@ export default function SessionResult() {
       <SessionResultHeader
         topic={accumulated.session_data.topic}
         status={
-          accumulated.session_data.finalReportSent
+          accumulated.session_data.final_report_sent
             ? SessionStatus.REPORT_SENT
             : SessionStatus.ACTIVE
         }
       />
       <div className="flex flex-col md:flex-row gap-4">
-        {!accumulated.session_data.finalReportSent && hostType && (
+        {!accumulated.session_data.final_report_sent && hostType && (
           <SessionResultControls
             id={id}
-            isFinished={accumulated.session_data.finalReportSent}
+            isFinished={accumulated.session_data.final_report_sent}
             onFinishSession={finishSession}
             onCreateSummary={createSummary}
             readyToGetSummary={numSessions > 0}
           />
         )}
         <SessionResultStatus
-          finalReportSent={accumulated.session_data.finalReportSent}
+          finalReportSent={accumulated.session_data.final_report_sent}
           startTime={accumulated.session_data.start_time}
           numSessions={numSessions}
           activeSessions={activeSessions}
         />
-        {!accumulated.session_data.finalReportSent && (
+        {!accumulated.session_data.final_report_sent && accumulated.session_data.session_id && (
           <SessionResultShare sessionId={accumulated.session_data.session_id} />
         )}
       </div>

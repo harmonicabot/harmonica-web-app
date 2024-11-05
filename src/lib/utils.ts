@@ -26,17 +26,17 @@ export function accumulateSessionData(
 
   const accumulated: AccumulatedSessionData = {
     session_data: {
-      session_id: data.session_data.session_id,
-      session_active: typeof data.session_data.active === 'number' ? data.session_data.active > 0 : data.session_data.active,
+      session_id: data.session_data.session_id!,
+      session_active: typeof data.session_data.active === 'number' ? data.session_data.active > 0 : !!data.session_data.active,
       num_sessions: total_sessions,
       num_active: num_active,
       num_finished: num_finished,
       summary: data.session_data.result,
-      template: data.session_data.template,
+      template: data.session_data.template || '',
       topic: data.session_data.topic,
       context: data.session_data.context,
-      finalReportSent: data.session_data.final_report_sent,
-      start_time: data.session_data.start_time,
+      final_report_sent: data.session_data.final_report_sent!,
+      start_time: data.session_data.start_time!,
     },
     user_data: data.user_data,
   };
@@ -75,7 +75,7 @@ export const sendApiCall = async (request: RequestData) => {
 
 export const sendCallToMake = async (body: RequestData) => {
   return sendApiCall({
-    target: ApiTarget.Session,
     ...body,
+    target: ApiTarget.Session,
   });
 };

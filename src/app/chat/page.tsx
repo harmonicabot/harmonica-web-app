@@ -28,7 +28,7 @@ const StandaloneChat = () => {
   const assistantId = searchParams.get('a');
 
   const [accumulated, setAccumulated] = useSessionStore((state) => [
-    state.accumulated[sessionId],
+    sessionId ? state.accumulated[sessionId] : null,
     state.addAccumulatedSessions,
   ]);
 
@@ -173,18 +173,18 @@ const StandaloneChat = () => {
                       <div className="w-full lg:w-1/2 lg:pr-6 flex flex-col justify-between mb-6 lg:mb-0">
                         <div>
                           <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">
-                            {accumulated?.session_data?.finalReportSent
+                            {accumulated?.session_data?.final_report_sent
                               ? 'Session Complete'
                               : 'You are invited to share your thoughts'}
                           </h2>
                           <p
-                            className={`mb-6 ${accumulated?.session_data?.finalReportSent ? 'sm:mb-8' : ''}`}
+                            className={`mb-6 ${accumulated?.session_data?.final_report_sent ? 'sm:mb-8' : ''}`}
                           >
-                            {accumulated?.session_data?.finalReportSent
+                            {accumulated?.session_data?.final_report_sent
                               ? "If you were unable to participate, you can still view the session results and even ask questions about other users' feedback or engage with their responses. Alternatively, you can create a new session on any topic and invite others to participate."
                               : 'Welcome to our interactive session! We value your input and would love to hear your thoughts on the topic at hand. Your responses will be combined with others to create an AI-powered overview.'}
                           </p>
-                          {accumulated?.session_data?.finalReportSent ? (
+                          {accumulated?.session_data?.final_report_sent ? (
                             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-8">
                               <Link
                                 href={`/sessions/${sessionId}`}
@@ -230,7 +230,7 @@ const StandaloneChat = () => {
                           </Link>
                         </p>
                       </div>
-                      {!accumulated?.session_data?.finalReportSent && (
+                      {!accumulated?.session_data?.final_report_sent && (
                         <div className="hidden lg:block w-full lg:w-1/2 lg:pl-8 lg:border-l border-t lg:border-t-0 pt-6 lg:pt-0">
                           <h3 className="text-lg font-semibold mb-4">
                             How to use
@@ -274,7 +274,7 @@ const StandaloneChat = () => {
               </div>
             </div>
           )}
-          {!accumulated?.session_data?.finalReportSent && (
+          {!accumulated?.session_data?.final_report_sent && (
             <>
               <div className="w-full md:w-1/4 p-6">
                 <p className="text-sm text-muted-foreground mb-2">

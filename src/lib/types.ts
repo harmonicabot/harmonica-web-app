@@ -45,6 +45,7 @@ export enum ApiAction {
 export enum ApiTarget {
   Builder = 'builder',
   Session = 'session',
+  Sessions = 'sessions',
   Chat = 'chat',
   Export = 'export',
 }
@@ -84,17 +85,17 @@ export type RawSessionOverview = {
 };
 
 export type SessionOverview = {
-  session_id?: string;
+  session_id: string;
   session_active: boolean;
   num_sessions: number;
   num_active: number;
   num_finished: number;
-  summary: string;
+  summary?: string;
   template: string;
   topic: string;
-  context: string;
+  context?: string;
   client?: string;
-  finalReportSent: boolean;
+  final_report_sent: boolean;
   start_time: Date;
 };
 

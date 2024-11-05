@@ -1,130 +1,107 @@
-import { count, eq, ilike, desc } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+'use server'
+import { createKysely } from '@vercel/postgres-kysely';
 import * as s from './schema';
 import {
-  host_data,
-  user_data,
-  InsertHostData,
-  SelectHostData,
-  InsertUserData,
-} from './schema';
-
-import {
   AccumulatedSessionData,
+  ApiTarget,
   RawSessionData,
   RawSessionOverview,
   SessionOverview,
   UserSessionData,
 } from './types';
 import { accumulateSessionData } from '@/lib/utils';
-
-const sql = neon(process.env.POSTGRES_URL!);
-export const db = drizzle(sql, { schema: s });
-
-export async function getHostSessionById(
-  id: string
-): Promise<SelectHostData | null> {
-  const result = await db.query.host_data.findFirst({
-    where: eq(host_data.id, id),
-    with: {
-      userData: true,
-    },
-  });
-  return result;
+import { neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
+import { sql } from 'kysely';
+// Only set WebSocket constructor on the server side
+if (typeof window === 'undefined') {
+  console.log("Yep, running serverside!");
+  neonConfig.webSocketConstructor = ws;
+} else {
+  console.log("Nope, not running on the server.");
 }
 
-export async function insertHostSession(
-  data: InsertHostData
-): Promise<void> {
-  await db.insert(host_data).values(data);
-}
+const db = createKysely<s.Databases>();
 
-export async function updateHostSession(
-  id: string,
-  data: Partial<InsertHostData>
-): Promise<void> {
-  await db.update(host_data).set(data).where(eq(host_data.id, id));
+// TEMPORARY!!!
+export async function seed() {
+  const createTable = await db.schema
+    .createTable('temp')
+    .ifNotExists()
+    .addColumn('id', 'serial', (cb) => cb.primaryKey())
+    .addColumn('name', 'varchar(255)', (cb) => cb.notNull())
+    .addColumn('email', 'varchar(255)', (cb) => cb.notNull().unique())
+    .addColumn('image', 'varchar(255)')
+    .addColumn('createdAt', sql`timestamp with time zone`, (cb) =>
+      cb.defaultTo(sql`current_timestamp`)
+    )
+    .execute()
+  console.log(`Created "temp" table`)
 }
-
-export async function deleteHostSession(id: string): Promise<void> {
-  await db.delete(host_data).where(eq(host_data.id, id));
-}
-
-export async function getUserSessionById(
-  id: string
-): Promise<UserSessionData | null> {
-  const result = await db.query.user_data.findFirst({
-    where: eq(user_data.id, id),
-  });
-  return result;
-}
-
-export async function insertUserSession(
-  data: InsertUserData
-): Promise<void> {
-  db.insert(user_data).values(data);
-}
-
-export async function updateUserSession(
-  id: string,
-  data: Partial<InsertUserData>
-): Promise<void> {
-  await db.update(user_data).set(data).where(eq(user_data.id, id));
-}
-
-export async function deleteUserSession(id: string): Promise<void> {
-  await db.delete(user_data).where(eq(user_data.id, id));
-}
-
-export async function searchHostSessions(
-  searchTerm: string
-): Promise<SelectHostData[]> {
-  return db.query.host_data.findMany({
-    where: ilike(host_data.topic, `%${searchTerm}%`),
-    with: {
-      userData: true,
-    },
-    orderBy: desc(host_data.startTime),
-  });
-}
+// TEMPORARY!!
 
 export async function getHostAndUserSessions(
   n: number = 100
 ): Promise<Record<string, AccumulatedSessionData>> {
-  console.log('Getting sessions from database...');
+  console.log('Creating temporary table, just to test db connection works...');
+  await seed();
 
-  const sessions = await db.query.host_data.findMany({
-    orderBy: desc(host_data.startTime),
-    limit: n,
-    with: {
-      userData: true,
-    },
-  });
+  console.log('Generated test db. Now getting sessions from database...');
 
-  console.log(`Session from hostAndUserDb: `, sessions);
+  const hostSessions = await db
+    .selectFrom('host_data')
+    .orderBy('start_time', 'desc')
+    .limit(n)
+    .selectAll()
+    .execute();
+
+  const userSessions = await db
+    .selectFrom('user_data')
+    .where(
+      'session_id',
+      'in',
+      hostSessions.map((h) => h.id)
+    )
+    .selectAll()
+    .execute();
+
+  console.log(`Session from host Db: `, hostSessions);
+  console.log(`Session from user Db: `, userSessions);
 
   const accumulatedSessions: Record<string, AccumulatedSessionData> = {};
-  sessions.forEach((session) => {
-    accumulatedSessions[session.id.toString()] = {
-      session_data: {
-        session_active: session.active,
-        num_sessions: session.numSessions,
-        num_active: session.numSessions - session.finished,
-        num_finished: session.finished,
-        summary: session.summary,
-        template: session.template,
-        topic: session.topic,
-        context: session.context,
-        finalReportSent: session.finalReportSent,
-        start_time: new Date(session.startTime),
-        client: session.client,
-      },
-      user_data: session.userData.reduce((acc, user) => {
-        acc[user.id.toString()] = user;
-        return acc;
-      }, {} as Record<string, UserSessionData>),
-    };
+  hostSessions.forEach((host) => {
+    if (host.id !== null) {
+      accumulatedSessions[host.id] = {
+        session_data: {
+          session_id: host.id,
+          session_active: host.active,
+          num_sessions: host.num_sessions,
+          num_active: host.num_sessions - host.finished,
+          num_finished: host.finished,
+          summary: host.summary ?? undefined,
+          template: host.template ?? '',
+          topic: host.topic,
+          context: host.context ?? undefined,
+          final_report_sent: host.final_report_sent,
+          start_time: new Date(host.start_time ?? Date.now()),
+          client: host.client ?? undefined,
+        },
+        user_data:
+          userSessions
+            .filter((user) => user.session_id === host.id)
+            .reduce((acc: Record<string, UserSessionData>, user) => {
+              acc[user.id] = {
+                ...user,
+                feedback: user.feedback ?? undefined,
+                chat_text: user.chat_text ?? undefined,
+                result_text: user.result_text ?? undefined,
+                bot_id: user.bot_id ?? undefined,
+                host_chat_id: user.host_chat_id ?? undefined,
+              };
+              return acc;
+            }, {} as Record<string, UserSessionData>) ?? {},
+      };
+    }
   });
 
   console.log('Accumulated sessions from Vercel:', accumulatedSessions);
@@ -132,22 +109,92 @@ export async function getHostAndUserSessions(
   return accumulatedSessions;
 }
 
+
+export async function getHostSessionById(id: string): Promise<s.HostSession[]> {
+  return await db
+    .selectFrom('host_data')
+    .where('host_data.id', '=', id)
+    .selectAll()
+    .execute();
+}
+
+export async function insertHostSession(data: s.NewHostSession): Promise<void> {
+  await db.insertInto('host_data').values(data).execute();
+}
+
+export async function updateHostSession(
+  id: string,
+  data: s.HostSessionUpdate
+): Promise<void> {
+  await db
+    .updateTable('host_data')
+    .set(data)
+    .where('id', '=', id)
+    .execute();
+}
+
+export async function deleteHostSession(id: string): Promise<void> {
+  await db.deleteFrom('host_data').where('id', '=', id).execute();
+}
+
+export async function getUserSessionById(
+  id: string
+): Promise<s.UserSession | undefined> {
+  return await db
+    .selectFrom('user_data')
+    .where('id', '=', id)
+    .selectAll()
+    .executeTakeFirst();
+}
+
+export async function insertUserSession(data: s.NewUserSession): Promise<void> {
+  await db.insertInto('user_data').values(data).execute();
+}
+
+export async function updateUserSession(
+  id: string,
+  data: s.UserSessionUpdate
+): Promise<void> {
+  await db
+    .updateTable('user_data')
+    .set(data)
+    .where('id', '=', id)
+    .execute();
+}
+
+export async function deleteUserSession(id: string): Promise<void> {
+  await db.deleteFrom('user_data').where('id', '=', id).execute();
+}
+
+export async function searchUserSessions(
+  columnName: keyof s.UserSessionsTable,
+  searchTerm: string
+): Promise<s.UserSession[]> {
+  return await db
+    .selectFrom('user_data')
+    .where(columnName, 'ilike', `%${searchTerm}%`)
+    .selectAll()
+    .execute();
+}
+
 export async function searchByTopic(
   search: string,
   offset: number
 ): Promise<{
-  sessions: SelectHostData[];
+  sessions: s.HostSession[];
   newOffset: number | null;
   totalSessions: number;
 }> {
-  // Always search the full table (max 1000), not per page
   if (search) {
+    const sessions = await db
+      .selectFrom('host_data')
+      .where('topic', 'ilike', `%${search}%`)
+      .limit(1000)
+      .selectAll()
+      .execute();
+
     return {
-      sessions: await db
-        .select()
-        .from(host_data)
-        .where(ilike(host_data.topic, `%${search}%`))
-        .limit(1000),
+      sessions,
       newOffset: null,
       totalSessions: 0,
     };
@@ -157,34 +204,36 @@ export async function searchByTopic(
     return { sessions: [], newOffset: null, totalSessions: 0 };
   }
 
-  let totalSessions = await db.select({ count: count() }).from(host_data);
-  if (totalSessions[0].count === 0) {
+  const totalSessions = await db
+    .selectFrom('host_data')
+    .select(db.fn.count('id').as('count'))
+    .executeTakeFirst();
+
+  if (!totalSessions || totalSessions.count === 0) {
     return { sessions: [], newOffset: null, totalSessions: 0 };
   }
-  let allSessions = await db.query.host_data.findMany({
-    limit: 20,
-    offset: offset,
-    orderBy: (sessions, { desc }) => [desc(sessions.id)],
-  });
 
-  // select().from(sessions).limit(5).offset(offset);
-  // let newOffset = moreSessions.length >= 5 ? offset + 5 : null;
-  let newOffset = null;
+  const allSessions = await db
+    .selectFrom('host_data')
+    .orderBy('id', 'desc')
+    .limit(20)
+    .offset(offset)
+    .selectAll()
+    .execute();
 
   return {
     sessions: allSessions,
-    newOffset,
-    totalSessions: totalSessions[0].count,
+    newOffset: null,
+    totalSessions: Number(totalSessions.count),
   };
 }
 
-export async function deleteSessionById(id: string) {
-  await db.delete(host_data).where(eq(host_data.id, id));
+export async function deleteSessionById(id: string): Promise<void> {
+  await db.deleteFrom('host_data').where('id', '=', id).execute();
 }
-
 export async function getSessionsFromMake() {
   console.log('Fetching sessions from Make...');
-  const response = await fetch('/api/sessions');
+  const response = await fetch(`api/${ApiTarget.Sessions}`);
   if (!response.ok) {
     console.error(
       'Network response was not ok: ',

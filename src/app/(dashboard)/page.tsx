@@ -4,9 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { File, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SessionsTable } from './sessions-table';
-import {
-  getSessionsFromMake,
-} from '@/lib/db';
+import { getHostAndUserSessions, getSessionsFromMake } from '@/lib/db';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AccumulatedSessionData } from '@/lib/types';
@@ -19,23 +17,46 @@ export default function Dashboard({
 }) {
   const search = searchParams.q ?? '';
   const offset = searchParams.offset ?? 0;
-  
+
   const [accumulated, setAccumulated] = useState<
     Record<string, AccumulatedSessionData>
   >({});
   useEffect(() => {
-    callMakeAPI();
+    // migrateFromMake();
     callNeonDB();
   }, [search, offset]);
 
-  async function callMakeAPI() {
-    const accumulatedSessions = await getSessionsFromMake();
-    setAccumulated(accumulatedSessions);
+  async function migrateFromMake() {
+    const accumulatedSessions: Record<string, AccumulatedSessionData> | null =
+      await getSessionsFromMake();
+    if (accumulatedSessions !== null) {
+      Object.entries(accumulatedSessions).forEach(
+        ([session_id, hostAndUserData]) => {
+          db.updateHostSession(session_id, hostAndUserData.session_data);
+          console.log(`inserted ${session_id} into host db`);
+          const userData = hostAndUserData.user_data;
+          Object.entries(userData).forEach(([userId, data]) => {
+            db.updateUserSession(userId, data);
+            console.log(`inserted ${userId} into user db. Data:`, data);
+          });
+        }
+      );
+      setAccumulated(accumulatedSessions);
+    }
   }
 
   async function callNeonDB() {
-    // const accumulatedSessions = await getHostAndUserSessions();
-    // setAccumulated(accumulatedSessions);
+    console.log('Getting sessions from database...');
+    const accumulatedSessions = await getHostAndUserSessions();
+    const sortedSessions = Object.entries(accumulatedSessions)
+      .sort(
+        ([, a], [, b]) =>
+          new Date(b.session_data.start_time).getTime() -
+          new Date(a.session_data.start_time).getTime()
+      )
+      .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
+
+    setAccumulated(sortedSessions);
   }
 
   // const insertFake = async () => {
