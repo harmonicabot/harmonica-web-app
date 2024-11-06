@@ -8,7 +8,6 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import {
   accumulateSessionData,
   sendApiCall,
-  sendCallToMake,
 } from '@/lib/utils';
 import {
   ApiAction,
@@ -25,25 +24,23 @@ import SessionResultStatus from '@/components/SessionResult/SessionResultStatus'
 import SessionResultShare from '@/components/SessionResult/SessionResultShare';
 import SessionResults from '@/components/SessionResult/SessionResults';
 import {
-  getHostAndUserSessions,
   getHostSessionById,
   searchUserSessions,
   updateHostSession,
 } from '@/lib/db';
 import { HostSession } from '@/lib/schema';
-import { generateAnswer } from 'app/api/gptUtils';
+import { getGPTCompletion } from 'app/api/gptUtils';
 
 export default function SessionResult() {
+  
   const { id } = useParams() as { id: string };
   const [userData, setUserData] = useState<UserSessionData[]>([]);
   const [accumulated, setAccumulated] = useSessionStore((state) => [
     state.accumulated[id],
     state.addAccumulatedSessions,
   ]);
-
+  
   const { user } = useUser();
-
-  console.log('Type of userData: ', typeof userData, ' UserData: ', userData);
   const numSessions = userData.filter((user) => user.chat_text).length;
   const completedSessions = userData.filter((user) => !user.active).length;
 
@@ -93,7 +90,6 @@ export default function SessionResult() {
   };
 
   async function fetchFromDb(): Promise<RawSessionData> {
-    // This is for now duplicating functionality in api/session
     const hostSession: HostSession = (await getHostSessionById(id))[0];
     const userSessions = await searchUserSessions('session_id', id);
     const userSessionsRecord = userSessions.reduce<
@@ -130,14 +126,18 @@ export default function SessionResult() {
       .filter(Boolean);
 
     const instructions = `
-Generate a short report of the session based on the following chat history:
+Generate a short report of the session summarizing relevant content based on the following chat history:\n\n
 ##### Next Participant: #####\n
 ${chats.join('##### Next Participant: #####\n')}
 `;
-    const assistantId = 'asst_cR68xq45nPJVVDPA32lAx1R0';
-    const summary = await generateAnswer(instructions, assistantId);
+    const summary = await getGPTCompletion(instructions);
+    console.log('Summary: ', summary);
 
-    updateHostSession(id, {summary});
+    // So that we don't have to re-fetch all data from the DB, we just update the summary in the store directly
+    updateHostSession(id, { summary });
+    const updatedSessionData = accumulated;
+    updatedSessionData.session_data.summary = summary;
+    setAccumulated(id, updatedSessionData);
   };
 
   const finishSession = async () => {
