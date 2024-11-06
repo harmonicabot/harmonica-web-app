@@ -10,7 +10,7 @@ import {
   sendApiCall,
   sendCallToMake,
 } from '@/lib/utils';
-import { ApiAction, ApiTarget, UserSessionData } from '@/lib/types';
+import { ApiAction, ApiTarget, RawSessionData, UserSessionData } from '@/lib/types';
 
 import SessionResultHeader, {
   SessionStatus,
@@ -30,10 +30,9 @@ export default function SessionResult() {
 
   const { user } = useUser();
 
+  console.log('Type of userData: ', typeof userData, ' UserData: ', userData);
   const numSessions = userData.filter((user) => user.chat_text).length;
-  const activeSessions = userData.filter(
-    (user) => user.active === 0 && user.chat_text && user.chat_text.length > 0,
-  ).length;
+  const completedSessions = userData.filter((user) => !user.active).length;
 
   const [hostType, setHostType] = useState(false);
 
@@ -72,15 +71,17 @@ export default function SessionResult() {
 
   const fetchSessionData = async () => {
     console.log(`Fetching session data for ${id}...`);
-    const data = await sendCallToMake({
+    const data: RawSessionData = await sendCallToMake({
       target: ApiTarget.Session,
       action: ApiAction.Stats,
       data: {
         session_id: id,
       },
     });
+    console.log('Data from Make/Vercel:', data);
     const allData = accumulateSessionData(data);
-    setUserData(data.user_data);
+    console.log('Accumulated data:', allData);
+    setUserData(Object.values(data.user_data));
     setAccumulated(id, allData);
   };
 
@@ -152,10 +153,10 @@ export default function SessionResult() {
           finalReportSent={accumulated.session_data.final_report_sent}
           startTime={accumulated.session_data.start_time}
           numSessions={numSessions}
-          activeSessions={activeSessions}
+          completedSessions={completedSessions}
         />
-        {!accumulated.session_data.final_report_sent && accumulated.session_data.session_id && (
-          <SessionResultShare sessionId={accumulated.session_data.session_id} />
+        {!accumulated.session_data.final_report_sent && (
+          <SessionResultShare sessionId={accumulated.session_data.id} />
         )}
       </div>
       <SessionResults

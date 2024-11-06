@@ -9,7 +9,6 @@ import { MagicWand } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { sendApiCall } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { insertHostSession } from '@/lib/db';
 
 // Todo: This class has become unwieldy. Think about splitting more functionality out. (Might not be easy though, because this is the 'coordinator' page that needs to somehow bind together all the functionality of the three sub-steps.)
 // One possibility to do that might be to have better state management / a session store or so, into which sub-steps can write to.
@@ -25,6 +24,8 @@ type Step = (typeof STEPS)[number];
 const enabledSteps = [true, false, false];
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { NewHostSession } from '@/lib/schema';
+import { insertHostSessions } from '@/lib/db';
 
 export default function CreationFlow() {
   const route = useRouter();
@@ -34,7 +35,7 @@ export default function CreationFlow() {
   const [builderAssistantId, setBuilderAssistantId] = useState('');
   const [sessionAssistantId, setSessionAssistantId] = useState('');
   const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>(
-    [],
+    []
   );
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
@@ -139,7 +140,7 @@ export default function CreationFlow() {
     e.preventDefault();
     setIsLoading(true);
     const prompt = prompts[currentVersion - 1].fullPrompt;
-    console.log("Creating assistant");
+    console.log('Creating assistant');
     const assistantResponse = await sendApiCall({
       action: ApiAction.CreateAssistant,
       target: ApiTarget.Builder,
@@ -160,8 +161,8 @@ export default function CreationFlow() {
       topic: formData.sessionName,
       bot_id: botId,
       host_chat_id: 'WebApp',
-    }
-    console.log("Create session in make.com")
+    };
+    console.log('Create session in make.com');
     const sessionResponse = await sendApiCall({
       target: ApiTarget.Session,
       action: ApiAction.CreateSession,
@@ -176,9 +177,17 @@ export default function CreationFlow() {
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 30); // Cookie expires in 30 days
       document.cookie = `sessionId=${sessionId}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
-      
-      const dataForDb = { id: sessionId, prompt: prompt, numSessions: 0, active: true, template: data.template, topic: data.topic, startTime: new Date().toISOString() };
-      insertHostSession(dataForDb);
+
+      const dataForDb: NewHostSession = {
+        id: sessionId,
+        prompt: prompt,
+        num_sessions: 0,
+        active: true,
+        template: data.template,
+        topic: data.topic,
+        start_time: new Date().toISOString(),
+      };
+      insertHostSessions(dataForDb);
 
       route.push(`/sessions/${sessionResponse.session_id}`);
     }

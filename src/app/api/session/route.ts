@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { getSessionFromMake } from '../dbUtils';
-import { ApiTarget, UserSessionData } from '@/lib/types';
+import { ApiTarget, RawSessionData, UserSessionData } from '@/lib/types';
 import * as db from '@/lib/db';
+import { HostSession } from '@/lib/schema';
 
 export const maxDuration = 200;
 export async function POST(request: Request) {
@@ -14,15 +15,9 @@ export async function POST(request: Request) {
         console.error('Missing session_id');
         throw NextResponse.json({ error: 'Missing session_id' }, { status: 400 })
       })();
-      const hostSession = await db.getHostSessionById(id);
+      const hostSession: HostSession = (await db.getHostSessionById(id))[0];
       console.log('Host session: ', hostSession);
-
-      // One off: insert user session:
-      const userSession = await db.insertUserSession({
-        session_id: id,
-        ...req_body.data.user_data,
-      });
-
+      
       const userSessions = await db.searchUserSessions("session_id", id);
       console.log('User sessions: ', userSessions);
       const userSessionsRecord = userSessions.reduce<Record<string, UserSessionData>>((acc, session) => {
@@ -36,10 +31,14 @@ export async function POST(request: Request) {
         };
         return acc;
       }, {});
-      
-      return NextResponse.json({ session_data: hostSession , user_data: userSessionsRecord }, { status: 200 });
+      const responseObject: RawSessionData = {
+        session_data: hostSession,
+        user_data: userSessionsRecord,
+      };
+      // return NextResponse.json({}, { status: 500 });
+      return NextResponse.json(responseObject, { status: 200 });
     default:
-      console.warn('Target not implemented yet: ', req_body.target);
+      console.warn('Target not implemented yet, falling back to getting it from make.com: ', req_body.target);
       return getSessionFromMake(req_body);
   }
 }

@@ -13,7 +13,7 @@ export interface HostSessionsTable {
   context: string | null;
   client: string | null;
   final_report_sent: boolean;
-  start_time: ColumnType<Date, string | undefined, never>;
+  start_time: ColumnType<Date | string, Date | string | undefined, never>;
 }
 
 export interface UserSessionsTable {
@@ -23,11 +23,12 @@ export interface UserSessionsTable {
   template: string;
   feedback: string | null;
   chat_text: string | null;
-  thread_id: string;
+  thread_id: string | null;
   result_text: string | null;
   bot_id: string | null;
   host_chat_id: string | null;
-  start_time: ColumnType<Date, string | undefined, never>;
+  start_time: ColumnType<Date, Date | string | undefined, never>;
+  active: boolean;
 }
 
 interface TempTable {

@@ -1,6 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSession } from '@auth0/nextjs-auth0';
 import { NextResponse } from 'next/server';
+import { getSessionsFromMake } from '@/lib/db';
 
 export const maxDuration = 200;
 

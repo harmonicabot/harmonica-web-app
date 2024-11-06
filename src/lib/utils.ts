@@ -14,24 +14,21 @@ export function cn(...inputs: ClassValue[]) {
 export function accumulateSessionData(
   data: RawSessionData,
 ): AccumulatedSessionData {
-  // console.log('Raw session data:', data);
+  console.log('Raw session data:', data);
 
   const userSessions = Object.values(data.user_data);
   const total_sessions = userSessions.length;
-  // This should always be a number, but the types between User&Session data aren't separated well enough... so let's handle both
-  const num_active = userSessions.filter((session) =>
-    typeof session.active === 'number' ? session.active > 0 : session.active,
-  ).length;
+  const num_active = userSessions.filter((session) => session.active).length;
   const num_finished = total_sessions - num_active;
 
   const accumulated: AccumulatedSessionData = {
     session_data: {
-      session_id: data.session_data.session_id!,
+      id: data.session_data.id!,
       session_active: typeof data.session_data.active === 'number' ? data.session_data.active > 0 : !!data.session_data.active,
       num_sessions: total_sessions,
       num_active: num_active,
       num_finished: num_finished,
-      summary: data.session_data.result,
+      summary: data.session_data.summary,
       template: data.session_data.template || '',
       topic: data.session_data.topic,
       context: data.session_data.context,

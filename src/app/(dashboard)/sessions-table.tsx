@@ -31,13 +31,9 @@ export type SessionData = {
 };
 
 export function SessionsTable({
-  sessions,
-  offset,
-  totalSessions,
+  sessions
 }: {
   sessions: Record<string, AccumulatedSessionData>;
-  offset: number;
-  totalSessions: number;
 }) {
   const tableHeaders = [
     {
@@ -73,15 +69,15 @@ export function SessionsTable({
   ];
 
   const getActiveFinished = (
-    objects: UserSessionData[]
+    userData: UserSessionData[]
   ): { started: number; finished: number } => {
     let started = 0;
     let finished = 0;
 
-    objects.forEach((obj) => {
-      if (obj.chat_text && obj.chat_text.length > 0) {
+    userData.forEach((user) => {
+      if (user.chat_text && user.chat_text.length > 0) {
         started++;
-        if (obj.active === 0) {
+        if (!user.active) {
           finished++;
         }
       }
