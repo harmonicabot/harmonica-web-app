@@ -2,20 +2,24 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, User } from "lucide-react";
 import { format } from "date-fns";
+import { start } from "repl";
 
 interface SessionResultStatusProps {
   finalReportSent: boolean;
   startTime: Date | string;
   numSessions: number;
-  activeSessions: number;
+  completedSessions: number;
 }
 
 export default function SessionResultStatus({
   finalReportSent,
   startTime,
   numSessions,
-  activeSessions
+  completedSessions
 }: SessionResultStatusProps) {
+  console.log("StartTime: ", startTime);
+  const startTimeString = !startTime ? 'a while ago' : format(new Date(startTime), ' dd MMM yyyy');
+  
   return (
     <div className="flex flex-grow gap-4">
       <Card className="flex-grow">
@@ -39,7 +43,7 @@ export default function SessionResultStatus({
             </Badge>
           )}
           <p> Started on
-            <span className="font-medium"> {format(new Date(startTime), ' dd MMM yyyy')}</span>
+            <span className="font-medium"> {startTimeString}</span>
           </p>
         </CardContent>
       </Card>
@@ -52,7 +56,7 @@ export default function SessionResultStatus({
         </CardHeader>
         <CardContent>
           <p><span className="font-medium">{numSessions}</span> <span className="text-yellow-800">Started</span></p>
-          <p><span className="font-medium">{activeSessions}</span> <span className="text-lime-800">Completed</span></p>
+          <p><span className="font-medium">{completedSessions}</span> <span className="text-lime-800">Completed</span></p>
         </CardContent>
       </Card>
     </div>

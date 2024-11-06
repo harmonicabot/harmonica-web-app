@@ -14,7 +14,7 @@ import {
   SessionOverview,
   UserSessionData,
 } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { Key, useEffect, useState } from 'react';
 import { Spinner } from '@/components/icons';
 import SortableTable from '@/components/SortableTable';
 
@@ -31,13 +31,9 @@ export type SessionData = {
 };
 
 export function SessionsTable({
-  sessions,
-  offset,
-  totalSessions,
+  sessions
 }: {
   sessions: Record<string, AccumulatedSessionData>;
-  offset: number;
-  totalSessions: number;
 }) {
   const tableHeaders = [
     {
@@ -64,7 +60,7 @@ export function SessionsTable({
       label: 'Created on',
       sortKey: 'createdOn',
       className: 'hidden md:table-cell',
-      sortBy: (sortDirection, a, b) => {
+      sortBy: (sortDirection: string, a: string, b: string) => {
         return sortDirection === 'asc'
           ? new Date(a).getTime() - new Date(b).getTime()
           : new Date(b).getTime() - new Date(a).getTime();
@@ -73,15 +69,15 @@ export function SessionsTable({
   ];
 
   const getActiveFinished = (
-    objects: UserSessionData[]
+    userData: UserSessionData[]
   ): { started: number; finished: number } => {
     let started = 0;
     let finished = 0;
 
-    objects.forEach((obj) => {
-      if (obj.chat_text && obj.chat_text.length > 0) {
+    userData.forEach((user) => {
+      if (user.chat_text && user.chat_text.length > 0) {
         started++;
-        if (obj.active === 0) {
+        if (!user.active) {
           finished++;
         }
       }
@@ -107,7 +103,7 @@ export function SessionsTable({
           Object.values(session.user_data)
         );
 
-        const finalReportSent = session.session_data.finalReportSent === true;
+        const finalReportSent = session.session_data.final_report_sent === true;
         const session_active = session.session_data.session_active;
 
         // is finalReportSent- means that the session is finished
@@ -128,7 +124,7 @@ export function SessionsTable({
 
         return {
           sessionId,
-          name,
+          name: name || '',
           status: statusText,
           active: !finalReportSent,
           numActive: started,
@@ -151,8 +147,8 @@ export function SessionsTable({
     );
   };
 
-  const getTableRow = (session: SessionData, index) => {
-    return <Session key={index} session={session} onDelete={handleOnDelete} />;
+  const getTableRow = (session: SessionData, index: Number) => {
+    return <Session key={index as Key} session={session} onDelete={handleOnDelete} />;
   };
 
   return (

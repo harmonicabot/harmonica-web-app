@@ -82,8 +82,8 @@ export function Session({
             </DropdownMenuItem> */}
             <DropdownMenuItem>
               <form
-                action={() => {
-                  if (deleteSession(session)) {
+                action={async () => {
+                  if (await deleteSession(session)) {
                     onDelete(session);
                   }
                 }}

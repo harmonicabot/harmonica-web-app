@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { getSession } from '../dbUtils';
+import { RawSessionData, UserSessionData } from '@/lib/types';
+import * as db from '@/lib/db';
+import { HostSession } from '@/lib/schema';
+import { getSessionFromMake } from '../dbUtils';
 
 export const maxDuration = 200;
+
+// Getting info for one session (host & all user sessions)
 export async function POST(request: Request) {
   const req_body = await request.json();
-  return getSession(req_body);
+  return getSessionFromMake(req_body);
 }
 
-export async function GET(request: Request) {
+// Getting info for all OpenAI assistants
+export async function GET() {
   const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   });

@@ -20,34 +20,33 @@ const client = new OpenAI({
 });
 
 export async function POST(req: Request) {
-  const data: RequestData = await req.json();
-  // console.log('Received data: ', data);
+  const request: RequestData = await req.json();
   // Todo: We should possibly switch this to always use 'handleResponse',
   //  so that we can easier switch between streaming and not. But not now.
-  console.log('Action: ', data.action);
-  switch (data.action) {
+  console.log('Action: ', request.action);
+  switch (request.action) {
     case ApiAction.CreatePrompt:
-      return await createNewPrompt(data.data as SessionBuilderData);
+      return await createNewPrompt(request.data as SessionBuilderData);
     case ApiAction.EditPrompt:
       // console.log('Editing prompt for data: ', data.data);
-      const d = data.data as TemplateEditingData;
+      const d = request.data as TemplateEditingData;
       return handleResponse(
         client,
         d.threadId,
         d.assistantId,
         d.instructions,
-        data.stream,
+        request.stream ?? false,
       );
     case ApiAction.CreateAssistant:
-      return await handleCreateAssistant(data.data as AssistantBuilderData);
+      return await handleCreateAssistant(request.data as AssistantBuilderData);
     case ApiAction.DeleteAssistants:
-      console.log(
-        'About to delete sessions: ',
-        data.data['assistantIds'].join(', '),
-      );
-      return await deleteAssistants(data.data['assistantIds']);
+      if (typeof request.data === 'object' && 'assistantIds' in request.data && Array.isArray(request.data.assistantIds)) {
+        return await deleteAssistants(request.data.assistantIds);
+      } else {
+        return NextResponse.json({ error: 'Invalid data format for DeleteAssistants' }, { status: 400 });
+      }
     default:
-      console.log('Invalid action: ', data.action);
+      console.log('Invalid action: ', request.action);
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   }
 }
@@ -94,7 +93,7 @@ async function getTempAssistants() {
     `Found assistants:\n${assistants.data.map((assistant) => assistant.name + ' ' + assistant.id).join('\n')}`,
   );
   const tempAssistantIds = assistants.data
-    .filter((assistant) => assistant.name.startsWith('testing_'))
+    .filter((assistant) => assistant.name!.startsWith('testing_'))
     .map((assistant) => assistant.id);
   return tempAssistantIds;
 }
