@@ -6,13 +6,18 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function handleCreateThread(messagesData: Array<OpenAIMessage>) {
-  const thread = await client.beta.threads.create({
-    messages: messagesData.map((messageData) => ({
-      role: messageData.role,
-      content: messageData.content,
-    })),
-  });
+export async function handleCreateThread(messagesData?: Array<OpenAIMessage>) {
+  let thread;
+  if (messagesData) {
+    thread = await client.beta.threads.create({
+      messages: messagesData.map((messageData) => ({
+        role: messageData.role,
+        content: messageData.content,
+      })),
+    });
+  } else {
+    thread = await client.beta.threads.create();
+  }
 
   return NextResponse.json({ thread: thread });
 }
@@ -70,4 +75,44 @@ async function getAllMessages(threadId: string) {
   }
   
   return allMessages;
+}
+
+export async function generateAnswer(instructions: string, assistant_id: string) {
+  const threadResponse = await handleCreateThread()
+  const threadId = (await threadResponse.json()).thread.id;
+  const answers = await handleGenerateAnswer({
+    threadId: threadId,
+    assistantId: assistant_id,
+    messageText: instructions,
+  });
+  return (await answers.json())[0]
+}
+
+async function extractAndFormatForExport(messages: string[], exportDataQuery: string) {
+  console.log(`Creating thread...`);
+  const threadResponse = await handleCreateThread([{
+    role: 'assistant',
+    content: `Any exported data should be derived from information from the following chat history: 
+##### START of CHAT HISTORY #####
+${messages.join(' --- next USER ---')}
+##### END of CHAT HISTORY #####`,
+  }]);
+    
+  const threadId = (await threadResponse.json()).thread.id;
+  
+  console.log(`Got threadID: ${threadId}; asking AI to format data...`);
+  const answerResponse = await handleGenerateAnswer({
+    threadId: threadId,
+    assistantId: 'asst_DAO97DuTb6856Z5eFqa8EwaP', // Export Agent
+    messageText:
+`Get information from the chat and export it as JSON to satisfy the following:
+
+\`\`\`${JSON.stringify(exportDataQuery)}\`\`\`
+
+ONLY return the plain JSON in your answer, without any additional text! Don't even include a \`\`\`json [...] \`\`\`\n`,
+  });
+  const answers = (await answerResponse.json()).messages;
+  console.log(`Got answers: ${JSON.stringify(answers)}`);
+  const lastReplyFromAI = answers[answers.length-1].text;
+  return lastReplyFromAI;
 }

@@ -6,7 +6,7 @@ export async function getSessionFromMake(body: any) {
   // This is just a middleman that 'forwards' the api call to the make.com database and back to the caller:
   console.warn('Using legacy Make API');
 
-  const url = process.env.MAKE_DATABASE_URL ?? '';
+  const url = process.env.MAKE_WEBHOOK_URL ?? '';
   const sessionData = await authGetSession();
   
   let clientId = "";

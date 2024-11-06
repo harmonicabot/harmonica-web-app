@@ -10,7 +10,12 @@ import {
   sendApiCall,
   sendCallToMake,
 } from '@/lib/utils';
-import { ApiAction, ApiTarget, RawSessionData, UserSessionData } from '@/lib/types';
+import {
+  ApiAction,
+  ApiTarget,
+  RawSessionData,
+  UserSessionData,
+} from '@/lib/types';
 
 import SessionResultHeader, {
   SessionStatus,
@@ -19,6 +24,14 @@ import SessionResultControls from '@/components/SessionResult/SessionResultContr
 import SessionResultStatus from '@/components/SessionResult/SessionResultStatus';
 import SessionResultShare from '@/components/SessionResult/SessionResultShare';
 import SessionResults from '@/components/SessionResult/SessionResults';
+import {
+  getHostAndUserSessions,
+  getHostSessionById,
+  searchUserSessions,
+  updateHostSession,
+} from '@/lib/db';
+import { HostSession } from '@/lib/schema';
+import { generateAnswer } from 'app/api/gptUtils';
 
 export default function SessionResult() {
   const { id } = useParams() as { id: string };
@@ -39,11 +52,13 @@ export default function SessionResult() {
   useEffect(() => {
     if (!hostType) {
       // Check if the sessionId in cookies matches the current session id
-      const cookies = document.cookie.split(';').reduce<Record<string, string>>((acc, cookie) => {
-        const [key, value] = cookie.trim().split('=');
-        acc[key] = value;
-        return acc;
-      }, {});
+      const cookies = document.cookie
+        .split(';')
+        .reduce<Record<string, string>>((acc, cookie) => {
+          const [key, value] = cookie.trim().split('=');
+          acc[key] = value;
+          return acc;
+        }, {});
 
       if (cookies['sessionId'] === id) {
         setHostType(true);
@@ -63,7 +78,7 @@ export default function SessionResult() {
       // Fetch data from the database if not in store
       fetchSessionData();
     } else {
-      console.log('Session data found in store', accumulated);
+      console.log('Session data found in store, not fetching');
       setAccumulated(id, accumulated);
       setUserData(Object.values(accumulated.user_data)); // Convert to array
     }
@@ -71,47 +86,62 @@ export default function SessionResult() {
 
   const fetchSessionData = async () => {
     console.log(`Fetching session data for ${id}...`);
-    const data: RawSessionData = await sendCallToMake({
-      target: ApiTarget.Session,
-      action: ApiAction.Stats,
-      data: {
-        session_id: id,
-      },
-    });
-    console.log('Data from Make/Vercel:', data);
+    const data: RawSessionData = await fetchFromDb();
     const allData = accumulateSessionData(data);
-    console.log('Accumulated data:', allData);
     setUserData(Object.values(data.user_data));
     setAccumulated(id, allData);
   };
 
-  const sendFinalReport = async () => {
-    const data = await sendCallToMake({
-      target: ApiTarget.Session,
-      action: ApiAction.SendFinalReport,
-      data: {
-        session_id: id,
-      },
-    });
-    await fetchSessionData();
-  };
+  async function fetchFromDb(): Promise<RawSessionData> {
+    // This is for now duplicating functionality in api/session
+    const hostSession: HostSession = (await getHostSessionById(id))[0];
+    const userSessions = await searchUserSessions('session_id', id);
+    const userSessionsRecord = userSessions.reduce<
+      Record<string, UserSessionData>
+    >((acc, session) => {
+      acc[session.id] = {
+        ...session,
+        feedback: session.feedback ?? undefined,
+        chat_text: session.chat_text ?? undefined,
+        result_text: session.result_text ?? undefined,
+        bot_id: session.bot_id ?? undefined,
+        host_chat_id: session.host_chat_id ?? undefined,
+      };
+      return acc;
+    }, {});
+    return {
+      session_data: hostSession,
+      user_data: userSessionsRecord,
+    };
+  }
 
   const createSummary = async () => {
     console.log(`Creating summary for ${id}...`);
-    const data = await sendCallToMake({
-      target: ApiTarget.Session,
-      action: ApiAction.CreateSummary,
-      data: {
-        session_id: id,
-        finished: accumulated.session_data.num_finished,
-      },
-    });
+    // Todo: do we want to update accumulated from the DB first, to make sure we have the latest data?
+    // Either way, we will need to have some mechanism so specify which chat-texts were included in the summary.
+    // One possibility would be to use timestamps, when the summary was created
+    // and compare with timestamps of the last chat text update.
+    // But that then would only work reliably if we DO update accumulated first; otherwise the summary might have been created with an outdated set of chats and we wouldn't know about that.
+    // ... unless we set a timestamp not of _now_ (i.e. when the summary is created) but of when accumulated was last updated...?
     await fetchSessionData();
+
+    const chats = Object.values(accumulated.user_data)
+      .map((userData) => userData.chat_text)
+      .filter(Boolean);
+
+    const instructions = `
+Generate a short report of the session based on the following chat history:
+##### Next Participant: #####\n
+${chats.join('##### Next Participant: #####\n')}
+`;
+    const assistantId = 'asst_cR68xq45nPJVVDPA32lAx1R0';
+    const summary = await generateAnswer(instructions, assistantId);
+
+    updateHostSession(id, {summary});
   };
 
   const finishSession = async () => {
     await createSummary();
-    await sendFinalReport();
   };
 
   const handleDelete = async () => {
