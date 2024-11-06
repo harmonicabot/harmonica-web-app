@@ -71,6 +71,8 @@ export const sendApiCall = async (request: RequestData) => {
 };
 
 export const sendCallToMake = async (body: RequestData) => {
+  console.warn('Using legacy Make API');
+
   return sendApiCall({
     ...body,
     target: ApiTarget.Session,

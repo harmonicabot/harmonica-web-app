@@ -10,6 +10,7 @@ import { ApiAction, ApiTarget } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
+import { updateUserSession } from '@/lib/db';
 
 type Message = {
   type: string;
@@ -53,28 +54,17 @@ const StandaloneChat = () => {
     // Find the submit button by looking for all buttons and matching text content
     const buttons = document.querySelectorAll('button');
     const submitButton = Array.from(buttons).find((button) =>
-      button.textContent?.includes('Try me!'),
+      button.textContent?.includes('Try me!')
     ) as HTMLButtonElement;
 
     if (submitButton) {
       submitButton.click();
     }
 
-    sendCallToMake({
-      target: ApiTarget.Session,
-      action: ApiAction.UpdateUserSession,
-      data: {
-        session_id: userSessionId,
-        active: 0,
-      },
-    })
-      .then((data) => {
-        setIsLoading(false);
-        setSessionFinished(true);
-      })
-      .catch((error) =>
-        console.error('[!] error creating user session -> ', error),
-      );
+    updateUserSession(userSessionId, { active: false }).then(() => {
+      setIsLoading(false);
+      setSessionFinished(true);
+    });
   };
 
   useEffect(() => {
@@ -127,7 +117,7 @@ const StandaloneChat = () => {
           if (data.session_id) setUserSessionId(data.session_id);
         })
         .catch((error) =>
-          console.error('[!] error creating user session -> ', error),
+          console.error('[!] error creating user session -> ', error)
         );
     }
   }, [accumulated]);
@@ -178,7 +168,11 @@ const StandaloneChat = () => {
                               : 'You are invited to share your thoughts'}
                           </h2>
                           <p
-                            className={`mb-6 ${accumulated?.session_data?.final_report_sent ? 'sm:mb-8' : ''}`}
+                            className={`mb-6 ${
+                              accumulated?.session_data?.final_report_sent
+                                ? 'sm:mb-8'
+                                : ''
+                            }`}
                           >
                             {accumulated?.session_data?.final_report_sent
                               ? "If you were unable to participate, you can still view the session results and even ask questions about other users' feedback or engage with their responses. Alternatively, you can create a new session on any topic and invite others to participate."

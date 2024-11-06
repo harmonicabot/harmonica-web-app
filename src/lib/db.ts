@@ -107,10 +107,11 @@ export async function getHostSessionById(id: string): Promise<s.HostSession[]> {
   }
 }
 
-export async function insertHostSessions(data: s.NewHostSession | s.NewHostSession[]): Promise<void> {
+export async function insertHostSessions(data: s.NewHostSession | s.NewHostSession[]): Promise<string[]> {
   try {
     console.log('Inserting host session with data:', data);
-    await db.insertInto('host_data').values(data).execute();
+    const result = await db.insertInto('host_data').values(data).returningAll().execute();
+    return result.map(row => row.id);
   } catch (error) {
     console.error('Error inserting host sessions:', error);
     throw error;
@@ -263,6 +264,7 @@ function getMakeUrl(
   includeLimit: boolean = true,
   offset: number = 20
 ) {
+  console.warn('Using legacy Make API');
   return (
     `https://eu2.make.com/api/v2/data-stores/${storeId}/data` +
     (includeLimit ? '?pg[limit]=' + limit + '&pg[offset]=' + offset : '')

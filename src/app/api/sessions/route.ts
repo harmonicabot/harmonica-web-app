@@ -15,6 +15,7 @@ function getUrl(
   includeLimit: boolean = true,
   offset: number = 20,
 ) {
+  console.warn('Using legacy Make API');
   return (
     `https://eu2.make.com/api/v2/data-stores/${storeId}/data` +
     (includeLimit ? '?pg[limit]=' + limit + '&pg[offset]=' + offset : '')

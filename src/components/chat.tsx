@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { sendApiCall, sendCallToMake } from '@/lib/utils';
+import { sendApiCall } from '@/lib/utils';
+import * as db from '@/lib/db';
+
 import {
   ApiAction,
   ApiTarget,
@@ -120,24 +120,6 @@ Help & Support:
     }
   };
 
-  const updateChatText = (chatText: string) => {
-    sendCallToMake({
-      target: ApiTarget.Session,
-      action: ApiAction.UpdateUserSession,
-      data: {
-        session_id: sessionId,
-        chat_text: chatText,
-        active: 1,
-      },
-    })
-      .then((data) => {
-        console.log('[i] Chat text updated:', data);
-      })
-      .catch((error) =>
-        console.error('[!] error creating user session -> ', error),
-      );
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -182,14 +164,14 @@ Help & Support:
           ];
         }
         if (sessionId && response.messages) {
-          updateChatText(
+          const updatedChatText =
             response.messages
               .map(
                 (m) =>
                   `${m.type === 'USER' ? 'Question' : 'Answer'} : ${m.text}`,
               )
-              .join('\n'),
-          );
+              .join('\n');
+          db.updateUserSession(sessionId, { chat_text: updatedChatText, active: true });
         }
 
         setMessages(
