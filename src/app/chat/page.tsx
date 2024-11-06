@@ -10,7 +10,7 @@ import { ApiAction, ApiTarget } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { updateUserSession } from '@/lib/db';
+import { insertUserSessions, updateUserSession } from '@/lib/db';
 
 type Message = {
   type: string;
@@ -103,18 +103,15 @@ const StandaloneChat = () => {
 
   useEffect(() => {
     if (accumulated && accumulated.session_data.template) {
-      sendCallToMake({
-        target: ApiTarget.Session,
-        action: ApiAction.CreateUserSession,
-        data: {
+      
+      insertUserSessions({
           session_id: sessionId,
           user_id: 'anonymous',
           template: accumulated.session_data.template,
-          active: 1,
-        },
-      })
-        .then((data) => {
-          if (data.session_id) setUserSessionId(data.session_id);
+          active: true,
+        })
+        .then((ids) => {
+          if (ids[0]) setUserSessionId(ids[0]);
         })
         .catch((error) =>
           console.error('[!] error creating user session -> ', error)
