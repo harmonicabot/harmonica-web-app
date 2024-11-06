@@ -1,5 +1,5 @@
+import { getSession } from '@auth0/nextjs-auth0';
 import { NextResponse } from 'next/server';
-import { getSessionsFromMake } from '@/lib/db';
 
 export const maxDuration = 200;
 
@@ -22,6 +22,7 @@ function getUrl(
   // + (sortBy? "&pg[sortBy]=" + sortBy : "") // Sorting not allowed for this api 😢
 }
 
+/** @deprecated Use db.getHostAndUserSessions() instead where possible*/
 export async function GET(request: Request) {
   const { user } = await getSession();
   const clientId = process.env.CLIENT_ID ? process.env.CLIENT_ID : user?.sub || "";

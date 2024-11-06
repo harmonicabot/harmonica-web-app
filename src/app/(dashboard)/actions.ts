@@ -1,4 +1,4 @@
-import { deleteSessionById } from '@/lib/db';
+import { deleteHostSession, deleteSessionById } from '@/lib/db';
 import { AccumulatedSessionData, ApiAction, ApiTarget } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { SessionData } from './sessions-table';
@@ -27,7 +27,7 @@ export async function deleteSession(session: SessionData) {
     // await deleteUserData(userIds);
     // we can however delete the host data, since there's not really any important information in here.
     await deleteHostData(hostId);
-    console.log('Deleted Assistant, User Sessions & Host Session');
+    console.log('Deleted Assistant & Host Session');
     return true;
   }
   return false;
@@ -53,7 +53,7 @@ async function deleteAssistant(assistantId: string) {
 
 async function deleteHostData(hostId: string) {
   if (hostId) {
-    console.log(`Deleting ${hostId} from host db...`);
+    console.log(`Deleting ${hostId} from make host db...`);
     let response = await fetch(`api/${ApiTarget.Sessions}`, {
       method: 'DELETE',
       headers: {
@@ -64,13 +64,20 @@ async function deleteHostData(hostId: string) {
 
     if (!response.ok) {
       console.error(
-        'There was a problem deleting ids:',
+        'There was a problem deleting session from make:',
         response.status,
         response.statusText
       );
+    } else {
+      console.log(`Deleted ${hostId} from host db...: ${await response.text()}`);
     }
-
-    console.log(`Deleted ${hostId} from host db...: ${await response.text()}`);
+    
+    try {
+      deleteHostSession(hostId);
+      console.log(`Deleted ${hostId} from host db...: ${await response.text()}`);
+    } catch (e) {
+      console.error(e);
+    }
   }
 }
 

@@ -4,16 +4,13 @@ import * as s from './schema';
 import { getSession } from '@auth0/nextjs-auth0';
 import {
   AccumulatedSessionData,
-  ApiTarget,
   RawSessionData,
   RawSessionOverview,
-  SessionOverview,
   UserSessionData,
 } from './types';
 import { accumulateSessionData } from '@/lib/utils';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
-import { sql } from 'kysely';
 // Only set WebSocket constructor on the server side
 if (typeof window === 'undefined') {
   console.log('Yep, running serverside!');
@@ -98,160 +95,170 @@ export async function getHostAndUserSessions(
 }
 
 export async function getHostSessionById(id: string): Promise<s.HostSession[]> {
-  return await db
-    .selectFrom('host_data')
-    .where('host_data.id', '=', id)
-    .selectAll()
-    .execute();
+  try {
+    return await db
+      .selectFrom('host_data')
+      .where('host_data.id', '=', id)
+      .selectAll()
+      .execute();
+  } catch (error) {
+    console.error('Error getting host session by ID:', error);
+    throw error;
+  }
 }
 
 export async function insertHostSessions(data: s.NewHostSession | s.NewHostSession[]): Promise<void> {
-  console.log('Inserting host session with data:', data);
-  await db.insertInto('host_data').values(data).execute();
+  try {
+    console.log('Inserting host session with data:', data);
+    await db.insertInto('host_data').values(data).execute();
+  } catch (error) {
+    console.error('Error inserting host sessions:', error);
+    throw error;
+  }
 }
 
 export async function upsertHostSession(
   data: s.NewHostSession,
   onConflict: 'skip' | 'update' = 'skip'
 ): Promise<void> {
-  await db
-    .insertInto('host_data')
-    .values(data)
-    .onConflict((oc) =>
-      onConflict === 'skip'
-        ? oc.column("id").doNothing()
-        : oc.column("id").doUpdateSet(data)
-    )
-    .execute();
+  try {
+    await db
+      .insertInto('host_data')
+      .values(data)
+      .onConflict((oc) =>
+        onConflict === 'skip'
+          ? oc.column("id").doNothing()
+          : oc.column("id").doUpdateSet(data)
+      )
+      .execute();
+  } catch (error) {
+    console.error('Error upserting host session:', error);
+    throw error;
+  }
 }
 
 export async function updateHostSession(
   id: string,
   data: s.HostSessionUpdate
 ): Promise<void> {
-  console.log('Updating host session with id:', id, ' with data:', data);
-  await db.updateTable('host_data').set(data).where('id', '=', id).execute();
+  try {
+    console.log('Updating host session with id:', id, ' with data:', data);
+    await db.updateTable('host_data').set(data).where('id', '=', id).execute();
+  } catch (error) {
+    console.error('Error updating host session:', error);
+    throw error;
+  }
 }
 
 export async function deleteHostSession(id: string): Promise<void> {
-  await db.deleteFrom('host_data').where('id', '=', id).execute();
+  try {
+    await db.deleteFrom('host_data').where('id', '=', id).execute();
+  } catch (error) {
+    console.error('Error deleting host session:', error);
+    throw error;
+  }
 }
 
 export async function getUserSessionById(
   id: string
 ): Promise<s.UserSession | undefined> {
-  return await db
-    .selectFrom('user_data')
-    .where('id', '=', id)
-    .selectAll()
-    .executeTakeFirst();
+  try {
+    return await db
+      .selectFrom('user_data')
+      .where('id', '=', id)
+      .selectAll()
+      .executeTakeFirst();
+  } catch (error) {
+    console.error('Error getting user session by ID:', error);
+    throw error;
+  }
 }
 
 export async function insertUserSessions(data: s.NewUserSession | s.NewUserSession[]): Promise<void> {
-  console.log('Inserting user session with data:', data);
-  await db.insertInto('user_data').values(data).execute();
+  try {
+    console.log('Inserting user session with data:', data);
+    await db.insertInto('user_data').values(data).execute();
+  } catch (error) {
+    console.error('Error inserting user sessions:', error);
+    throw error;
+  }
 }
 
 export async function upsertUserSession(
   data: s.NewUserSession,
   onConflict: 'skip' | 'update' = 'skip'
 ): Promise<void> {
-  await db
-    .insertInto('user_data')
-    .values(data)
-    .onConflict((oc) =>
-      onConflict === 'skip'
-        ? oc.column("id").doNothing()
-        : oc.column("id").doUpdateSet(data)
-    )
-    .execute();
+  try {
+    await db
+      .insertInto('user_data')
+      .values(data)
+      .onConflict((oc) =>
+        onConflict === 'skip'
+          ? oc.column("id").doNothing()
+          : oc.column("id").doUpdateSet(data)
+      )
+      .execute();
+  } catch (error) {
+    console.error('Error upserting user session:', error);
+    throw error;
+  }
 }
 
 export async function updateUserSession(
   id: string,
   data: s.UserSessionUpdate
 ): Promise<void> {
-  console.log('Updating user session with id:', id, ' with data:', data);
-  await db.updateTable('user_data').set(data).where('id', '=', id).execute();
+  try {
+    console.log('Updating user session with id:', id, ' with data:', data);
+    await db.updateTable('user_data').set(data).where('id', '=', id).execute();
+  } catch (error) {
+    console.error('Error updating user session:', error);
+    throw error;
+  }
 }
 
 export async function deleteUserSession(id: string): Promise<void> {
-  await db.deleteFrom('user_data').where('id', '=', id).execute();
+  try {
+    await db.deleteFrom('user_data').where('id', '=', id).execute();
+  } catch (error) {
+    console.error('Error deleting user session:', error);
+    throw error;
+  }
 }
 
 export async function searchUserSessions(
   columnName: keyof s.UserSessionsTable,
   searchTerm: string
 ): Promise<s.UserSession[]> {
-  return await db
-    .selectFrom('user_data')
-    .where(columnName, 'ilike', `%${searchTerm}%`)
-    .selectAll()
-    .execute();
-}
-
-export async function searchByTopic(
-  search: string,
-  offset: number
-): Promise<{
-  sessions: s.HostSession[];
-  newOffset: number | null;
-  totalSessions: number;
-}> {
-  if (search) {
-    const sessions = await db
-      .selectFrom('host_data')
-      .where('topic', 'ilike', `%${search}%`)
-      .limit(1000)
+  try {
+    return await db
+      .selectFrom('user_data')
+      .where(columnName, 'ilike', `%${searchTerm}%`)
       .selectAll()
       .execute();
-
-    return {
-      sessions,
-      newOffset: null,
-      totalSessions: 0,
-    };
+  } catch (error) {
+    console.error('Error searching user sessions:', error);
+    throw error;
   }
-
-  if (offset === null) {
-    return { sessions: [], newOffset: null, totalSessions: 0 };
-  }
-
-  const totalSessions = await db
-    .selectFrom('host_data')
-    .select(db.fn.count('id').as('count'))
-    .executeTakeFirst();
-
-  if (!totalSessions || totalSessions.count === 0) {
-    return { sessions: [], newOffset: null, totalSessions: 0 };
-  }
-
-  const allSessions = await db
-    .selectFrom('host_data')
-    .orderBy('id', 'desc')
-    .limit(20)
-    .offset(offset)
-    .selectAll()
-    .execute();
-
-  return {
-    sessions: allSessions,
-    newOffset: null,
-    totalSessions: Number(totalSessions.count),
-  };
 }
 
 export async function deleteSessionById(id: string): Promise<void> {
-  await db.deleteFrom('host_data').where('id', '=', id).execute();
+  try {
+    await db.deleteFrom('host_data').where('id', '=', id).execute();
+  } catch (error) {
+    console.error('Error deleting session by ID:', error);
+    throw error;
+  }
 }
 
+// #### Legacy make.com db stuff ####
 const sessionStore = 17957;
 const userStore = 17913;
 
 let limit = 100;
 const token = process.env.MAKE_AUTH_TOKEN;
 
-function getUrl(
+function getMakeUrl(
   storeId: number,
   includeLimit: boolean = true,
   offset: number = 20
@@ -275,44 +282,22 @@ type DbResponse = {
   };
 };
 
-async function getAllUserData() {
-  let offset = 0;
-  let batch = await getUserData(offset);
-  const allData = batch;
-  while (batch.length > 0) {
-    offset += limit;
-    batch = await getUserData(offset);
-    allData.push(...batch);
-  }
-  return allData;
-}
-
-async function getUserData(offset) {
-  const results: DbResponse = await fetch(getUrl(userStore, true, offset), {
-    method: 'GET',
-    headers: {
-      Authorization: `Token ${token}`,
-      'Content-Type': 'application/json',
-    },
-  }).then((res) => res.json());
-  return results.records;
-}
-
 export async function getSessionsFromMake() {
-  console.log('Fetching sessions from Make...');
+  // Only called from db migration
+  console.warn('Fetching sessions from Make...');
 
   const { user } = await getSession();
   const clientId = '';
   try {
     const [sessionData, userData] = await Promise.all([
-      fetch(getUrl(sessionStore), {
+      fetch(getMakeUrl(sessionStore), {
         method: 'GET',
         headers: {
           Authorization: `Token ${token}`,
           'Content-Type': 'application/json',
         },
       }),
-      fetch(getUrl(userStore), {
+      fetch(getMakeUrl(userStore), {
         method: 'GET',
         headers: {
           Authorization: `Token ${token}`,
@@ -355,7 +340,7 @@ export async function getSessionsFromMake() {
     const expected = userJson.count;
     let available = limit;
     while (expected > available) {
-      const batch = await fetch(getUrl(userStore, true, available), {
+      const batch = await fetch(getMakeUrl(userStore, true, available), {
         method: 'GET',
         headers: {
           Authorization: `Token ${token}`,
