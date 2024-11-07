@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Share2 } from "lucide-react";
+import { ExternalLink, Share2, Clipboard } from "lucide-react";
 import QRCode from 'qrcode.react';
 
 interface SessionResultShareProps {
@@ -12,8 +12,9 @@ export  default function SessionResultShare({ sessionId }: SessionResultSharePro
   const [showToast, setShowToast] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const url = `${window.location.origin}/chat?s=${sessionId}`;
+  const urlDomainOnly = `${window.location.host}/chat?s=${sessionId}`;
   const copyToClipboard = () => {
-    const url = `${window.location.origin}/chat?s=${sessionId}`;
     navigator.clipboard.writeText(url).then(() => {
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
@@ -34,8 +35,13 @@ export  default function SessionResultShare({ sessionId }: SessionResultSharePro
         <h2 className="font-bold mb-2">
           Share your session with participants
         </h2>
+        <p className='text-sm mb-2'><a href={url} target='_blank'>
+          {urlDomainOnly}
+          <ExternalLink className="inline-block ml-1 mb-3 w-2 h-2" />
+        </a></p>
         <div>
           <Button className="me-2" onClick={copyToClipboard}>
+            <Clipboard className="mr-2" />
             Copy link
           </Button>
           {showToast && (
