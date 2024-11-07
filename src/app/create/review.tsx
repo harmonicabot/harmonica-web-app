@@ -7,10 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { VersionedPrompt } from './page';
 import { Spinner } from '@/components/icons';
-import { sendApiCall } from '@/lib/utils';
-import { ApiAction, ApiTarget } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
-import { Eye } from 'lucide-react';
 import Markdown from 'react-markdown';
 import ChatPopupButton from '@/components/ChatPopupButton';
 

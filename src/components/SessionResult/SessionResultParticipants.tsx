@@ -45,7 +45,7 @@ export default function SessionResultParticipants({
     }));
 
   function extractName(input: string): string {
-    const prefix = 'Answer : User name is ';
+    const prefix = ' : User name is ';
     const startIndex = input.indexOf(prefix);
     if (startIndex === -1) return 'anonymous';
 
