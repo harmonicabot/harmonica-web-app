@@ -21,11 +21,11 @@ type ColumnData = any[];
 
 export default function SortableTable({
   tableHeaders,
-  getTableRow: getTableRow,
+  getTableRow,
   data,
 }: {
   tableHeaders: TableHeaderData[];
-  getTableRow: (data: any, index: Number) => React.ReactNode;
+  getTableRow: (data: any, index: number) => JSX.Element;
   data: ColumnData;
 }) {
 

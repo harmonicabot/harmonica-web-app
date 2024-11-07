@@ -9,7 +9,9 @@ import { MagicWand } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { sendApiCall } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { insertHostSession } from '@/lib/db';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { NewHostSession } from '@/lib/schema';
+import * as db from '@/lib/db';
 
 // Todo: This class has become unwieldy. Think about splitting more functionality out. (Might not be easy though, because this is the 'coordinator' page that needs to somehow bind together all the functionality of the three sub-steps.)
 // One possibility to do that might be to have better state management / a session store or so, into which sub-steps can write to.
@@ -24,7 +26,6 @@ const STEPS = ['Create', 'Review'] as const;
 type Step = (typeof STEPS)[number];
 const enabledSteps = [true, false, false];
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function CreationFlow() {
   const route = useRouter();
@@ -34,7 +35,7 @@ export default function CreationFlow() {
   const [builderAssistantId, setBuilderAssistantId] = useState('');
   const [sessionAssistantId, setSessionAssistantId] = useState('');
   const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>(
-    [],
+    []
   );
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
@@ -139,7 +140,7 @@ export default function CreationFlow() {
     e.preventDefault();
     setIsLoading(true);
     const prompt = prompts[currentVersion - 1].fullPrompt;
-    console.log("Creating assistant");
+    console.log('Creating assistant');
     const assistantResponse = await sendApiCall({
       action: ApiAction.CreateAssistant,
       target: ApiTarget.Builder,
@@ -152,36 +153,31 @@ export default function CreationFlow() {
     deleteTemporaryAssistants(temporaryAssistantIds);
 
     setSessionAssistantId(assistantResponse.assistantId);
-    const botId = 'harmonica_chat_bot';
-    // Todo: How to do this better? Can we get a list of 'available' bots, i.e. where no session is running, and use that? Or 'intelligently' chose one whose name matches best? Later on with user management each user will probably have their own pool of bots.
-    // Or maybe we can create a bot dynamically?
-    const data = {
+    
+    // Create a new session in the host db
+    const data: NewHostSession = {
       template: assistantResponse.assistantId,
       topic: formData.sessionName,
-      bot_id: botId,
-      host_chat_id: 'WebApp',
-    }
-    console.log("Create session in make.com")
-    const sessionResponse = await sendApiCall({
-      target: ApiTarget.Session,
-      action: ApiAction.CreateSession,
-      data: data,
-    });
+      prompt: prompt,
+      num_sessions: 0,
+      finished: 0,
+      active: true,
+      final_report_sent: false,
+      start_time: new Date().toISOString(),
+    };
 
-    if (sessionResponse.session_id) {
-      const sessionId = sessionResponse.session_id;
-      setSessionId(sessionId);
+    db.insertHostSessions(data)
+      .then((sessionIds) => {
+        const session_id = sessionIds[0];
+        setSessionId(session_id);
 
-      // Set the cookie using document.cookie
-      const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + 30); // Cookie expires in 30 days
-      document.cookie = `sessionId=${sessionId}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
-      
-      const dataForDb = { id: sessionId, prompt: prompt, numSessions: 0, active: true, template: data.template, topic: data.topic, startTime: new Date().toISOString() };
-      insertHostSession(dataForDb);
+        // Set the cookie using document.cookie
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + 30); // Cookie expires in 30 days
+        document.cookie = `sessionId=${session_id}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
 
-      route.push(`/sessions/${sessionResponse.session_id}`);
-    }
+        route.push(`/sessions/${session_id}`);
+      });
   };
 
   function deleteTemporaryAssistants(assistantIds: string[]) {

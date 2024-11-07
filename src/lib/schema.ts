@@ -1,59 +1,83 @@
-import {
-  pgTable,
-  serial,
-  text,
-  timestamp,
-  integer,
-  boolean,
-  foreignKey,
-  pgEnum,
-} from 'drizzle-orm/pg-core';
-import { relations, sql } from 'drizzle-orm';
+import { Generated, ColumnType, Selectable, Insertable, Updateable } from 'kysely';
+import { User } from 'next-auth';
+import { sql } from 'kysely';
 
-// All except the numSessions & prompt are also in make.com db
-export const host_data = pgTable('host_data', {
-  id: text('id').primaryKey().notNull(),  // Todo: HRM-264 Change 'text' to 'serial' or UUID or so once we swap over to using this as our main db so that it creates the id on insert
-  prompt: text('prompt').notNull(),
-  numSessions: integer('num_sessions').notNull(),
-  active: boolean('active').notNull(),
-  finished: integer('finished'),
-  summary: text('summary'),
-  template: text('template').notNull(),
-  topic: text('topic').notNull(),
-  context: text('context'),
-  client: text('client'),
-  finalReportSent: boolean('final_report_sent'),
-  startTime: timestamp('start_time', { mode: 'string' }).notNull(),
-});
+export interface HostSessionsTable {
+  id: Generated<string>;
+  prompt: string;
+  num_sessions: number;
+  active: boolean;
+  finished: number;
+  summary: string | null;
+  template: string;
+  topic: string;
+  context: string | null;
+  client: string | null;
+  final_report_sent: boolean;
+  start_time: ColumnType<Date | string, Date | string | undefined, never>;
+  last_edit: Generated<Date>;
+}
 
-// Mapped basically 1-1 from make.com db
-export const user_data = pgTable('user_data', {
-  id: text('id').primaryKey().notNull(),  // Todo: HRM-264 Change 'text' to 'serial' or UUID or so once we swap over to using this as our main db so that it creates the id on insert
-  sessionId: text('session_id').references(() => host_data.id),
-  userId: text('user_id'),
-  active: integer('active'),
-  template: text('template'),
-  feedback: text('feedback'),
-  chatText: text('chat_text'),
-  threadId: text('thread_id'),
-  resultText: text('result_text'),
-  botId: text('bot_id'),
-  hostChatId: text('host_chat_id'),
-});
+/* ***** TRIGGER running on pg to update the last_edit on summary changes: *****
+CREATE OR REPLACE FUNCTION update_last_edit_summary()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.summary IS DISTINCT FROM OLD.summary THEN
+        NEW.last_edit = CURRENT_TIMESTAMP;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-export const hostRelations = relations(host_data, ({ many }) => ({
-  userData: many(user_data),
-}));
+CREATE TRIGGER update_last_edit_on_summary_change
+    BEFORE UPDATE ON host_data
+    FOR EACH ROW
+    EXECUTE FUNCTION update_last_edit_summary();
+*/
 
-export const userDataRelations = relations(user_data, ({ one }) => ({
-  session: one(host_data, {
-    fields: [user_data.sessionId],
-    references: [host_data.id],
-  }),
-}));
 
-export type InsertHostData = typeof host_data.$inferInsert;
-export type SelectHostData = typeof host_data.$inferSelect;
+export interface UserSessionsTable {
+  id: Generated<string>;
+  session_id: string;
+  user_id: string;
+  template: string;
+  feedback: string | null;
+  chat_text: string | null;
+  thread_id: string | null;
+  result_text: string | null;
+  bot_id: string | null;
+  host_chat_id: string | null;
+  active: boolean;
+  start_time: ColumnType<Date, Date | string | undefined, never>;
+  last_edit: Generated<Date>;
+}
 
-export type InsertUserData = typeof user_data.$inferInsert;
-export type SelectUserData = typeof user_data.$inferSelect;
+/* ***** TRIGGER running on pg to update the last_edit on chat_text change: *****
+CREATE OR REPLACE FUNCTION update_last_edit()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.chat_text IS DISTINCT FROM OLD.chat_text THEN
+        NEW.last_edit = CURRENT_TIMESTAMP;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_last_edit_on_chat_change
+    BEFORE UPDATE ON user_data
+    FOR EACH ROW
+    EXECUTE FUNCTION update_last_edit();
+*/
+
+// Database names:
+export interface Databases {
+  host_data: HostSessionsTable;
+  user_data: UserSessionsTable;
+}
+
+export type HostSession = Selectable<HostSessionsTable>
+export type NewHostSession = Insertable<HostSessionsTable>
+export type HostSessionUpdate = Updateable<HostSessionsTable>
+export type UserSession = Selectable<UserSessionsTable>
+export type NewUserSession = Insertable<UserSessionsTable>
+export type UserSessionUpdate = Updateable<UserSessionsTable>

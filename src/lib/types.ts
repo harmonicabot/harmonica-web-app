@@ -33,9 +33,6 @@ export enum ApiAction {
   CreateSummary = 'create summary',
   SendFinalReport = 'send final report',
   Stats = 'stats',
-  CreateSession = 'create session',
-  CreateUserSession = 'create user session',
-  UpdateUserSession = 'update user session',
   CreateThread = 'createThread',
   GenerateAnswer = 'generateAnswer',
   DeleteAssistants = 'delete assistants',
@@ -45,6 +42,7 @@ export enum ApiAction {
 export enum ApiTarget {
   Builder = 'builder',
   Session = 'session',
+  Sessions = 'sessions',
   Chat = 'chat',
   Export = 'export',
 }
@@ -71,31 +69,31 @@ export type RequestData = {
 export type OpenAIMessage = { role: 'assistant' | 'user'; content: string };
 
 export type RawSessionOverview = {
-  session_id?: string;
+  id?: string;
   active?: number | boolean;
   topic: string;
   context: string;
-  result: string;
+  summary: string;
   template?: string;
-  start_time?: Date;
+  start_time?: Date | string;
   botId?: string;
   client?: string;
   final_report_sent?: boolean;
 };
 
 export type SessionOverview = {
-  session_id?: string;
+  id: string;
   session_active: boolean;
   num_sessions: number;
   num_active: number;
   num_finished: number;
-  summary: string;
+  summary?: string;
   template: string;
   topic: string;
-  context: string;
+  context?: string;
   client?: string;
-  finalReportSent: boolean;
-  start_time: Date;
+  final_report_sent: boolean;
+  start_time: Date | string;
 };
 
 // All of the fields are marked as optional,
@@ -111,7 +109,7 @@ export type SessionOverview = {
 //  Whatever it is, right now it's difficult to know what it actually is 😵‍💫
 export type UserSessionData = {
   session_id?: string;
-  active?: number | boolean;
+  active: boolean;
   user_id?: string;
   template?: string;
   feedback?: string;
