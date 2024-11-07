@@ -105,7 +105,7 @@ ${chats.join('##### Next Participant: #####\n')}
     // So that we don't have to re-fetch all data from the DB, we just update the summary in the store directly
     updateHostSession(id, { summary });
     const updatedSessionData = accumulated;
-    updatedSessionData.session_data.summary = summary;
+    updatedSessionData.session_data.summary = summary!;
     setAccumulated(id, updatedSessionData);
   };
 

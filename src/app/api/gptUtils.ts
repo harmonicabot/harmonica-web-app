@@ -78,17 +78,6 @@ async function getAllMessages(threadId: string) {
   return allMessages;
 }
 
-export async function generateAnswer(instructions: string, assistant_id?: string) {
-  const threadResponse = await handleCreateThread()
-  const threadId = (await threadResponse.json()).thread.id;
-  const answers = await handleGenerateAnswer({
-    threadId: threadId,
-    assistantId: assistant_id,
-    messageText: instructions,
-  });
-  return (await answers.json())[0]
-}
-
 export async function getGPTCompletion(instructions: string) {
   try {
     const completion = await client.chat.completions.create({

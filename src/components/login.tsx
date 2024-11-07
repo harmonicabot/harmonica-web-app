@@ -4,7 +4,7 @@ import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, SetStateAction } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function Login() {
@@ -28,12 +28,12 @@ export default function Login() {
     router.push('/create');
   };
 
-  const handleEmailChange = (e) => {
+  const handleEmailChange = (e: { target: { value: SetStateAction<string>; }; }) => {
     if (error.length) setError('');
     setEmail(e.target.value);
   };
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = (e: { target: { value: SetStateAction<string>; }; }) => {
     if (error.length) setError('');
     setPassword(e.target.value);
   };
@@ -46,7 +46,7 @@ export default function Login() {
       redirect: true,
     });
 
-    if (result.error) {
+    if (result?.error) {
       setError('Sign-in failed. Check your credentials.');
     }
   };

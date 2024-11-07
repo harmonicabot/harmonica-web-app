@@ -39,11 +39,10 @@ async function migrateFromMake() {
         );
 
         const userData = hostAndUserData.user_data;
-        const adjustedUserData = Object.entries(userData).map(
+        const adjustedUserData = Object.entries(userData)
+          .filter(([, data]) => data.chat_text)
+          .map(
           ([userId, data]) => {
-            if (!data.chat_text) {
-              return null;
-            }
             return {
               session_id,
               user_id: userId,
@@ -56,13 +55,15 @@ async function migrateFromMake() {
               host_chat_id: data.host_chat_id,
               start_time: new Date(),
               active: data.active ?? false,
+              last_edit: new Date(),
             } as NewUserSession;
           }
-        ).filter(Boolean);
-
+        )
+        
         if (adjustedUserData.length > 0) {
-          console.log(`inserted UserData:`, adjustedUserData);
-          db.insertUserSessions(adjustedUserData);
+          console.log(`inserting UserData:`, adjustedUserData);
+          db.insertUserSessions(adjustedUserData)
+            .catch(error => console.error('Something went wrong inserting user sessions: ', error));
         }
       }
     );

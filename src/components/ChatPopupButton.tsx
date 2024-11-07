@@ -14,10 +14,15 @@ import { sendApiCall } from '@/lib/utils';
 import { ApiAction, ApiTarget } from '@/lib/types';
 import { VersionedPrompt } from 'app/create/page';
 
+interface EntryMessage {
+  type: 'USER' | 'ASSISTANT';
+  text: string;
+}
+
 interface TestInputProps {
   onTest: () => Promise<{
     assistantId: string;
-    entryMessage: { type: string; text: string };
+    entryMessage: EntryMessage;
   }>;
 }
 
@@ -30,7 +35,7 @@ const ChatPopupButton = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [assistantId, setAssistantId] = useState('');
-  const [entryMessage, setEntryMessage] = useState(null);
+  const [entryMessage, setEntryMessage] = useState<EntryMessage | null>(null);
 
   const handleTestVersion = async () => {
     const assistantResponse = await sendApiCall({

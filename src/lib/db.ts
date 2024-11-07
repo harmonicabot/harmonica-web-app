@@ -12,6 +12,7 @@ import {
 import { accumulateSessionData } from '@/lib/utils';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
+import { useUser } from '@auth0/nextjs-auth0/client';
 // Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {
   neonConfig.webSocketConstructor = ws;
@@ -82,6 +83,7 @@ export async function getHostAndUserSessions(
                 result_text: user.result_text ?? undefined,
                 bot_id: user.bot_id ?? undefined,
                 host_chat_id: user.host_chat_id ?? undefined,
+                thread_id: user.thread_id ?? undefined,
               };
               return acc;
             }, {} as Record<string, UserSessionData>) ?? {},
@@ -112,6 +114,12 @@ export async function getHostAndAssociatedUserSessions(
 ): Promise<RawSessionData> {
   try {
     const hostSession: s.HostSession = (await getHostSessionById(session_id))[0];
+    const hostSessionAsSessionData = {
+      ...hostSession,
+      context: hostSession.context ?? '',
+      summary: hostSession.summary ?? '',
+      client: hostSession.client ?? '',
+    }
     const userSessions = await searchUserSessions('session_id', session_id);
     const userSessionsRecord =
       userSessions.reduce<Record<string, UserSessionData>>((acc, session) => {
@@ -122,12 +130,13 @@ export async function getHostAndAssociatedUserSessions(
           result_text: session.result_text ?? undefined,
           bot_id: session.bot_id ?? undefined,
           host_chat_id: session.host_chat_id ?? undefined,
+          thread_id: session.thread_id ?? undefined,
         };
         return acc;
       }, {}
     );
     return {
-      session_data: hostSession,
+      session_data: hostSessionAsSessionData,
       user_data: userSessionsRecord,
     };
   } catch (error) {
@@ -318,7 +327,7 @@ export async function getSessionsFromMake() {
   // Only called from db migration
   console.warn('Fetching sessions from Make...');
 
-  const { user } = await getSession();
+  const { user } = useUser();
   const clientId = '';
   try {
     const [sessionData, userData] = await Promise.all([
@@ -367,7 +376,7 @@ export async function getSessionsFromMake() {
     };
     console.log(
       `Session data after filtering ClientID '${clientId}': `,
-      sessionJson.records.length
+      sessionJson.records?.length
     );
     const expected = userJson.count;
     let available = limit;
@@ -387,7 +396,7 @@ export async function getSessionsFromMake() {
       available += limit;
     }
     
-    console.log('Got user data: ', userJson.records.length || 0);
+    console.log('Got user data: ', userJson.records?.length || 0);
     return parseDbItems(userJson, sessionJson);
   } catch (error) {
     console.error(error);
@@ -397,20 +406,20 @@ export async function getSessionsFromMake() {
 
 function parseDbItems(userData: DbResponse, sessionData: DbResponse) {
   let accumulatedSessions: Record<string, AccumulatedSessionData> = {};
-  sessionData.records.forEach((record) => {
+  sessionData.records?.forEach((record) => {
     let entry: RawSessionData = {
       session_data: {
         ...(record.data as RawSessionOverview),
         id: record.key,
       },
-      user_data: userData.records.reduce((acc, userRecord) => {
+      user_data: userData.records?.reduce((acc, userRecord) => {
         const uData = userRecord.data as UserSessionData;
         if (uData.session_id === record.key) {
           // console.log(`UserData found for session ${record.key}:`, uData);
           acc[userRecord.key] = uData;
         }
         return acc;
-      }, {} as Record<string, UserSessionData>),
+      }, {} as Record<string, UserSessionData>) || {},
     };
     // console.log(`Accumulating session data for ${record.key}:`, entry);
     const accumulated = accumulateSessionData(entry);

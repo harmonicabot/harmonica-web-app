@@ -1,4 +1,5 @@
 import { getSession } from '@auth0/nextjs-auth0';
+import { useUser } from '@auth0/nextjs-auth0/client';
 import { NextResponse } from 'next/server';
 
 export const maxDuration = 200;
@@ -25,7 +26,7 @@ function getUrl(
 
 /** @deprecated Use db.getHostAndUserSessions() instead where possible*/
 export async function GET(request: Request) {
-  const { user } = await getSession();
+  const { user } = useUser();
   const clientId = process.env.CLIENT_ID ? process.env.CLIENT_ID : user?.sub || "";
   try {
     const [sessionData, userData] = await Promise.all([
