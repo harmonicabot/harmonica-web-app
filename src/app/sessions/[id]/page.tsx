@@ -27,8 +27,9 @@ export default function SessionResult() {
   ]);
   
   const { user } = useUser();
-  const numSessions = userData.filter((user) => user.chat_text).length;
-  const completedSessions = userData.filter((user) => !user.active).length;
+  const sessionsWithChatText = userData.filter((user) => user.chat_text);
+  const numSessions = sessionsWithChatText.length;
+  const completedSessions = sessionsWithChatText.filter((user) => !user.active).length;
 
   const [hostType, setHostType] = useState(false);
 

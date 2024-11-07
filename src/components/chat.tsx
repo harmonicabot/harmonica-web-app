@@ -87,6 +87,7 @@ Help & Support:
               thread_id: threadId,
               active: true,
               start_time: new Date(),
+              last_edit: new Date(),
             })
               .then((ids) => {
                 if (ids[0] && setUserSessionId) setUserSessionId(ids[0]);
@@ -198,6 +199,7 @@ Help & Support:
           db.updateUserSession(userSessionId, {
             chat_text: updatedChatText,
             active: true,
+            last_edit: new Date(),
           });
         }
 

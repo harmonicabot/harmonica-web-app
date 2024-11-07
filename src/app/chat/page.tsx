@@ -11,8 +11,10 @@ import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import {
   getHostAndAssociatedUserSessions,
+  updateHostSession,
   updateUserSession,
 } from '@/lib/db';
+import { sql } from 'kysely';
 
 type Message = {
   type: string;
@@ -53,11 +55,20 @@ const StandaloneChat = () => {
 
   const finishSession = () => {
     setIsLoading(true);
-    setShowModal(true);    
-    updateUserSession(userSessionId!, { active: false }).then(() => {
-      setIsLoading(false);
-      setUserFinished(true);
-    });
+    setShowModal(true);
+    updateUserSession(userSessionId!, {
+      active: false,
+      last_edit: new Date(),
+    })
+      .then(() => {
+        updateHostSession(sessionId!, {
+          finished: sql`finished + 1`,
+        });
+      })
+      .then(() => {
+        setIsLoading(false);
+        setUserFinished(true);
+      });
   };
 
   useEffect(() => {
@@ -135,7 +146,7 @@ const StandaloneChat = () => {
                               : 'You are invited to share your thoughts'}
                           </h2>
                           <p
-                            className={`mb-6 ${ sessionClosed ? 'sm:mb-8' : ''}`}
+                            className={`mb-6 ${sessionClosed ? 'sm:mb-8' : ''}`}
                           >
                             {sessionClosed
                               ? "If you were unable to participate, you can still view the session results and even ask questions about other users' feedback or engage with their responses. Alternatively, you can create a new session on any topic and invite others to participate."
@@ -230,7 +241,7 @@ const StandaloneChat = () => {
                 </div>
               </div>
             </div>
-          ):(
+          ) : (
             <>
               <div className="w-full md:w-1/4 p-6">
                 <p className="text-sm text-muted-foreground mb-2">
@@ -248,7 +259,9 @@ const StandaloneChat = () => {
                   {(accumulated?.session_data?.template || assistantId) && (
                     <Chat
                       entryMessage={message}
-                      assistantId={accumulated?.session_data?.template ?? assistantId!}
+                      assistantId={
+                        accumulated?.session_data?.template ?? assistantId!
+                      }
                       sessionId={accumulated?.session_data?.id}
                       userSessionId={userSessionId ?? undefined}
                       setUserSessionId={setUserSessionId}

@@ -1,5 +1,6 @@
 'use server';
 import { createKysely } from '@vercel/postgres-kysely';
+import { RawBuilder, sql } from 'kysely';
 import * as s from './schema';
 import { getSession } from '@auth0/nextjs-auth0';
 import {
@@ -168,11 +169,11 @@ export async function upsertHostSession(
 
 export async function updateHostSession(
   id: string,
-  data: s.HostSessionUpdate
+  data: s.HostSessionUpdate | { [K in keyof s.HostSessionUpdate]: RawBuilder<unknown> }
 ): Promise<void> {
   try {
     console.log('Updating host session with id:', id, ' with data:', data);
-    await db.updateTable('host_data').set(data).where('id', '=', id).execute();
+    await db.updateTable('host_data').set(data as any).where('id', '=', id).execute();
   } catch (error) {
     console.error('Error updating host session:', error);
     throw error;
