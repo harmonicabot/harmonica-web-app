@@ -5,13 +5,6 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableHeader,
-  TableHead,
-  TableRow,
-} from '@/components/ui/table';
 import ParticipantSessionRow from './ParticipantSessionRow';
 import SortableTable from '../SortableTable';
 import { UserSessionData } from '@/lib/types';
