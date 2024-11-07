@@ -11,9 +11,8 @@ import {
 import { accumulateSessionData } from '@/lib/utils';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
-// Only set WebSocket constructor on the server side
+// Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {
-  console.log('Yep, running serverside!');
   neonConfig.webSocketConstructor = ws;
 } else {
   console.log('Nope, not running on the server.');
@@ -107,6 +106,35 @@ export async function getHostSessionById(id: string): Promise<s.HostSession[]> {
   }
 }
 
+export async function getHostAndAssociatedUserSessions(
+  session_id: string,
+): Promise<RawSessionData> {
+  try {
+    const hostSession: s.HostSession = (await getHostSessionById(session_id))[0];
+    const userSessions = await searchUserSessions('session_id', session_id);
+    const userSessionsRecord =
+      userSessions.reduce<Record<string, UserSessionData>>((acc, session) => {
+        acc[session.id] = {
+          ...session,
+          feedback: session.feedback ?? undefined,
+          chat_text: session.chat_text ?? undefined,
+          result_text: session.result_text ?? undefined,
+          bot_id: session.bot_id ?? undefined,
+          host_chat_id: session.host_chat_id ?? undefined,
+        };
+        return acc;
+      }, {}
+    );
+    return {
+      session_data: hostSession,
+      user_data: userSessionsRecord,
+    };
+  } catch (error) {
+    console.error('Error getting host session by ID:', error);
+    throw error;
+  }
+}
+
 export async function insertHostSessions(data: s.NewHostSession | s.NewHostSession[]): Promise<string[]> {
   try {
     console.log('Inserting host session with data:', data);
@@ -175,10 +203,11 @@ export async function getUserSessionById(
   }
 }
 
-export async function insertUserSessions(data: s.NewUserSession | s.NewUserSession[]): Promise<void> {
+export async function insertUserSessions(data: s.NewUserSession | s.NewUserSession[]): Promise<string[]> {
   try {
     console.log('Inserting user session with data:', data);
-    await db.insertInto('user_data').values(data).execute();
+    const result = await db.insertInto('user_data').values(data).returningAll().execute();
+    return result.map(row => row.id);
   } catch (error) {
     console.error('Error inserting user sessions:', error);
     throw error;

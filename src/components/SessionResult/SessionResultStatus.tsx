@@ -17,7 +17,7 @@ export default function SessionResultStatus({
   numSessions,
   completedSessions
 }: SessionResultStatusProps) {
-  console.log("StartTime: ", startTime);
+  // In the past, some sessions did not have a start time. Just set 'a while ago' for those.
   const startTimeString = !startTime ? 'a while ago' : format(new Date(startTime), ' dd MMM yyyy');
   
   return (

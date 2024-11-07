@@ -71,7 +71,7 @@ export const sendApiCall = async (request: RequestData) => {
 };
 
 export const sendCallToMake = async (body: RequestData) => {
-  console.warn('Using legacy Make API');
+  console.warn('This is the legacy Make API. Use db methods instead where possible');
 
   return sendApiCall({
     ...body,

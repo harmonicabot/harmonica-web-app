@@ -5,12 +5,14 @@ import { memo, useEffect, useState } from 'react';
 import Chat from '@/components/chat';
 import { useSearchParams } from 'next/navigation';
 import { useSessionStore } from '@/stores/SessionStore';
-import { accumulateSessionData, sendCallToMake } from '@/lib/utils';
-import { ApiAction, ApiTarget } from '@/lib/types';
+import { accumulateSessionData } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { insertUserSessions, updateUserSession } from '@/lib/db';
+import {
+  getHostAndAssociatedUserSessions,
+  updateUserSession,
+} from '@/lib/db';
 
 type Message = {
   type: string;
@@ -35,7 +37,7 @@ const StandaloneChat = () => {
 
   const [userSessionId, setUserSessionId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(true);
-  const [sessionFinished, setSessionFinished] = useState(false);
+  const [userFinished, setUserFinished] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isFirstMessage, setIsFirstMessage] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
@@ -51,19 +53,10 @@ const StandaloneChat = () => {
 
   const finishSession = () => {
     setIsLoading(true);
-    // Find the submit button by looking for all buttons and matching text content
-    const buttons = document.querySelectorAll('button');
-    const submitButton = Array.from(buttons).find((button) =>
-      button.textContent?.includes('Try me!')
-    ) as HTMLButtonElement;
-
-    if (submitButton) {
-      submitButton.click();
-    }
-
-    updateUserSession(userSessionId, { active: false }).then(() => {
+    setShowModal(true);    
+    updateUserSession(userSessionId!, { active: false }).then(() => {
       setIsLoading(false);
-      setSessionFinished(true);
+      setUserFinished(true);
     });
   };
 
@@ -78,13 +71,7 @@ const StandaloneChat = () => {
 
     if (sessionId && !accumulated) {
       setIsLoading(true);
-      sendCallToMake({
-        target: ApiTarget.Session,
-        action: ApiAction.Stats,
-        data: {
-          session_id: sessionId,
-        },
-      }).then((data) => {
+      getHostAndAssociatedUserSessions(sessionId).then((data) => {
         setAccumulated(sessionId, accumulateSessionData(data));
         setIsLoading(false);
       });
@@ -101,24 +88,7 @@ const StandaloneChat = () => {
     }
   }, [message, isFirstMessage]);
 
-  useEffect(() => {
-    if (accumulated && accumulated.session_data.template) {
-      
-      insertUserSessions({
-          session_id: sessionId,
-          user_id: 'anonymous',
-          template: accumulated.session_data.template,
-          active: true,
-        })
-        .then((ids) => {
-          if (ids[0]) setUserSessionId(ids[0]);
-        })
-        .catch((error) =>
-          console.error('[!] error creating user session -> ', error)
-        );
-    }
-  }, [accumulated]);
-
+  const sessionClosed = accumulated?.session_data?.final_report_sent;
   return (
     <div
       className="flex flex-col md:flex-row bg-purple-50"
@@ -136,11 +106,11 @@ const StandaloneChat = () => {
         </div>
       ) : (
         <>
-          {(showModal || sessionFinished) && (
+          {showModal ? (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white p-4 sm:p-6 md:p-10 rounded-lg w-[calc(100%-2rem)] h-[calc(100%-2rem)] flex items-center justify-center m-4 overflow-y-auto">
                 <div className="max-w-6xl w-full">
-                  {sessionFinished ? (
+                  {userFinished ? (
                     <div className="flex flex-col items-center justify-center">
                       <h2 className="text-xl font-bold mb-4">
                         Thank You for Your Participation!
@@ -160,22 +130,18 @@ const StandaloneChat = () => {
                       <div className="w-full lg:w-1/2 lg:pr-6 flex flex-col justify-between mb-6 lg:mb-0">
                         <div>
                           <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">
-                            {accumulated?.session_data?.final_report_sent
+                            {sessionClosed
                               ? 'Session Complete'
                               : 'You are invited to share your thoughts'}
                           </h2>
                           <p
-                            className={`mb-6 ${
-                              accumulated?.session_data?.final_report_sent
-                                ? 'sm:mb-8'
-                                : ''
-                            }`}
+                            className={`mb-6 ${ sessionClosed ? 'sm:mb-8' : ''}`}
                           >
-                            {accumulated?.session_data?.final_report_sent
+                            {sessionClosed
                               ? "If you were unable to participate, you can still view the session results and even ask questions about other users' feedback or engage with their responses. Alternatively, you can create a new session on any topic and invite others to participate."
                               : 'Welcome to our interactive session! We value your input and would love to hear your thoughts on the topic at hand. Your responses will be combined with others to create an AI-powered overview.'}
                           </p>
-                          {accumulated?.session_data?.final_report_sent ? (
+                          {sessionClosed ? (
                             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-8">
                               <Link
                                 href={`/sessions/${sessionId}`}
@@ -221,7 +187,7 @@ const StandaloneChat = () => {
                           </Link>
                         </p>
                       </div>
-                      {!accumulated?.session_data?.final_report_sent && (
+                      {!sessionClosed && (
                         <div className="hidden lg:block w-full lg:w-1/2 lg:pl-8 lg:border-l border-t lg:border-t-0 pt-6 lg:pt-0">
                           <h3 className="text-lg font-semibold mb-4">
                             How to use
@@ -264,17 +230,14 @@ const StandaloneChat = () => {
                 </div>
               </div>
             </div>
-          )}
-          {!accumulated?.session_data?.final_report_sent && (
+          ):(
             <>
               <div className="w-full md:w-1/4 p-6">
                 <p className="text-sm text-muted-foreground mb-2">
                   Your Session
                 </p>
                 <h1 className="text-2xl font-semibold mb-0 md:mb-6">
-                  {accumulated?.session_data?.topic
-                    ? accumulated?.session_data?.topic
-                    : 'Test'}
+                  {accumulated?.session_data?.topic ?? 'Test'}
                 </h1>
                 {isMounted && !isLoading && (
                   <Button onClick={finishSession}>Finish</Button>
@@ -285,12 +248,10 @@ const StandaloneChat = () => {
                   {(accumulated?.session_data?.template || assistantId) && (
                     <Chat
                       entryMessage={message}
-                      assistantId={
-                        accumulated
-                          ? accumulated.session_data.template
-                          : assistantId
-                      }
-                      sessionId={userSessionId}
+                      assistantId={accumulated?.session_data?.template ?? assistantId!}
+                      sessionId={accumulated?.session_data?.id}
+                      userSessionId={userSessionId ?? undefined}
+                      setUserSessionId={setUserSessionId}
                     />
                   )}
                 </div>

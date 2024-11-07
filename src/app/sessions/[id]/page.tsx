@@ -4,32 +4,18 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
 import { useUser } from '@auth0/nextjs-auth0/client';
-
-import {
-  accumulateSessionData,
-  sendApiCall,
-} from '@/lib/utils';
-import {
-  ApiAction,
-  ApiTarget,
-  RawSessionData,
-  UserSessionData,
-} from '@/lib/types';
-
-import SessionResultHeader, {
-  SessionStatus,
-} from '@/components/SessionResult/SessionResultHeader';
+import { accumulateSessionData } from '@/lib/utils';
+import { getGPTCompletion } from 'app/api/gptUtils';
+import { RawSessionData, UserSessionData } from '@/lib/types';
+import SessionResultHeader, { SessionStatus } from '@/components/SessionResult/SessionResultHeader';
 import SessionResultControls from '@/components/SessionResult/SessionResultControls';
 import SessionResultStatus from '@/components/SessionResult/SessionResultStatus';
 import SessionResultShare from '@/components/SessionResult/SessionResultShare';
 import SessionResults from '@/components/SessionResult/SessionResults';
 import {
-  getHostSessionById,
-  searchUserSessions,
+  getHostAndAssociatedUserSessions,
   updateHostSession,
 } from '@/lib/db';
-import { HostSession } from '@/lib/schema';
-import { getGPTCompletion } from 'app/api/gptUtils';
 
 export default function SessionResult() {
   
@@ -90,25 +76,7 @@ export default function SessionResult() {
   };
 
   async function fetchFromDb(): Promise<RawSessionData> {
-    const hostSession: HostSession = (await getHostSessionById(id))[0];
-    const userSessions = await searchUserSessions('session_id', id);
-    const userSessionsRecord = userSessions.reduce<
-      Record<string, UserSessionData>
-    >((acc, session) => {
-      acc[session.id] = {
-        ...session,
-        feedback: session.feedback ?? undefined,
-        chat_text: session.chat_text ?? undefined,
-        result_text: session.result_text ?? undefined,
-        bot_id: session.bot_id ?? undefined,
-        host_chat_id: session.host_chat_id ?? undefined,
-      };
-      return acc;
-    }, {});
-    return {
-      session_data: hostSession,
-      user_data: userSessionsRecord,
-    };
+    return getHostAndAssociatedUserSessions(id);
   }
 
   const createSummary = async () => {
@@ -140,23 +108,6 @@ ${chats.join('##### Next Participant: #####\n')}
     setAccumulated(id, updatedSessionData);
   };
 
-  const finishSession = async () => {
-    await createSummary();
-  };
-
-  const handleDelete = async () => {
-    console.log(`Deleting session ${id}...`);
-    const data = await sendApiCall({
-      target: ApiTarget.Session,
-      action: ApiAction.DeleteSession,
-      data: {
-        session_id: id,
-      },
-    });
-    console.log(data);
-    window.location.href = '/';
-  };
-
   if (!accumulated) return <div>Loading...</div>;
 
   return (
@@ -174,8 +125,7 @@ ${chats.join('##### Next Participant: #####\n')}
           <SessionResultControls
             id={id}
             isFinished={accumulated.session_data.final_report_sent}
-            onFinishSession={finishSession}
-            onCreateSummary={createSummary}
+            createSummary={createSummary}
             readyToGetSummary={numSessions > 0}
           />
         )}
