@@ -1,11 +1,11 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { AccumulatedSessionData } from '@/lib/types';
+import { HostAndSessionData } from '@/lib/types';
 import Link from 'next/link';
 import { User, UserCheck } from '@/components/icons';
 
-import { SessionData } from './sessions-table';
+// import { SessionData } from './sessions-table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,45 +20,57 @@ export function Session({
   session,
   onDelete,
 }: {
-  session: SessionData;
-  onDelete: (session: SessionData) => void;
-}) {
+  session: HostAndSessionData;
+  onDelete: (session: HostAndSessionData) => void;
+  }) {
+  
+  const numActive = session.host_data.num_sessions - session.host_data.num_finished;
+  const status = !session.host_data.active
+          ? 'Finished'
+          : session.host_data.num_sessions === 0
+            ? 'Draft'
+      : 'Active';
+  const createdOn = new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(session.host_data.start_time));
+
   return (
     <TableRow>
       <TableCell className="font-medium text-base">
-        <Link href={`/sessions/${session.sessionId}`}>{session.name}</Link>
+        <Link href={`/sessions/${session.host_data.id}`}>{session.host_data.topic}</Link>
       </TableCell>
       <TableCell>
         <Badge
           variant="outline"
           className={`capitalize ${
-            session.active && session.numActive > 0
+            session.host_data.active && numActive > 0
               ? 'bg-lime-100 text-lime-900'
-              : session.active && session.numActive === 0
+              : session.host_data.active && numActive === 0
                 ? 'bg-purple-100 text-purple-900'
                 : ''
           }`}
         >
-          {session.status}
+          {status}
         </Badge>
       </TableCell>
       <TableCell className="hidden md:table-cell">
         <div className="flex items-center">
           <User />
-          {session.numActive}
+          {numActive}
         </div>
       </TableCell>
       <TableCell className="hidden md:table-cell">
         <div className="flex items-center">
           <UserCheck className="mr-1 h-4 w-4 opacity-50" />
-          {session.numFinished}
+          {session.host_data.num_finished}
         </div>
       </TableCell>
       <TableCell className="hidden md:table-cell">
-        {session.createdOn}
+        {createdOn}
       </TableCell>
       <TableCell>
-        <Link href={`/sessions/${session.sessionId}`}>
+        <Link href={`/sessions/${session.host_data.id}`}>
           <Button variant="outline">View</Button>
         </Link>
         <DropdownMenu>

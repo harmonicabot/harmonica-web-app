@@ -95,7 +95,12 @@ export default function SessionResult() {
       .filter(Boolean);
 
     const instructions = `
-Generate a short report of the session summarizing relevant content based on the following chat history:\n\n
+Generate a short **report** based on the **objective** of the session.
+Extract the **OBJECTIVE** from this prompt:\n
+##### PROMPT #####\n
+${accumulated.host_data.prompt}\n
+##### PROMPT #####\n
+And the content from here:\n\n
 ##### Next Participant: #####\n
 ${chats.join('##### Next Participant: #####\n')}
 `;
@@ -105,7 +110,7 @@ ${chats.join('##### Next Participant: #####\n')}
     // So that we don't have to re-fetch all data from the DB, we just update the summary in the store directly
     updateHostSession(id, { summary });
     const updatedSessionData = accumulated;
-    updatedSessionData.session_data.summary = summary!;
+    updatedSessionData.host_data.summary = summary!;
     setAccumulated(id, updatedSessionData);
   };
 
@@ -114,30 +119,30 @@ ${chats.join('##### Next Participant: #####\n')}
   return (
     <div className="p-4 md:p-8">
       <SessionResultHeader
-        topic={accumulated.session_data.topic}
+        topic={accumulated.host_data.topic}
         status={
-          accumulated.session_data.final_report_sent
+          accumulated.host_data.final_report_sent
             ? SessionStatus.REPORT_SENT
             : SessionStatus.ACTIVE
         }
       />
       <div className="flex flex-col md:flex-row gap-4">
-        {!accumulated.session_data.final_report_sent && hostType && (
+        {!accumulated.host_data.final_report_sent && hostType && (
           <SessionResultControls
             id={id}
-            isFinished={accumulated.session_data.final_report_sent}
+            isFinished={accumulated.host_data.final_report_sent}
             createSummary={createSummary}
             readyToGetSummary={numSessions > 0}
           />
         )}
         <SessionResultStatus
-          finalReportSent={accumulated.session_data.final_report_sent}
-          startTime={accumulated.session_data.start_time}
+          finalReportSent={accumulated.host_data.final_report_sent}
+          startTime={accumulated.host_data.start_time}
           numSessions={numSessions}
           completedSessions={completedSessions}
         />
-        {!accumulated.session_data.final_report_sent && (
-          <SessionResultShare sessionId={accumulated.session_data.id} />
+        {!accumulated.host_data.final_report_sent && (
+          <SessionResultShare sessionId={accumulated.host_data.id} />
         )}
       </div>
       <SessionResults

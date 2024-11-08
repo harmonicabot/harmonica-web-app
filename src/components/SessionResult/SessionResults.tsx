@@ -1,5 +1,5 @@
 import {
-  AccumulatedSessionData,
+  HostAndSessionData,
   ApiTarget,
   UserSessionData,
 } from '@/lib/types';
@@ -24,7 +24,7 @@ export default function SessionResults({
   hostType,
 }: {
   userData: UserSessionData[];
-  accumulated: AccumulatedSessionData;
+  accumulated: HostAndSessionData;
   id: string;
   hostType: boolean;
   handleCreateSummary: () => void;
@@ -82,7 +82,7 @@ export default function SessionResults({
       <Tabs
         className="mb-4"
         defaultValue={
-          accumulated.session_data.summary
+          accumulated.host_data.summary
             ? 'SUMMARY'
             : hostType
               ? 'RESPONSES'
@@ -90,7 +90,7 @@ export default function SessionResults({
         }
       >
         <TabsList>
-          {accumulated.session_data.summary ? (
+          {accumulated.host_data.summary ? (
             <TabsTrigger className="ms-0" value="SUMMARY">
               Summary
             </TabsTrigger>
@@ -114,9 +114,9 @@ export default function SessionResults({
         <div className="flex flex-col md:flex-row gap-4">
           <div className="w-full md:w-2/3">
             <TabsContent value="SUMMARY" className="mt-4">
-              {accumulated.session_data.summary ? (
+              {accumulated.host_data.summary ? (
                 <SessionResultSummary
-                  summary={accumulated.session_data.summary}
+                  summary={accumulated.host_data.summary}
                 />
               ) : (
                 <>

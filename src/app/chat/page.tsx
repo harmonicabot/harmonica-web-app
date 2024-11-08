@@ -99,7 +99,7 @@ const StandaloneChat = () => {
     }
   }, [message, isFirstMessage]);
 
-  const sessionClosed = accumulated?.session_data?.final_report_sent;
+  const sessionClosed = accumulated?.host_data?.final_report_sent;
   return (
     <div
       className="flex flex-col md:flex-row bg-purple-50"
@@ -248,7 +248,7 @@ const StandaloneChat = () => {
                   Your Session
                 </p>
                 <h1 className="text-2xl font-semibold mb-0 md:mb-6">
-                  {accumulated?.session_data?.topic ?? 'Test'}
+                  {accumulated?.host_data?.topic ?? 'Test'}
                 </h1>
                 {isMounted && !isLoading && (
                   <Button onClick={finishSession}>Finish</Button>
@@ -256,13 +256,13 @@ const StandaloneChat = () => {
               </div>
               <div className="w-full md:w-3/4 h-full flex-grow flex flex-col p-6">
                 <div className="h-full max-w-2xl flex m-4">
-                  {(accumulated?.session_data?.template || assistantId) && (
+                  {(accumulated?.host_data?.template || assistantId) && (
                     <Chat
                       entryMessage={message}
                       assistantId={
-                        accumulated?.session_data?.template ?? assistantId!
+                        accumulated?.host_data?.template ?? assistantId!
                       }
-                      sessionId={accumulated?.session_data?.id}
+                      sessionId={accumulated?.host_data?.id}
                       userSessionId={userSessionId ?? undefined}
                       setUserSessionId={setUserSessionId}
                     />

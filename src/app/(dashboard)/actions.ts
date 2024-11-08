@@ -1,5 +1,5 @@
 import { deleteHostSession, deleteSessionById } from '@/lib/db';
-import { AccumulatedSessionData, ApiAction, ApiTarget } from '@/lib/types';
+import { HostAndSessionData, ApiAction, ApiTarget } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { SessionData } from './sessions-table';
 import { sendApiCall } from '@/lib/utils';

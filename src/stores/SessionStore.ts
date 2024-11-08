@@ -1,11 +1,11 @@
 import { create } from 'zustand'
-import { UserSessionData, AccumulatedSessionData } from '@/lib/types'
+import { UserSessionData, HostAndSessionData } from '@/lib/types'
 
 interface SessionStore {
   sessions: Record<string, UserSessionData[]>
   setSessions: (id: string, data: UserSessionData[]) => void
-  accumulated: Record<string, AccumulatedSessionData>
-  addAccumulatedSessions: (id: string, data: AccumulatedSessionData) => void
+  accumulated: Record<string, HostAndSessionData>
+  addAccumulatedSessions: (id: string, data: HostAndSessionData) => void
   removeAccumulatedSessions: (id: string) => void
 }
 

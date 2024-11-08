@@ -1,73 +1,315 @@
-import { getSessionsFromMake } from '@/lib/db';
-import { AccumulatedSessionData } from './lib/types';
-import * as db from '@/lib/db';
-import { NewUserSession } from './lib/schema';
+import * as s from './lib/schema';
+import { createKysely } from '@vercel/postgres-kysely';
+type Client = 'CMI' | 'DEV' | 'APP' | 'ALL' | '' | undefined;
+
+// Set this if you want to migrate only a subset of the data
+const clientId: Client = 'ALL';
+const hostDbName = 'temp_host_db'; // For the 'real' migration, replace this with 'host_data'
+const userDbName = 'temp_user_db'; // For the 'real' migration, replace this with 'user_data'
+const createNewTables = true;
+const dropTablesIfAlreadyPresent = true;
+const skipEmptyHostSessions = true;
+const skipEmptyUserSessions = true;
+
+// Run this with:
+// `npx tsx -r dotenv /config src/db_migration.ts dotenv_config_path=.env.local`
+
+//////////////////////////////////////////////////////
+// you shouldn't need to touch anything below this: //
+//////////////////////////////////////////////////////
+interface Databases {
+  [hostDbName]: s.HostSessionsTable;
+  [userDbName]: s.UserSessionsTable;
+}
+
+const db = createKysely<Databases>();
+async function setupTestTables() {
+  if (!createNewTables) return;
+  if (dropTablesIfAlreadyPresent) {
+    await db.schema.dropTable(hostDbName).execute();
+    await db.schema.dropTable(userDbName).execute();
+  }
+  await s.createHostTable(db, hostDbName);
+  await s.createUserTable(db, userDbName);
+}
+
+type UserSessionData = {
+  session_id?: string;
+  active: boolean;
+  user_id?: string;
+  template?: string;
+  feedback?: string;
+  chat_text?: string;
+  thread_id?: string;
+  result_text?: string;
+  topic?: string;
+  context?: string;
+  bot_id?: string;
+  host_chat_id?: string;
+};
+
+type RawSessionOverview = {
+  id?: string;
+  active?: number | boolean;
+  topic: string;
+  context: string;
+  summary: string;
+  template?: string;
+  start_time?: Date | string;
+  botId?: string;
+  client?: string;
+  final_report_sent?: boolean;
+};
+
+type HostAndAssociatedUsers = {
+  host: s.NewHostSession;
+  users: s.NewUserSession[];
+};
+
+type AssociatedSessions = Record<string, HostAndAssociatedUsers>;
 
 async function migrateFromMake() {
-  const accumulatedSessions: Record<string, AccumulatedSessionData> | null =
-    await getSessionsFromMake();
-  console.log('Got sessions from Make for migration:', accumulatedSessions);
-  if (accumulatedSessions !== null) {
-    Object.entries(accumulatedSessions).forEach(
-      ([session_id, hostAndUserData]) => {
-        const sessionData = hostAndUserData.session_data;
-        const {
-          id: id,
-          session_active: active,
-          num_active: _unused,
-          num_finished: finished        } = sessionData;
-        const session_data = {
-          id,
-          prompt: 'unknown',
-          num_sessions: sessionData.num_sessions ?? 0,
-          active: active ?? false,
-          finished: finished ?? 0,
-          summary: sessionData.summary,
-          template: sessionData.template ?? 'unknown',
-          topic: sessionData.topic ?? 'Untitled',
-          context: sessionData.context,
-          client: sessionData.client,
-          final_report_sent: sessionData.final_report_sent ?? false,
-          start_time: sessionData.start_time ?? new Date().toISOString()
-        };          
-        console.log(
-          `Migrating session ${session_id} to NeonDB: `,
-          session_data
-        );
-        db.upsertHostSession(session_data, 'update').then(() =>
-          console.log(`inserted ${session_id} into host db`)
-        );
+  const data = await getSessionsFromMake();
+  if (!data) return;
 
-        const userData = hostAndUserData.user_data;
-        const adjustedUserData = Object.entries(userData)
-          .filter(([, data]) => data.chat_text)
-          .map(
-          ([userId, data]) => {
-            return {
-              session_id,
-              user_id: userId,
-              template: data.template ?? 'unknown',
-              feedback: data.feedback,
-              chat_text: data.chat_text,
-              thread_id: data.thread_id ?? 'unknown',
-              result_text: data.result_text,
-              bot_id: data.bot_id,
-              host_chat_id: data.host_chat_id,
-              start_time: new Date(),
-              active: data.active ?? false,
-              last_edit: new Date(),
-            } as NewUserSession;
+  await setupTestTables();
+
+  let allData: AssociatedSessions = {};
+
+  await Promise.all(
+    data.hostData.map(async (hostRecord: DbRecord) => {
+      const userSessions: s.NewUserSession[] = data.userData
+        .filter(
+          (user) => {
+            const data = user.data as UserSessionData;
+            return data.session_id === hostRecord.key
+              && !((data.chat_text == null || data.chat_text?.length === 0) && skipEmptyUserSessions);
           }
         )
-        
-        if (adjustedUserData.length > 0) {
-          console.log(`inserting UserData:`, adjustedUserData);
-          db.insertUserSessions(adjustedUserData)
-            .catch(error => console.error('Something went wrong inserting user sessions: ', error));
-        }
+        .map((userRecord): s.NewUserSession => {
+          const data = userRecord.data as UserSessionData;
+          return {
+            active:
+              typeof data.active === 'number'
+                ? Math.ceil(data.active) > 0
+                : !!data.active,
+            step: typeof data.active === 'number' ? data.active : 1,
+            template: data.template ?? 'unknown',
+            start_time: new Date(),
+            last_edit: new Date(),
+            session_id: hostRecord.key,
+            user_id: data.user_id ?? 'Anonymous',
+            feedback: data.feedback ?? null,
+            chat_text: data.chat_text ?? null,
+            thread_id: data.thread_id ?? null,
+            result_text: data.result_text ?? null,
+            bot_id: data.bot_id ?? null,
+            host_chat_id: data.bot_id ?? null,
+          };
+        });
+
+      const sessionData = hostRecord.data as RawSessionOverview;
+      const hostSession: s.NewHostSession = {
+        id: hostRecord.key,
+        active:
+          typeof sessionData.active === 'number'
+            ? Math.ceil(sessionData.active) > 0
+            : !!sessionData.active,
+        num_sessions: userSessions.length, // Todo
+        num_finished: userSessions.map((data) => !data.active).length,
+        prompt: 'unknown',
+        summary: sessionData.summary,
+        template: sessionData.template ?? 'unknown',
+        topic: sessionData.topic ?? 'Untitled',
+        context: sessionData.context,
+        client: sessionData.client ?? null,
+        final_report_sent: sessionData.final_report_sent ?? false,
+        start_time: sessionData.start_time ?? new Date(),
+        last_edit: new Date(),
+      };
+
+      if (skipEmptyHostSessions && hostSession.num_sessions === 0) {
+        console.log('No user sessions in ', hostRecord.key)
+        return;
       }
-    );
+
+      let entry: HostAndAssociatedUsers = {
+        host: hostSession,
+        users: userSessions,
+      };
+
+      allData[hostRecord.key] = entry;
+
+      console.log(
+        `Inserting: Host ${hostSession.id} (${hostSession.topic}): ${userSessions.length} user sessions`
+      );
+
+      await upsertHostSession(hostSession, 'update');
+      if (userSessions.length > 0) {
+        await insertUserSessions(userSessions);
+      }
+    })
+  );
+
+  // Log the grouping stats
+  console.log('\nMigration Statistics:');
+  const dataEntries = Object.entries(allData);
+  console.log(
+    `\nTotal: ${dataEntries.length} host sessions, 
+    ${dataEntries.reduce(
+      (sum, [id, { host, users }]) => sum + users.length,
+      0
+    )} user sessions\n`
+  );
+}
+
+export async function upsertHostSession(
+  data: s.NewHostSession,
+  onConflict: 'skip' | 'update' = 'skip'
+): Promise<void> {
+  try {
+    await db
+      .insertInto(hostDbName)
+      .values(data)
+      .onConflict((oc) =>
+        onConflict === 'skip'
+          ? oc.column('id').doNothing()
+          : oc.column('id').doUpdateSet(data)
+      )
+      .execute();
+  } catch (error) {
+    console.error('Error upserting host session:', error);
+    console.log('HostSession: ', data);
+    throw error;
   }
 }
 
-migrateFromMake();
+export async function insertUserSessions(
+  data: s.NewUserSession | s.NewUserSession[]
+): Promise<string[]> {
+  try {
+    const result = await db
+      .insertInto(userDbName)
+      .values(data)
+      .returningAll()
+      .execute();
+    return result.map((row) => row.id);
+  } catch (error) {
+    console.error('Error inserting user sessions:', error);
+    console.log('UserSessions: ', data);
+    throw error;
+  }
+}
+
+// #### Legacy make.com db stuff ####
+const sessionStore = 17957;
+const userStore = 17913;
+
+let limit = 100;
+const token = process.env.MAKE_AUTH_TOKEN;
+
+function getMakeUrl(
+  storeId: number,
+  includeLimit: boolean = true,
+  offset: number = 20
+) {
+  return (
+    `https://eu2.make.com/api/v2/data-stores/${storeId}/data` +
+    (includeLimit ? '?pg[limit]=' + limit + '&pg[offset]=' + offset : '')
+  );
+  // + (sortBy? "&pg[sortBy]=" + sortBy : "") // Sorting not allowed for this api 😢
+}
+
+type DbRecord = {
+  key: string;
+  data: UserSessionData | RawSessionOverview;
+};
+
+export async function getSessionsFromMake() {
+  // Only called from db migration
+  try {
+    console.log('Getting sessions from make.com');
+    const allHostRecords = await iterateToGetAllEntries('host');
+    const allUserRecords = await iterateToGetAllEntries('user');
+    console.log('✅ Got all sessions from make.com');
+
+    const filteredClientRecords: DbRecord[] = [];
+    if (!clientId) {
+      console.log('Keeping all sessions not belonging to a client');
+      // get all sessions that do NOT belong to any client, mainly for internal testing purposes
+      const noClientEntries =
+        allHostRecords?.filter(
+          (sessionData) =>
+            !('client' in sessionData.data) ||
+            sessionData.data.client === null ||
+            sessionData.data.client === ''
+        ) || [];
+      filteredClientRecords.push(...noClientEntries);
+    } else if (clientId === 'ALL') {
+      filteredClientRecords.push(...allHostRecords);
+    } else {
+      const withClient =
+        allHostRecords?.filter(
+          ({ data }) => (data as RawSessionOverview).client === clientId
+        ) || [];
+      filteredClientRecords.push(...withClient);
+    }
+
+    console.log(
+      `Session data after filtering ClientID '${clientId}': `,
+      filteredClientRecords.length
+    );
+
+    console.log('Got user data: ', allUserRecords?.length || 0);
+    return {
+      hostData: filteredClientRecords,
+      userData: allUserRecords,
+    };
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+async function iterateToGetAllEntries(
+  dbName: 'user' | 'host'
+): Promise<DbRecord[]> {
+  let offset = 0;
+  const host = dbName === 'host';
+  let allRecords: DbRecord[] = [];
+  while (true) {
+    console.log(
+      `Getting batch ${offset} - ${offset + limit} from ${
+        host ? 'host' : 'user'
+      } store`
+    );
+    const batch = await fetch(
+      getMakeUrl(host ? sessionStore : userStore, true, offset),
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    try {
+      const batchJson = await batch.json();
+      if (!batchJson.records || batchJson.records.length === 0) {
+        return allRecords;
+      } else {
+        allRecords.push(...batchJson.records);
+      }
+    } catch (error) {
+      console.error(error);
+      console.log('Batch object:', batch);
+      throw error;
+    }
+    offset += limit;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+}
+
+migrateFromMake().then(() => {
+  console.log('Migration complete.');
+});

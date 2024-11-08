@@ -10,30 +10,29 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Session } from './session';
 import {
-  AccumulatedSessionData,
-  SessionOverview,
+  HostAndSessionData,
+  HostSessionData,
   UserSessionData,
 } from '@/lib/types';
 import { Key, useEffect, useState } from 'react';
-import { Spinner } from '@/components/icons';
 import SortableTable from '@/components/SortableTable';
 
-export type SessionData = {
-  sessionId: string;
-  name: string;
-  status: string;
-  active: boolean;
-  numActive: number;
-  numFinished: number;
-  createdOn: string;
-  hostData: SessionOverview;
-  userData: Record<string, UserSessionData>;
-};
+// export type SessionData = {
+//   sessionId: string;
+//   name: string;
+//   status: string;
+//   active: boolean;
+//   numActive: number;
+//   numFinished: number;
+//   createdOn: string;
+//   hostData: SessionOverview;
+//   userData: Record<string, UserSessionData>;
+// };
 
 export function SessionsTable({
   sessions
 }: {
-  sessions: Record<string, AccumulatedSessionData>;
+  sessions: Record<string, HostAndSessionData>;
 }) {
   const tableHeaders = [
     {
@@ -85,60 +84,6 @@ export function SessionsTable({
 
     return { started, finished };
   };
-
-  const [cleanSessions, setCleanSessions] = useState<SessionData[]>([]);
-
-  useEffect(() => {
-    const cleaned = Object.entries(sessions)
-      .map(([sessionId, session]) => {
-        const topic = session.session_data.topic;
-        const template = session.session_data.template;
-        const name = topic
-          ? topic
-          : template && !template.startsWith('asst_')
-            ? template
-            : null;
-
-        const { started, finished } = getActiveFinished(
-          Object.values(session.user_data)
-        );
-
-        const finalReportSent = session.session_data.final_report_sent === true;
-        const session_active = session.session_data.session_active;
-
-        // is finalReportSent- means that the session is finished
-        const activeFinishedDraft = finalReportSent
-          ? 'Finished'
-          : started === 0
-            ? 'Draft'
-            : 'Active';
-
-        const statusText = `${activeFinishedDraft}`;
-
-        const createdOn = session.session_data.start_time
-          ? new Intl.DateTimeFormat(undefined, {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-          }).format(new Date(session.session_data.start_time))
-          : `No start time`;
-
-        return {
-          sessionId,
-          name: name || '',
-          status: statusText,
-          active: !finalReportSent,
-          numActive: started,
-          numFinished: finished,
-          createdOn,
-          hostData: session.session_data,
-          userData: session.user_data,
-        };
-      })
-      .filter((cleaned) => {
-        return !!cleaned.name;
-      })
-    setCleanSessions(cleaned);
-  }, [sessions]);
 
   const handleOnDelete = (deleted: SessionData) => {
     console.log('Deleted session, now updating table');
