@@ -116,7 +116,7 @@ async function migrateFromMake() {
             ? Math.ceil(sessionData.active) > 0
             : !!sessionData.active,
         num_sessions: userSessions.length, // Todo
-        num_finished: userSessions.map((data) => !data.active).length,
+        num_finished: userSessions.filter((data) => !data.active).length,
         prompt: 'unknown',
         summary: sessionData.summary,
         template: sessionData.template ?? 'unknown',
