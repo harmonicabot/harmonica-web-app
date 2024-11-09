@@ -30,6 +30,7 @@ export type UserSessionData = {
   bot_id: string | null;
   host_chat_id: string | null;
   active: boolean;
+  step: number | null;
   start_time: Date | string;
   last_edit: Date;
 };
@@ -145,7 +146,6 @@ export type RequestData = {
   stream?: boolean;
   data:
     | WebhookData
-    | MultipleSessions
     | SessionBuilderData
     | AssistantBuilderData
     | AssistantMessageData

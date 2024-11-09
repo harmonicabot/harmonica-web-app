@@ -36,7 +36,7 @@ export interface UserSessionsTable {
   bot_id: string | null;
   host_chat_id: string | null;
   active: boolean;
-  step: number;
+  step: number | null;
   start_time: ColumnType<Date, Date | string | undefined, never>;
   last_edit: Generated<Date>;
 }

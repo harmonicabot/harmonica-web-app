@@ -1,20 +1,13 @@
 'use client';
 
-import {
-  TableHead,
-  TableRow,
-  TableHeader,
-  TableBody,
-  Table,
-} from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
 import { Session } from './session';
 import {
+  AllSessionsData,
   HostAndSessionData,
-  HostSessionData,
   UserSessionData,
 } from '@/lib/types';
-import { Key, useEffect, useState } from 'react';
+import { Key, useState } from 'react';
 import SortableTable from '@/components/SortableTable';
 
 // export type SessionData = {
@@ -29,11 +22,7 @@ import SortableTable from '@/components/SortableTable';
 //   userData: Record<string, UserSessionData>;
 // };
 
-export function SessionsTable({
-  sessions
-}: {
-  sessions: Record<string, HostAndSessionData>;
-}) {
+export function SessionsTable({ sessions }: { sessions: AllSessionsData }) {
   const tableHeaders = [
     {
       label: 'Name',
@@ -85,15 +74,23 @@ export function SessionsTable({
     return { started, finished };
   };
 
-  const handleOnDelete = (deleted: SessionData) => {
+  const [tableSessions, setTableSessions] = useState<HostAndSessionData[]>(
+    Object.values(sessions)
+  );
+
+  const handleOnDelete = (deleted: HostAndSessionData) => {
     console.log('Deleted session, now updating table');
-    setCleanSessions(prevSessions => 
-      prevSessions.filter(session => session.sessionId !== deleted.sessionId)
+    setTableSessions((prevSessions) =>
+      prevSessions.filter(
+        (session) => session.host_data.id !== deleted.host_data.id
+      )
     );
   };
 
-  const getTableRow = (session: SessionData, index: Number) => {
-    return <Session key={index as Key} session={session} onDelete={handleOnDelete} />;
+  const getTableRow = (session: HostAndSessionData, index: Number) => {
+    return (
+      <Session key={index as Key} session={session} onDelete={handleOnDelete} />
+    );
   };
 
   return (
@@ -102,7 +99,7 @@ export function SessionsTable({
         <SortableTable
           tableHeaders={tableHeaders}
           getTableRow={getTableRow}
-          data={cleanSessions}
+          data={tableSessions}
         />
       </CardContent>
       {/* <CardFooter>

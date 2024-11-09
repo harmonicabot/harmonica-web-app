@@ -24,29 +24,30 @@ export function Session({
   onDelete: (session: HostAndSessionData) => void;
   }) {
   
-  const numActive = session.host_data.num_sessions - session.host_data.num_finished;
-  const status = !session.host_data.active
+  const host = session.host_data;
+  const numActive = host.num_sessions - host.num_finished;
+  const status = !host.active
           ? 'Finished'
-          : session.host_data.num_sessions === 0
+          : host.num_sessions === 0
             ? 'Draft'
       : 'Active';
   const createdOn = new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(new Date(session.host_data.start_time));
+  }).format(new Date(host.start_time));
 
   return (
     <TableRow>
       <TableCell className="font-medium text-base">
-        <Link href={`/sessions/${session.host_data.id}`}>{session.host_data.topic}</Link>
+        <Link href={`/sessions/${host.id}`}>{host.topic}</Link>
       </TableCell>
       <TableCell>
         <Badge
           variant="outline"
           className={`capitalize ${
-            session.host_data.active && numActive > 0
+            host.active && numActive > 0
               ? 'bg-lime-100 text-lime-900'
-              : session.host_data.active && numActive === 0
+              : host.active && numActive === 0
                 ? 'bg-purple-100 text-purple-900'
                 : ''
           }`}
@@ -63,14 +64,14 @@ export function Session({
       <TableCell className="hidden md:table-cell">
         <div className="flex items-center">
           <UserCheck className="mr-1 h-4 w-4 opacity-50" />
-          {session.host_data.num_finished}
+          {host.num_finished}
         </div>
       </TableCell>
       <TableCell className="hidden md:table-cell">
         {createdOn}
       </TableCell>
       <TableCell>
-        <Link href={`/sessions/${session.host_data.id}`}>
+        <Link href={`/sessions/${host.id}`}>
           <Button variant="outline">View</Button>
         </Link>
         <DropdownMenu>

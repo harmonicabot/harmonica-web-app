@@ -1,24 +1,22 @@
 import { deleteHostSession, deleteSessionById } from '@/lib/db';
 import { HostAndSessionData, ApiAction, ApiTarget } from '@/lib/types';
-import { revalidatePath } from 'next/cache';
-import { SessionData } from './sessions-table';
 import { sendApiCall } from '@/lib/utils';
 
-export async function deleteSession(session: SessionData) {
+export async function deleteSession(session: HostAndSessionData) {
   // TODO - for vercel DB:
   // let id = Number(formData.get('id'));
   // await deleteSessionById(id);
 
   // This here is for deleting from make.com db:
   // console.log(`Deleting `, session);
-  const userIds = Object.keys(session.userData);
-  const hostId = session.sessionId;
-  const assistantId = session.hostData.template;
+  const userIds = session.user_data.map((user) => user.id);
+  const hostId = session.host_data.id;
+  const assistantId = session.host_data.template;
   // console.log(`SessionID: `, hostIds);
 
   if (
     confirm(
-      `Are you sure you want to delete this session and all associated data? \n\n${session.name} - ${hostId}`
+      `Are you sure you want to delete this session and all associated data? \n\n${session.host_data.topic} - ${hostId}`
     )
   ) {
 
