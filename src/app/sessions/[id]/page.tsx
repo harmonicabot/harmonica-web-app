@@ -4,9 +4,8 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { accumulateSessionData } from '@/lib/utils';
 import { getGPTCompletion } from 'app/api/gptUtils';
-import { RawSessionData, UserSessionData } from '@/lib/types';
+import { HostAndUserData, UserSessionData } from '@/lib/types';
 import SessionResultHeader, { SessionStatus } from '@/components/SessionResult/SessionResultHeader';
 import SessionResultControls from '@/components/SessionResult/SessionResultControls';
 import SessionResultStatus from '@/components/SessionResult/SessionResultStatus';
@@ -21,9 +20,9 @@ export default function SessionResult() {
   
   const { id } = useParams() as { id: string };
   const [userData, setUserData] = useState<UserSessionData[]>([]);
-  const [accumulated, setAccumulated] = useSessionStore((state) => [
-    state.accumulated[id],
-    state.addAccumulatedSessions,
+  const [sessionData, setSessionData] = useSessionStore((state) => [
+    state.allSessionData[id],
+    state.addSession,
   ]);
   
   const { user } = useUser();
@@ -57,26 +56,25 @@ export default function SessionResult() {
   }, [user]);
 
   useEffect(() => {
-    if (!accumulated) {
+    if (!sessionData) {
       console.log('No data in store, fetching...');
       // Fetch data from the database if not in store
       fetchSessionData();
     } else {
       console.log('Session data found in store, not fetching');
-      setAccumulated(id, accumulated);
-      setUserData(Object.values(accumulated.user_data)); // Convert to array
+      setSessionData(id, sessionData);
+      setUserData(Object.values(sessionData.user_data)); // Convert to array
     }
-  }, [id, accumulated]);
+  }, [id, sessionData]);
 
   const fetchSessionData = async () => {
     console.log(`Fetching session data for ${id}...`);
-    const data: RawSessionData = await fetchFromDb();
-    const allData = accumulateSessionData(data);
+    const data: HostAndUserData = await fetchFromDb();
     setUserData(Object.values(data.user_data));
-    setAccumulated(id, allData);
+    setSessionData(id, data);
   };
 
-  async function fetchFromDb(): Promise<RawSessionData> {
+  async function fetchFromDb(): Promise<HostAndUserData> {
     return getHostAndAssociatedUserSessions(id);
   }
 
@@ -90,12 +88,17 @@ export default function SessionResult() {
     // ... unless we set a timestamp not of _now_ (i.e. when the summary is created) but of when accumulated was last updated...?
     await fetchSessionData();
 
-    const chats = Object.values(accumulated.user_data)
+    const chats = Object.values(sessionData.user_data)
       .map((userData) => userData.chat_text)
       .filter(Boolean);
 
     const instructions = `
-Generate a short report of the session summarizing relevant content based on the following chat history:\n\n
+Generate a short **report** based on the **objective** of the session.
+Extract the **OBJECTIVE** from this prompt:\n
+##### PROMPT #####\n
+${sessionData.host_data.prompt}\n
+##### PROMPT #####\n
+And the content from here:\n\n
 ##### Next Participant: #####\n
 ${chats.join('##### Next Participant: #####\n')}
 `;
@@ -104,46 +107,46 @@ ${chats.join('##### Next Participant: #####\n')}
 
     // So that we don't have to re-fetch all data from the DB, we just update the summary in the store directly
     updateHostSession(id, { summary });
-    const updatedSessionData = accumulated;
-    updatedSessionData.session_data.summary = summary!;
-    setAccumulated(id, updatedSessionData);
+    const updatedSessionData = sessionData;
+    updatedSessionData.host_data.summary = summary!;
+    setSessionData(id, updatedSessionData);
   };
 
-  if (!accumulated) return <div>Loading...</div>;
+  if (!sessionData) return <div>Loading...</div>;
 
   return (
     <div className="p-4 md:p-8">
       <SessionResultHeader
-        topic={accumulated.session_data.topic}
+        topic={sessionData.host_data.topic}
         status={
-          accumulated.session_data.final_report_sent
+          sessionData.host_data.final_report_sent
             ? SessionStatus.REPORT_SENT
             : SessionStatus.ACTIVE
         }
       />
       <div className="flex flex-col md:flex-row gap-4">
-        {!accumulated.session_data.final_report_sent && hostType && (
+        {!sessionData.host_data.final_report_sent && hostType && (
           <SessionResultControls
             id={id}
-            isFinished={accumulated.session_data.final_report_sent}
+            isFinished={sessionData.host_data.final_report_sent}
             createSummary={createSummary}
             readyToGetSummary={numSessions > 0}
           />
         )}
         <SessionResultStatus
-          finalReportSent={accumulated.session_data.final_report_sent}
-          startTime={accumulated.session_data.start_time}
+          finalReportSent={sessionData.host_data.final_report_sent}
+          startTime={sessionData.host_data.start_time}
           numSessions={numSessions}
           completedSessions={completedSessions}
         />
-        {!accumulated.session_data.final_report_sent && (
-          <SessionResultShare sessionId={accumulated.session_data.id} />
+        {!sessionData.host_data.final_report_sent && (
+          <SessionResultShare sessionId={sessionData.host_data.id} />
         )}
       </div>
       <SessionResults
         hostType={hostType}
         userData={userData}
-        accumulated={accumulated}
+        allData={sessionData}
         id={id}
         handleCreateSummary={createSummary}
       />

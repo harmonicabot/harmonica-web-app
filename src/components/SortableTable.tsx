@@ -19,6 +19,11 @@ interface TableHeaderData {
 
 type ColumnData = any[];
 
+/**
+For sorting to work, the data passed in to SortableTable should be an array with objects for each row,
+where each of the sortKeys in TableHeaderData is a top-level key in each row object. Addidional keys are allowed.
+In other words: if a sortKey is in a nexted object, it will not work.
+*/
 export default function SortableTable({
   tableHeaders,
   getTableRow,

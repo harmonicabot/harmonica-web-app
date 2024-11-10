@@ -1,21 +1,12 @@
 'use client';
 
-import {
-  TableHead,
-  TableRow,
-  TableHeader,
-  TableBody,
-  Table,
-} from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
 import { Session } from './session';
 import {
-  AccumulatedSessionData,
-  SessionOverview,
-  UserSessionData,
+  AllSessionsData,
+  HostAndUserData,
 } from '@/lib/types';
 import { Key, useEffect, useState } from 'react';
-import { Spinner } from '@/components/icons';
 import SortableTable from '@/components/SortableTable';
 
 export type SessionData = {
@@ -23,18 +14,13 @@ export type SessionData = {
   name: string;
   status: string;
   active: boolean;
-  numActive: number;
-  numFinished: number;
-  createdOn: string;
-  hostData: SessionOverview;
-  userData: Record<string, UserSessionData>;
+  num_sessions: number;
+  num_finished: number;
+  created_on: string;
+  data: HostAndUserData;
 };
 
-export function SessionsTable({
-  sessions
-}: {
-  sessions: Record<string, AccumulatedSessionData>;
-}) {
+export function SessionsTable({ sessions }: { sessions: AllSessionsData }) {
   const tableHeaders = [
     {
       label: 'Name',
@@ -48,17 +34,17 @@ export function SessionsTable({
     },
     {
       label: 'Started',
-      sortKey: 'numActive',
+      sortKey: 'num_sessions',
       className: 'hidden md:table-cell',
     },
     {
       label: 'Finished',
-      sortKey: 'numFinished',
+      sortKey: 'num_finished',
       className: 'hidden md:table-cell',
     },
     {
       label: 'Created on',
-      sortKey: 'createdOn',
+      sortKey: 'created_on',
       className: 'hidden md:table-cell',
       sortBy: (sortDirection: string, a: string, b: string) => {
         return sortDirection === 'asc'
@@ -68,87 +54,60 @@ export function SessionsTable({
     },
   ];
 
-  const getActiveFinished = (
-    userData: UserSessionData[]
-  ): { started: number; finished: number } => {
-    let started = 0;
-    let finished = 0;
-
-    userData.forEach((user) => {
-      if (user.chat_text && user.chat_text.length > 0) {
-        started++;
-        if (!user.active) {
-          finished++;
-        }
-      }
-    });
-
-    return { started, finished };
-  };
-
-  const [cleanSessions, setCleanSessions] = useState<SessionData[]>([]);
+  const [tableSessions, setTableSessions] = useState<SessionData[]>([]);
 
   useEffect(() => {
-    const cleaned = Object.entries(sessions)
+    const asSessionData: SessionData[] = Object.entries(sessions)
       .map(([sessionId, session]) => {
-        const topic = session.session_data.topic;
-        const template = session.session_data.template;
+        const host = session.host_data;
+        const topic = host.topic;
+        const template = host.template;
         const name = topic
           ? topic
           : template && !template.startsWith('asst_')
             ? template
             : null;
 
-        const { started, finished } = getActiveFinished(
-          Object.values(session.user_data)
-        );
-
-        const finalReportSent = session.session_data.final_report_sent === true;
-        const session_active = session.session_data.session_active;
-
-        // is finalReportSent- means that the session is finished
-        const activeFinishedDraft = finalReportSent
-          ? 'Finished'
-          : started === 0
-            ? 'Draft'
+        const status = !host.active
+                ? 'Finished'
+                : host.num_sessions === 0
+                  ? 'Draft'
             : 'Active';
-
-        const statusText = `${activeFinishedDraft}`;
-
-        const createdOn = session.session_data.start_time
-          ? new Intl.DateTimeFormat(undefined, {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-          }).format(new Date(session.session_data.start_time))
-          : `No start time`;
+        const created_on = new Intl.DateTimeFormat(undefined, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }).format(new Date(host.start_time));
 
         return {
           sessionId,
           name: name || '',
-          status: statusText,
-          active: !finalReportSent,
-          numActive: started,
-          numFinished: finished,
-          createdOn,
-          hostData: session.session_data,
-          userData: session.user_data,
+          status: status,
+          active: host.active,
+          num_sessions: host.num_sessions,
+          num_finished: host.num_finished,
+          created_on,
+          data: session,
         };
       })
       .filter((cleaned) => {
         return !!cleaned.name;
       })
-    setCleanSessions(cleaned);
+    setTableSessions(asSessionData);
   }, [sessions]);
 
   const handleOnDelete = (deleted: SessionData) => {
     console.log('Deleted session, now updating table');
-    setCleanSessions(prevSessions => 
-      prevSessions.filter(session => session.sessionId !== deleted.sessionId)
+    setTableSessions((prevSessions) =>
+      prevSessions.filter(
+        (session) => session.sessionId !== deleted.sessionId
+      )
     );
   };
 
   const getTableRow = (session: SessionData, index: Number) => {
-    return <Session key={index as Key} session={session} onDelete={handleOnDelete} />;
+    return (
+      <Session key={index as Key} session={session} onDelete={handleOnDelete} />
+    );
   };
 
   return (
@@ -157,7 +116,7 @@ export function SessionsTable({
         <SortableTable
           tableHeaders={tableHeaders}
           getTableRow={getTableRow}
-          data={cleanSessions}
+          data={tableSessions}
         />
       </CardContent>
       {/* <CardFooter>

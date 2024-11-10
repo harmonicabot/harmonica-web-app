@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession as authGetSession } from '@auth0/nextjs-auth0';
 
 /** @deprecated Use db methods instead where possible*/
-export async function getSessionFromMake(body: any) {
+export async function getFromMakeWebhook(body: any) {
   // This is just a middleman that 'forwards' the api call to the make.com database and back to the caller:
   console.warn('Using legacy Make API');
 

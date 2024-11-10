@@ -7,7 +7,7 @@ import { SessionsTable } from './sessions-table';
 import { getHostAndUserSessions } from '@/lib/db';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { AccumulatedSessionData } from '@/lib/types';
+import { AllSessionsData, HostAndUserData } from '@/lib/types';
 
 export default function Dashboard({
   searchParams,
@@ -17,9 +17,8 @@ export default function Dashboard({
   const search = searchParams.q ?? '';
   const offset = searchParams.offset ?? 0;
 
-  const [accumulated, setAccumulated] = useState<
-    Record<string, AccumulatedSessionData>
-  >({});
+  const [allData, setAllData] = useState<AllSessionsData>({});
+
   useEffect(() => {
     // console.log('Migrating sessions from Make to NeonDB...');
     // migrateFromMake();
@@ -27,18 +26,16 @@ export default function Dashboard({
   }, [search, offset]);
 
   async function callNeonDB() {
-    console.log('Getting sessions from postgres database...');
-    const accumulatedSessions = await getHostAndUserSessions();
-    const sortedSessions = Object.entries(accumulatedSessions)
+    const allSessions = await getHostAndUserSessions();
+    const sortedSessions = Object.entries(allSessions)
       .sort(
         ([, a], [, b]) =>
-          new Date(b.session_data.start_time).getTime() -
-          new Date(a.session_data.start_time).getTime()
+          new Date(b.host_data.start_time).getTime() -
+          new Date(a.host_data.start_time).getTime()
       )
       .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
-
-    setAccumulated(sortedSessions);
-  }
+    setAllData(sortedSessions);
+}
 
   return (
     <Tabs defaultValue="all">
@@ -77,7 +74,7 @@ export default function Dashboard({
         {/* </div> */}
       </div>
       <TabsContent value="all">
-        <SessionsTable sessions={accumulated} />
+        <SessionsTable sessions={allData} />
       </TabsContent>
     </Tabs>
   );

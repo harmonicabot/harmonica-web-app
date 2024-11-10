@@ -160,7 +160,7 @@ export default function CreationFlow() {
       topic: formData.sessionName,
       prompt: prompt,
       num_sessions: 0,
-      finished: 0,
+      num_finished: 0,
       active: true,
       final_report_sent: false,
       start_time: new Date().toISOString(),

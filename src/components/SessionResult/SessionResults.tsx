@@ -1,5 +1,5 @@
 import {
-  AccumulatedSessionData,
+  HostAndUserData,
   ApiTarget,
   UserSessionData,
 } from '@/lib/types';
@@ -18,13 +18,13 @@ import ShareSession from './ShareSession';
 
 export default function SessionResults({
   userData,
-  accumulated,
+  allData,
   id,
   handleCreateSummary,
   hostType,
 }: {
   userData: UserSessionData[];
-  accumulated: AccumulatedSessionData;
+  allData: HostAndUserData;
   id: string;
   hostType: boolean;
   handleCreateSummary: () => void;
@@ -54,7 +54,7 @@ export default function SessionResults({
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `Harmonica_${userData[0].topic ?? id}.json`);
+    link.setAttribute('download', `Harmonica_${allData.host_data.topic ?? id}.json`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -82,7 +82,7 @@ export default function SessionResults({
       <Tabs
         className="mb-4"
         defaultValue={
-          accumulated.session_data.summary
+          allData.host_data.summary
             ? 'SUMMARY'
             : hostType
               ? 'RESPONSES'
@@ -90,7 +90,7 @@ export default function SessionResults({
         }
       >
         <TabsList>
-          {accumulated.session_data.summary ? (
+          {allData.host_data.summary ? (
             <TabsTrigger className="ms-0" value="SUMMARY">
               Summary
             </TabsTrigger>
@@ -114,9 +114,9 @@ export default function SessionResults({
         <div className="flex flex-col md:flex-row gap-4">
           <div className="w-full md:w-2/3">
             <TabsContent value="SUMMARY" className="mt-4">
-              {accumulated.session_data.summary ? (
+              {allData.host_data.summary ? (
                 <SessionResultSummary
-                  summary={accumulated.session_data.summary}
+                  summary={allData.host_data.summary}
                 />
               ) : (
                 <>
