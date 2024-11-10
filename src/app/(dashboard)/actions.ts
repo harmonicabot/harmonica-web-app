@@ -1,8 +1,8 @@
 import { deleteHostSession, deleteSessionById } from '@/lib/db';
-import { HostAndSessionData, ApiAction, ApiTarget } from '@/lib/types';
+import { HostAndUserData, ApiAction, ApiTarget } from '@/lib/types';
 import { sendApiCall } from '@/lib/utils';
 
-export async function deleteSession(session: HostAndSessionData) {
+export async function deleteSession(session: HostAndUserData) {
   // TODO - for vercel DB:
   // let id = Number(formData.get('id'));
   // await deleteSessionById(id);

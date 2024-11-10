@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { getGPTCompletion } from 'app/api/gptUtils';
-import { HostAndSessionData, UserSessionData } from '@/lib/types';
+import { HostAndUserData, UserSessionData } from '@/lib/types';
 import SessionResultHeader, { SessionStatus } from '@/components/SessionResult/SessionResultHeader';
 import SessionResultControls from '@/components/SessionResult/SessionResultControls';
 import SessionResultStatus from '@/components/SessionResult/SessionResultStatus';
@@ -69,12 +69,12 @@ export default function SessionResult() {
 
   const fetchSessionData = async () => {
     console.log(`Fetching session data for ${id}...`);
-    const data: HostAndSessionData = await fetchFromDb();
+    const data: HostAndUserData = await fetchFromDb();
     setUserData(Object.values(data.user_data));
     setSessionData(id, data);
   };
 
-  async function fetchFromDb(): Promise<HostAndSessionData> {
+  async function fetchFromDb(): Promise<HostAndUserData> {
     return getHostAndAssociatedUserSessions(id);
   }
 

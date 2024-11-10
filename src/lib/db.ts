@@ -1,17 +1,13 @@
 'use server';
 import { createKysely } from '@vercel/postgres-kysely';
-import { RawBuilder, sql } from 'kysely';
+import { RawBuilder } from 'kysely';
 import * as s from './schema';
-import { getSession } from '@auth0/nextjs-auth0';
 import {
   AllSessionsData,
-  HostAndSessionData,
-  HostSessionData,
-  UserSessionData,
+  HostAndUserData,
 } from './types';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
-import { useUser } from '@auth0/nextjs-auth0/client';
 // Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {
   neonConfig.webSocketConstructor = ws;
@@ -19,19 +15,28 @@ if (typeof window === 'undefined') {
   console.log('Nope, not running on the server.');
 }
 
-const db = createKysely<s.Databases>();
+const userDbName = 'temp_user_db';
+const hostDbName = 'temp_host_db';
+interface Databases {
+  [hostDbName]: s.HostSessionsTable;
+  [userDbName]: s.UserSessionsTable;
+}
+const db = createKysely<Databases>();
 
 export async function getHostAndUserSessions(
   n: number = 100
-): Promise<Record<string, HostAndSessionData>> {
+): Promise<Record<string, HostAndUserData>> {
   console.log('Getting sessions from vercel database...');
 
-  const hostQuery = db
-    .selectFrom('host_data')
+  const clientId = process.env.CLIENT_ID ?? null;
+  const clientIdOperator = clientId ? '=' : 'is';
+  let hostQuery = db
+    .selectFrom(hostDbName)
+    .where('client', clientIdOperator, clientId)
     .orderBy('start_time', 'desc')
     .limit(n)
     .selectAll();
-
+  
   const hostSessions = await hostQuery.execute();
   // Return early if no host sessions found
   if (!hostSessions.length) {
@@ -39,7 +44,7 @@ export async function getHostAndUserSessions(
   }
 
   const userQuery = db
-    .selectFrom('user_data')
+    .selectFrom(userDbName)
     .where(
       'session_id',
       'in',
@@ -72,8 +77,8 @@ export async function getHostAndUserSessions(
 export async function getHostSessionById(id: string): Promise<s.HostSession[]> {
   try {
     return await db
-      .selectFrom('host_data')
-      .where('host_data.id', '=', id)
+      .selectFrom(hostDbName)
+      .where(`${hostDbName}.id`, '=', id)
       .selectAll()
       .execute();
   } catch (error) {
@@ -84,7 +89,7 @@ export async function getHostSessionById(id: string): Promise<s.HostSession[]> {
 
 export async function getHostAndAssociatedUserSessions(
   session_id: string
-): Promise<HostAndSessionData> {
+): Promise<HostAndUserData> {
   try {
     const hostSession: s.HostSession = (
       await getHostSessionById(session_id)
@@ -108,7 +113,7 @@ export async function insertHostSessions(
   try {
     console.log('Inserting host session with data:', data);
     const result = await db
-      .insertInto('host_data')
+      .insertInto(hostDbName)
       .values(data)
       .returningAll()
       .execute();
@@ -125,7 +130,7 @@ export async function upsertHostSession(
 ): Promise<void> {
   try {
     await db
-      .insertInto('host_data')
+      .insertInto(hostDbName)
       .values(data)
       .onConflict((oc) =>
         onConflict === 'skip'
@@ -148,7 +153,7 @@ export async function updateHostSession(
   try {
     console.log('Updating host session with id:', id, ' with data:', data);
     await db
-      .updateTable('host_data')
+      .updateTable(hostDbName)
       .set(data as any)
       .where('id', '=', id)
       .execute();
@@ -160,7 +165,7 @@ export async function updateHostSession(
 
 export async function deleteHostSession(id: string): Promise<void> {
   try {
-    await db.deleteFrom('host_data').where('id', '=', id).execute();
+    await db.deleteFrom(hostDbName).where('id', '=', id).execute();
   } catch (error) {
     console.error('Error deleting host session:', error);
     throw error;
@@ -172,7 +177,7 @@ export async function getUserSessionById(
 ): Promise<s.UserSession | undefined> {
   try {
     return await db
-      .selectFrom('user_data')
+      .selectFrom(userDbName)
       .where('id', '=', id)
       .selectAll()
       .executeTakeFirst();
@@ -188,7 +193,7 @@ export async function insertUserSessions(
   try {
     console.log('Inserting user session with data:', data);
     const result = await db
-      .insertInto('user_data')
+      .insertInto(userDbName)
       .values(data)
       .returningAll()
       .execute();
@@ -205,7 +210,7 @@ export async function upsertUserSession(
 ): Promise<void> {
   try {
     await db
-      .insertInto('user_data')
+      .insertInto(userDbName)
       .values(data)
       .onConflict((oc) =>
         onConflict === 'skip'
@@ -225,7 +230,7 @@ export async function updateUserSession(
 ): Promise<void> {
   try {
     console.log('Updating user session with id:', id, ' with data:', data);
-    await db.updateTable('user_data').set(data).where('id', '=', id).execute();
+    await db.updateTable(userDbName).set(data).where('id', '=', id).execute();
   } catch (error) {
     console.error('Error updating user session:', error);
     throw error;
@@ -234,7 +239,7 @@ export async function updateUserSession(
 
 export async function deleteUserSession(id: string): Promise<void> {
   try {
-    await db.deleteFrom('user_data').where('id', '=', id).execute();
+    await db.deleteFrom(userDbName).where('id', '=', id).execute();
   } catch (error) {
     console.error('Error deleting user session:', error);
     throw error;
@@ -247,7 +252,7 @@ export async function searchUserSessions(
 ): Promise<s.UserSession[]> {
   try {
     return await db
-      .selectFrom('user_data')
+      .selectFrom(userDbName)
       .where(columnName, 'ilike', `%${searchTerm}%`)
       .selectAll()
       .execute();
@@ -259,7 +264,7 @@ export async function searchUserSessions(
 
 export async function deleteSessionById(id: string): Promise<void> {
   try {
-    await db.deleteFrom('host_data').where('id', '=', id).execute();
+    await db.deleteFrom(hostDbName).where('id', '=', id).execute();
   } catch (error) {
     console.error('Error deleting session by ID:', error);
     throw error;

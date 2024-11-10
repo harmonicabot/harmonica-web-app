@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import {
-  HostAndSessionData,
+  HostAndUserData,
   ApiTarget,
   HostSessionData,
   RequestData,

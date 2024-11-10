@@ -1,5 +1,5 @@
 import {
-  HostAndSessionData,
+  HostAndUserData,
   ApiTarget,
   UserSessionData,
 } from '@/lib/types';
@@ -24,7 +24,7 @@ export default function SessionResults({
   hostType,
 }: {
   userData: UserSessionData[];
-  allData: HostAndSessionData;
+  allData: HostAndUserData;
   id: string;
   hostType: boolean;
   handleCreateSummary: () => void;

@@ -4,23 +4,21 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Session } from './session';
 import {
   AllSessionsData,
-  HostAndSessionData,
-  UserSessionData,
+  HostAndUserData,
 } from '@/lib/types';
-import { Key, useState } from 'react';
+import { Key, useEffect, useState } from 'react';
 import SortableTable from '@/components/SortableTable';
 
-// export type SessionData = {
-//   sessionId: string;
-//   name: string;
-//   status: string;
-//   active: boolean;
-//   numActive: number;
-//   numFinished: number;
-//   createdOn: string;
-//   hostData: SessionOverview;
-//   userData: Record<string, UserSessionData>;
-// };
+export type SessionData = {
+  sessionId: string;
+  name: string;
+  status: string;
+  active: boolean;
+  num_sessions: number;
+  num_finished: number;
+  created_on: string;
+  data: HostAndUserData;
+};
 
 export function SessionsTable({ sessions }: { sessions: AllSessionsData }) {
   const tableHeaders = [
@@ -36,17 +34,17 @@ export function SessionsTable({ sessions }: { sessions: AllSessionsData }) {
     },
     {
       label: 'Started',
-      sortKey: 'numActive',
+      sortKey: 'num_sessions',
       className: 'hidden md:table-cell',
     },
     {
       label: 'Finished',
-      sortKey: 'numFinished',
+      sortKey: 'num_finished',
       className: 'hidden md:table-cell',
     },
     {
       label: 'Created on',
-      sortKey: 'createdOn',
+      sortKey: 'created_on',
       className: 'hidden md:table-cell',
       sortBy: (sortDirection: string, a: string, b: string) => {
         return sortDirection === 'asc'
@@ -56,38 +54,57 @@ export function SessionsTable({ sessions }: { sessions: AllSessionsData }) {
     },
   ];
 
-  const getActiveFinished = (
-    userData: UserSessionData[]
-  ): { started: number; finished: number } => {
-    let started = 0;
-    let finished = 0;
+  const [tableSessions, setTableSessions] = useState<SessionData[]>([]);
 
-    userData.forEach((user) => {
-      if (user.chat_text && user.chat_text.length > 0) {
-        started++;
-        if (!user.active) {
-          finished++;
-        }
-      }
-    });
+  useEffect(() => {
+    const asSessionData: SessionData[] = Object.entries(sessions)
+      .map(([sessionId, session]) => {
+        const host = session.host_data;
+        const topic = host.topic;
+        const template = host.template;
+        const name = topic
+          ? topic
+          : template && !template.startsWith('asst_')
+            ? template
+            : null;
 
-    return { started, finished };
-  };
+        const status = !host.active
+                ? 'Finished'
+                : host.num_sessions === 0
+                  ? 'Draft'
+            : 'Active';
+        const created_on = new Intl.DateTimeFormat(undefined, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }).format(new Date(host.start_time));
 
-  const [tableSessions, setTableSessions] = useState<HostAndSessionData[]>(
-    Object.values(sessions)
-  );
+        return {
+          sessionId,
+          name: name || '',
+          status: status,
+          active: host.active,
+          num_sessions: host.num_sessions,
+          num_finished: host.num_finished,
+          created_on,
+          data: session,
+        };
+      })
+      .filter((cleaned) => {
+        return !!cleaned.name;
+      })
+    setTableSessions(asSessionData);
+  }, [sessions]);
 
-  const handleOnDelete = (deleted: HostAndSessionData) => {
+  const handleOnDelete = (deleted: SessionData) => {
     console.log('Deleted session, now updating table');
     setTableSessions((prevSessions) =>
       prevSessions.filter(
-        (session) => session.host_data.id !== deleted.host_data.id
+        (session) => session.sessionId !== deleted.sessionId
       )
     );
   };
 
-  const getTableRow = (session: HostAndSessionData, index: Number) => {
+  const getTableRow = (session: SessionData, index: Number) => {
     return (
       <Session key={index as Key} session={session} onDelete={handleOnDelete} />
     );

@@ -35,12 +35,12 @@ export type UserSessionData = {
   last_edit: Date;
 };
 
-export type HostAndSessionData = {
+export type HostAndUserData = {
   host_data: HostSessionData;
   user_data: UserSessionData[];
 };
 
-export type AllSessionsData = Record<string, HostAndSessionData>;
+export type AllSessionsData = Record<string, HostAndUserData>;
 
 // All of the fields are marked as optional,
 //  because sometimes we need only session_id,
