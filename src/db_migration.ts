@@ -78,6 +78,11 @@ async function migrateFromMake() {
 
   await Promise.all(
     data.hostData.map(async (hostRecord: DbRecord) => {
+      const hostData = hostRecord.data as RawSessionOverview;
+      if (!hostData.topic || !hostData.start_time) {
+        console.log(`Skip old record that doesn't even have a topic or start time yet: `, hostData);
+        return;
+      }
       const userSessions: s.NewUserSession[] = data.userData
         .filter(
           (user) => {
