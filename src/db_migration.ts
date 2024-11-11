@@ -29,8 +29,8 @@ async function setupTestTables() {
     await db.schema.dropTable(hostDbName).execute();
     await db.schema.dropTable(userDbName).execute();
   }
-  await s.createHostTable(db, hostDbName);
-  await s.createUserTable(db, userDbName);
+  await s.createHostTable(db, hostDbName).then(() => s.createTriggerOnHostUpdateLastEditSummary(hostDbName));
+  await s.createUserTable(db, userDbName).then(() => s.createTriggerOnUserUpdateLastEditChatText(userDbName));
 }
 
 type UserSessionData = {
@@ -79,8 +79,8 @@ async function migrateFromMake() {
   await Promise.all(
     data.hostData.map(async (hostRecord: DbRecord) => {
       const hostData = hostRecord.data as RawSessionOverview;
-      if (!hostData.topic || !hostData.start_time) {
-        console.log(`Skip old record that doesn't even have a topic or start time yet: `, hostData);
+      if (!hostData.topic || !hostData.start_time || !hostData.template) {
+        console.log(`Skip old record that doesn't even have a topic, template or start time yet: `, hostData);
         return;
       }
       const userSessions: s.NewUserSession[] = data.userData
@@ -104,32 +104,31 @@ async function migrateFromMake() {
             last_edit: new Date(),
             session_id: hostRecord.key,
             user_id: data.user_id ?? 'Anonymous',
-            feedback: data.feedback ?? null,
-            chat_text: data.chat_text ?? null,
-            thread_id: data.thread_id ?? null,
-            result_text: data.result_text ?? null,
-            bot_id: data.bot_id ?? null,
-            host_chat_id: data.bot_id ?? null,
+            feedback: data.feedback,
+            chat_text: data.chat_text,
+            thread_id: data.thread_id,
+            result_text: data.result_text,
+            bot_id: data.bot_id,
+            host_chat_id: data.bot_id,
           };
         });
 
-      const sessionData = hostRecord.data as RawSessionOverview;
       const hostSession: s.NewHostSession = {
         id: hostRecord.key,
         active:
-          typeof sessionData.active === 'number'
-            ? Math.ceil(sessionData.active) > 0
-            : !!sessionData.active,
+          typeof hostData.active === 'number'
+            ? Math.ceil(hostData.active) > 0
+            : !!hostData.active,
         num_sessions: userSessions.length, // Todo
         num_finished: userSessions.filter((data) => !data.active).length,
         prompt: 'unknown',
-        summary: sessionData.summary,
-        template: sessionData.template ?? 'unknown',
-        topic: sessionData.topic ?? 'Untitled',
-        context: sessionData.context,
-        client: sessionData.client ?? null,
-        final_report_sent: sessionData.final_report_sent ?? false,
-        start_time: sessionData.start_time ?? new Date(),
+        summary: hostData.summary,
+        template: hostData.template,
+        topic: hostData.topic,
+        context: hostData.context,
+        client: hostData.client,
+        final_report_sent: hostData.final_report_sent ?? false,
+        start_time: hostData.start_time,
         last_edit: new Date(),
       };
 
