@@ -14,7 +14,7 @@ import SessionResultControls from '@/components/SessionResult/SessionResultContr
 import SessionResultStatus from '@/components/SessionResult/SessionResultStatus';
 import SessionResultShare from '@/components/SessionResult/SessionResultShare';
 import SessionResults from '@/components/SessionResult/SessionResults';
-import { getHostAndAssociatedUserSessions, updateHostSession } from '@/lib/db';
+import { deactivateHostSession, getHostAndAssociatedUserSessions, updateHostSession } from '@/lib/db';
 
 const fetcher = async (id: string) => {
   const data = await getHostAndAssociatedUserSessions(id);
@@ -71,6 +71,11 @@ export default function SessionResult() {
     }
   }, [user]);
 
+  const finishSession = async () => { 
+    await deactivateHostSession(id);
+    await createSummary();
+  };
+
   const createSummary = async () => {
     console.log(`Creating summary for ${id}...`);
     const chats = Object.values(sessionData.user_data)
@@ -119,27 +124,28 @@ ${chats.join('##### Next Participant: #####\n')}
       <SessionResultHeader
         topic={sessionData.host_data.topic}
         status={
-          sessionData.host_data.final_report_sent
+          !sessionData.host_data.active
             ? SessionStatus.REPORT_SENT
             : SessionStatus.ACTIVE
         }
       />
       <div className="flex flex-col md:flex-row gap-4">
-        {!sessionData.host_data.final_report_sent && hostType && (
+        {sessionData.host_data.active && hostType && (
           <SessionResultControls
             id={id}
-            isFinished={sessionData.host_data.final_report_sent}
+            isFinished={!sessionData.host_data.active}
+            finishSession={finishSession}
             createSummary={createSummary}
             readyToGetSummary={numSessions > 0}
           />
         )}
         <SessionResultStatus
-          finalReportSent={sessionData.host_data.final_report_sent}
+          finalReportSent={!sessionData.host_data.active}
           startTime={sessionData.host_data.start_time}
           numSessions={numSessions}
           completedSessions={completedSessions}
         />
-        {!sessionData.host_data.final_report_sent && (
+        {sessionData.host_data.active && (
           <SessionResultShare sessionId={sessionData.host_data.id} />
         )}
       </div>

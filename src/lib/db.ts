@@ -1,5 +1,6 @@
 'use server';
 import { createKysely } from '@vercel/postgres-kysely';
+import { getSession as authGetSession } from '@auth0/nextjs-auth0';
 import { RawBuilder } from 'kysely';
 import * as s from './schema';
 import {
@@ -24,19 +25,32 @@ interface Databases {
 const db = createKysely<Databases>();
 
 export async function getHostAndUserSessions(
-  n: number = 100
+  n: number = 100,
 ): Promise<Record<string, HostAndUserData>> {
-  console.log('Getting sessions from vercel database...');
+  const session = await authGetSession();
+  const userSub = session?.user?.sub || "";
 
-  const clientId = process.env.CLIENT_ID ?? null;
-  const clientIdOperator = clientId ? '=' : 'is';
-  let hostQuery = db
-    .selectFrom(hostDbName)
-    .where('client', clientIdOperator, clientId)
-    .orderBy('start_time', 'desc')
-    .limit(n)
-    .selectAll();
-  
+  const adminIds = process.env.ADMIN_ID ? process.env.ADMIN_ID.split(',') : [];
+
+  let hostQuery;
+
+  if (adminIds.includes(userSub)) {
+      hostQuery = db
+        .selectFrom(hostDbName)
+        .orderBy('start_time', 'desc')
+        .limit(n)
+        .selectAll();
+  } else if (userSub) {
+    hostQuery = db
+      .selectFrom(hostDbName)
+      .where('client', '=', userSub)
+      .orderBy('start_time', 'desc')
+      .limit(n)
+      .selectAll();
+  } else {
+    return {}; // Return empty object if clientEmail is not set
+  }
+
   const hostSessions = await hostQuery.execute();
   // Return early if no host sessions found
   if (!hostSessions.length) {
@@ -55,21 +69,15 @@ export async function getHostAndUserSessions(
   console.log(`User query: `, userQuery.compile().sql);
   const userSessions = await userQuery.execute();
 
-  // console.log(`Session from host Db: `, hostSessions);
-  // console.log(`Session from user Db: `, userSessions);
-
   const allData: AllSessionsData = {};
   hostSessions.forEach((host) => {
     if (host.id !== null) {
       allData[host.id] = {
         host_data: host,
-        user_data: userSessions
-          .filter((user) => user.session_id === host.id)
+        user_data: userSessions.filter((user) => user.session_id === host.id)
       };
     }
   });
-
-  // console.log('Accumulated sessions from Vercel:', accumulatedSessions);
 
   return allData;
 }
@@ -111,10 +119,12 @@ export async function insertHostSessions(
   data: s.NewHostSession | s.NewHostSession[]
 ): Promise<string[]> {
   try {
+    const session = await authGetSession();
+    const userSub = session?.user?.sub || "";
     console.log('Inserting host session with data:', data);
     const result = await db
       .insertInto(hostDbName)
-      .values(data)
+      .values({...data, client: userSub})
       .returningAll()
       .execute();
     return result.map((row) => row.id);
@@ -129,9 +139,11 @@ export async function upsertHostSession(
   onConflict: 'skip' | 'update' = 'skip'
 ): Promise<void> {
   try {
+    const session = await authGetSession();
+    const userSub = session?.user?.sub || "";
     await db
       .insertInto(hostDbName)
-      .values(data)
+      .values({...data, client: userSub})
       .onConflict((oc) =>
         onConflict === 'skip'
           ? oc.column('id').doNothing()
@@ -266,5 +278,20 @@ export async function deleteSessionById(id: string): Promise<void> {
   } catch (error) {
     console.error('Error deleting session by ID:', error);
     throw error;
+  }
+}
+
+export async function deactivateHostSession(sessionId: string): Promise<boolean> {
+  try {
+    const result = await db
+      .updateTable(hostDbName)
+      .set({ active: false })
+      .where('id', '=', sessionId)
+      .execute();
+
+    return result.length > 0;
+  } catch (error) {
+    console.error('Error deactivating host session:', error);
+    return false; 
   }
 }

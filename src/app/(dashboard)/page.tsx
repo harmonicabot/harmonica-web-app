@@ -8,6 +8,7 @@ import { getHostAndUserSessions } from '@/lib/db';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AllSessionsData, HostAndUserData } from '@/lib/types';
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 export default function Dashboard({
   searchParams,
@@ -18,15 +19,15 @@ export default function Dashboard({
   const offset = searchParams.offset ?? 0;
 
   const [allData, setAllData] = useState<AllSessionsData>({});
-
+  const { user } = useUser();
   useEffect(() => {
     // console.log('Migrating sessions from Make to NeonDB...');
     // migrateFromMake();
-    callNeonDB();
-  }, [search, offset]);
+    if (user) callNeonDB();
+  }, [search, offset, user]);
 
   async function callNeonDB() {
-    const allSessions = await getHostAndUserSessions();
+    const allSessions = await getHostAndUserSessions(100);
     const sortedSessions = Object.entries(allSessions)
       .sort(
         ([, a], [, b]) =>

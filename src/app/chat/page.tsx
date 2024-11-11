@@ -14,6 +14,7 @@ import {
   updateUserSession,
 } from '@/lib/db';
 import { sql } from 'kysely';
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 type Message = {
   type: string;
@@ -26,6 +27,8 @@ const StandaloneChat = () => {
     text: `Nice to meet you! Could you please let me know your name?
 `,
   });
+
+  const { user } = useUser();
 
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('s');
@@ -98,7 +101,7 @@ const StandaloneChat = () => {
     }
   }, [message, isFirstMessage]);
 
-  const sessionClosed = sessionData?.host_data?.final_report_sent;
+  const sessionClosed = !sessionData?.host_data?.active;
   return (
     <div
       className="flex flex-col md:flex-row bg-purple-50"
@@ -129,11 +132,13 @@ const StandaloneChat = () => {
                         We appreciate your input. Please wait until all
                         participants have finished to receive the final report.
                       </p>
-                      <Link href={`/sessions/${sessionId}`} passHref>
-                        <Button size="lg" className="mt-4">
-                          View Session Results
-                        </Button>
-                      </Link>
+                      {user && user.sub && (
+                        <Link href={`/sessions/${sessionId}`} passHref>
+                          <Button size="lg" className="mt-4">
+                            View Session Results
+                          </Button>
+                        </Link>
+                      )}
                     </div>
                   ) : (
                     <div className="flex flex-col lg:flex-row">
@@ -148,20 +153,22 @@ const StandaloneChat = () => {
                             className={`mb-6 ${sessionClosed ? 'sm:mb-8' : ''}`}
                           >
                             {sessionClosed
-                              ? "If you were unable to participate, you can still view the session results and even ask questions about other users' feedback or engage with their responses. Alternatively, you can create a new session on any topic and invite others to participate."
+                              ? "You can create a new session on any topic and invite others to participate."
                               : 'Welcome to our interactive session! We value your input and would love to hear your thoughts on the topic at hand. Your responses will be combined with others to create an AI-powered overview.'}
                           </p>
                           {sessionClosed ? (
                             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-8">
-                              <Link
-                                href={`/sessions/${sessionId}`}
-                                passHref
-                                className="w-full sm:w-auto"
-                              >
-                                <Button size="lg" className="w-full sm:w-auto">
-                                  View Session Results
-                                </Button>
-                              </Link>
+                              {user && user.sub && (
+                                <Link
+                                  href={`/sessions/${sessionId}`}
+                                  passHref
+                                  className="w-full sm:w-auto"
+                                >
+                                  <Button size="lg" className="w-full sm:w-auto">
+                                    View Session Results
+                                  </Button>
+                                </Link>
+                              )}
                               <Link
                                 href="/create"
                                 passHref

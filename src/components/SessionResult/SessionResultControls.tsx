@@ -10,6 +10,7 @@ interface SessionResultControlsProps {
   isFinished: boolean;
   readyToGetSummary: boolean;
   createSummary: () => Promise<void>;
+  finishSession: () => Promise<void>;
 }
 
 export default function SessionResultControls({
@@ -17,6 +18,7 @@ export default function SessionResultControls({
   isFinished,
   readyToGetSummary,
   createSummary: createSummary,
+  finishSession: finishSession,
 }: SessionResultControlsProps) {
   const [loadSummary, setLoadSummary] = useState(false);
 
@@ -24,10 +26,6 @@ export default function SessionResultControls({
     setLoadSummary(true);
     await createSummary();
     setLoadSummary(false);
-  };
-
-  const finishSession = async () => {
-    updateSummary();
   };
 
   return (
