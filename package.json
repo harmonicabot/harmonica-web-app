@@ -2,7 +2,6 @@
   "private": true,
   "name": "harmonica-web-app",
   "version": "0.1.0",
-  
   "scripts": {
     "build": "next build",
     "dev": "next dev",
@@ -48,6 +47,7 @@
     "react-hook-form": "^7.52.0",
     "react-markdown": "^9.0.1",
     "remark-gfm": "^4.0.0",
+    "swr": "^2.2.5",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "ws": "^8.18.0",
