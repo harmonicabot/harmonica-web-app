@@ -7,17 +7,17 @@ import {
 } from '@/components/ui/card';
 import ParticipantSessionRow from './ParticipantSessionRow';
 import SortableTable from '../SortableTable';
-import { UserSessionData } from '@/lib/types';
+import { UserSession } from '@/lib/schema';
 
 export default function SessionResultParticipants({
   userData,
 }: {
-  userData: UserSessionData[];
+  userData: UserSession[];
 }) {
   type Data = {
     userName: string;
     sessionStatus: string;
-    session: UserSessionData;
+    session: UserSession;
   };
 
   const tableHeaders: Array<{

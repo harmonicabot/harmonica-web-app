@@ -1,8 +1,8 @@
 import {
   HostAndUserData,
   ApiTarget,
-  UserSessionData,
 } from '@/lib/types';
+import { UserSession } from '@/lib/schema';
 
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
@@ -23,7 +23,7 @@ export default function SessionResults({
   handleCreateSummary,
   hostType,
 }: {
-  userData: UserSessionData[];
+  userData: UserSession[];
   allData: HostAndUserData;
   id: string;
   hostType: boolean;
