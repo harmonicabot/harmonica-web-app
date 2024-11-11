@@ -146,9 +146,7 @@ export async function upsertHostSession(
 
 export async function updateHostSession(
   id: string,
-  data:
-    | s.HostSessionUpdate
-    | { [K in keyof s.HostSessionUpdate]: RawBuilder<unknown> }
+  data: s.HostSessionUpdate
 ): Promise<void> {
   try {
     console.log('Updating host session with id:', id, ' with data:', data);

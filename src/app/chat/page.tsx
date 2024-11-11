@@ -36,7 +36,7 @@ const StandaloneChat = () => {
     state.addSession,
   ]);
 
-  const [userSessionId, setUserSessionId] = useState<string | null>(null);
+  const [userSessionId, setUserSessionId] = useState<string>();
   const [showModal, setShowModal] = useState(true);
   const [userFinished, setUserFinished] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

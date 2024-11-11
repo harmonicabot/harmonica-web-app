@@ -68,7 +68,7 @@ export function SessionsTable({ sessions }: { sessions: AllSessionsData }) {
             ? template
             : null;
 
-        const status = !host.active
+        const status = !host.active || host.final_report_sent
                 ? 'Finished'
                 : host.num_sessions === 0
                   ? 'Draft'

@@ -78,14 +78,14 @@ async function getAllMessages(threadId: string) {
   return allMessages;
 }
 
-export async function getGPTCompletion(instructions: string) {
+export async function getGPTCompletion(instructions: string): Promise<string> {
   try {
     const completion = await client.chat.completions.create({
       messages: [{ role: 'user', content: instructions }],
       model: 'gpt-4o-mini',
     });
 
-    return completion.choices[0].message.content;
+    return completion.choices[0].message.content ?? '';
   } catch (error) {
     console.error('Error getting answer:', error);
     throw error;

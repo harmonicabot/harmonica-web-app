@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { getGPTCompletion } from 'app/api/gptUtils';
-import { HostAndUserData, UserSessionData } from '@/lib/types';
+import { HostAndUserData } from '@/lib/types';
+import { UserSession } from '@/lib/schema';
 import SessionResultHeader, { SessionStatus } from '@/components/SessionResult/SessionResultHeader';
 import SessionResultControls from '@/components/SessionResult/SessionResultControls';
 import SessionResultStatus from '@/components/SessionResult/SessionResultStatus';
@@ -19,7 +20,7 @@ import {
 export default function SessionResult() {
   
   const { id } = useParams() as { id: string };
-  const [userData, setUserData] = useState<UserSessionData[]>([]);
+  const [userData, setUserData] = useState<UserSession[]>([]);
   const [sessionData, setSessionData] = useSessionStore((state) => [
     state.allSessionData[id],
     state.addSession,
