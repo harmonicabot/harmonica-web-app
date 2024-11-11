@@ -1,35 +1,50 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import useSWR, { mutate } from 'swr';
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { getGPTCompletion } from 'app/api/gptUtils';
-import { HostAndUserData } from '@/lib/types';
 import { UserSession } from '@/lib/schema';
-import SessionResultHeader, { SessionStatus } from '@/components/SessionResult/SessionResultHeader';
+import SessionResultHeader, {
+  SessionStatus,
+} from '@/components/SessionResult/SessionResultHeader';
 import SessionResultControls from '@/components/SessionResult/SessionResultControls';
 import SessionResultStatus from '@/components/SessionResult/SessionResultStatus';
 import SessionResultShare from '@/components/SessionResult/SessionResultShare';
 import SessionResults from '@/components/SessionResult/SessionResults';
-import {
-  getHostAndAssociatedUserSessions,
-  updateHostSession,
-} from '@/lib/db';
+import { getHostAndAssociatedUserSessions, updateHostSession } from '@/lib/db';
+
+const fetcher = async (id: string) => {
+  const data = await getHostAndAssociatedUserSessions(id);
+  return data;
+};
 
 export default function SessionResult() {
-  
   const { id } = useParams() as { id: string };
   const [userData, setUserData] = useState<UserSession[]>([]);
   const [sessionData, setSessionData] = useSessionStore((state) => [
     state.allSessionData[id],
     state.addSession,
   ]);
-  
+
+  const { error } = useSWR(`sessions/${id}`, () => fetcher(id), {
+    refreshInterval: 5000, // Poll every 5 seconds
+    revalidateOnFocus: true,
+    onSuccess: (data) => {
+      console.log('Updated session data fetched:', data);
+      setUserData(Object.values(data.user_data));
+      setSessionData(id, data);
+    },
+  });
+
   const { user } = useUser();
   const sessionsWithChatText = userData.filter((user) => user.chat_text);
   const numSessions = sessionsWithChatText.length;
-  const completedSessions = sessionsWithChatText.filter((user) => !user.active).length;
+  const completedSessions = sessionsWithChatText.filter(
+    (user) => !user.active
+  ).length;
 
   const [hostType, setHostType] = useState(false);
 
@@ -56,50 +71,19 @@ export default function SessionResult() {
     }
   }, [user]);
 
-  useEffect(() => {
-    if (!sessionData) {
-      console.log('No data in store, fetching...');
-      // Fetch data from the database if not in store
-      fetchSessionData();
-    } else {
-      console.log('Session data found in store, not fetching');
-      setSessionData(id, sessionData);
-      setUserData(Object.values(sessionData.user_data)); // Convert to array
-    }
-  }, [id, sessionData]);
-
-  const fetchSessionData = async () => {
-    console.log(`Fetching session data for ${id}...`);
-    const data: HostAndUserData = await fetchFromDb();
-    setUserData(Object.values(data.user_data));
-    setSessionData(id, data);
-  };
-
-  async function fetchFromDb(): Promise<HostAndUserData> {
-    return getHostAndAssociatedUserSessions(id);
-  }
-
   const createSummary = async () => {
     console.log(`Creating summary for ${id}...`);
-    // Todo: do we want to update accumulated from the DB first, to make sure we have the latest data?
-    // Either way, we will need to have some mechanism so specify which chat-texts were included in the summary.
-    // One possibility would be to use timestamps, when the summary was created
-    // and compare with timestamps of the last chat text update.
-    // But that then would only work reliably if we DO update accumulated first; otherwise the summary might have been created with an outdated set of chats and we wouldn't know about that.
-    // ... unless we set a timestamp not of _now_ (i.e. when the summary is created) but of when accumulated was last updated...?
-    await fetchSessionData();
-
     const chats = Object.values(sessionData.user_data)
       .map((userData) => userData.chat_text)
       .filter(Boolean);
 
     const instructions = `
-Generate a short **report** based on the **objective** of the session.
-Extract the **OBJECTIVE** from this prompt:\n
+Generate a short **REPORT** that answers the OBJECTIVE of the session and suits the overall session style.\n\n
+The **OBJECTIVE** is stated in this prompt:\n
 ##### PROMPT #####\n
 ${sessionData.host_data.prompt}\n
 ##### PROMPT #####\n
-And the content from here:\n\n
+And the content for the report:\n\n
 ##### Next Participant: #####\n
 ${chats.join('##### Next Participant: #####\n')}
 `;
@@ -107,12 +91,27 @@ ${chats.join('##### Next Participant: #####\n')}
     console.log('Summary: ', summary);
 
     // So that we don't have to re-fetch all data from the DB, we just update the summary in the store directly
-    updateHostSession(id, { summary });
-    const updatedSessionData = sessionData;
-    updatedSessionData.host_data.summary = summary!;
-    setSessionData(id, updatedSessionData);
+    updateHostSession(id, { summary: summary ?? undefined, last_edit: new Date() }).then(() =>
+      mutate(`sessions/${id}`)
+    );
   };
 
+  const [hasNewMessages, setHasNewMessages] = useState(false);
+  useEffect(() => {
+    const lastMessage = Math.max(...userData.map(u => new Date(u.last_edit).getTime()));
+    const lastSummaryUpdate = sessionData?.host_data.last_edit.getTime(); 
+    const hasNewMessages = lastMessage > lastSummaryUpdate;
+    setHasNewMessages(hasNewMessages);
+
+    if (hasNewMessages && lastMessage > lastSummaryUpdate && new Date().getTime() - lastSummaryUpdate > (1000 * 60 * 10)) {
+      const minutesAgo = (new Date().getTime() - lastSummaryUpdate) / (1000 * 60)
+      console.log(`Last summary created ${minutesAgo} minutes ago, 
+        and new messages were received since then. Creating an updated one.`)
+      createSummary();
+    } 
+  }, [sessionData]);
+
+  // if (error) return <div>{`Failed to load session data :-(`}</div>;
   if (!sessionData) return <div>Loading...</div>;
 
   return (
@@ -150,6 +149,7 @@ ${chats.join('##### Next Participant: #####\n')}
         allData={sessionData}
         id={id}
         handleCreateSummary={createSummary}
+        hasNewMessages={hasNewMessages}
       />
     </div>
   );

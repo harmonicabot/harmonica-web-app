@@ -1,7 +1,4 @@
-import {
-  HostAndUserData,
-  ApiTarget,
-} from '@/lib/types';
+import { HostAndUserData, ApiTarget } from '@/lib/types';
 import { UserSession } from '@/lib/schema';
 
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,17 +14,19 @@ import SessionResultSummary from './SessionResultSummary';
 import ShareSession from './ShareSession';
 
 export default function SessionResults({
+  hostType,
   userData,
   allData,
   id,
   handleCreateSummary,
-  hostType,
+  hasNewMessages,
 }: {
+  hostType: boolean;
   userData: UserSession[];
   allData: HostAndUserData;
   id: string;
-  hostType: boolean;
   handleCreateSummary: () => void;
+  hasNewMessages: boolean;
 }) {
   const [exportInProgress, setExportInProgress] = useState(false);
   const exportSessionResults = async (e: React.FormEvent) => {
@@ -54,7 +53,10 @@ export default function SessionResults({
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `Harmonica_${allData.host_data.topic ?? id}.json`);
+    link.setAttribute(
+      'download',
+      `Harmonica_${allData.host_data.topic ?? id}.json`
+    );
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -85,8 +87,8 @@ export default function SessionResults({
           allData.host_data.summary
             ? 'SUMMARY'
             : hostType
-              ? 'RESPONSES'
-              : 'SUMMARY'
+            ? 'RESPONSES'
+            : 'SUMMARY'
         }
       >
         <TabsList>
@@ -117,6 +119,8 @@ export default function SessionResults({
               {allData.host_data.summary ? (
                 <SessionResultSummary
                   summary={allData.host_data.summary}
+                  hasNewMessages={hasNewMessages}
+                  onUpdateSummary={handleCreateSummary}
                 />
               ) : (
                 <>
