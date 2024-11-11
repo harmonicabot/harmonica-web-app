@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { UserSessionData } from '@/lib/types';
+import { UserSession } from '@/lib/schema';
 import { useEffect, useState } from 'react';
 import { HRMarkdown } from '../HRMarkdown';
 import { ChatMessage } from '../ChatMessage';
@@ -9,7 +9,7 @@ import { ChatMessage } from '../ChatMessage';
 interface SessionData {
   userName: string;
   sessionStatus: string;
-  session: UserSessionData;
+  session: UserSession;
 }
 export default function ParicipantSessionRow({
   userName,

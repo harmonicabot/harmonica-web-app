@@ -1,46 +1,13 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import {
-  HostAndUserData,
   ApiTarget,
-  HostSessionData,
-  RequestData,
-  UserSessionData,
+  RequestData
 } from '@/lib/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
-// export function accumulateSessionData(
-//   data: RawSessionData,
-// ): AccumulatedSessionData {
-//   console.log('Raw session data:', data);
-
-//   const userSessions = Object.values(data.user_data);
-//   const total_sessions = userSessions.length;
-//   const num_active = userSessions.filter((session) => session.active).length;
-//   const num_finished = total_sessions - num_active;
-
-//   const accumulated: AccumulatedSessionData = {
-//     session_data: {
-//       id: data.session_data.id!,
-//       session_active: typeof data.session_data.active === 'number' ? data.session_data.active > 0 : !!data.session_data.active,
-//       num_sessions: total_sessions,
-//       num_active: num_active,
-//       num_finished: num_finished,
-//       summary: data.session_data.summary,
-//       template: data.session_data.template || '',
-//       topic: data.session_data.topic,
-//       context: data.session_data.context,
-//       final_report_sent: data.session_data.final_report_sent!,
-//       start_time: data.session_data.start_time!,
-//     },
-//     user_data: data.user_data,
-//   };
-//   // console.log('Accumulated session data:', accumulated.session_data);
-//   return accumulated;
-// }
 
 export const sendApiCall = async (request: RequestData) => {
   console.log('Sending API call:', request);
@@ -70,12 +37,3 @@ export const sendApiCall = async (request: RequestData) => {
     return result;
   }
 };
-
-// export const sendCallToMake = async (body: RequestData) => {
-//   console.warn('This is the legacy Make API. Use db methods instead where possible');
-
-//   return sendApiCall({
-//     ...body,
-//     target: ApiTarget.Session,
-//   });
-// };
