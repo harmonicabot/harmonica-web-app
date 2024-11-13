@@ -30,7 +30,7 @@ export default function SessionResult() {
   ]);
 
   const { error } = useSWR(`sessions/${id}`, () => fetcher(id), {
-    refreshInterval: 5000, // Poll every 5 seconds
+    refreshInterval: 60000, // Poll every 5 seconds
     revalidateOnFocus: true,
     onSuccess: (data) => {
       console.log('Updated session data fetched:', data);
