@@ -16,8 +16,8 @@ if (typeof window === 'undefined') {
   console.log('Nope, not running on the server.');
 }
 
-const userDbName = 'temp_user_db';
-const hostDbName = 'temp_host_db';
+const userDbName = 'user_db';
+const hostDbName = 'host_db';
 interface Databases {
   [hostDbName]: s.HostSessionsTable;
   [userDbName]: s.UserSessionsTable;

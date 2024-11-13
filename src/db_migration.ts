@@ -4,8 +4,8 @@ type Client = 'CMI' | 'DEV' | 'APP' | 'ALL' | '' | undefined;
 
 // Set this if you want to migrate only a subset of the data
 const clientId: Client = 'ALL';
-const hostDbName = 'temp_host_db'; // For the 'real' migration, replace this with 'host_data'
-const userDbName = 'temp_user_db'; // For the 'real' migration, replace this with 'user_data'
+const hostDbName = 'host_db'; // For the 'real' migration, replace this with 'host_data'
+const userDbName = 'user_db'; // For the 'real' migration, replace this with 'user_data'
 const createNewTables = true;
 const dropTablesIfAlreadyPresent = true;
 const skipEmptyHostSessions = true;
@@ -26,8 +26,8 @@ const db = createKysely<Databases>();
 async function setupTestTables() {
   if (!createNewTables) return;
   if (dropTablesIfAlreadyPresent) {
-    await db.schema.dropTable(hostDbName).execute();
-    await db.schema.dropTable(userDbName).execute();
+    await db.schema.dropTable(hostDbName).ifExists().execute();
+    await db.schema.dropTable(userDbName).ifExists().execute();
   }
   await s.createHostTable(db, hostDbName).then(() => s.createTriggerOnHostUpdateLastEditSummary(hostDbName));
   await s.createUserTable(db, userDbName).then(() => s.createTriggerOnUserUpdateLastEditChatText(userDbName));
