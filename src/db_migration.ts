@@ -6,8 +6,8 @@ type Client = 'CMI' | 'DEV' | 'APP' | 'ALL' | '' | undefined;
 const clientId: Client = 'ALL';
 const hostDbName = 'host_db'; // For the 'real' migration, replace this with 'host_data'
 const userDbName = 'user_db'; // For the 'real' migration, replace this with 'user_data'
-const createNewTables = true;
-const dropTablesIfAlreadyPresent = true;
+const updateOrCreateNewTables = true;
+const dropTablesIfAlreadyPresent = false;
 const skipEmptyHostSessions = true;
 const skipEmptyUserSessions = true;
 
@@ -23,8 +23,8 @@ interface Databases {
 }
 
 const db = createKysely<Databases>();
-async function setupTestTables() {
-  if (!createNewTables) return;
+async function setupTables() {
+  if (!updateOrCreateNewTables) return;
   if (dropTablesIfAlreadyPresent) {
     await db.schema.dropTable(hostDbName).ifExists().execute();
     await db.schema.dropTable(userDbName).ifExists().execute();
@@ -72,7 +72,7 @@ async function migrateFromMake() {
   const data = await getSessionsFromMake();
   if (!data) return;
 
-  await setupTestTables();
+  await setupTables();
 
   let allData: AssociatedSessions = {};
 
@@ -148,9 +148,9 @@ async function migrateFromMake() {
         `Inserting: Host ${hostSession.id} (${hostSession.topic}): ${userSessions.length} user sessions`
       );
 
-      await upsertHostSession(hostSession, 'update');
+      upsertHostSession(hostSession, 'update');
       if (userSessions.length > 0) {
-        await insertUserSessions(userSessions);
+        upsertUserSessions(userSessions);
       }
     })
   );
@@ -186,6 +186,26 @@ export async function upsertHostSession(
     console.log('HostSession: ', data);
     throw error;
   }
+}
+
+export async function upsertUserSessions(
+  data: s.NewUserSession[],
+  onConflict: 'skip' | 'update' = 'skip'
+): Promise<void> {
+  await db
+    .insertInto(userDbName)
+    .values(data)
+    .onConflict((oc) =>
+      onConflict === 'skip'
+        ? oc.column('id').doNothing()
+        : oc.column('id').doUpdateSet((eb) => ({
+            active: eb.ref('excluded.active'),
+            chat_text: eb.ref('excluded.chat_text'),
+            feedback: eb.ref('excluded.feedback'),
+            last_edit: eb.ref('excluded.last_edit')
+        }))
+    )
+    .execute();
 }
 
 export async function insertUserSessions(
@@ -313,6 +333,7 @@ async function iterateToGetAllEntries(
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 }
+
 
 migrateFromMake().then(() => {
   console.log('Migration complete.');

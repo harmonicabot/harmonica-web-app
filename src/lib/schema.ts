@@ -104,7 +104,7 @@ export async function createHostTable(
   tableName: string = 'temp_host_db'
 ) {
   await db.schema
-    .createTable(tableName)
+    .createTable(tableName).ifNotExists()
     .addColumn('id', 'text', (col) => col.primaryKey().defaultTo(sql`substr(md5(random()::text), 1, 12)`))
     .addColumn('active', 'boolean', (col) => col.notNull())
     .addColumn('num_sessions', 'integer', (col) => col.notNull())
@@ -126,7 +126,7 @@ export async function createUserTable(
   tableName: string = 'temp_user_db'
 ) {
   await db.schema
-    .createTable(tableName)
+    .createTable(tableName).ifNotExists()
     .addColumn('id', 'text', (col) => col.primaryKey().defaultTo(sql`substr(md5(random()::text), 1, 12)`))
     .addColumn('session_id', 'text', (col) => col.notNull())
     .addColumn('user_id', 'text', (col) => col.notNull())
