@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { UserSessionData } from '@/lib/types';
+import { UserSession } from '@/lib/schema';
 import { useEffect, useState } from 'react';
 import { HRMarkdown } from '../HRMarkdown';
 import { ChatMessage } from '../ChatMessage';
@@ -9,7 +9,7 @@ import { ChatMessage } from '../ChatMessage';
 interface SessionData {
   userName: string;
   sessionStatus: string;
-  session: UserSessionData;
+  session: UserSession;
 }
 export default function ParicipantSessionRow({
   userName,
@@ -34,25 +34,6 @@ export default function ParicipantSessionRow({
     ? removeFirstQuestion(session.chat_text)
     : '';
   const messages = session.chat_text ? parseMessages(transcript) : [];
-
-  function extractName(input: string): string {
-    const prefix = 'Question : User name is ';
-    const startIndex = input.indexOf(prefix);
-    if (startIndex === -1) return 'anonymous';
-
-    const nameStart = startIndex + prefix.length;
-    let nameEnd = input.length;
-
-    for (let i = nameStart; i < input.length; i++) {
-      if (input[i] === '.' || input.slice(i, i + 6) === 'Answer') {
-        nameEnd = i;
-        break;
-      }
-    }
-
-    const name = input.slice(nameStart, nameEnd).trim();
-    return name || 'anonymous';
-  }
 
   function removeFirstQuestion(input: string): string {
     const answerIndex = input.indexOf('Answer');

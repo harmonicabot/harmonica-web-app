@@ -1,16 +1,12 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import useSWR, { mutate } from 'swr';
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
-
-import {
-  accumulateSessionData,
-  sendApiCall,
-  sendCallToMake,
-} from '@/lib/utils';
-import { ApiAction, ApiTarget, UserSessionData } from '@/lib/types';
-
+import { useUser } from '@auth0/nextjs-auth0/client';
+import { getGPTCompletion } from 'app/api/gptUtils';
+import { UserSession } from '@/lib/schema';
 import SessionResultHeader, {
   SessionStatus,
 } from '@/components/SessionResult/SessionResultHeader';
@@ -18,18 +14,36 @@ import SessionResultControls from '@/components/SessionResult/SessionResultContr
 import SessionResultStatus from '@/components/SessionResult/SessionResultStatus';
 import SessionResultShare from '@/components/SessionResult/SessionResultShare';
 import SessionResults from '@/components/SessionResult/SessionResults';
+import { deactivateHostSession, getHostAndAssociatedUserSessions, updateHostSession } from '@/lib/db';
+
+const fetcher = async (id: string) => {
+  const data = await getHostAndAssociatedUserSessions(id);
+  return data;
+};
 
 export default function SessionResult() {
   const { id } = useParams() as { id: string };
-  const [userData, setUserData] = useState<UserSessionData[]>([]);
-  const [accumulated, setAccumulated] = useSessionStore((state) => [
-    state.accumulated[id],
-    state.addAccumulatedSessions,
+  const [userData, setUserData] = useState<UserSession[]>([]);
+  const [sessionData, setSessionData] = useSessionStore((state) => [
+    state.allSessionData[id],
+    state.addSession,
   ]);
 
-  const numSessions = userData.filter((user) => user.chat_text).length;
-  const activeSessions = userData.filter(
-    (user) => user.active === 0 && user.chat_text?.length > 0,
+  const { error } = useSWR(`sessions/${id}`, () => fetcher(id), {
+    refreshInterval: 5000, // Poll every 5 seconds
+    revalidateOnFocus: true,
+    onSuccess: (data) => {
+      console.log('Updated session data fetched:', data);
+      setUserData(Object.values(data.user_data));
+      setSessionData(id, data);
+    },
+  });
+
+  const { user } = useUser();
+  const sessionsWithChatText = userData.filter((user) => user.chat_text);
+  const numSessions = sessionsWithChatText.length;
+  const completedSessions = sessionsWithChatText.filter(
+    (user) => !user.active
   ).length;
 
   const [hostType, setHostType] = useState(false);
@@ -37,11 +51,13 @@ export default function SessionResult() {
   useEffect(() => {
     if (!hostType) {
       // Check if the sessionId in cookies matches the current session id
-      const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-        const [key, value] = cookie.trim().split('=');
-        acc[key] = value;
-        return acc;
-      }, {});
+      const cookies = document.cookie
+        .split(';')
+        .reduce<Record<string, string>>((acc, cookie) => {
+          const [key, value] = cookie.trim().split('=');
+          acc[key] = value;
+          return acc;
+        }, {});
 
       if (cookies['sessionId'] === id) {
         setHostType(true);
@@ -50,131 +66,96 @@ export default function SessionResult() {
   }, [id, hostType]);
 
   useEffect(() => {
-    if (!hostType) {
-      // Check authentication status
-      const checkAuth = async () => {
-        try {
-          const session = await fetch('/api/auth/session').then((res) =>
-            res.json(),
-          );
-          if (session && session.user) {
-            setHostType(true);
-          }
-        } catch (error) {
-          console.error('Error checking authentication:', error);
-        }
-      };
-
-      checkAuth();
+    if (!hostType && user && user.sub) {
+      setHostType(true);
     }
-  }, [hostType]);
+  }, [user]);
 
-  useEffect(() => {
-    if (!accumulated) {
-      console.log('No data in store, fetching...');
-      // Fetch data from the database if not in store
-      fetchSessionData();
-    } else {
-      console.log('Session data found in store', accumulated);
-      setAccumulated(id, accumulated);
-      setUserData(Object.values(accumulated.user_data)); // Convert to array
-    }
-  }, [id, accumulated]);
-
-  const fetchSessionData = async () => {
-    console.log(`Fetching session data for ${id}...`);
-    const data = await sendCallToMake({
-      target: ApiTarget.Session,
-      action: ApiAction.Stats,
-      data: {
-        session_id: id,
-      },
-    });
-    const allData = accumulateSessionData(data);
-    setUserData(data.user_data);
-    setAccumulated(id, allData);
-  };
-
-  const sendFinalReport = async () => {
-    const data = await sendCallToMake({
-      target: ApiTarget.Session,
-      action: ApiAction.SendFinalReport,
-      data: {
-        session_id: id,
-      },
-    });
-    await fetchSessionData();
+  const finishSession = async () => { 
+    await deactivateHostSession(id);
+    await createSummary();
   };
 
   const createSummary = async () => {
     console.log(`Creating summary for ${id}...`);
-    const data = await sendCallToMake({
-      target: ApiTarget.Session,
-      action: ApiAction.CreateSummary,
-      data: {
-        session_id: id,
-        finished: accumulated.session_data.num_finished,
-      },
-    });
-    await fetchSessionData();
+    const chats = Object.values(sessionData.user_data)
+      .map((userData) => userData.chat_text)
+      .filter(Boolean);
+
+    const instructions = `
+Generate a short **REPORT** that answers the OBJECTIVE of the session and suits the overall session style.\n\n
+The **OBJECTIVE** is stated in this prompt:\n
+##### PROMPT #####\n
+${sessionData.host_data.prompt}\n
+##### PROMPT #####\n
+And the content for the report:\n\n
+##### Next Participant: #####\n
+${chats.join('##### Next Participant: #####\n')}
+`;
+    const summary = await getGPTCompletion(instructions);
+    console.log('Summary: ', summary);
+
+    // So that we don't have to re-fetch all data from the DB, we just update the summary in the store directly
+    updateHostSession(id, { summary: summary ?? undefined, last_edit: new Date() }).then(() =>
+      mutate(`sessions/${id}`)
+    );
   };
 
-  const finishSession = async () => {
-    await createSummary();
-    await sendFinalReport();
-  };
+  const [hasNewMessages, setHasNewMessages] = useState(false);
+  useEffect(() => {
+    const lastMessage = Math.max(...userData.map(u => new Date(u.last_edit).getTime()));
+    const lastSummaryUpdate = sessionData?.host_data.last_edit.getTime(); 
+    const hasNewMessages = lastMessage > lastSummaryUpdate;
+    setHasNewMessages(hasNewMessages);
 
-  const handleDelete = async () => {
-    console.log(`Deleting session ${id}...`);
-    const data = await sendApiCall({
-      target: ApiTarget.Session,
-      action: ApiAction.DeleteSession,
-      data: {
-        session_id: id,
-      },
-    });
-    console.log(data);
-    window.location.href = '/';
-  };
+    if (hasNewMessages && lastMessage > lastSummaryUpdate && new Date().getTime() - lastSummaryUpdate > (1000 * 60 * 10)) {
+      const minutesAgo = (new Date().getTime() - lastSummaryUpdate) / (1000 * 60)
+      console.log(`Last summary created ${minutesAgo} minutes ago, 
+        and new messages were received since then. Creating an updated one.`)
+      createSummary();
+    } 
+  }, [sessionData]);
 
-  if (!accumulated) return <div>Loading...</div>;
+  // if (error) return <div>{`Failed to load session data :-(`}</div>;
+  if (!sessionData) return <div>Loading...</div>;
 
   return (
     <div className="p-4 md:p-8">
       <SessionResultHeader
-        topic={accumulated.session_data.topic}
+        topic={sessionData.host_data.topic}
         status={
-          accumulated.session_data.finalReportSent
+          !sessionData.host_data.active
             ? SessionStatus.REPORT_SENT
             : SessionStatus.ACTIVE
         }
       />
       <div className="flex flex-col md:flex-row gap-4">
-        {!accumulated.session_data.finalReportSent && hostType && (
+        {sessionData.host_data.active && hostType && (
           <SessionResultControls
             id={id}
-            isFinished={accumulated.session_data.finalReportSent}
-            onFinishSession={finishSession}
-            onCreateSummary={createSummary}
+            isFinished={!sessionData.host_data.active}
+            finishSession={finishSession}
+            createSummary={createSummary}
             readyToGetSummary={numSessions > 0}
           />
         )}
         <SessionResultStatus
-          finalReportSent={accumulated.session_data.finalReportSent}
-          startTime={accumulated.session_data.start_time}
+          finalReportSent={!sessionData.host_data.active}
+          startTime={sessionData.host_data.start_time}
           numSessions={numSessions}
-          activeSessions={activeSessions}
+          completedSessions={completedSessions}
         />
-        {!accumulated.session_data.finalReportSent && (
-          <SessionResultShare sessionId={accumulated.session_data.session_id} />
+        {sessionData.host_data.active && (
+          <SessionResultShare sessionId={sessionData.host_data.id} />
         )}
       </div>
       <SessionResults
         hostType={hostType}
         userData={userData}
-        accumulated={accumulated}
+        allData={sessionData}
         id={id}
         handleCreateSummary={createSummary}
+        hasNewMessages={hasNewMessages}
       />
     </div>
   );

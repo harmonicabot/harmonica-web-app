@@ -1,24 +1,22 @@
-import { deleteSessionById } from '@/lib/db';
-import { AccumulatedSessionData, ApiAction, ApiTarget } from '@/lib/types';
-import { revalidatePath } from 'next/cache';
-import { SessionData } from './sessions-table';
+import { deleteHostSession, deleteSessionById } from '@/lib/db';
+import { HostAndUserData, ApiAction, ApiTarget } from '@/lib/types';
 import { sendApiCall } from '@/lib/utils';
 
-export async function deleteSession(session: SessionData) {
+export async function deleteSession(session: HostAndUserData) {
   // TODO - for vercel DB:
   // let id = Number(formData.get('id'));
   // await deleteSessionById(id);
 
   // This here is for deleting from make.com db:
   // console.log(`Deleting `, session);
-  const userIds = Object.keys(session.userData);
-  const hostId = session.sessionId;
-  const assistantId = session.hostData.template;
+  const userIds = session.user_data.map((user) => user.id);
+  const hostId = session.host_data.id;
+  const assistantId = session.host_data.template;
   // console.log(`SessionID: `, hostIds);
 
   if (
     confirm(
-      `Are you sure you want to delete this session and all associated data? \n\n${session.name} - ${hostId}`
+      `Are you sure you want to delete this session and all associated data? \n\n${session.host_data.topic} - ${hostId}`
     )
   ) {
 
@@ -27,10 +25,10 @@ export async function deleteSession(session: SessionData) {
     // await deleteUserData(userIds);
     // we can however delete the host data, since there's not really any important information in here.
     await deleteHostData(hostId);
+    console.log('Deleted Assistant & Host Session');
+    return true;
   }
-
-  console.log('Deleted Assistant, User Sessions & Host Session');
-  return true;
+  return false;
 }
 
 async function deleteAssistant(assistantId: string) {
@@ -51,11 +49,10 @@ async function deleteAssistant(assistantId: string) {
   }
 }
 
-
 async function deleteHostData(hostId: string) {
   if (hostId) {
-    console.log(`Deleting ${hostId} from host db...`);
-    let response = await fetch('api/sessions', {
+    console.log(`Deleting ${hostId} from make host db...`);
+    let response = await fetch(`api/${ApiTarget.Sessions}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -65,13 +62,20 @@ async function deleteHostData(hostId: string) {
 
     if (!response.ok) {
       console.error(
-        'There was a problem deleting ids:',
+        'There was a problem deleting session from make:',
         response.status,
         response.statusText
       );
+    } else {
+      console.log(`Deleted ${hostId} from host db...: ${await response.text()}`);
     }
-
-    console.log(`Deleted ${hostId} from host db...: ${await response.text()}`);
+    
+    try {
+      deleteHostSession(hostId);
+      console.log(`Deleted ${hostId} from host db...: ${await response.text()}`);
+    } catch (e) {
+      console.error(e);
+    }
   }
 }
 
@@ -79,7 +83,7 @@ async function deleteUserData(userIds: string[]) {
   if (userIds.length > 0) {
     console.log(`Deleting ${userIds} from user db...`);
 
-    let response = await fetch('api/sessions', {
+    let response = await fetch(`api/${ApiTarget.Sessions}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

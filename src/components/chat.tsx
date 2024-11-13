@@ -2,38 +2,36 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { sendApiCall, sendCallToMake } from '@/lib/utils';
-import {
-  ApiAction,
-  ApiTarget,
-  OpenAIMessage,
-  SessionBuilderData,
-} from '@/lib/types';
-import { useRouter } from 'next/navigation';
-import { set } from 'react-hook-form';
-import Markdown from 'react-markdown';
-import { HRMarkdown } from './HRMarkdown';
+import { sendApiCall } from '@/lib/utils';
+import * as db from '@/lib/db';
+
+import { ApiAction, ApiTarget, OpenAIMessage } from '@/lib/types';
 import { ChatMessage } from './ChatMessage';
 import { Send } from './icons';
+import { insertUserSessions } from '@/lib/db';
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 export default function Chat({
   assistantId,
   sessionId,
+  setUserSessionId,
+  userSessionId,
   entryMessage,
   context,
   userNameInFirstMessage = true,
   placeholderText,
 }: {
-  assistantId?: string;
+  assistantId: string;
   context?: OpenAIMessage;
   sessionId?: string;
+  userSessionId?: string;
+  setUserSessionId?: (id: string) => void;
   entryMessage?: { type: string; text: string };
   userNameInFirstMessage?: boolean;
   placeholderText?: string;
 }) {
+  const { user } = useUser();
   const defaultEntryMessage = {
     type: 'ASSISTANT',
     text: `Nice to meet you! Before we get started, here are a few things to keep in mind
@@ -52,7 +50,9 @@ Help & Support:
 `,
   };
 
-  const placeholder = placeholderText ? placeholderText : "Type your message here...";
+  const placeholder = placeholderText
+    ? placeholderText
+    : 'Type your message here...';
 
   const [formData, setFormData] = useState<{ messageText: string }>({
     messageText: '',
@@ -67,18 +67,40 @@ Help & Support:
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    sendApiCall({
-      action: ApiAction.CreateThread,
-      target: ApiTarget.Chat,
-      data: context ? [context] : [],
-    })
-      .then((response) => {
-        setIsLoading(false);
-        setThreadId(response.thread.id);
+    if (!threadId) {
+      console.log('creating thread');
+      sendApiCall({
+        action: ApiAction.CreateThread,
+        target: ApiTarget.Chat,
+        data: context ? [context] : [],
       })
-      .catch((error) => {
-        console.error(error);
-      });
+        .then((response) => {
+          setIsLoading(false);
+          setThreadId(response.thread.id);
+        })
+        .then(() => {
+          if (sessionId) {
+            insertUserSessions({
+              session_id: sessionId,
+              user_id: user?.email ?? 'anonymous',
+              template: assistantId,
+              thread_id: threadId,
+              active: true,
+              start_time: new Date(),
+              last_edit: new Date(),
+            })
+              .then((ids) => {
+                if (ids[0] && setUserSessionId) setUserSessionId(ids[0]);
+              })
+              .catch((error) =>
+                console.error('[!] error creating user session -> ', error)
+              );
+          }
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+    }
   }, []);
 
   useEffect(() => {
@@ -91,7 +113,7 @@ Help & Support:
   }, [messages]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -118,24 +140,6 @@ Help & Support:
         handleSubmit(e as unknown as React.FormEvent);
       }
     }
-  };
-
-  const updateChatText = (chatText: string) => {
-    sendCallToMake({
-      target: ApiTarget.Session,
-      action: ApiAction.UpdateUserSession,
-      data: {
-        session_id: sessionId,
-        chat_text: chatText,
-        active: 1,
-      },
-    })
-      .then((data) => {
-        console.log('[i] Chat text updated:', data);
-      })
-      .catch((error) =>
-        console.error('[!] error creating user session -> ', error),
-      );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -181,15 +185,22 @@ Help & Support:
             ...actualMessages,
           ];
         }
-        if (sessionId && response.messages) {
-          updateChatText(
-            response.messages
-              .map(
-                (m) =>
-                  `${m.type === 'USER' ? 'Question' : 'Answer'} : ${m.text}`,
-              )
-              .join('\n'),
-          );
+        if (userSessionId && response.messages) {
+          const updatedChatText = response.messages
+            .map(
+              (m: any) =>
+                `${
+                  m.type === (userNameInFirstMessage ? 'ASSISTANT' : 'USER')
+                    ? 'Question'
+                    : 'Answer'
+                } : ${m.text}`
+            )
+            .join('\n');
+          db.updateUserSession(userSessionId, {
+            chat_text: updatedChatText,
+            active: true,
+            last_edit: new Date(),
+          });
         }
 
         setMessages(
@@ -198,7 +209,7 @@ Help & Support:
                 entryMessage ? entryMessage : defaultEntryMessage,
                 ...actualMessages,
               ]
-            : [],
+            : []
         );
       })
       .catch((error) => {

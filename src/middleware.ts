@@ -1,9 +1,10 @@
-export { auth as middleware } from '@/lib/auth';
+import { withMiddlewareAuthRequired } from '@auth0/nextjs-auth0/edge';
 
-// Don't invoke Middleware on some paths
 export const config = {
   matcher: [
-    // Exclude specific paths including sessions with any string after it
-    '/((?!api|_next/static|_next/image|favicon.ico|login|chat|create|h_chat_icon.png|sessions/[^/]+).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|login|chat|h_chat_icon.png).*)',
   ],
 };
+
+
+export default withMiddlewareAuthRequired();

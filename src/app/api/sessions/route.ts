@@ -1,4 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { getSession } from '@auth0/nextjs-auth0';
+import { useUser } from '@auth0/nextjs-auth0/client';
 import { NextResponse } from 'next/server';
 
 export const maxDuration = 200;
@@ -8,13 +9,14 @@ const userStore = 17913;
 
 let limit = 100;
 const token = process.env.MAKE_AUTH_TOKEN;
-const clientId = process.env.CLIENT_ID || "";
+
 
 function getUrl(
   storeId: number,
   includeLimit: boolean = true,
   offset: number = 20,
 ) {
+  console.warn('Using legacy Make API');
   return (
     `https://eu2.make.com/api/v2/data-stores/${storeId}/data` +
     (includeLimit ? '?pg[limit]=' + limit + '&pg[offset]=' + offset : '')
@@ -22,7 +24,10 @@ function getUrl(
   // + (sortBy? "&pg[sortBy]=" + sortBy : "") // Sorting not allowed for this api 😢
 }
 
+/** @deprecated Use db.getHostAndUserSessions() instead where possible*/
 export async function GET(request: Request) {
+  const { user } = useUser();
+  const clientId = process.env.CLIENT_ID ? process.env.CLIENT_ID : user?.sub || "";
   try {
     const [sessionData, userData] = await Promise.all([
       fetch(getUrl(sessionStore), {
@@ -44,19 +49,21 @@ export async function GET(request: Request) {
     const userJson: DbResponse = await userData.json();
     let sessionJson: DbResponse = await sessionData.json();
     // console.log(`Got session data for ClientID '${clientId}': `, sessionJson.records || []);
-    let clientSessions: DbResponse['records'] = [];
-    if (clientId.length === 0) {
+    const clientSessions: DbResponse['records'] = [];
+    if (clientId && clientId.length === 0) {
       // get all sessions that do NOT belong to any client, mainly for internal testing purposes
-      clientSessions = sessionJson.records?.filter(
+      const noClientEntries = sessionJson.records?.filter(
         (sessionData) =>
           !('client' in sessionData.data)
           || sessionData.data.client === null
           || sessionData.data.client === ''
-      );
+      ) || [];
+      clientSessions.push(...noClientEntries);
     } else {
-      clientSessions = sessionJson.records?.filter(
+      const withClient = sessionJson.records?.filter(
         (sessionData) => sessionData.data.client === clientId
-      );
+      ) || [];
+      clientSessions.push(...withClient);
     }
     sessionJson = {
       ...sessionJson,
@@ -76,6 +83,9 @@ export async function GET(request: Request) {
         },
       });
       const batchJson = await batch.json();
+      if (!userJson.records) {
+        userJson.records = []
+      }
       userJson.records.push(...batchJson.records);
       available += limit;
     }

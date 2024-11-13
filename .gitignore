@@ -39,4 +39,5 @@ amplifyconfiguration*
 # vercel & co
 .vercel
 .migrations
-.env
+.env*
+tsconfig.tsbuildinfo

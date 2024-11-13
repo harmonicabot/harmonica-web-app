@@ -5,26 +5,19 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableHeader,
-  TableHead,
-  TableRow,
-} from '@/components/ui/table';
 import ParticipantSessionRow from './ParticipantSessionRow';
 import SortableTable from '../SortableTable';
-import { UserSessionData } from '@/lib/types';
+import { UserSession } from '@/lib/schema';
 
 export default function SessionResultParticipants({
   userData,
 }: {
-  userData: UserSessionData[];
+  userData: UserSession[];
 }) {
   type Data = {
     userName: string;
     sessionStatus: string;
-    session: UserSessionData;
+    session: UserSession;
   };
 
   const tableHeaders: Array<{
@@ -39,13 +32,13 @@ export default function SessionResultParticipants({
   const sortableData: Data[] = userData
     .filter((session) => session.chat_text)
     .map((session) => ({
-      userName: extractName(session.chat_text),
+      userName: extractName(session.chat_text!),
       sessionStatus: session.active ? 'Started' : 'Finished',
       session: session,
     }));
 
   function extractName(input: string): string {
-    const prefix = 'Question : User name is ';
+    const prefix = ' : User name is ';
     const startIndex = input.indexOf(prefix);
     if (startIndex === -1) return 'anonymous';
 
@@ -63,7 +56,7 @@ export default function SessionResultParticipants({
     return name || 'anonymous';
   }
 
-  const getTableRow = (session: Data, index) => {
+  const getTableRow = (session: Data, index: number) => {
     return <ParticipantSessionRow key={index} {...session} />;
   };
 

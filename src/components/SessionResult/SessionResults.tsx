@@ -1,8 +1,5 @@
-import {
-  AccumulatedSessionData,
-  ApiTarget,
-  UserSessionData,
-} from '@/lib/types';
+import { HostAndUserData, ApiTarget } from '@/lib/types';
+import { UserSession } from '@/lib/schema';
 
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
@@ -17,17 +14,19 @@ import SessionResultSummary from './SessionResultSummary';
 import ShareSession from './ShareSession';
 
 export default function SessionResults({
+  hostType,
   userData,
-  accumulated,
+  allData,
   id,
   handleCreateSummary,
-  hostType,
+  hasNewMessages,
 }: {
-  userData: UserSessionData[];
-  accumulated: AccumulatedSessionData;
-  id: string;
   hostType: boolean;
+  userData: UserSession[];
+  allData: HostAndUserData;
+  id: string;
   handleCreateSummary: () => void;
+  hasNewMessages: boolean;
 }) {
   const [exportInProgress, setExportInProgress] = useState(false);
   const exportSessionResults = async (e: React.FormEvent) => {
@@ -54,7 +53,10 @@ export default function SessionResults({
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `Harmonica_${userData[0].topic ?? id}.json`);
+    link.setAttribute(
+      'download',
+      `Harmonica_${allData.host_data.topic ?? id}.json`
+    );
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -82,15 +84,15 @@ export default function SessionResults({
       <Tabs
         className="mb-4"
         defaultValue={
-          accumulated.session_data.summary
+          allData.host_data.summary
             ? 'SUMMARY'
             : hostType
-              ? 'RESPONSES'
-              : 'SUMMARY'
+            ? 'RESPONSES'
+            : 'SUMMARY'
         }
       >
         <TabsList>
-          {accumulated.session_data.summary ? (
+          {allData.host_data.summary ? (
             <TabsTrigger className="ms-0" value="SUMMARY">
               Summary
             </TabsTrigger>
@@ -114,9 +116,11 @@ export default function SessionResults({
         <div className="flex flex-col md:flex-row gap-4">
           <div className="w-full md:w-2/3">
             <TabsContent value="SUMMARY" className="mt-4">
-              {accumulated.session_data.summary ? (
+              {allData.host_data.summary ? (
                 <SessionResultSummary
-                  summary={accumulated.session_data.summary}
+                  summary={allData.host_data.summary}
+                  hasNewMessages={hasNewMessages}
+                  onUpdateSummary={handleCreateSummary}
                 />
               ) : (
                 <>

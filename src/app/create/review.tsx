@@ -7,10 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { VersionedPrompt } from './page';
 import { Spinner } from '@/components/icons';
-import { sendApiCall } from '@/lib/utils';
-import { ApiAction, ApiTarget } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
-import { Eye } from 'lucide-react';
 import Markdown from 'react-markdown';
 import ChatPopupButton from '@/components/ChatPopupButton';
 
@@ -63,43 +60,6 @@ export default function ReviewPrompt({
 
   const showFullPrompt = (promptId: number) => {
     setModalState({ open: true, text: prompts[promptId - 1].fullPrompt });
-  };
-
-  const testVersion = async (promptId) => {
-    const assistantResponse = await sendApiCall({
-      action: ApiAction.CreateAssistant,
-      target: ApiTarget.Builder,
-      data: {
-        prompt: prompts[promptId - 1].fullPrompt,
-        name: `testing_v${promptId}`,
-      },
-    });
-
-    setTempAssistant(assistantResponse.assistantId);
-    // All these temp assistants can be deleted again once the user chooses a final version.
-    setTemporaryAssistantIds((prev) => [
-      ...prev,
-      assistantResponse.assistantId,
-    ]);
-    const params = {
-      entryMessage: {
-        type: 'ASSISTANT',
-        text: `Hello! This is a test session for version ${promptId}.
-I'll run through the session with you so you get an idea how this would work once finalised, 
-but bear in mind that I might phrase some things differently depending on our interaction.
-I won't store any of your replies in this test chat.
-Shall we start?`,
-      },
-    };
-    const newWindow = window.open('', '_blank');
-    if (newWindow) {
-      newWindow.opener = null; // For security reasons
-      newWindow.location.href = `/chat?a=${assistantResponse.assistantId}`;
-      // Pass data to the new window
-      newWindow.addEventListener('load', () => {
-        newWindow.postMessage(params, '*');
-      });
-    }
   };
 
   console.log(
@@ -180,7 +140,7 @@ Shall we start?`,
                     >
                       Full Prompt
                     </Button> */}
-                    <ChatPopupButton assistantId={tempAssistantId} />
+                    <ChatPopupButton prompt={prompt} handleSetTempAssistantIds={setTemporaryAssistantIds} />
                     {prompt.id !== currentVersion ? (
                       <Button onClick={() => setCurrentVersion(prompt.id)}>
                         Select

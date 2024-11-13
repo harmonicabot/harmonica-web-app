@@ -1,8 +1,22 @@
 import { NextResponse } from "next/server";
+import { getSession as authGetSession } from '@auth0/nextjs-auth0';
 
-export async function getSession(body) {
+/** @deprecated Use db methods instead where possible*/
+export async function getFromMakeWebhook(body: any) {
   // This is just a middleman that 'forwards' the api call to the make.com database and back to the caller:
-  const url = process.env.DATABASE_URL;
+  console.warn('Using legacy Make API');
+
+  const url = process.env.MAKE_WEBHOOK_URL ?? '';
+  const sessionData = await authGetSession();
+  
+  let clientId = "";
+  if (sessionData && sessionData.user) {
+    const user = sessionData.user;
+    clientId = process.env.CLIENT_ID ? process.env.CLIENT_ID : user?.sub || "";
+  } else {
+    clientId = process.env.CLIENT_ID ? process.env.CLIENT_ID : "";
+  }
+  
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -12,7 +26,7 @@ export async function getSession(body) {
       ...body,
       data: {
         ...body.data,
-        client: process.env.CLIENT_ID
+        client: clientId
       },
     }),
   }).catch((error) => {

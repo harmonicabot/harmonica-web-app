@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { getSession } from '../dbUtils';
+import { getFromMakeWebhook } from '../dbUtils';
 
 export const maxDuration = 200;
+
+// Getting info for one session (host & all user sessions)
 export async function POST(request: Request) {
+  console.warn('Using legacy Make API to fetch sessions');
   const req_body = await request.json();
-  return getSession(req_body);
+  return getFromMakeWebhook(req_body);
 }
 
-export async function GET(request: Request) {
+// Getting info for all OpenAI assistants
+export async function GET() {
   const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   });
