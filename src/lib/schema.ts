@@ -14,8 +14,8 @@ export interface HostSessionsTable {
   active: boolean;
   num_sessions: number;
   num_finished: ColumnType<number, number, number | RawBuilder<unknown>>;
-  prompt: string;
-  template: string;
+  prompt?: string;
+  template?: string;
   topic: string;
   final_report_sent: boolean;
   context?: string;

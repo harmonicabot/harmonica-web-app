@@ -37,16 +37,16 @@ export async function getHostAndUserSessions(
   if (adminIds.includes(userSub)) {
       hostQuery = db
         .selectFrom(hostDbName)
+        .select(['active', 'final_report_sent', 'id', 'last_edit', 'num_finished', 'num_sessions', 'start_time','topic'])
         .orderBy('start_time', 'desc')
-        .limit(n)
-        .selectAll();
+        .limit(n);
   } else if (userSub) {
     hostQuery = db
       .selectFrom(hostDbName)
       .where('client', '=', userSub)
+      .select(['active', 'final_report_sent', 'id', 'last_edit', 'num_finished', 'num_sessions', 'start_time','topic'])
       .orderBy('start_time', 'desc')
-      .limit(n)
-      .selectAll();
+      .limit(n);
   } else {
     return {}; // Return empty object if clientEmail is not set
   }
@@ -57,24 +57,22 @@ export async function getHostAndUserSessions(
     return {};
   }
 
-  const userQuery = db
-    .selectFrom(userDbName)
-    .where(
-      'session_id',
-      'in',
-      hostSessions.map((h) => h.id)
-    )
-    .selectAll();
-
-  console.log(`User query: `, userQuery.compile().sql);
-  const userSessions = await userQuery.execute();
+  // console.log(`User query: `, userQuery.compile().sql);
+  // const userSessions = await userQuery.execute();
 
   const allData: AllSessionsData = {};
   hostSessions.forEach((host) => {
     if (host.id !== null) {
       allData[host.id] = {
-        host_data: host,
-        user_data: userSessions.filter((user) => user.session_id === host.id)
+        host_data: {
+          ...host,
+          prompt: undefined,
+          template: undefined,
+          context: undefined,
+          client: undefined,
+          summary: undefined,
+        },
+        user_data: []
       };
     }
   });
