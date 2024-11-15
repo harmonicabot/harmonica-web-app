@@ -1,3 +1,4 @@
+import { createKysely } from '@vercel/postgres-kysely';
 import {
   Generated,
   ColumnType,
@@ -6,8 +7,10 @@ import {
   Updateable,
   QueryExecutorProvider,
   RawBuilder,
+  PostgresDialect,
 } from 'kysely';
 import { sql, Kysely } from 'kysely';
+import pg from 'pg'
 
 export interface HostSessionsTable {
   id: Generated<string>;
@@ -142,4 +145,36 @@ export async function createUserTable(
     .addColumn('step', 'numeric', (col) => col.defaultTo(0))
     .addColumn('last_edit', 'timestamp', (col) => col.defaultTo(sql`CURRENT_TIMESTAMP`))
     .execute();
+}
+
+export function createProdDbInstance() {
+  const host = 'host_db';
+  const user = 'user_db';
+  interface Databases {
+    [host]: HostSessionsTable;
+    [user]: UserSessionsTable;
+  }
+  const db = createKysely<Databases>();
+  return { db, dbNames: { host, user } };
+}
+
+export function createCustomDbInstance(
+  host = 'temp_host_db',
+  user = 'temp_user_db',
+  connectionUrl = `postgresql://${process.env.LOCAL_DB_USER_PWD}@localhost:5432/local_verceldDb`
+) {
+  type Databases = {
+    [K in typeof host]: UserSessionsTable
+  } & {
+    [K in typeof user]: HostSessionsTable
+  };
+
+  const dialect = new PostgresDialect({
+    pool: new pg.Pool({
+      connectionString: connectionUrl,
+      max:10,
+  })})
+  const db = new Kysely<Databases>({ dialect });
+  
+  return { db, dbNames: { host, user } };
 }
