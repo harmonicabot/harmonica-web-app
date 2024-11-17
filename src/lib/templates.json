@@ -1,0 +1,52 @@
+{
+  "templates": [
+    {
+      "id": "brainstorm",
+      "icon": "Lightbulb",
+      "title": "Brainstorming Session",
+      "description": "Facilitate a creative brainstorming session to generate innovative ideas and solutions",
+      "defaults": {
+        "goal": "Generate innovative ideas and solutions through collaborative brainstorming",
+        "critical": "Encourage creative thinking and ensure all participants feel comfortable sharing their ideas",
+        "context": "This is a brainstorming session where all ideas are welcome. There are no bad ideas during brainstorming.",
+        "createSummary": true,
+        "summaryFeedback": true,
+        "requireContext": false,
+        "contextDescription": "",
+        "enableSkipSteps": false
+      }
+    },
+    {
+      "id": "feedback",
+      "icon": "MessageCircle",
+      "title": "Feedback Collection",
+      "description": "Gather structured feedback on projects, proposals, or initiatives",
+      "defaults": {
+        "goal": "Collect comprehensive feedback from stakeholders in a structured manner",
+        "critical": "Ensure feedback is specific, actionable, and balanced between positive aspects and areas for improvement",
+        "context": "We're collecting feedback to improve our project/initiative. Both positive feedback and constructive criticism are valuable.",
+        "createSummary": true,
+        "summaryFeedback": true,
+        "requireContext": true,
+        "contextDescription": "Please provide context about the project or initiative being reviewed",
+        "enableSkipSteps": false
+      }
+    },
+    {
+      "id": "decision",
+      "icon": "CheckSquare",
+      "title": "Decision Making",
+      "description": "Guide groups through structured decision-making processes",
+      "defaults": {
+        "goal": "Reach a well-reasoned group decision through structured discussion",
+        "critical": "Ensure all perspectives are considered and the decision-making process is transparent",
+        "context": "We need to make a decision as a group. We'll evaluate options and their implications before reaching a conclusion.",
+        "createSummary": true,
+        "summaryFeedback": true,
+        "requireContext": true,
+        "contextDescription": "Please provide context about the decision to be made",
+        "enableSkipSteps": false
+      }
+    }
+  ]
+}
