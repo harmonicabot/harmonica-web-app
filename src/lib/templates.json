@@ -1,0 +1,132 @@
+{
+  "templates": [
+    {
+      "id": "retrospective",
+      "icon": "history",
+      "title": "Retrospective",
+      "description": "Review past sprint performance and identify actionable improvements for the team's future work",
+      "defaults": {
+        "goal": "Improve teamwork in the next sprint based on the member's individual experiences",
+        "critical": "What was good about the last sprint, what didn't work, how might we improve it",
+        "context": "",
+        "createSummary": true,
+        "summaryFeedback": true,
+        "requireContext": false,
+        "contextDescription": "",
+        "enableSkipSteps": false
+      }
+    },
+    {
+      "id": "swot-analysis",
+      "icon": "grid-2x2",
+      "title": "SWOT analysis",
+      "description": "Analyze organizational Strengths, Weaknesses, Opportunities, and Threats to inform strategic planning",
+      "defaults": {
+        "goal": "Develop a strategy based on shared understanding of the org's context",
+        "critical": "Strengths: characteristics of the business or project that give it an advantage over others\n\nWeaknesses: characteristics that place the business or project at a disadvantage relative to others",
+        "context": "",
+        "createSummary": true,
+        "summaryFeedback": true,
+        "requireContext": true,
+        "contextDescription": "",
+        "enableSkipSteps": false
+      }
+    },
+    {
+      "id": "okrs-planning",
+      "icon": "target",
+      "title": "OKRs planning",
+      "description": "Create aligned Objectives and Key Results to drive measurable progress towards strategic goals",
+      "defaults": {
+        "goal": "Synchronize workstreams and responsibilities around unified hierarchy of significant, inspirational, clearly defined objectives and measurable success criteria",
+        "critical": "1. Define objectives\n\nBrainstorm objectives— what they want to achieve in a defined time period. Objectives should be qualitative and ambitious, serving as a team's highest priorities while they're in place.\n\nGroup similar objectives together, then summarize the ideas into 1-3 objectives.\n\n2. Set key results\n\nEach objective should have 3-5 corresponding key results, which are quantitative metrics that detail how you will achieve the objectives.\n\nTo answer this, ask:\n- What needs to be true in order for this objective to be achieved?\n- Are there any gaps?\n- If we achieved all of these key results, would we meet this objective?\n\n3. Assign owners\n\nAssign each key result an owner on the team. While the KR belongs to the whole team, the owner is responsible for tracking the team's progress on it.",
+        "context": "- The time period for OKRs (quarters is a good start)\n- Broader company goals and objectives\n- Project roadmaps\n- Customer metrics and/or feedback\n- If available, previous OKRs\n\nBest practices for setting KRs include:\n\n- Make them specific and measurable\n- Set challenging but achievable targets\n- Make them outcome-orientated, not activity-based\n- Ensure available resources\n- Get team buy-in\n\nKey principles:\n\n\"Less is more\"\nDefine a small set of OKRs\n\n\"Crawl-walk-run\"\nDeploy OKRs piecemeal. Begin with pilot teams rather than a full-scale deployment across an entire organization. In the first cycle, emphasize learning about OKRs. Reserve the second cycle to explore how best to scale the program.\n\n\"Outcomes, not output\"\nWrite key results that mostly reflect outcomes (results) rather than output (amount of work delivered)\n\n\"OKRs are not everything\"\nWrite OKRs that reflect the most important areas to make measurable progress rather than attempting to reflect everything you do. Distinguish OKRs from tasks and health metrics. Health metrics are monitored and important to track, but, unlike key results, they are not the focus for near-term improvement.",
+        "createSummary": true,
+        "summaryFeedback": true,
+        "requireContext": true,
+        "contextDescription": "",
+        "enableSkipSteps": false
+      }
+    },
+    {
+      "id": "idea-ranking",
+      "icon": "list-ordered",
+      "title": "Idea Ranking",
+      "description": "Evaluate and prioritize ideas using structured criteria to identify the most promising opportunities",
+      "defaults": {
+        "goal": "Facilitate a ranking process for pre-defined ideas based on criteria like feasibility, impact, and strategic alignment.",
+        "critical": "Ratings or rankings for each host-provided idea based on: Feasibility, Impact, Alignment.\nParticipant comments on strengths, weaknesses, and potential improvements, if needed.",
+        "context": "Present the provided ideas along with relevant criteria and organizational goals to guide consistent evaluation.",
+        "createSummary": true,
+        "summaryFeedback": true,
+        "requireContext": true,
+        "contextDescription": "",
+        "enableSkipSteps": false
+      }
+    },
+    {
+      "id": "brainstorming",
+      "icon": "lightbulb",
+      "title": "Brainstorming",
+      "description": "Generate creative ideas and solutions through collaborative, unconstrained thinking",
+      "defaults": {
+        "goal": "Facilitate an open-ended idea-generation process to explore a range of potential solutions without critique or limitations.",
+        "critical": "Initial thoughts or perspectives related to the topic.\nCreative ideas across a broad spectrum, encouraging “wild” ideas.\nEarly-stage feedback on ideas to inspire further exploration.",
+        "context": "Provide a background on the problem or opportunity without suggesting constraints to encourage open thinking.",
+        "createSummary": true,
+        "summaryFeedback": true,
+        "requireContext": true,
+        "contextDescription": "",
+        "enableSkipSteps": false
+      }
+    },
+    {
+      "id": "weekly-checkins",
+      "icon": "activity-square",
+      "title": "Weekly Team Check-ins (Pulse Checks)",
+      "description": "Monitor team health, progress, and alignment through regular structured check-ins",
+      "defaults": {
+        "goal": "Conduct a brief review of team well-being, current challenges, and alignment on short-term objectives.",
+        "critical": "Individual reflections on morale and workload.\nRecent successes or positive moments.\nCurrent challenges or blockers.\nPriority adjustments or new short-term goals.",
+        "context": "Share updates on relevant projects, resources, or team changes to provide context.",
+        "createSummary": true,
+        "summaryFeedback": true,
+        "requireContext": true,
+        "contextDescription": "",
+        "enableSkipSteps": false
+      }
+    },
+    {
+      "id": "action-planning",
+      "icon": "list-checks",
+      "title": "Action Planning",
+      "description": "Transform decisions into detailed, actionable implementation plans with clear ownership",
+      "defaults": {
+        "goal": "Develop a concrete, step-by-step plan to implement decisions effectively.",
+        "critical": "Clear objectives and outcomes for the action plan.\nKey steps or milestones and the responsible parties.\nEstimated timelines and resource requirements.\nAnticipated challenges and solutions.",
+        "context": "Recap the decision rationale and any deadlines or constraints to inform planning.",
+        "createSummary": true,
+        "summaryFeedback": true,
+        "requireContext": true,
+        "contextDescription": "",
+        "enableSkipSteps": false
+      }
+    },
+    {
+      "id": "risk-assessment",
+      "icon": "shield-alert",
+      "title": "Risk Assessment",
+      "description": "Systematically identify, evaluate, and plan mitigation strategies for potential risks",
+      "defaults": {
+        "goal": "Identify and evaluate potential risks associated with a decision and develop mitigation strategies.",
+        "critical": "List of identified risks, including internal and external factors.\nLikelihood and potential impact of each risk.\nProposed mitigation strategies.\nResources needed for high-priority risks.",
+        "context": "Provide an overview of the decision or project scope and the objectives it aims to achieve.",
+        "createSummary": true,
+        "summaryFeedback": true,
+        "requireContext": true,
+        "contextDescription": "",
+        "enableSkipSteps": false
+      }
+    }
+  ]
+}

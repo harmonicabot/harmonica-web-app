@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import CreateSession from './create';
 import ReviewPrompt from './review';
 import LoadingMessage from './loading';
@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NewHostSession } from '@/lib/schema';
 import * as db from '@/lib/db';
+import ChooseTemplate from './choose-template';
 
 // Todo: This class has become unwieldy. Think about splitting more functionality out. (Might not be easy though, because this is the 'coordinator' page that needs to somehow bind together all the functionality of the three sub-steps.)
 // One possibility to do that might be to have better state management / a session store or so, into which sub-steps can write to.
@@ -22,10 +23,9 @@ export type VersionedPrompt = {
   fullPrompt: string;
 };
 
-const STEPS = ['Create', 'Review'] as const;
+const STEPS = ['Template', 'Create', 'Review'] as const;
 type Step = (typeof STEPS)[number];
 const enabledSteps = [true, false, false];
-
 
 export default function CreationFlow() {
   const route = useRouter();
@@ -35,7 +35,7 @@ export default function CreationFlow() {
   const [builderAssistantId, setBuilderAssistantId] = useState('');
   const [sessionAssistantId, setSessionAssistantId] = useState('');
   const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>(
-    []
+    [],
   );
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
@@ -44,6 +44,7 @@ export default function CreationFlow() {
   const [currentVersion, setCurrentVersion] = useState(-1);
   const [sessionId, setSessionId] = useState('');
   const [botId, setBotId] = useState('');
+  const [hasValidationErrors, setHasValidationErrors] = useState(false);
 
   const addPrompt = (versionedPrompt: VersionedPrompt) => {
     setPrompts((prev) => [...prev, versionedPrompt]);
@@ -101,10 +102,19 @@ export default function CreationFlow() {
 
   const handleCreateComplete = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.sessionName?.trim() || !formData.goal?.trim()) {
+      setHasValidationErrors(true);
+      return;
+    }
+
+    if (hasValidationErrors) {
+      return;
+    }
+
     setIsLoading(true);
     enabledSteps[1] = true;
     setActiveStep('Review');
-    // If we already have some prompts, we can skip this step and just reconstitute what we have
     if (prompts.length == 0) {
       await getInitialPrompt();
     } else {
@@ -153,7 +163,7 @@ export default function CreationFlow() {
     deleteTemporaryAssistants(temporaryAssistantIds);
 
     setSessionAssistantId(assistantResponse.assistantId);
-    
+
     // Create a new session in the host db
     const data: NewHostSession = {
       template: assistantResponse.assistantId,
@@ -166,18 +176,17 @@ export default function CreationFlow() {
       start_time: new Date().toISOString(),
     };
 
-    db.insertHostSessions(data)
-      .then((sessionIds) => {
-        const session_id = sessionIds[0];
-        setSessionId(session_id);
+    db.insertHostSessions(data).then((sessionIds) => {
+      const session_id = sessionIds[0];
+      setSessionId(session_id);
 
-        // Set the cookie using document.cookie
-        const expirationDate = new Date();
-        expirationDate.setDate(expirationDate.getDate() + 30); // Cookie expires in 30 days
-        document.cookie = `sessionId=${session_id}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
+      // Set the cookie using document.cookie
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30); // Cookie expires in 30 days
+      document.cookie = `sessionId=${session_id}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
 
-        route.push(`/sessions/${session_id}`);
-      });
+      route.push(`/sessions/${session_id}`);
+    });
   };
 
   function deleteTemporaryAssistants(assistantIds: string[]) {
@@ -191,11 +200,24 @@ export default function CreationFlow() {
   }
 
   const stepContent = {
+    Template: (
+      <div className="max-w-[1080px] mx-auto">
+        <ChooseTemplate
+          onTemplateSelect={(defaults) => {
+            onFormDataChange(defaults);
+            enabledSteps[1] = true;
+            setActiveStep('Create');
+          }}
+          onNext={() => setActiveStep('Create')}
+        />
+      </div>
+    ),
     Create: (
       <CreateSession
         onSubmit={handleCreateComplete}
         formData={formData}
         onFormDataChange={onFormDataChange}
+        onValidationError={setHasValidationErrors}
       />
     ),
     Review: isLoading ? (
@@ -214,7 +236,7 @@ export default function CreationFlow() {
   };
 
   return (
-    <div className="min-h-screen pt-16 sm:px-14 pb-16">
+    <div className="min-h-screen pt-16 sm:px-14 pb-16 bg-gray-50 dark:bg-gray-900">
       <div
         className={`mx-auto items-center align-middle ${
           isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
@@ -231,7 +253,7 @@ export default function CreationFlow() {
           value={activeStep}
           onValueChange={(value) => setActiveStep(value as Step)}
         >
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-fit mx-auto grid-cols-3 gap-4 mb-6">
             {STEPS.map((step, index) => (
               <TabsTrigger
                 key={step}
@@ -242,7 +264,6 @@ export default function CreationFlow() {
               </TabsTrigger>
             ))}
           </TabsList>
-
           {STEPS.map((step) => (
             <TabsContent key={step} value={step}>
               {stepContent[step]}
@@ -250,7 +271,7 @@ export default function CreationFlow() {
           ))}
         </Tabs>
 
-        {!isLoading && (
+        {!isLoading && activeStep !== 'Template' && (
           <div className="flex justify-between items-center pt-4">
             <Button
               className="m-2"
@@ -272,9 +293,6 @@ export default function CreationFlow() {
                   Edit
                 </Button>
               )}
-              {/* TODO: We want to have a 'Save' button for the Review step that would just save it as draft. Not sure what the logic would be, 
-              i.e. whether we would need to also create an assistant? Probs not, just store in DB with either the prompt so far, or maybe better with the thread_id?
-              Also, how to restore and pick up editing still needs to be figured out */}
               <Button
                 type="submit"
                 onClick={
@@ -283,6 +301,12 @@ export default function CreationFlow() {
                     : handleReviewComplete
                 }
                 className="m-2"
+                disabled={
+                  activeStep === 'Create' &&
+                  (hasValidationErrors ||
+                    !formData.sessionName?.trim() ||
+                    !formData.goal?.trim())
+                }
               >
                 {activeStep === 'Create' ? 'Next' : 'Launch'}
               </Button>
