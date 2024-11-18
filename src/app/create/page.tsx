@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import CreateSession from './create';
 import ReviewPrompt from './review';
 import LoadingMessage from './loading';
@@ -23,7 +23,7 @@ export type VersionedPrompt = {
   fullPrompt: string;
 };
 
-const STEPS = ['Choose Template', 'Create', 'Review'] as const;
+const STEPS = ['Template', 'Create', 'Review'] as const;
 type Step = (typeof STEPS)[number];
 const enabledSteps = [true, false, false];
 
@@ -44,6 +44,7 @@ export default function CreationFlow() {
   const [currentVersion, setCurrentVersion] = useState(-1);
   const [sessionId, setSessionId] = useState('');
   const [botId, setBotId] = useState('');
+  const [hasValidationErrors, setHasValidationErrors] = useState(false);
 
   const addPrompt = (versionedPrompt: VersionedPrompt) => {
     setPrompts((prev) => [...prev, versionedPrompt]);
@@ -101,10 +102,19 @@ export default function CreationFlow() {
 
   const handleCreateComplete = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.sessionName?.trim() || !formData.goal?.trim()) {
+      setHasValidationErrors(true);
+      return;
+    }
+
+    if (hasValidationErrors) {
+      return;
+    }
+
     setIsLoading(true);
     enabledSteps[1] = true;
     setActiveStep('Review');
-    // If we already have some prompts, we can skip this step and just reconstitute what we have
     if (prompts.length == 0) {
       await getInitialPrompt();
     } else {
@@ -190,21 +200,24 @@ export default function CreationFlow() {
   }
 
   const stepContent = {
-    'Choose Template': (
-      <ChooseTemplate
-        onTemplateSelect={(defaults) => {
-          onFormDataChange(defaults);
-          enabledSteps[1] = true;
-          setActiveStep('Create');
-        }}
-        onNext={() => setActiveStep('Create')}
-      />
+    Template: (
+      <div className="max-w-[1080px] mx-auto">
+        <ChooseTemplate
+          onTemplateSelect={(defaults) => {
+            onFormDataChange(defaults);
+            enabledSteps[1] = true;
+            setActiveStep('Create');
+          }}
+          onNext={() => setActiveStep('Create')}
+        />
+      </div>
     ),
     Create: (
       <CreateSession
         onSubmit={handleCreateComplete}
         formData={formData}
         onFormDataChange={onFormDataChange}
+        onValidationError={setHasValidationErrors}
       />
     ),
     Review: isLoading ? (
@@ -223,7 +236,7 @@ export default function CreationFlow() {
   };
 
   return (
-    <div className="min-h-screen pt-16 sm:px-14 pb-16">
+    <div className="min-h-screen pt-16 sm:px-14 pb-16 bg-gray-50 dark:bg-gray-900">
       <div
         className={`mx-auto items-center align-middle ${
           isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
@@ -240,7 +253,7 @@ export default function CreationFlow() {
           value={activeStep}
           onValueChange={(value) => setActiveStep(value as Step)}
         >
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-fit mx-auto grid-cols-3 gap-4 mb-6">
             {STEPS.map((step, index) => (
               <TabsTrigger
                 key={step}
@@ -251,7 +264,6 @@ export default function CreationFlow() {
               </TabsTrigger>
             ))}
           </TabsList>
-
           {STEPS.map((step) => (
             <TabsContent key={step} value={step}>
               {stepContent[step]}
@@ -259,7 +271,7 @@ export default function CreationFlow() {
           ))}
         </Tabs>
 
-        {!isLoading && activeStep !== 'Choose Template' && (
+        {!isLoading && activeStep !== 'Template' && (
           <div className="flex justify-between items-center pt-4">
             <Button
               className="m-2"
@@ -289,6 +301,12 @@ export default function CreationFlow() {
                     : handleReviewComplete
                 }
                 className="m-2"
+                disabled={
+                  activeStep === 'Create' &&
+                  (hasValidationErrors ||
+                    !formData.sessionName?.trim() ||
+                    !formData.goal?.trim())
+                }
               >
                 {activeStep === 'Create' ? 'Next' : 'Launch'}
               </Button>
