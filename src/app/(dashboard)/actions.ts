@@ -16,11 +16,12 @@ export async function deleteSession(session: HostAndUserData) {
 
   if (
     confirm(
-      `Are you sure you want to delete this session and all associated data? \n\n${session.host_data.topic} - ${hostId}`
+      `Are you sure you want to delete this session and all associated data? \n\n${session.host_data.topic} - ${hostId}`,
     )
   ) {
-
-    await deleteAssistant(assistantId);
+    if (assistantId) {
+      await deleteAssistant(assistantId);
+    }
     // We're not deleting the user data for now, we might want to analyze the quality a bit...
     // await deleteUserData(userIds);
     // we can however delete the host data, since there's not really any important information in here.
@@ -41,11 +42,13 @@ async function deleteAssistant(assistantId: string) {
       data: {
         assistantIds: [assistantId],
       },
-    }).catch((err) => {
-      console.error(err);
-    }).finally(() => {
-      console.log(`Deleted ${assistantId} from OpenAI.`);
-    });
+    })
+      .catch((err) => {
+        console.error(err);
+      })
+      .finally(() => {
+        console.log(`Deleted ${assistantId} from OpenAI.`);
+      });
   }
 }
 
@@ -64,15 +67,19 @@ async function deleteHostData(hostId: string) {
       console.error(
         'There was a problem deleting session from make:',
         response.status,
-        response.statusText
+        response.statusText,
       );
     } else {
-      console.log(`Deleted ${hostId} from host db...: ${await response.text()}`);
+      console.log(
+        `Deleted ${hostId} from host db...: ${await response.text()}`,
+      );
     }
-    
+
     try {
       deleteHostSession(hostId);
-      console.log(`Deleted ${hostId} from host db...: ${await response.text()}`);
+      console.log(
+        `Deleted ${hostId} from host db...: ${await response.text()}`,
+      );
     } catch (e) {
       console.error(e);
     }
@@ -95,7 +102,7 @@ async function deleteUserData(userIds: string[]) {
       console.error(
         'There was a problem deleting ids:',
         response.status,
-        response.statusText
+        response.statusText,
       );
     }
     console.log(`Deleted ${userIds} from user db...: ${await response.text()}`);
