@@ -277,7 +277,7 @@ export default function CreationFlow() {
               className="m-2"
               variant="outline"
               onClick={() =>
-                activeStep === STEPS[0]
+                activeStep === 'Create'
                   ? route.push('/')
                   : setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])
               }
