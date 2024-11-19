@@ -15,6 +15,7 @@ import SessionResultStatus from '@/components/SessionResult/SessionResultStatus'
 import SessionResultShare from '@/components/SessionResult/SessionResultShare';
 import SessionResults from '@/components/SessionResult/SessionResults';
 import { deactivateHostSession, getHostAndAssociatedUserSessions, updateHostSession } from '@/lib/db';
+import { decryptId } from '@/lib/encryptionUtils';
 
 const fetcher = async (id: string) => {
   const data = await getHostAndAssociatedUserSessions(id);
@@ -23,19 +24,20 @@ const fetcher = async (id: string) => {
 
 export default function SessionResult() {
   const { id } = useParams() as { id: string };
+  const decryptedId = decryptId(id);
   const [userData, setUserData] = useState<UserSession[]>([]);
   const [sessionData, setSessionData] = useSessionStore((state) => [
-    state.allSessionData[id],
+    state.allSessionData[decryptedId],
     state.addSession,
   ]);
 
-  const { error } = useSWR(`sessions/${id}`, () => fetcher(id), {
+  const { error } = useSWR(`sessions/${decryptedId}`, () => fetcher(decryptedId), {
     refreshInterval: 60000, // Poll every 60 seconds
     revalidateOnFocus: true,
     onSuccess: (data) => {
       console.log('Updated session data fetched:', data);
       setUserData(Object.values(data.user_data));
-      setSessionData(id, data);
+      setSessionData(decryptedId, data);
     },
   });
 
@@ -48,36 +50,14 @@ export default function SessionResult() {
 
   const [hostType, setHostType] = useState(false);
 
-  useEffect(() => {
-    if (!hostType) {
-      // Check if the sessionId in cookies matches the current session id
-      const cookies = document.cookie
-        .split(';')
-        .reduce<Record<string, string>>((acc, cookie) => {
-          const [key, value] = cookie.trim().split('=');
-          acc[key] = value;
-          return acc;
-        }, {});
-
-      if (cookies['sessionId'] === id) {
-        setHostType(true);
-      }
-    }
-  }, [id, hostType]);
-
-  useEffect(() => {
-    if (!hostType && user && user.sub) {
-      setHostType(true);
-    }
-  }, [user]);
 
   const finishSession = async () => { 
-    await deactivateHostSession(id);
+    await deactivateHostSession(decryptedId);
     await createSummary();
   };
 
   const createSummary = async () => {
-    console.log(`Creating summary for ${id}...`);
+    console.log(`Creating summary for ${decryptedId}...`);
     const chats = Object.values(sessionData.user_data)
       .map((userData) => userData.chat_text)
       .filter(Boolean);
@@ -96,7 +76,7 @@ ${chats.join('##### Next Participant: #####\n')}
     console.log('Summary: ', summary);
 
     // So that we don't have to re-fetch all data from the DB, we just update the summary in the store directly
-    updateHostSession(id, { summary: summary ?? undefined, last_edit: new Date() }).then(() =>
+    updateHostSession(decryptedId, { summary: summary ?? undefined, last_edit: new Date() }).then(() =>
       mutate(`sessions/${id}`)
     );
   };
@@ -132,7 +112,7 @@ ${chats.join('##### Next Participant: #####\n')}
       <div className="flex flex-col md:flex-row gap-4">
         {sessionData.host_data.active && hostType && (
           <SessionResultControls
-            id={id}
+            id={decryptedId}
             isFinished={!sessionData.host_data.active}
             finishSession={finishSession}
             createSummary={createSummary}
@@ -146,14 +126,14 @@ ${chats.join('##### Next Participant: #####\n')}
           completedSessions={completedSessions}
         />
         {sessionData.host_data.active && (
-          <SessionResultShare sessionId={sessionData.host_data.id} />
+          <SessionResultShare sessionId={decryptedId} />
         )}
       </div>
       <SessionResults
         hostType={hostType}
         userData={userData}
         allData={sessionData}
-        id={id}
+        id={decryptedId}
         handleCreateSummary={createSummary}
         hasNewMessages={hasNewMessages}
       />
