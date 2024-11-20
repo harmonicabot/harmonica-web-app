@@ -1,10 +1,8 @@
 'use server';
 import { getSession as authGetSession } from '@auth0/nextjs-auth0';
-import { createSelectQueryBuilder, Kysely, PostgresDialect } from 'kysely';
 import * as s from './schema_updated';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
-import pg from 'pg';
 import { deleteAssistants } from 'app/api/gptUtils';
 // Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {
@@ -13,24 +11,29 @@ if (typeof window === 'undefined') {
   console.log('Nope, not running on the server.');
 }
 
-const hostDbName = 'host_temp_trial';
-const userDbName = 'user_temp_trial';
-const messageDbName = 'messages_temp_trial';
+const hostTableName = 'host_db';
+const userTableName = 'user_db';
+const messageTableName = 'temp_message_db';
 interface Databases {
-  [hostDbName]: s.HostSessionsTable;
-  [userDbName]: s.UserSessionsTable;
-  [messageDbName]: s.MessagesTable;
+  [hostTableName]: s.HostSessionsTable;
+  [userTableName]: s.UserSessionsTable;
+  [messageTableName]: s.MessagesTable;
 }
-// const db = createKysely<Databases>();
-const connectionUrl = `postgresql://${process.env.LOCAL_DB_USER_PWD}@localhost:5432/local_verceldDb`;
 
-const dialect = new PostgresDialect({
-  pool: new pg.Pool({
-    connectionString: connectionUrl,
-    max: 10,
-  }),
-});
-const db = new Kysely<Databases>({ dialect });
+const dbConfig = s.createCustomDbInstance<Databases>(hostTableName, userTableName, messageTableName);
+const db = dbConfig.db;
+
+// const db = createKysely<Databases>();
+// const connectionUrl = `postgresql://${process.env.LOCAL_DB_USER_PWD}@localhost:5432/local_verceldDb`;
+
+
+// const dialect = new PostgresDialect({
+//   pool: new pg.Pool({
+//     connectionString: connectionUrl,
+//     max: 10,
+//   }),
+// });
+// const db = new Kysely<Databases>({ dialect });
 
 async function getAuthForClient() {
   const session = await authGetSession();
@@ -48,7 +51,7 @@ export async function getHostSessions(
   const client = await getAuthForClient();
 
   let query = db
-    .selectFrom(hostDbName)
+    .selectFrom(hostTableName)
     .select(columns);
   
   if (client) {
@@ -62,8 +65,8 @@ export async function getHostSessions(
 export async function getHostSessionById(id: string): Promise<s.HostSession> {
   try {
     return await db
-      .selectFrom(hostDbName)
-      .where(`${hostDbName}.id`, '=', id)
+      .selectFrom(hostTableName)
+      .where(`id`, '=', id)
       .selectAll()
       .executeTakeFirstOrThrow();
   } catch (error) {
@@ -74,7 +77,7 @@ export async function getHostSessionById(id: string): Promise<s.HostSession> {
 
 export async function getFromHostSession(id: string, column: keyof s.HostSessionsTable) {
   const result = await db
-    .selectFrom(hostDbName)
+    .selectFrom(hostTableName)
     .select(column)
     .where('id', '=', id)
     .executeTakeFirst();
@@ -89,7 +92,7 @@ export async function insertHostSessions(
     const userSub = session?.user?.sub || '';
     console.log('Inserting host session with data:', data);
     const result = await db
-      .insertInto(hostDbName)
+      .insertInto(hostTableName)
       .values({ ...data, client: userSub })
       .returningAll()
       .execute();
@@ -108,7 +111,7 @@ export async function upsertHostSession(
     const session = await authGetSession();
     const userSub = session?.user?.sub || '';
     await db
-      .insertInto(hostDbName)
+      .insertInto(hostTableName)
       .values({ ...data, client: userSub })
       .onConflict((oc) =>
         onConflict === 'skip'
@@ -129,7 +132,7 @@ export async function updateHostSession(
   try {
     console.log('Updating host session with id:', id, ' with data:', data);
     await db
-      .updateTable(hostDbName)
+      .updateTable(hostTableName)
       .set(data as any)
       .where('id', '=', id)
       .execute();
@@ -142,7 +145,7 @@ export async function updateHostSession(
 export async function increaseSessionsCount(id: string, toIncrease: 'num_sessions' | 'num_finished') {
   // This is a bit clumsy, but I couldn't find a way with kysely to do it in one go. Submitting sql`...` breaks it :-(
   const previousNum = (await db
-    .selectFrom(hostDbName)
+    .selectFrom(hostTableName)
     .where('id', '=', id)
     .select(toIncrease)
     .executeTakeFirstOrThrow())[toIncrease];
@@ -151,7 +154,7 @@ export async function increaseSessionsCount(id: string, toIncrease: 'num_session
 
 export async function deleteHostSession(id: string): Promise<void> {
   try {
-    await db.deleteFrom(hostDbName).where('id', '=', id).execute();
+    await db.deleteFrom(hostTableName).where('id', '=', id).execute();
   } catch (error) {
     console.error('Error deleting host session:', error);
     throw error;
@@ -163,7 +166,7 @@ export async function getUsersBySessionId(
 ): Promise<s.UserSession[]> {
   try {
     return await db
-      .selectFrom(userDbName)
+      .selectFrom(userTableName)
       .where('session_id', '=', sessionId)
       .selectAll()
       .execute();
@@ -179,7 +182,7 @@ export async function insertUserSession(
   try {
     console.log('Inserting user session with data:', data);
     const result = await db
-      .insertInto(userDbName)
+      .insertInto(userTableName)
       .values(data)
       .returning('id')
       .executeTakeFirstOrThrow();
@@ -197,7 +200,7 @@ export async function insertUserSessions(
   try {
     console.log('Inserting user session with data:', data);
     const result = await db
-      .insertInto(userDbName)
+      .insertInto(userTableName)
       .values(data)
       .returningAll()
       .execute();
@@ -214,7 +217,7 @@ export async function upsertUserSession(
 ): Promise<void> {
   try {
     await db
-      .insertInto(userDbName)
+      .insertInto(userTableName)
       .values(data)
       .onConflict((oc) =>
         onConflict === 'skip'
@@ -234,7 +237,7 @@ export async function updateUserSession(
 ): Promise<void> {
   try {
     console.log('Updating user session with id:', id, ' with data:', data);
-    await db.updateTable(userDbName).set(data).where('id', '=', id).execute();
+    await db.updateTable(userTableName).set(data).where('id', '=', id).execute();
   } catch (error) {
     console.error('Error updating user session:', error);
     throw error;
@@ -243,7 +246,7 @@ export async function updateUserSession(
 
 export async function deleteUserSession(id: string): Promise<void> {
   try {
-    await db.deleteFrom(userDbName).where('id', '=', id).execute();
+    await db.deleteFrom(userTableName).where('id', '=', id).execute();
   } catch (error) {
     console.error('Error deleting user session:', error);
     throw error;
@@ -256,7 +259,7 @@ export async function searchUserSessions(
 ): Promise<s.UserSession[]> {
   try {
     return await db
-      .selectFrom(userDbName)
+      .selectFrom(userTableName)
       .where(columnName, 'ilike', `%${searchTerm}%`)
       .selectAll()
       .execute();
@@ -269,14 +272,14 @@ export async function searchUserSessions(
 export async function insertChatMessage(message: s.NewMessage) {
   console.log("Inserting chat message: ", JSON.stringify(message));
   try {
-    await db.insertInto(messageDbName).values(message).execute();
+    await db.insertInto(messageTableName).values(message).execute();
   } catch (error) {
     console.error('Error inserting chat message: ', error)
   }
 }
 
 export async function countChatMessages(threadId: string) {
-  const result = await db.selectFrom(messageDbName)
+  const result = await db.selectFrom(messageTableName)
     .where('thread_id', '=', threadId)
     .select(({ fn }) => [fn.count('id').as('count')])
     .executeTakeFirst();
@@ -285,7 +288,7 @@ export async function countChatMessages(threadId: string) {
 }
 
 export async function getAllChatMessagesInOrder(threadId: string) {
-  return await db.selectFrom(messageDbName)
+  return await db.selectFrom(messageTableName)
     .where('thread_id', '=', threadId)
     .selectAll()
     .orderBy('created_at', 'asc')
@@ -296,14 +299,14 @@ export async function deleteSessionById(id: string): Promise<boolean> {
   try {
     // before deleting, we need to get the assistant id so that we can delete that as well.
     const assistantId = await db
-      .selectFrom(hostDbName)
+      .selectFrom(hostTableName)
       .select('template')
       .where('id', '=', id)
       .executeTakeFirst();
     if (assistantId?.template) {
       deleteAssistants([assistantId.template]);
     }
-    await db.deleteFrom(hostDbName).where('id', '=', id).execute();
+    await db.deleteFrom(hostTableName).where('id', '=', id).execute();
     // TODO: not deleting user sessions for now, we might want to analyse things?
     // await db.deleteFrom(userDbName).where('session_id', '=', id).execute();
   } catch (error) {
@@ -318,7 +321,7 @@ export async function deactivateHostSession(
 ): Promise<boolean> {
   try {
     const result = await db
-      .updateTable(hostDbName)
+      .updateTable(hostTableName)
       .set({ active: false })
       .where('id', '=', sessionId)
       .execute();

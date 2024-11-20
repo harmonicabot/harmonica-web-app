@@ -2,21 +2,21 @@ import { Kysely } from 'kysely';
 import * as s from './lib/schema';
 import { writeFileSync, readFileSync, existsSync } from 'fs';
 
-import { createKysely } from '@vercel/postgres-kysely';
-import { upsertUserSession } from './lib/db';
-import { exit } from 'process';
 import * as readline from 'readline';
 
 type Client = 'CMI' | 'DEV' | 'APP' | 'ALL' | '' | undefined;
 
 // Set this if you want to migrate only a subset of the data
 const clientId: Client = 'ALL';
-const hostDbName = 'host_local';
-const userDbName = 'user_local';
+const hostTableName = 'host_db';
+const userTableName = 'user_db';
 const updateOrCreateNewTables = true;
 const dropTablesIfAlreadyPresent = false;
 const skipEmptyHostSessions = true;
 const skipEmptyUserSessions = true;
+const migrateFromMakeToNewTables = true; // false = update _existing_ tables with new entries from make
+const updateUserNamesInDbFromChatText = false;
+const dryRun = true;
 
 // Run this with:
 // `npx tsx -r dotenv /config src/db_migration.ts dotenv_config_path=.env.local`
@@ -24,16 +24,10 @@ const skipEmptyUserSessions = true;
 //////////////////////////////////////////////////////
 // you shouldn't need to touch anything below this: //
 //////////////////////////////////////////////////////
-// interface Databases {
-//   [hostDbName]: s.HostSessionsTable;
-//   [userDbName]: s.UserSessionsTable;
-// }
-
-// const db = createKysely<Databases>();
 
 type MigrationDatabases = {
-  host_local: s.HostSessionsTable;
-  user_local: s.UserSessionsTable;
+  [hostTableName]: s.HostSessionsTable;
+  [userTableName]: s.UserSessionsTable;
 };
 
 type DBConfig = {
@@ -42,11 +36,18 @@ type DBConfig = {
 };
 
 const dbConfig = s.createCustomDbInstance<MigrationDatabases>(
-  'host_local',
-  'user_local'
+  hostTableName,
+  userTableName
 );
 const db = dbConfig.db;
 const tableNames = dbConfig.dbNames;
+
+if (migrateFromMakeToNewTables) {
+  migrateFromMake();
+} else {
+  deduplicateByComparingPgWithMake();
+}
+
 
 // #### Legacy make.com db stuff ####
 type UserSessionData = {
@@ -95,15 +96,6 @@ type DbRecord = {
   data: UserSessionData | RawSessionOverview;
 };
 
-// setUserNames();
-// testOperations();
-
-// migrateFromMake().then(() => {
-//   console.log('Migration complete.');
-// });
-// deduplicate(dbConfig);
-deduplicateByComparingPgWithMake(dbConfig);
-
 async function setupTables(dbConfig: DBConfig) {
   if (!updateOrCreateNewTables) return;
   if (dropTablesIfAlreadyPresent) {
@@ -118,7 +110,7 @@ async function setupTables(dbConfig: DBConfig) {
     .then(() => s.createTriggerOnUserUpdateLastEditChatText(tableNames.user));
 }
 
-async function deduplicateByComparingPgWithMake(dbConfig: DBConfig) {
+async function deduplicateByComparingPgWithMake() {
   const { db, dbNames } = dbConfig;
 
   // Combine the make sessions with the ones that we already have in the database, then deduplicate them
@@ -159,12 +151,12 @@ async function deduplicateByComparingPgWithMake(dbConfig: DBConfig) {
   }
 
   const userSessions = (await db
-    .selectFrom(userDbName)
+    .selectFrom(userTableName)
     .selectAll()
     .execute()) as s.NewUserSession[];
 
   const hostSessions = (await db
-    .selectFrom(hostDbName)
+    .selectFrom(hostTableName)
     .selectAll()
     .execute()) as s.NewHostSession[];
 
@@ -185,6 +177,11 @@ async function deduplicateByComparingPgWithMake(dbConfig: DBConfig) {
   hostSessionsFromMake.forEach((makeSession) => {
     const hostSession = hostMap.get(makeSession.id!);
     if (!hostSession) {
+      const timeOfMigration = new Date('2024-11-14T00:00:00.000Z');
+      if (makeSession.num_sessions == 0 && makeSession.last_edit && new Date(makeSession.last_edit) < timeOfMigration) {
+        // Unused session from a while ago, don't transfer.
+        return;
+      }
       console.log('New Host session found in make: ', makeSession);
       hostMap.set(makeSession.id!, makeSession);
       newHostEntriesFromMake.set(makeSession.id!, makeSession);
@@ -192,7 +189,7 @@ async function deduplicateByComparingPgWithMake(dbConfig: DBConfig) {
     } else {
       // Duplicate found. let's keep the ... one with earlier start_time and later last_edit; the start_time might have been set to something later during an earlier migration.
       // (NOT just the one from make, because we have a split db, it might have been modified either in app or cmi...)
-      console.log('Duplication of hosot sessions: ', hostSession, makeSession);
+      // console.log('Duplication of hosot sessions: ', hostSession, makeSession);
 
       const makeSessionStartTime = new Date(makeSession.start_time || 0);
       const hostSessionStartTime = new Date(hostSession.start_time || 0);
@@ -212,7 +209,14 @@ async function deduplicateByComparingPgWithMake(dbConfig: DBConfig) {
   });
 
   // Get new & updated USER entries from makeDB:
-  const userSessionsMap = await dedupeUserSessions(userSessions);
+  const userSessionsMap = new Map<string, s.NewUserSession>();
+  userSessions.forEach(session => {
+    const hash = getUserSessionHash(session);
+    if (userSessionsMap.has(hash)) {
+      console.warn(`Warning: Duplicate session hash found: ${hash}`);
+    }
+    userSessionsMap.set(hash, session);
+  });
   const newUserEntriesFromMake = new Map<string, s.NewUserSession>();
   const updatedUserEntriesFromMake = new Map<string, s.NewUserSession>();
   await dedupeUserSessions(
@@ -227,7 +231,7 @@ async function deduplicateByComparingPgWithMake(dbConfig: DBConfig) {
 
   const updatedHostSessionsSorted = Array.from(updatedHostEntriesFromMake.values()).sort(sortByLastEdit);   
   console.log("Updating host sessions: ");
-  Object.entries(updatedHostEntriesFromMake).forEach(([id, session]) => {
+  Object.entries(updatedHostSessionsSorted).forEach(([id, session]) => {
     console.log(hostMap.get(id), "\n => \n", session);
   });
 
@@ -236,23 +240,31 @@ async function deduplicateByComparingPgWithMake(dbConfig: DBConfig) {
   const updatedUserSessionsSorted = Array.from(updatedUserEntriesFromMake.values()).sort((a, b) => a.session_id.localeCompare(b.session_id)); 
   console.log("Adding new user sessions: ", newUserSessionsSorted);
   console.log("Updating user sessions: ");
-  Object.entries(updatedUserEntriesFromMake).forEach(([id, session]) => {
+  Object.entries(updatedUserSessionsSorted).forEach(([id, session]) => {
     console.log(userSessionsMap.get(id), "\n => \n", session);
   });
+
+  await Promise.all([
+    updatedHostSessionsSorted.forEach(session => updateHostSession(session)),
+    insertHostSessions(newHostSessionsSorted),
+    updatedUserSessionsSorted.forEach(session => updateUserSession(session)),
+    insertUserSessions(newUserSessionsSorted),
+  ])
 }
 
-function getHostSessionHash(
+function getUserSessionHash(
   session: s.UserSession | s.NewUserSession
 ): string {
   const chatText = session.chat_text ?? '';
-  return chatText.slice(0, Math.min(800, chatText.length));
+  // We need to have quite a long chatText hash to make sure it's unique, because there's often a long intro at the start.
+  return chatText.slice(0, Math.min(2000, chatText.length));
 }
 
 async function dedupeUserSessions(
   userSessions: s.NewUserSession[],
   baseMap: Map<string, s.NewUserSession> = new Map<string, s.NewUserSession>(),
-  newEntriesMap?: Map<string, s.NewUserSession>,
-  updatedEntriesMap?: Map<string, s.NewUserSession>
+  newEntriesMap: Map<string, s.NewUserSession>,
+  updatedEntriesMap: Map<string, s.NewUserSession>
 ) {
   // If no newEntriesMap is provided we assume all entries should just be put in the baseMap, should be the case for first instantiation
   for (const session of userSessions) {
@@ -265,7 +277,7 @@ async function dedupeUserSessions(
     ) {
       continue;
     }
-    const hash = getHostSessionHash(session);
+    const hash = getUserSessionHash(session);
 
     if (baseMap.has(hash)) {
       // Chat text is the same! Let's compare other things:
@@ -277,11 +289,8 @@ async function dedupeUserSessions(
         existingSession.thread_id != session.thread_id
       ) {
         // These _are_ distinct entries
-        if (newEntriesMap) {
-          newEntriesMap.set(hash, session);
-        } else {
-          baseMap.set(hash, session);
-        }
+        console.log("New Entry: ", session);
+        newEntriesMap.set(hash, session);
         continue;
       }
 
@@ -293,39 +302,26 @@ async function dedupeUserSessions(
           session.start_time &&
           new Date(existingSession.start_time) > new Date(session.start_time)
         ) {
-          if (updatedEntriesMap) {
-            updatedEntriesMap.set(hash, session);
-          } else {
-            baseMap.set(hash, session);
-          }
+          console.log("Updated Entry: ", session);
+          updatedEntriesMap.set(hash, session);
         }
         continue;
       }
 
       const choice = await askUser(existingSession, session);
       if (choice === 2) {
-        if (updatedEntriesMap) {
-          updatedEntriesMap.set(hash, session);
-        } else {
-          baseMap.set(hash, session);
-        }
+        console.log("Updated Entry: ", session);
+        updatedEntriesMap.set(hash, session);
       } else if (choice === 3) {
-        if (newEntriesMap) {
-          newEntriesMap.set(hash, session);
-        } else {
-          baseMap.set(hash, session);
-        }
+        console.log("New Entry: ", session);
+        newEntriesMap.set(hash, session);
       } else if (choice === 4) {
         baseMap.delete(hash);
       }
       continue;
     }
-
-    if (newEntriesMap) {
-      newEntriesMap.set(hash, session);
-    } else {
-      baseMap.set(hash, session);
-    }
+    console.log("New Entry: ", session);
+    newEntriesMap.set(hash, session);
   }
   return baseMap;
 }
@@ -366,62 +362,6 @@ function createHostMap(hostSessions: s.NewHostSession[]) {
   return hostMap;
 }
 
-async function deduplicate(dbConfig: DBConfig) {
-  const { db, dbNames } = dbConfig;
-
-  const userSessions: s.NewUserSession[] = [];
-  const hostSessions: s.NewHostSession[] = [];
-
-  if (
-    existsSync('./allUserSessions.json') &&
-    existsSync('./allHostSessions.json')
-  ) {
-    console.log('Loading sessions from file...');
-    userSessions.push(
-      ...(JSON.parse(
-        readFileSync('./allUserSessions.json', 'utf8')
-      ) as s.NewUserSession[])
-    );
-
-    hostSessions.push(
-      ...(JSON.parse(
-        readFileSync('./allHostSessions.json', 'utf8')
-      ) as s.NewHostSession[])
-    );
-  } else {
-    const { host, user } = await getAllSessionsCombined();
-    hostSessions.push(...host);
-    userSessions.push(...user);
-
-    writeFileSync(
-      'allHostSessions.json',
-      JSON.stringify(hostSessions, null, 2)
-    );
-    writeFileSync(
-      'allUserSessions.json',
-      JSON.stringify(userSessions, null, 2)
-    );
-  }
-
-  const uniqueUserSessions = await getUniqueUserSessions(userSessions);
-  const uniqueHostSessions = getUniqueHostSessions(hostSessions);
-
-  writeFileSync(
-    'uniqueHostSessions.json',
-    JSON.stringify(uniqueHostSessions, null, 2)
-  );
-
-  writeFileSync(
-    'uniqueUserSessions.json',
-    JSON.stringify(uniqueUserSessions, null, 2)
-  );
-
-  // First delete all existing entries, then insert the new ones.
-  await db.deleteFrom(hostDbName).execute();
-  await db.insertInto(hostDbName).values(uniqueHostSessions).execute();
-  await db.deleteFrom(userDbName).execute();
-  await db.insertInto(userDbName).values(uniqueUserSessions).execute();
-}
 
 async function askUser(
   session1: s.NewUserSession,
@@ -467,143 +407,6 @@ async function askUser(
       }
     );
   });
-}
-
-async function getUniqueUserSessions(userSessions: s.NewUserSession[]) {
-  const getSessionHash = (
-    session: s.UserSession | s.NewUserSession
-  ): string => {
-    if (session.thread_id) {
-      const { session_id, template, thread_id } = session;
-      return JSON.stringify({ session_id, template, thread_id });
-    } else {
-      const { session_id, template, chat_text } = session;
-      return JSON.stringify({
-        session_id,
-        template,
-        chat_text: chat_text?.slice(0, Math.max(400, chat_text.length)),
-      });
-    }
-  };
-
-  const uniqueUserSessionsMap = new Map<string, s.NewUserSession>();
-  let count = 0;
-
-  for (const session of userSessions) {
-    const hash = getSessionHash(session);
-
-    if (uniqueUserSessionsMap.has(hash)) {
-      count++;
-      const existingSession = uniqueUserSessionsMap.get(hash)!;
-      if (existingSession.chat_text?.length === session.chat_text?.length) {
-        // Take the entry that has the earlier start date; a lot of new entries might have updated it to the time of the last migration...
-        // And usually these two entries have all the same info anyway.
-        if (
-          existingSession.start_time &&
-          session.start_time &&
-          new Date(existingSession.start_time) > new Date(session.start_time)
-        ) {
-          uniqueUserSessionsMap.set(hash, session);
-        }
-        continue;
-      }
-
-      const choice = await askUser(existingSession, session);
-      if (choice === 2) {
-        uniqueUserSessionsMap.set(hash, session);
-      }
-      continue;
-    }
-    // Also filter out those that don't have any chat text or no answer.
-    const searchPattern = /Answer\s?:/;
-    if (
-      !session.chat_text ||
-      session.chat_text.length === 0 ||
-      !searchPattern.test(session.chat_text)
-    ) {
-      // console.log('Exclude entry with chat: \n', session.chat_text);
-      continue;
-    }
-    uniqueUserSessionsMap.set(hash, session);
-  }
-
-  const uniqueUserSessions = Array.from(uniqueUserSessionsMap.values()).sort(
-    (a, b) => a.session_id.localeCompare(b.session_id)
-  );
-
-  console.log(
-    `Ommitted ${count} duplicates out of ${userSessions.length} total sessions. Remaining: ${uniqueUserSessions.length}`
-  );
-  return uniqueUserSessions;
-}
-
-function getUniqueHostSessions(
-  hostSessions: s.NewHostSession[]
-): s.NewHostSession[] {
-  const hostMap = new Map<string, s.NewHostSession>();
-  hostSessions.sort((a, b) => {
-    if (!a.last_edit || !b.last_edit) {
-      if (!a.last_edit && !b.last_edit) {
-        return 0;
-      }
-      if (!a.last_edit) {
-        return 1;
-      }
-      return -1;
-    }
-    // Because sometimes we get this from a file, the date might be in string from, so we need to create a proper date for it.
-    return new Date(b.last_edit).getTime() - new Date(a.last_edit).getTime();
-  });
-
-  hostSessions.forEach((hostSession) => {
-    // I believe all ids should be set...
-    if (!hostSession.id) {
-      throw new Error('Host session id is not set');
-    }
-    if (hostMap.has(hostSession.id)) {
-      console.log(
-        `Duplicate host session: New vs Old:`,
-        hostMap.get(hostSession.id),
-        hostSession
-      );
-      return; // Duplicate entry, skip it. (The first one is the newer one, because they're sorted by last_edit)
-    }
-    hostMap.set(hostSession.id, hostSession);
-    return;
-  });
-
-  return Array.from(hostMap.values());
-}
-
-async function getAllSessionsCombined(): Promise<{
-  host: s.NewHostSession[];
-  user: s.NewUserSession[];
-}> {
-  const sessionsFromMake = await getSessionsFromMake();
-  if (sessionsFromMake === null) {
-    console.log('No sessions found in Make');
-    return { host: [], user: [] };
-  }
-  const asSessionData = transformMakeToPostgres(sessionsFromMake);
-  const userSessionsFromMake: s.NewUserSession[] = asSessionData.userSessions;
-  const hostSessionsFromMake: s.NewHostSession[] = asSessionData.hostSessions;
-
-  // Combine the make sessions with the ones that we already have in the database, then deduplicate them
-  const userSessions = (await db
-    .selectFrom(userDbName)
-    .selectAll()
-    .execute()) as s.NewUserSession[];
-
-  const hostSessions = (await db
-    .selectFrom(hostDbName)
-    .selectAll()
-    .execute()) as s.NewHostSession[];
-
-  hostSessions.push(...hostSessionsFromMake);
-  userSessions.push(...userSessionsFromMake);
-  userSessions.sort((a, b) => a.session_id.localeCompare(b.session_id));
-
-  return { host: hostSessions, user: userSessions };
 }
 
 function transformMakeToPostgres(data: {
@@ -743,6 +546,7 @@ async function migrateFromMake() {
             chat_text: data.chat_text,
             thread_id: data.thread_id,
             template: data.template ?? 'unknown',
+            user_name: extractName(data.chat_text ?? ''),
           };
         });
 
@@ -781,20 +585,10 @@ async function migrateFromMake() {
         `Inserting: Host ${hostSession.id} (${hostSession.topic}): ${userSessions.length} user sessions`
       );
 
-      upsertHostSession(
-        {
-          num_finished: 0,
-          num_sessions: 1,
-          active: true,
-          topic: 'xyz',
-          final_report_sent: true,
-        },
-        'update'
-      );
+      insertHostSessions(hostSession);
 
-      // upsertHostSession(hostSession, 'update');
       if (userSessions.length > 0) {
-        upsertUserSessions(userSessions);
+        insertUserSessions(userSessions);
       }
     })
   );
@@ -810,12 +604,17 @@ async function migrateFromMake() {
     )} user sessions\n`
   );
 }
-async function setUserNames() {
+
+if (updateUserNamesInDbFromChatText) {
+  setUserNamesInDb();
+}
+
+async function setUserNamesInDb() {
   // Most entries in the user table have user_id = 'anonymous'; only very few have an email or such.
   // We can extract a username from the chat text for many of them.
   // Set that username as a new column 'user_name'.
   const allUserData = await dbConfig.db
-    .selectFrom(userDbName)
+    .selectFrom(userTableName)
     .selectAll()
     .execute();
   allUserData.map((user) => {
@@ -823,7 +622,7 @@ async function setUserNames() {
       const name = extractName(user.chat_text);
       console.log(`Setting ${user.id} to ${name}`);
       dbConfig.db
-        .updateTable(userDbName)
+        .updateTable(userTableName)
         .set({ user_name: name })
         .where('id', '=', user.id)
         .execute();
@@ -860,89 +659,84 @@ function extractName(input: string): string {
   return name || 'anonymous';
 }
 
-async function testOperations() {
-  upsertUserSessions([
-    {
-      session_id: '579908108290',
-      user_id: 'anonymous',
-      active: false,
-      chat_text: `Stupid test superkalifragilistic`,
-      template: 'not available',
-      start_time: new Date('2025-11-14 01:53:54.494'),
-      step: 0,
-      last_edit: new Date('2026-11-14 02:06:28.597'),
-    },
-  ]);
-}
-
-export async function upsertHostSession(
-  data: s.NewHostSession,
-  onConflict: 'skip' | 'update' = 'skip'
+export async function insertHostSessions(
+  data: s.NewHostSession | s.NewHostSession[],
 ): Promise<void> {
+  if (dryRun) {
+    console.log('Dry run: Skipping insertHostSession');
+    return;
+  }
   try {
     await dbConfig.db
-      .insertInto('host_local')
+      .insertInto(hostTableName)
       .values(data)
-      .onConflict((oc) =>
-        onConflict === 'skip'
-          ? oc.column('id').doNothing()
-          : oc.column('id').doUpdateSet(data)
-      )
       .execute();
   } catch (error) {
-    console.error('Error upserting host session:', error);
+    console.error('Error inserting host session:', error);
     console.log('HostSession: ', data);
     throw error;
   }
 }
 
-export async function upsertUserSessions(
-  data: s.NewUserSession[],
-  onConflict: 'skip' | 'update' = 'skip'
-): Promise<void> {
-  for (const record of data) {
-    // First check if this combination exists and is unique
-    const existing = await db
-      .selectFrom(userDbName)
-      .select(['id'])
-      .where('session_id', '=', record.session_id)
-      .where('user_id', '=', record.user_id)
+async function updateHostSession(
+  data: s.NewHostSession,  
+): Promise <void> {
+  if(dryRun) {
+    console.log('Dry run: Skipping updateHostSession');
+    return;
+  }
+  const { id, ...sessionWithoutId} = data;
+  try {
+    await db
+      .updateTable(hostTableName)
+      .set(sessionWithoutId)
+      .where('id', '=', id!)
       .execute();
-
-    if (existing.length === 1) {
-      // Only update if exactly one match exists
-      await db
-        .updateTable(userDbName)
-        .set({
-          active: record.active,
-          chat_text: record.chat_text,
-          feedback: record.feedback,
-          last_edit: new Date(),
-        })
-        .where('session_id', '=', record.session_id)
-        .where('user_id', '=', record.user_id)
-        .execute();
-    } else if (existing.length === 0) {
-      // Insert new record if no match exists
-      await db.insertInto(userDbName).values(record).execute();
-    }
-    // If multiple matches exist (length > 1), skip this record
+  } catch(error) {
+    console.error('Error updating host session:', error);
+    console.log('HostSession: ', data);
+    throw error;
   }
 }
 
 export async function insertUserSessions(
   data: s.NewUserSession[]
-): Promise<string[]> {
+): Promise<void> {
+  if (dryRun) {
+    console.log('Dry run: Skipping insertHostSession');
+    return;
+  }
   try {
     const result = await db
-      .insertInto(userDbName)
-      .values(data[0])
+      .insertInto(userTableName)
+      .values(data)
       .returningAll()
       .execute();
-    return result.map((row) => row.id);
+    return;
   } catch (error) {
     console.error('Error inserting user sessions:', error);
     console.log('UserSessions: ', data);
+    throw error;
+  }
+}
+
+export async function updateUserSession(
+  data: s.NewUserSession
+): Promise<void> {
+  if (dryRun) {
+    console.log('Dry run: Skipping updateUserSession');
+    return;
+  }
+  const {id, ...sessionWithoutId} = data;
+  try {
+    await db
+      .updateTable(userTableName)
+      .set(sessionWithoutId)
+      .where('id', '=', id!)
+      .execute();
+  } catch (error) {
+    console.error('Error updating user session:', error);
+    console.log('UserSession: ', data);
     throw error;
   }
 }

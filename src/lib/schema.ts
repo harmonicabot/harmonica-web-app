@@ -161,7 +161,7 @@ export function createProdDbInstance() {
 export function createCustomDbInstance<T extends Record<string, any> = Databases>(
   host = 'temp_host_db',
   user = 'temp_user_db',
-  connectionUrl = `postgresql://${process.env.LOCAL_DB_USER_PWD}@localhost:5432/local_verceldDb`
+  connectionUrl = process.env.CUSTOM_DATABASE
 ) {
   // type Databases = {
   //   [K in typeof host]: HostSessionsTable
