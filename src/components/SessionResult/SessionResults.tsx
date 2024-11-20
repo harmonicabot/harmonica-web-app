@@ -1,5 +1,5 @@
 import { ApiTarget } from '@/lib/types';
-import { HostSession, UserSession } from '@/lib/schema_updated';
+import { HostSession, Message, UserSession } from '@/lib/schema_updated';
 
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
@@ -12,7 +12,7 @@ import SessionResultChat from './SessionResultChat';
 import SessionResultParticipants from './SessionResultParticipants';
 import SessionResultSummary from './SessionResultSummary';
 import ShareSession from './ShareSession';
-import { getAllChatMessagesInOrder } from '@/lib/db';
+import { countChatMessages, getAllChatMessagesInOrder } from '@/lib/db';
 
 export default async function SessionResults({
   hostType,
@@ -35,7 +35,7 @@ export default async function SessionResults({
     setIsExportPopupVisible(true);
     setExportInProgress(true);
 
-    const messages = await Promise.all(
+    const allUsersMessages = await Promise.all(
       userData.map(
         async (data) => await getAllChatMessagesInOrder(data.thread_id)
       )
@@ -48,9 +48,10 @@ export default async function SessionResults({
       },
       body: JSON.stringify({
         data: {
-          chatMessages: Object.values(userData)
-            .map((user) => user.chat_text)
-            .filter(Boolean),
+          chatMessages: allUsersMessages
+            .map(messagesFromOneUser => {
+              concatenateMessages(messagesFromOneUser);
+            }),
           exportDataQuery: exportInstructions,
         },
       }),
@@ -70,16 +71,17 @@ export default async function SessionResults({
   };
 
   const exportAllData = async () => {
-    const exportData = userData.map((user) => {
+
+    const exportData = userData.map( async (user) => {
       const user_id = user.user_id;
       const user_name = user.user_name;
-      const raw_chat_text = user.chat_text;
+      const chat_text = concatenateMessages(await getAllChatMessagesInOrder(user.thread_id));
       const introString = `Use it in communication. Don't ask it again. Start the session.\n`;
-      const startOfIntro = raw_chat_text?.indexOf(introString);
-      const chat_text =
-        startOfIntro && startOfIntro > 0
-          ? raw_chat_text?.substring(startOfIntro + introString.length)
-          : raw_chat_text;
+      // const startOfIntro = raw_chat_text?.indexOf(introString);
+      // const chat_text =
+        // startOfIntro && startOfIntro > 0
+          // ? raw_chat_text?.substring(startOfIntro + introString.length)
+          // : raw_chat_text;
 
       return {
         user_id,
@@ -173,9 +175,7 @@ export default async function SessionResults({
         </div>
       </Tabs>
 
-      {userData.map((data) => data.chat_text).filter(Boolean).length > 0 && (
-        <Button onClick={handleShowExportPopup}>Export Session Details</Button>
-      )}
+      <Button onClick={handleShowExportPopup}>Export Session Details</Button>
 
       {isPopupVisible && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
@@ -235,12 +235,18 @@ export default async function SessionResults({
   return (
     <>
       <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
-      {userData.map((data) => data.chat_text).filter(Boolean).length > 0
+      {userData
+        .map(async (data) => countChatMessages(data.thread_id))
+        .filter(async (sum) => (await sum) > 0).length > 0
         ? showResultsSection()
         : showShareResultsCard()}
     </>
   );
 }
+function concatenateMessages(messagesFromOneUser: Message[]) {
+  return messagesFromOneUser.map(message => `${message.role} : ${message.content}`).join();
+}
+
 function exportAndDownload(
   blob: Blob,
   link: HTMLAnchorElement,

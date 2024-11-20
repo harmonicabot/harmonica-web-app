@@ -21,12 +21,11 @@ export default function Dashboard({
   const [hostData, setHostData] = useState<HostSession[]>([]);
   const { user } = useUser();
   useEffect(() => {
-    // console.log('Migrating sessions from Make to NeonDB...');
-    // migrateFromMake();
-    if (user) callNeonDB();
-  }, [search, offset, user]);
+    console.log('Erm... getting host sessions?')
+    getSessionData();
+  }, []);
 
-  async function callNeonDB() {
+  async function getSessionData() {
     const sessionData = await getHostSessions(['id', 'topic', 'start_time', 'num_sessions', 'final_report_sent', 'num_finished', 'active']);
     const sortedSessions = sessionData
       .sort(

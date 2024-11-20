@@ -31,32 +31,10 @@ export default function SessionResultParticipants({
 
   const sortableData: Data[] = userData
     .map((data) => ({
-      userName: data.user_name,
+      userName: data.user_name ?? 'anonymous',
       sessionStatus: data.active ? 'Started' : 'Finished',
       userData: data,
     }));
-
-  function extractName(input: string): string {
-    const prefix = ' : User name is ';
-    const startIndex = input.indexOf(prefix);
-    if (startIndex === -1) return 'anonymous';
-
-    let nameStart = startIndex + prefix.length;
-    if (input.substring(nameStart).toLowerCase().startsWith('my name is ')) {
-      nameStart += 'my name is '.length;
-    }
-    let nameEnd = input.length;
-
-    for (let i = nameStart; i < input.length; i++) {
-      if (input[i] === '.' || input.slice(i, i + 6) === 'Answer') {
-        nameEnd = i;
-        break;
-      }
-    }
-
-    const name = input.slice(nameStart, nameEnd).trim();
-    return name || 'anonymous';
-  }
 
   const getTableRow = (session: Data, index: number) => {
     return <ParticipantSessionRow key={index} {...session} />;

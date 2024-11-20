@@ -23,18 +23,24 @@ import {
   updateHostSession,
 } from '@/lib/db';
 import { decryptId } from '@/lib/encryptionUtils';
+import { UserSession } from '@/lib/schema_updated';
 
 const fetcher = async (id: string) => {
   const hostData = await getHostSessionById(id);
   const userData = await getUsersBySessionId(id);
+  console.log('hostData', hostData);
   return { hostData, userData };
 };
 
-export default async function SessionResult() {
+export default function SessionResult() {
   const { id } = useParams() as { id: string };
   const decryptedId = decryptId(id);
 
-  const [hostData, addHostData, userData, addUserData] = useSessionStore((state) => [
+  const [sessionsWithChat, setSessionsWithChat] = useState<UserSession[]>([]);
+  const [numSessions, setNumSessions] = useState(0);
+  const [completedSessions, setCompletedSessions] = useState(0);
+
+  const [hostData, addHostData, userData = [], addUserData] = useSessionStore((state) => [
     state.hostData[decryptedId],
     state.addHostData,
     state.userData[id],
@@ -54,21 +60,28 @@ export default async function SessionResult() {
 
   const { user } = useUser();
 
-  const sessionsWithChatText = await Promise.all(
-    userData.map(async (user) => {
-      const messageCount = await countChatMessages(user.thread_id);
-      return { user, messageCount };
-    })
-  ).then((results) =>
-    results
-      .filter(({ messageCount }) => messageCount > 1)
-      .map(({ user }) => user)
-  );
+  useEffect(() => {
+    const processUserData = async () => {
+      if (!userData) return;
+      
+      const withChatText = await Promise.all(
+        userData.map(async (user) => {
+          const messageCount = await countChatMessages(user.thread_id);
+          return { user, messageCount };
+        })
+      );
 
-  const numSessions = sessionsWithChatText.length;
-  const completedSessions = sessionsWithChatText.filter(
-    (user) => !user.active
-  ).length;
+      const filtered = withChatText
+        .filter(({ messageCount }) => messageCount > 1)
+        .map(({ user }) => user);
+
+      setSessionsWithChat(filtered);
+      setNumSessions(filtered.length);
+      setCompletedSessions(filtered.filter(user => !user.active).length);
+    };
+
+    processUserData();
+  }, [userData]);
 
   const [hostType, setHostType] = useState(false);
 
@@ -81,7 +94,7 @@ export default async function SessionResult() {
   const createSummary = async () => {
     console.log(`Creating summary for ${decryptedId}...`);
     const chats = await Promise.all(
-      sessionsWithChatText.map(
+      sessionsWithChat.map(
         async (user) => await getAllChatMessagesInOrder(user.thread_id)
       )
     );
@@ -110,9 +123,14 @@ ${chats.join('##### Next Participant: #####\n')}
 
   const [hasNewMessages, setHasNewMessages] = useState(false);
   useEffect(() => {
-    const lastMessage = Math.max(
-      ...userData.map((u) => new Date(u.last_edit).getTime())
-    );
+    if (!hostData) return;
+    console.log('Checking for new messages...');
+    const lastMessage = userData.reduce((latest, user) => {
+      const messageTime = new Date(user.last_edit).getTime();
+      return messageTime > latest ? messageTime : latest;
+    }, 0);
+    console.log('Last message:', lastMessage);
+    console.log('Last summary update:', hostData);
     const lastSummaryUpdate = hostData.last_edit.getTime();
     const hasNewMessages = lastMessage > lastSummaryUpdate;
     setHasNewMessages(hasNewMessages);
@@ -166,7 +184,7 @@ ${chats.join('##### Next Participant: #####\n')}
       <SessionResults
         hostType={hostType}
         hostData={hostData}
-        userData={sessionsWithChatText}
+        userData={sessionsWithChat}
         id={decryptedId}
         handleCreateSummary={createSummary}
         hasNewMessages={hasNewMessages}

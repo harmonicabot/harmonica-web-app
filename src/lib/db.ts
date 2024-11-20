@@ -1,6 +1,6 @@
 'use server';
 import { getSession as authGetSession } from '@auth0/nextjs-auth0';
-import { Kysely, PostgresDialect } from 'kysely';
+import { createSelectQueryBuilder, Kysely, PostgresDialect } from 'kysely';
 import * as s from './schema_updated';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
@@ -32,12 +32,12 @@ const dialect = new PostgresDialect({
 });
 const db = new Kysely<Databases>({ dialect });
 
-async function getAllowedClientId() {
+async function getAuthForClient() {
   const session = await authGetSession();
   const userSub = session?.user?.sub || '';
   const adminIds = process.env.ADMIN_ID ? process.env.ADMIN_ID.split(',') : [];
   if (adminIds.includes(userSub)) {
-    return '*';
+    return undefined;
   }
   return userSub;
 }
@@ -45,12 +45,16 @@ async function getAllowedClientId() {
 export async function getHostSessions(
   columns: (keyof s.HostSessionsTable)[]
 ): Promise<s.HostSession[]> {
-  const client = await getAllowedClientId();
+  const client = await getAuthForClient();
 
-  return await db
+  let query = db
     .selectFrom(hostDbName)
-    .select(columns)
-    .where('client', '=', client)
+    .select(columns);
+  
+  if (client) {
+    query = query.where('client', '=', client);
+  }
+  return query
     .orderBy('start_time', 'desc')
     .execute();
 }

@@ -3,7 +3,7 @@ import { HRMarkdown } from './HRMarkdown';
 
 export function ChatMessage({ message }: { message: Partial<Message> }) {
   const isUser = message.role === 'user';
-
+  const userOrAssistantPrefix = isUser ? 'You : ' : 'AI : ';
   return (
     <div className={isUser ? 'flex justify-end' : 'flex'}>
       {!isUser && (
