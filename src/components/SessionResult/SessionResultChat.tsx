@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Chat from '@/components/chat';
-import { UserSession } from '@/lib/schema';
+import { UserSession } from '@/lib/schema_updated';
 
 export default function SessionResultChat({ userData }: { userData: UserSession[] }) {
   return (
@@ -22,8 +22,8 @@ export default function SessionResultChat({ userData }: { userData: UserSession[
             }}
             assistantId="asst_LQospxVfX4vMTONASzSkSUwb"
             entryMessage={{
-              type: 'ASSISTANT',
-              text: `Hi there! Consider me your expert analyst, I can help you to better understand your session.
+              role: 'assistant',
+              content: `Hi there! Consider me your expert analyst, I can help you to better understand your session.
 
 Here are a few examples of what you can ask me:
   - What was the most common response?

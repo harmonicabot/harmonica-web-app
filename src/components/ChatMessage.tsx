@@ -1,14 +1,8 @@
+import { Message } from '@/lib/schema_updated';
 import { HRMarkdown } from './HRMarkdown';
 
-interface ChatMessageProps {
-  message: {
-    type: 'USER' | 'AI';
-    text: string;
-  };
-}
-
-export function ChatMessage({ message }: ChatMessageProps) {
-  const isUser = message.type === 'USER';
+export function ChatMessage({ message }: { message: Partial<Message> }) {
+  const isUser = message.role === 'user';
 
   return (
     <div className={isUser ? 'flex justify-end' : 'flex'}>
@@ -27,7 +21,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         }
       >
         <HRMarkdown
-          text={message.text}
+          content={message.content ?? ''}
           className={isUser ? 'text-sm' : 'pt-2 ps-2 text-sm'}
         />
       </div>

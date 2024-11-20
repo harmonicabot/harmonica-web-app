@@ -9,22 +9,18 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import {
-  getHostAndAssociatedUserSessions,
+  getHostSessionById,
   updateHostSession,
   updateUserSession,
 } from '@/lib/db';
 import { sql } from 'kysely';
 import { useUser } from '@auth0/nextjs-auth0/client';
-
-type Message = {
-  type: string;
-  text: string;
-};
+import { OpenAIMessage } from '@/lib/types';
 
 const StandaloneChat = () => {
-  const [message, setMessage] = useState<Message>({
-    type: 'ASSISTANT',
-    text: `Nice to meet you! Could you please let me know your name?
+  const [message, setMessage] = useState<OpenAIMessage>({
+    role: 'assistant',
+    content: `Nice to meet you! Could you please let me know your name?
 `,
   });
 
@@ -34,9 +30,9 @@ const StandaloneChat = () => {
   const sessionId = searchParams.get('s');
   const assistantId = searchParams.get('a');
 
-  const [sessionData, setSessionData] = useSessionStore((state) => [
-    sessionId ? state.allSessionData[sessionId] : null,
-    state.addSession,
+  const [hostData, addHostData] = useSessionStore((state) => [
+    sessionId ? state.hostData[sessionId] : null,
+    state.addHostData,
   ]);
 
   const [userSessionId, setUserSessionId] = useState<string>();
@@ -82,10 +78,10 @@ const StandaloneChat = () => {
 
     window.addEventListener('message', handleMessage);
 
-    if (sessionId && !sessionData) {
+    if (sessionId && !hostData) {
       setIsLoading(true);
-      getHostAndAssociatedUserSessions(sessionId).then((data) => {
-        setSessionData(sessionId, data);
+      getHostSessionById(sessionId).then((data) => {
+        addHostData(sessionId, data);
         setIsLoading(false);
       });
     } else {
@@ -93,15 +89,15 @@ const StandaloneChat = () => {
     }
 
     return () => window.removeEventListener('message', handleMessage);
-  }, [sessionId, sessionData]);
+  }, [sessionId, hostData]);
 
   useEffect(() => {
-    if (isFirstMessage && message.type === 'ASSISTANT') {
+    if (isFirstMessage && message.role === 'assistant') {
       setIsFirstMessage(false);
     }
   }, [message, isFirstMessage]);
 
-  const sessionClosed = !sessionData?.host_data?.active;
+  const sessionClosed = !hostData?.active;
   return (
     <div
       className="flex flex-col md:flex-row bg-purple-50"
@@ -254,7 +250,7 @@ const StandaloneChat = () => {
                   Your Session
                 </p>
                 <h1 className="text-2xl font-semibold mb-0 md:mb-6">
-                  {sessionData?.host_data?.topic ?? 'Test'}
+                  {hostData?.topic ?? 'Test'}
                 </h1>
                 {isMounted && !isLoading && (
                   <Button onClick={finishSession}>Finish</Button>
@@ -262,13 +258,13 @@ const StandaloneChat = () => {
               </div>
               <div className="w-full md:w-3/4 h-full flex-grow flex flex-col p-6">
                 <div className="h-full max-w-2xl flex m-4">
-                  {(sessionData?.host_data?.template || assistantId) && (
+                  {(hostData?.template || assistantId) && (
                     <Chat
                       entryMessage={message}
                       assistantId={
-                        sessionData?.host_data?.template ?? assistantId!
+                        hostData?.template ?? assistantId!
                       }
-                      sessionId={sessionData?.host_data?.id}
+                      sessionId={hostData?.id}
                       userSessionId={userSessionId ?? undefined}
                       setUserSessionId={setUserSessionId}
                     />

@@ -1,11 +1,11 @@
 import Markdown from 'react-markdown';
 
 interface HRMarkdownProps {
-  text: string;
+  content: string;
   className?: string;
 }
 
-export function HRMarkdown({ text, className = '' }: HRMarkdownProps) {
+export function HRMarkdown({ content, className = '' }: HRMarkdownProps) {
   return (
     <Markdown
       className={className}
@@ -27,7 +27,7 @@ export function HRMarkdown({ text, className = '' }: HRMarkdownProps) {
         hr: ({ node, ...props }) => <hr className="my-6 border-t border-gray-300" {...props} />,
       }}
     >
-      {text}
+      {content}
     </Markdown>
   );
 }

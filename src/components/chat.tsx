@@ -11,6 +11,8 @@ import { ChatMessage } from './ChatMessage';
 import { Send } from './icons';
 import { insertUserSessions } from '@/lib/db';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { handleGenerateAnswer } from 'app/api/gptUtils';
+import { Message } from '@/lib/schema_updated';
 
 export default function Chat({
   assistantId,
@@ -27,14 +29,14 @@ export default function Chat({
   sessionId?: string;
   userSessionId?: string;
   setUserSessionId?: (id: string) => void;
-  entryMessage?: { type: string; text: string };
+  entryMessage?: OpenAIMessage;
   userNameInFirstMessage?: boolean;
   placeholderText?: string;
 }) {
   const { user } = useUser();
-  const defaultEntryMessage = {
-    type: 'ASSISTANT',
-    text: `Nice to meet you! Before we get started, here are a few things to keep in mind
+  const defaultEntryMessage: OpenAIMessage = {
+    role: 'assistant',
+    content: `Nice to meet you! Before we get started, here are a few things to keep in mind
 
 I’m going to ask you a few questions to help structure your contribution to this session.
 
@@ -58,7 +60,7 @@ Help & Support:
     messageText: '',
   });
   const [threadId, setThreadId] = useState('');
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<OpenAIMessage[]>([
     entryMessage ? entryMessage : defaultEntryMessage,
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -147,50 +149,50 @@ Help & Support:
     const messageText = formData.messageText;
 
     if (userNameInFirstMessage && messages.length === 1) {
-      setUserName(messageText);
+      const userName = messageText;
+      setUserName(userName);
       if (userSessionId) {
         db.updateUserSession(userSessionId, {
-          user_name: messageText,
+          user_name: userName,
         });
       }
     }
-    setMessages([...messages, { text: messageText, type: 'USER' }]);
+    setMessages([...messages, { content: messageText, role: 'user' }]);
     setFormData({ messageText: '' });
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
 
-    sendApiCall({
-      action: ApiAction.GenerateAnswer,
-      target: ApiTarget.Chat,
-      data: {
-        threadId: threadId,
-        messageText:
-          userNameInFirstMessage && messages.length === 1
-            ? `User name is ${messageText}. Use it in communication. Don't ask it again. Start the session.`
-            : messageText,
+    const messageData = {
+      threadId: threadId,
+      messageText: userNameInFirstMessage && messages.length === 1
+      ? `User name is ${messageText}. Use it in communication. Don't ask it again. Start the session.`
+        : messageText,
         assistantId: assistantId
-          ? assistantId
-          : 'asst_fHg4kGRWn357GnejZJQnVbJW', // Fall back to 'Daily Review' by default
-      },
-    })
-      .then((response) => {
+    };
+    
+      handleGenerateAnswer(messageData)
+        .then((answers) => {
+        // These are generally all the messages in the thread...
         setIsLoading(false);
-        let actualMessages = [...response.messages];
-
-        if (context) actualMessages.shift();
+        
+        if (context) answers.shift();
+        const now = new Date();
         if (userNameInFirstMessage) {
-          actualMessages.shift();
-          actualMessages = [
+          answers.shift();
+          answers = [
             {
-              text: userName.length ? userName : messageText,
-              type: 'USER',
+              content: userName.length ? userName : messageText,
+              role: 'user',
+              thread_id: threadId,
+              // createdAt is important for sort order, so make sure this has a timestamp slighly before the other entries
+              created_at: answers[0]?.created_at ? new Date(answers[0]?.created_at.getTime() - 1000) : now,
             },
-            ...actualMessages,
+            ...answers,
           ];
         }
-        if (userSessionId && response.messages) {
-          const updatedChatText = response.messages
+        if (userSessionId && answers) {
+          const updatedChatText: string = answers
             .map(
               (m: any) =>
                 `${
@@ -200,20 +202,24 @@ Help & Support:
                 } : ${m.text}`
             )
             .join('\n');
+          
+          db.insertChatMessage({
+            thread_id: messageData.threadId,
+            content: updatedChatText,
+            role: 'user',
+            created_at: now,
+          });
           db.updateUserSession(userSessionId, {
-            chat_text: updatedChatText,
             active: true,
-            last_edit: new Date(),
+            last_edit: now,
           });
         }
 
         setMessages(
-          response.messages
-            ? [
+          answers ? [
                 entryMessage ? entryMessage : defaultEntryMessage,
-                ...actualMessages,
-              ]
-            : []
+                ...answers,
+          ] : []
         );
       })
       .catch((error) => {
@@ -227,7 +233,7 @@ Help & Support:
         {messages.map((message, index) => (
           <ChatMessage
             key={index}
-            message={message as { type: 'USER' | 'AI'; text: string }}
+            message={message}
           />
         ))}
         {isLoading && (

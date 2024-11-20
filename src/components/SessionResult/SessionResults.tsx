@@ -1,5 +1,5 @@
-import { HostAndUserData, ApiTarget } from '@/lib/types';
-import { UserSession } from '@/lib/schema';
+import { ApiTarget } from '@/lib/types';
+import { HostSession, UserSession } from '@/lib/schema_updated';
 
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
@@ -12,18 +12,19 @@ import SessionResultChat from './SessionResultChat';
 import SessionResultParticipants from './SessionResultParticipants';
 import SessionResultSummary from './SessionResultSummary';
 import ShareSession from './ShareSession';
+import { getAllChatMessagesInOrder } from '@/lib/db';
 
-export default function SessionResults({
+export default async function SessionResults({
   hostType,
+  hostData,
   userData,
-  allData,
   id,
   handleCreateSummary,
   hasNewMessages,
 }: {
   hostType: boolean;
+  hostData: HostSession;
   userData: UserSession[];
-  allData: HostAndUserData;
   id: string;
   handleCreateSummary: () => void;
   hasNewMessages: boolean;
@@ -33,6 +34,12 @@ export default function SessionResults({
     e.preventDefault();
     setIsExportPopupVisible(true);
     setExportInProgress(true);
+
+    const messages = await Promise.all(
+      userData.map(
+        async (data) => await getAllChatMessagesInOrder(data.thread_id)
+      )
+    );
 
     const response = await fetch('/api/' + ApiTarget.Export, {
       method: 'POST',
@@ -54,7 +61,7 @@ export default function SessionResults({
     exportAndDownload(
       blob,
       link,
-      `Harmonica_${allData.host_data.topic ?? id}.json`,
+      `Harmonica_${hostData.topic ?? id}.json`,
       id
     );
 
@@ -63,7 +70,7 @@ export default function SessionResults({
   };
 
   const exportAllData = async () => {
-    const exportData = allData.user_data.map((user) => {
+    const exportData = userData.map((user) => {
       const user_id = user.user_id;
       const user_name = user.user_name;
       const raw_chat_text = user.chat_text;
@@ -81,9 +88,11 @@ export default function SessionResults({
       };
     });
     exportAndDownload(
-      new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' }),
+      new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json',
+      }),
       document.createElement('a'),
-      `Harmonica_${allData.host_data.topic ?? id}_allData.json`,
+      `Harmonica_${hostData.topic ?? id}_allData.json`,
       id
     );
     setExportInProgress(false);
@@ -108,7 +117,7 @@ export default function SessionResults({
       <Tabs
         className="mb-4"
         defaultValue={
-          allData.host_data.summary
+          hostData.summary
             ? 'SUMMARY'
             : hostType
             ? 'RESPONSES'
@@ -116,7 +125,7 @@ export default function SessionResults({
         }
       >
         <TabsList>
-          {allData.host_data.summary ? (
+          {hostData.summary ? (
             <TabsTrigger className="ms-0" value="SUMMARY">
               Summary
             </TabsTrigger>
@@ -140,9 +149,9 @@ export default function SessionResults({
         <div className="flex flex-col md:flex-row gap-4">
           <div className="w-full md:w-2/3">
             <TabsContent value="SUMMARY" className="mt-4">
-              {allData.host_data.summary ? (
+              {hostData.summary ? (
                 <SessionResultSummary
-                  summary={allData.host_data.summary}
+                  summary={hostData.summary}
                   hasNewMessages={hasNewMessages}
                   onUpdateSummary={handleCreateSummary}
                 />

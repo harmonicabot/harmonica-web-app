@@ -44,9 +44,9 @@ async function extractAndFormatForExport(messages: string[], exportDataQuery: st
 
 
   console.log(`Got threadID: ${threadId}; asking AI to format data...`);
-  const answerResponse = await handleGenerateAnswer({
+  const answers = await handleGenerateAnswer({
     threadId: threadId,
-    assistantId: 'asst_DAO97DuTb6856Z5eFqa8EwaP', // Export Agent
+    assistantId: 'asst_DAO97DuTb6856Z5eFqa8EwaP', // TODO: This is a random assistant; we don't actually need one, or we should create one!
     messageText:
 `Get information from the chat and export it as JSON to satisfy the following:
 
@@ -54,8 +54,7 @@ async function extractAndFormatForExport(messages: string[], exportDataQuery: st
 
 ONLY return the plain JSON in your answer, without any additional text! Don't even include a \`\`\`json [...] \`\`\`\n`,
   });
-  const answers = (await answerResponse.json()).messages;
   console.log(`Got answers: ${JSON.stringify(answers)}`);
-  const lastReplyFromAI = answers[answers.length-1].text;
+  const lastReplyFromAI = answers[answers.length-1].content;
   return lastReplyFromAI;
 }

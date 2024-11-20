@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { sendApiCall } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NewHostSession } from '@/lib/schema';
+import { NewHostSession } from '@/lib/schema_updated';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
 
@@ -173,7 +173,7 @@ export default function CreationFlow() {
       num_finished: 0,
       active: true,
       final_report_sent: false,
-      start_time: new Date().toISOString(),
+      start_time: new Date(),
     };
 
     db.insertHostSessions(data).then((sessionIds) => {

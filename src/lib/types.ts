@@ -2,14 +2,7 @@
 //  There's just too much going on right now and the separation between
 //  UserData, SessionData & AccumulatedData isn't clear enough.
 
-import { HostSession, UserSession } from "./schema";
-
-export type HostAndUserData = {
-  host_data: HostSession;
-  user_data: UserSession[];
-};
-
-export type AllSessionsData = Record<string, HostAndUserData>;
+import { UserSession, Message } from "./schema_updated";
 
 export enum ApiAction {
   CreatePrompt = 'createPrompt',

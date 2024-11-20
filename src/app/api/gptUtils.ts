@@ -1,4 +1,5 @@
 'use server';
+import { Message, NewMessage } from "@/lib/schema_updated";
 import { AssistantMessageData, OpenAIMessage } from "@/lib/types";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
@@ -23,7 +24,7 @@ export async function handleCreateThread(messagesData?: Array<OpenAIMessage>) {
   return NextResponse.json({ thread: thread });
 }
 
-export async function handleGenerateAnswer(messageData: AssistantMessageData) {
+export async function handleGenerateAnswer(messageData: AssistantMessageData): Promise<NewMessage[]> {
   await sendMessage(messageData.threadId, 'user', messageData.messageText);
 
   let run = await client.beta.threads.runs.createAndPoll(messageData.threadId, {
@@ -34,18 +35,17 @@ export async function handleGenerateAnswer(messageData: AssistantMessageData) {
   if (run.status === 'completed') {
     const allMessages = await getAllMessages(messageData.threadId);
 
-    return NextResponse.json({
-      messages: allMessages.map((messageData) => ({
-        type: messageData.assistant_id ? 'ASSISTANT' : 'USER',
-        text:
-          messageData.content[0].type === 'text'
-            ? messageData.content[0].text?.value
-            : '',
-        dateTime: messageData.created_at,
-      })),
-    });
+    return allMessages.map((messageData) => ({
+      role: messageData.assistant_id ? 'assistant' : 'user',
+      content:
+        messageData.content[0].type === 'text'
+          ? messageData.content[0].text?.value
+          : '',
+      thread_id: messageData.thread_id,
+      created_at: new Date(messageData.created_at),
+    }));
   }
-  return NextResponse.json({ messages: [] });
+  return [];
 }
 
 export async function sendMessage(threadId: string, role: 'user' | 'assistant', content: string) {
@@ -59,7 +59,7 @@ export async function sendMessage(threadId: string, role: 'user' | 'assistant', 
 }
 
 async function getAllMessages(threadId: string) {
-  let allMessages: any[] = [];
+  let allMessages = [];
   let cursor: string | undefined = undefined;
   
   while (true) {
@@ -94,4 +94,11 @@ export async function getGPTCompletion(instructions: string): Promise<string> {
     console.error('Error getting answer:', error);
     throw error;
   }
+}
+
+export async function deleteAssistants(idsToDelete: string[]) {
+  idsToDelete.forEach((id) => {
+    console.log(`Deleting assistant with id ${id}`);
+    client.beta.assistants.del(id);
+  });
 }

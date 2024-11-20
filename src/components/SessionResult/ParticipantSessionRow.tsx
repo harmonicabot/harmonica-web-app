@@ -1,24 +1,29 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { UserSession } from '@/lib/schema';
+import { Message, UserSession } from '@/lib/schema_updated';
 import { useEffect, useState } from 'react';
-import { HRMarkdown } from '../HRMarkdown';
 import { ChatMessage } from '../ChatMessage';
+import { getAllChatMessagesInOrder } from '@/lib/db';
 
 interface SessionData {
   userName: string;
   sessionStatus: string;
-  session: UserSession;
+  userData: UserSession;
 }
+
 export default function ParicipantSessionRow({
   userName,
   sessionStatus,
-  session,
+  userData,
 }: SessionData) {
   const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
 
-  const handleViewClick = () => {
+  const handleViewClick = async () => {
+    const messageHistory = await getAllChatMessagesInOrder(userData.thread_id)
+    setMessages(messageHistory);
+
     setIsPopupVisible(true);
   };
 
@@ -30,10 +35,8 @@ export default function ParicipantSessionRow({
   // const userName = session.chat_text
   //   ? extractName(session.chat_text)
   //   : `User ${session.user_id}`;
-  const transcript = session.chat_text
-    ? removeFirstQuestion(session.chat_text)
-    : '';
-  const messages = session.chat_text ? parseMessages(transcript) : [];
+
+  // All users passed into this method should also have some messages.
 
   function removeFirstQuestion(input: string): string {
     const answerIndex = input.indexOf('Answer');
@@ -42,7 +45,7 @@ export default function ParicipantSessionRow({
 
   function parseMessages(
     input: string,
-  ): Array<{ type: 'AI' | 'USER'; text: string }> {
+  ) {
     try {
       const regex =
         /(Answer|Question)\s*:\s*([\s\S]*?)(?=(Answer|Question)\s*:|$)/g;
@@ -84,20 +87,17 @@ export default function ParicipantSessionRow({
               </div>
 
               <div className="flex-1 overflow-auto rounded-lg">
-                {messages.length ? (
-                  messages.map((message, index) => (
+                { messages.map((message, index) => (
                     <ChatMessage key={index} message={message} />
                   ))
-                ) : (
-                  <HRMarkdown text={transcript} />
-                )}
+                }
               </div>
             </div>
           </div>
         )}
         <Badge
           variant="outline"
-          className={session.active ? 'capitalize' : 'capitalize bg-[#ECFCCB]'}
+          className={userData.active ? 'capitalize' : 'capitalize bg-[#ECFCCB]'}
         >
           {sessionStatus}
         </Badge>
@@ -112,11 +112,9 @@ export default function ParicipantSessionRow({
         2023-07-12 12:42 AM
       </TableCell> */}
       <TableCell className="hidden md:table-cell">
-        {session.chat_text && session.chat_text.length && (
-          <Button variant="secondary" onClick={handleViewClick}>
-            View
-          </Button>
-        )}
+        <Button variant="secondary" onClick={handleViewClick}>
+          View
+        </Button>
       </TableCell>
       {/* <TableCell>
         <DropdownMenu>
