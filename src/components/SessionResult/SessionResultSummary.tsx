@@ -40,7 +40,7 @@ export default function SessionResultSummary({
           </Tooltip>
         </TooltipProvider>
       )}
-      <CardContent>{summary && <HRMarkdown text={summary} />}</CardContent>
+      <CardContent>{summary && <HRMarkdown content={summary} />}</CardContent>
     </Card>
   );
 }

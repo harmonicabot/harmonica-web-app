@@ -99,7 +99,6 @@ async function migrateFromMake() {
                 ? Math.ceil(data.active) > 0
                 : !!data.active,
             step: typeof data.active === 'number' ? data.active : 1,
-            template: data.template ?? 'unknown',
             start_time: new Date(),
             last_edit: new Date(),
             session_id: hostRecord.key,
@@ -107,9 +106,7 @@ async function migrateFromMake() {
             feedback: data.feedback,
             chat_text: data.chat_text,
             thread_id: data.thread_id,
-            result_text: data.result_text,
-            bot_id: data.bot_id,
-            host_chat_id: data.bot_id,
+            summary: data.result_text,
           };
         });
 

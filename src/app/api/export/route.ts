@@ -1,6 +1,6 @@
 import { RequestData } from "@/lib/types";
 import { NextResponse } from "next/server";
-import { handleCreateThread, handleGenerateAnswer } from "../gptUtils";
+import { handleCreateThread, handleGenerateAnswer, sendMessage } from "../gptUtils";
 
 // Expected: { sessionId: string, exportDataQuery: string }
 export const maxDuration = 200;
@@ -31,20 +31,22 @@ export async function POST(request: ExportRequest) {
 
 async function extractAndFormatForExport(messages: string[], exportDataQuery: string) {
   console.log(`Creating thread...`);
-  const threadResponse = await handleCreateThread([{
+  const thread = await handleCreateThread([{
     role: 'assistant',
-    content: `Any exported data should be derived from information from the following chat history: 
-##### START of CHAT HISTORY #####
-${messages.join(' --- next USER ---')}
-##### END of CHAT HISTORY #####`,
-  }]);
-    
-  const threadId = (await threadResponse.json()).thread.id;
+    content: `Any exported data should be derived from information from the following chat history (you will receive each users history as separate instruction). 
+##### START of CHAT HISTORY #####`,
+  }]);    
+  const threadId = thread.id;
   
+  for (const message of messages) {
+    await sendMessage(threadId, 'assistant', '\n---- NEXT USER: ----\n'+ message);
+  }
+
+
   console.log(`Got threadID: ${threadId}; asking AI to format data...`);
-  const answerResponse = await handleGenerateAnswer({
+  const answer = await handleGenerateAnswer({
     threadId: threadId,
-    assistantId: 'asst_DAO97DuTb6856Z5eFqa8EwaP', // Export Agent
+    assistantId: 'asst_DAO97DuTb6856Z5eFqa8EwaP', // TODO: This is a random assistant; we don't actually need one, or we should create one!
     messageText:
 `Get information from the chat and export it as JSON to satisfy the following:
 
@@ -52,8 +54,5 @@ ${messages.join(' --- next USER ---')}
 
 ONLY return the plain JSON in your answer, without any additional text! Don't even include a \`\`\`json [...] \`\`\`\n`,
   });
-  const answers = (await answerResponse.json()).messages;
-  console.log(`Got answers: ${JSON.stringify(answers)}`);
-  const lastReplyFromAI = answers[answers.length-1].text;
-  return lastReplyFromAI;
+  return answer.content;
 }

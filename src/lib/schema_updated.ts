@@ -14,16 +14,16 @@ import pg from 'pg';
 export interface HostSessionsTable {
   id: Generated<string>;
   active: boolean;
-  num_sessions: number;
+  num_sessions: ColumnType<number, number, number | RawBuilder<unknown>>;
   num_finished: ColumnType<number, number, number | RawBuilder<unknown>>;
-  prompt?: string;
-  template?: string;
+  prompt: string;
+  template: string;
   topic: string;
   final_report_sent: boolean;
   context?: string;
   client?: string;
   summary?: string;
-  start_time: ColumnType<Date | string, Date | string | undefined, never>;
+  start_time: ColumnType<Date, Date | undefined, never>;
   last_edit: Generated<Date>;
 }
 
@@ -31,21 +31,29 @@ export interface UserSessionsTable {
   id: Generated<string>;
   session_id: string;
   user_id: string;
+  thread_id: string;
+  active: boolean;
   user_name?: string;
   feedback?: string;
-  chat_text?: string;
-  thread_id?: string;
   summary?: string; // Todo: Do we ever set this? (I think this is always only part of the chat text, isn't it?)
-  active: boolean;
-  step?: number;
-  start_time: ColumnType<Date, Date | string | undefined, never>;
+  step?: ColumnType<number, number, number | RawBuilder<unknown>>;
+  start_time: ColumnType<Date, Date | undefined, never>;
   last_edit: Generated<Date>;
+}
+
+export interface MessagesTable {
+  id: Generated<string>;
+  thread_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: Generated<Date>;
 }
 
 // Database names:
 export interface Databases {
   host_data: HostSessionsTable;
   user_data: UserSessionsTable;
+  messages: MessagesTable;
 }
 
 export type HostSession = Selectable<HostSessionsTable>;
@@ -54,6 +62,8 @@ export type HostSessionUpdate = Updateable<HostSessionsTable>;
 export type UserSession = Selectable<UserSessionsTable>;
 export type NewUserSession = Insertable<UserSessionsTable>;
 export type UserSessionUpdate = Updateable<UserSessionsTable>;
+export type Message = Selectable<MessagesTable>;
+export type NewMessage = Insertable<MessagesTable>;
 
 // Triggers & Setup helpers:
 
@@ -104,8 +114,13 @@ export async function createHostTable(
   tableName: string = 'temp_host_db'
 ) {
   await db.schema
-    .createTable(tableName).ifNotExists()
-    .addColumn('id', 'text', (col) => col.primaryKey().defaultTo(sql`substr(md5(random()::text), 1, 12)`))
+    .createTable(tableName)
+    .ifNotExists()
+    .addColumn('id', 'text', (col) =>
+      col
+        .primaryKey()
+        .defaultTo(sql`'hst_' || substr(md5(random()::text), 1, 12)`)
+    )
     .addColumn('active', 'boolean', (col) => col.notNull())
     .addColumn('num_sessions', 'integer', (col) => col.notNull())
     .addColumn('num_finished', 'integer', (col) => col.notNull())
@@ -117,7 +132,9 @@ export async function createHostTable(
     .addColumn('summary', 'text')
     .addColumn('final_report_sent', 'boolean', (col) => col.defaultTo(false))
     .addColumn('start_time', 'timestamp')
-    .addColumn('last_edit', 'timestamp', (col) => col.defaultTo(sql`CURRENT_TIMESTAMP`))
+    .addColumn('last_edit', 'timestamp', (col) =>
+      col.defaultTo(sql`CURRENT_TIMESTAMP`)
+    )
     .execute();
 }
 
@@ -126,50 +143,83 @@ export async function createUserTable(
   tableName: string = 'temp_user_db'
 ) {
   await db.schema
-    .createTable(tableName).ifNotExists()
-    .addColumn('id', 'text', (col) => col.primaryKey().defaultTo(sql`substr(md5(random()::text), 1, 12)`))
+    .createTable(tableName)
+    .addColumn('id', 'text', (col) =>
+      col.primaryKey().defaultTo(sql`substr(md5(random()::text), 1, 12)`)
+    )
     .addColumn('session_id', 'text', (col) => col.notNull())
     .addColumn('user_id', 'text', (col) => col.notNull())
     .addColumn('active', 'boolean', (col) => col.notNull())
+    .addColumn('thread_id', 'text', (col) => col.notNull().unique())
     .addColumn('user_name', 'text')
-    .addColumn('chat_text', 'text')
     .addColumn('feedback', 'text')
-    .addColumn('thread_id', 'text')
     .addColumn('summary', 'text')
     .addColumn('start_time', 'timestamp')
     .addColumn('step', 'numeric', (col) => col.defaultTo(0))
-    .addColumn('last_edit', 'timestamp', (col) => col.defaultTo(sql`CURRENT_TIMESTAMP`))
+    .addColumn('last_edit', 'timestamp', (col) =>
+      col.defaultTo(sql`CURRENT_TIMESTAMP`)
+    )
+    .execute();
+}
+
+export async function createMessagesTable(
+  db: Kysely<any>,
+  tableName: string = 'temp_message_db',
+  userDbTableName: string = 'temp_user_db'
+) {
+  await db.schema
+    .createTable(tableName)
+    .addColumn('id', 'text', (col) =>
+      col
+        .primaryKey()
+        .defaultTo(sql`'msg_' || substr(md5(random()::text), 1, 12)`)
+    )
+    .addColumn('thread_id', 'text', (col) =>
+      col.notNull().references(`${userDbTableName}.thread_id`)
+    )
+    .addColumn('role', 'text', (col) =>
+      col.notNull().check(sql`role IN ('user', 'assistant')`)
+    )
+    .addColumn('content', 'text', (col) => col.notNull())
+    .addColumn('created_at', 'timestamp', (col) =>
+      col.defaultTo(sql`CURRENT_TIMESTAMP`)
+    )
     .execute();
 }
 
 export function createProdDbInstance() {
-  const host = 'host_db';
-  const user = 'user_db';
+  const userDbName = 'user_db';
+  const hostDbName = 'host_db';
+  const messageDbName = 'message_db';
   interface Databases {
-    [host]: HostSessionsTable;
-    [user]: UserSessionsTable;
+    [hostDbName]: HostSessionsTable;
+    [userDbName]: UserSessionsTable;
+    [messageDbName]: MessagesTable;
   }
   const db = createKysely<Databases>();
-  return { db, dbNames: { host, user } };
+  return db;
 }
 
 export function createCustomDbInstance(
   host = 'temp_host_db',
   user = 'temp_user_db',
+  message = 'temp_message_db',
   connectionUrl = `postgresql://${process.env.LOCAL_DB_USER_PWD}@localhost:5432/local_verceldDb`
 ) {
   type Databases = {
-    [K in typeof host]: UserSessionsTable
+    [K in typeof host]: UserSessionsTable;
   } & {
-    [K in typeof user]: HostSessionsTable
+    [K in typeof user]: HostSessionsTable;
+  } & {
+    [K in typeof message]: MessagesTable;
   };
 
   const dialect = new PostgresDialect({
     pool: new pg.Pool({
       connectionString: connectionUrl,
-      max:10,
-  })})
+      max: 10,
+    }),
+  });
   const db = new Kysely<Databases>({ dialect });
-  
-  return { db, dbNames: { host, user } };
+  return { db, dbNames: { host, user, message } };
 }

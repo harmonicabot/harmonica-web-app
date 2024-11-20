@@ -1,26 +1,32 @@
 import { create } from 'zustand'
-import { HostAndUserData, AllSessionsData } from '@/lib/types'
-import { UserSession } from '@/lib/schema';
+import { HostSession, Message, UserSession } from '@/lib/schema_updated';
 
 interface SessionStore {
-  sessions: Record<string, UserSession[]>
-  addUserSessionData: (id: string, data: UserSession[]) => void
-  allSessionData: AllSessionsData
-  addSession: (id: string, data: HostAndUserData) => void
+  hostData: Record<string, HostSession>
+  addHostData: (id: string, data: HostSession) => void
+  userData: Record<string, UserSession[]>
+  addUserData: (id: string, data: UserSession[]) => void
+  messageData: Record<string, Message[]>
+  addMessageData: (id: string, data: Message[]) => void
   removeSession: (id: string) => void
 }
 
 export const useSessionStore = create<SessionStore>((set) => ({
-  sessions: {},
-  addUserSessionData: (id, data) => set((state) => ({
-    sessions: { ...state.sessions, [id]: data }
+  hostData: {},
+  addHostData: (sessionId, data) => set((state) => ({
+    hostData: { ...state.hostData, [sessionId]: data }
   })),
-  allSessionData: {},
-  addSession: (id, data) => set((state) => ({
-    allSessionData: { ...state.allSessionData, [id]: data }
+  userData: {},
+  addUserData: (sessionId, data) => set((state) => ({
+    userData: { ...state.userData, [sessionId]: data }
   })),
-  removeSession: (id) => set((state) => {
-    const { [id]: removed, ...rest } = state.allSessionData;
-    return { allSessionData: rest };
+  messageData: {},
+  addMessageData: (threadId, data) => set((state) => ({
+    messageData: { ...state.messageData, [threadId]: data }
+  })),
+  removeSession: (sessionId) => set((state) => {
+    const { [sessionId]: removedHostData, ...remainingHostData } = state.hostData;
+    const { [sessionId]: removedUserData, ...remainingUserData } = state.userData;
+    return { hostData: remainingHostData, userData: remainingUserData };
   })
 }))

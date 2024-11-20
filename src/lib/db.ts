@@ -1,14 +1,11 @@
 'use server';
-import { createKysely } from '@vercel/postgres-kysely';
 import { getSession as authGetSession } from '@auth0/nextjs-auth0';
-import { RawBuilder } from 'kysely';
-import * as s from './schema';
-import {
-  AllSessionsData,
-  HostAndUserData,
-} from './types';
+import { createSelectQueryBuilder, Kysely, PostgresDialect } from 'kysely';
+import * as s from './schema_updated';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
+import pg from 'pg';
+import { deleteAssistants } from 'app/api/gptUtils';
 // Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {
   neonConfig.webSocketConstructor = ws;
@@ -16,101 +13,72 @@ if (typeof window === 'undefined') {
   console.log('Nope, not running on the server.');
 }
 
-const userDbName = 'user_db';
-const hostDbName = 'host_db';
+const hostDbName = 'host_temp_trial';
+const userDbName = 'user_temp_trial';
+const messageDbName = 'messages_temp_trial';
 interface Databases {
   [hostDbName]: s.HostSessionsTable;
   [userDbName]: s.UserSessionsTable;
+  [messageDbName]: s.MessagesTable;
 }
-const db = createKysely<Databases>();
+// const db = createKysely<Databases>();
+const connectionUrl = `postgresql://${process.env.LOCAL_DB_USER_PWD}@localhost:5432/local_verceldDb`;
 
-export async function getHostAndUserSessions(
-  n: number = 100,
-): Promise<Record<string, HostAndUserData>> {
+const dialect = new PostgresDialect({
+  pool: new pg.Pool({
+    connectionString: connectionUrl,
+    max: 10,
+  }),
+});
+const db = new Kysely<Databases>({ dialect });
+
+async function getAuthForClient() {
   const session = await authGetSession();
-  const userSub = session?.user?.sub || "";
-
+  const userSub = session?.user?.sub || '';
   const adminIds = process.env.ADMIN_ID ? process.env.ADMIN_ID.split(',') : [];
-
-  let hostQuery;
-
   if (adminIds.includes(userSub)) {
-      hostQuery = db
-        .selectFrom(hostDbName)
-        .select(['active', 'final_report_sent', 'id', 'last_edit', 'num_finished', 'num_sessions', 'start_time','topic'])
-        .orderBy('start_time', 'desc')
-        .limit(n);
-  } else if (userSub) {
-    hostQuery = db
-      .selectFrom(hostDbName)
-      .where('client', '=', userSub)
-      .select(['active', 'final_report_sent', 'id', 'last_edit', 'num_finished', 'num_sessions', 'start_time','topic'])
-      .orderBy('start_time', 'desc')
-      .limit(n);
-  } else {
-    return {}; // Return empty object if clientEmail is not set
+    return undefined;
   }
-
-  const hostSessions = await hostQuery.execute();
-  // Return early if no host sessions found
-  if (!hostSessions.length) {
-    return {};
-  }
-
-  // console.log(`User query: `, userQuery.compile().sql);
-  // const userSessions = await userQuery.execute();
-
-  const allData: AllSessionsData = {};
-  hostSessions.forEach((host) => {
-    if (host.id !== null) {
-      allData[host.id] = {
-        host_data: {
-          ...host,
-          prompt: undefined,
-          template: undefined,
-          context: undefined,
-          client: undefined,
-          summary: undefined,
-        },
-        user_data: []
-      };
-    }
-  });
-
-  return allData;
+  return userSub;
 }
 
-export async function getHostSessionById(id: string): Promise<s.HostSession[]> {
+export async function getHostSessions(
+  columns: (keyof s.HostSessionsTable)[]
+): Promise<s.HostSession[]> {
+  const client = await getAuthForClient();
+
+  let query = db
+    .selectFrom(hostDbName)
+    .select(columns);
+  
+  if (client) {
+    query = query.where('client', '=', client);
+  }
+  return query
+    .orderBy('start_time', 'desc')
+    .execute();
+}
+
+export async function getHostSessionById(id: string): Promise<s.HostSession> {
   try {
     return await db
       .selectFrom(hostDbName)
       .where(`${hostDbName}.id`, '=', id)
       .selectAll()
-      .execute();
+      .executeTakeFirstOrThrow();
   } catch (error) {
     console.error('Error getting host session by ID:', error);
     throw error;
   }
 }
 
-export async function getHostAndAssociatedUserSessions(
-  session_id: string
-): Promise<HostAndUserData> {
-  try {
-    const hostSession: s.HostSession = (
-      await getHostSessionById(session_id)
-    )[0];
-
-    const userSessions = await searchUserSessions('session_id', session_id);
-    
-    return {
-      host_data: hostSession,
-      user_data: userSessions,
-    };
-  } catch (error) {
-    console.error('Error getting host session by ID:', error);
-    throw error;
-  }
+export async function getFromHostSession(id: string, column: keyof s.HostSessionsTable) {
+  const result = await db
+    .selectFrom(hostDbName)
+    .select(column)
+    .where('id', '=', id)
+    .executeTakeFirst();
+  return result?.[column];
 }
 
 export async function insertHostSessions(
@@ -118,11 +86,11 @@ export async function insertHostSessions(
 ): Promise<string[]> {
   try {
     const session = await authGetSession();
-    const userSub = session?.user?.sub || "";
+    const userSub = session?.user?.sub || '';
     console.log('Inserting host session with data:', data);
     const result = await db
       .insertInto(hostDbName)
-      .values({...data, client: userSub})
+      .values({ ...data, client: userSub })
       .returningAll()
       .execute();
     return result.map((row) => row.id);
@@ -138,10 +106,10 @@ export async function upsertHostSession(
 ): Promise<void> {
   try {
     const session = await authGetSession();
-    const userSub = session?.user?.sub || "";
+    const userSub = session?.user?.sub || '';
     await db
       .insertInto(hostDbName)
-      .values({...data, client: userSub})
+      .values({ ...data, client: userSub })
       .onConflict((oc) =>
         onConflict === 'skip'
           ? oc.column('id').doNothing()
@@ -171,6 +139,16 @@ export async function updateHostSession(
   }
 }
 
+export async function increaseSessionsCount(id: string, toIncrease: 'num_sessions' | 'num_finished') {
+  // This is a bit clumsy, but I couldn't find a way with kysely to do it in one go. Submitting sql`...` breaks it :-(
+  const previousNum = (await db
+    .selectFrom(hostDbName)
+    .where('id', '=', id)
+    .select(toIncrease)
+    .executeTakeFirstOrThrow())[toIncrease];
+  updateHostSession(id, {[toIncrease]: previousNum+1})
+}
+
 export async function deleteHostSession(id: string): Promise<void> {
   try {
     await db.deleteFrom(hostDbName).where('id', '=', id).execute();
@@ -180,20 +158,38 @@ export async function deleteHostSession(id: string): Promise<void> {
   }
 }
 
-export async function getUserSessionById(
-  id: string
-): Promise<s.UserSession | undefined> {
+export async function getUsersBySessionId(
+  sessionId: string
+): Promise<s.UserSession[]> {
   try {
     return await db
       .selectFrom(userDbName)
-      .where('id', '=', id)
+      .where('session_id', '=', sessionId)
       .selectAll()
-      .executeTakeFirst();
+      .execute();
   } catch (error) {
     console.error('Error getting user session by ID:', error);
     throw error;
   }
 }
+
+export async function insertUserSession(
+  data: s.NewUserSession
+): Promise<string> {
+  try {
+    console.log('Inserting user session with data:', data);
+    const result = await db
+      .insertInto(userDbName)
+      .values(data)
+      .returning('id')
+      .executeTakeFirstOrThrow();
+    return result.id;
+  } catch (error) {
+    console.error('Error inserting user session:', error);
+    throw error;
+  }
+}
+
 
 export async function insertUserSessions(
   data: s.NewUserSession | s.NewUserSession[]
@@ -270,16 +266,56 @@ export async function searchUserSessions(
   }
 }
 
-export async function deleteSessionById(id: string): Promise<void> {
+export async function insertChatMessage(message: s.NewMessage) {
+  console.log("Inserting chat message: ", JSON.stringify(message));
   try {
+    await db.insertInto(messageDbName).values(message).execute();
+  } catch (error) {
+    console.error('Error inserting chat message: ', error)
+  }
+}
+
+export async function countChatMessages(threadId: string) {
+  const result = await db.selectFrom(messageDbName)
+    .where('thread_id', '=', threadId)
+    .select(({ fn }) => [fn.count('id').as('count')])
+    .executeTakeFirst();
+  
+  return Number(result?.count ?? 0);
+}
+
+export async function getAllChatMessagesInOrder(threadId: string) {
+  return await db.selectFrom(messageDbName)
+    .where('thread_id', '=', threadId)
+    .selectAll()
+    .orderBy('created_at', 'asc')
+    .execute();
+}
+
+export async function deleteSessionById(id: string): Promise<boolean> {
+  try {
+    // before deleting, we need to get the assistant id so that we can delete that as well.
+    const assistantId = await db
+      .selectFrom(hostDbName)
+      .select('template')
+      .where('id', '=', id)
+      .executeTakeFirst();
+    if (assistantId?.template) {
+      deleteAssistants([assistantId.template]);
+    }
     await db.deleteFrom(hostDbName).where('id', '=', id).execute();
+    // TODO: not deleting user sessions for now, we might want to analyse things?
+    // await db.deleteFrom(userDbName).where('session_id', '=', id).execute();
   } catch (error) {
     console.error('Error deleting session by ID:', error);
     throw error;
   }
+  return true;
 }
 
-export async function deactivateHostSession(sessionId: string): Promise<boolean> {
+export async function deactivateHostSession(
+  sessionId: string
+): Promise<boolean> {
   try {
     const result = await db
       .updateTable(hostDbName)
@@ -290,6 +326,6 @@ export async function deactivateHostSession(sessionId: string): Promise<boolean>
     return result.length > 0;
   } catch (error) {
     console.error('Error deactivating host session:', error);
-    return false; 
+    return false;
   }
 }

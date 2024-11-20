@@ -11,18 +11,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import Chat from '@/components/chat';
 import LoadingMessage from 'app/create/loading';
 import { sendApiCall } from '@/lib/utils';
-import { ApiAction, ApiTarget } from '@/lib/types';
+import { ApiAction, ApiTarget, OpenAIMessage } from '@/lib/types';
 import { VersionedPrompt } from 'app/create/page';
-
-interface EntryMessage {
-  type: 'USER' | 'ASSISTANT';
-  text: string;
-}
 
 interface TestInputProps {
   onTest: () => Promise<{
     assistantId: string;
-    entryMessage: EntryMessage;
+    entryMessage: OpenAIMessage;
   }>;
 }
 
@@ -35,7 +30,7 @@ const ChatPopupButton = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [assistantId, setAssistantId] = useState('');
-  const [entryMessage, setEntryMessage] = useState<EntryMessage | null>(null);
+  const [entryMessage, setEntryMessage] = useState<OpenAIMessage | null>(null);
 
   const handleTestVersion = async () => {
     const assistantResponse = await sendApiCall({
@@ -49,8 +44,8 @@ const ChatPopupButton = ({
 
     setAssistantId(assistantResponse.assistantId);
     setEntryMessage({
-      type: 'ASSISTANT',
-      text: `Hello! This is a test session for version ${prompt.id}.\n
+      role: 'assistant',
+      content: `Hello! This is a test session for version ${prompt.id}.\n
 I'll run through the session with you so you get an idea how this would work once finalised, 
 but bear in mind that I might phrase some things differently depending on our interaction.\n
 I won't store any of your replies in this test chat.\n

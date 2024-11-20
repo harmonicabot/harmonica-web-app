@@ -1,4 +1,5 @@
 'use server';
+import { Message, NewMessage } from "@/lib/schema_updated";
 import { AssistantMessageData, OpenAIMessage } from "@/lib/types";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
@@ -16,21 +17,16 @@ export async function handleCreateThread(messagesData?: Array<OpenAIMessage>) {
         content: messageData.content,
       })),
     });
+
   } else {
     thread = await client.beta.threads.create();
   }
 
-  return NextResponse.json({ thread: thread });
+  return thread;
 }
 
-export async function handleGenerateAnswer(messageData: AssistantMessageData) {
-  const message = await client.beta.threads.messages.create(
-    messageData.threadId,
-    {
-      role: 'user',
-      content: messageData.messageText,
-    },
-  );
+export async function handleGenerateAnswer(messageData: AssistantMessageData): Promise<NewMessage> {
+  await sendMessage(messageData.threadId, 'user', messageData.messageText);
 
   let run = await client.beta.threads.runs.createAndPoll(messageData.threadId, {
     assistant_id: messageData.assistantId,
@@ -38,24 +34,40 @@ export async function handleGenerateAnswer(messageData: AssistantMessageData) {
   });
 
   if (run.status === 'completed') {
-    const allMessages = await getAllMessages(messageData.threadId);
-
-    return NextResponse.json({
-      messages: allMessages.map((messageData) => ({
-        type: messageData.assistant_id ? 'ASSISTANT' : 'USER',
-        text:
-          messageData.content[0].type === 'text'
-            ? messageData.content[0].text?.value
+    const answer = await getLastReply(messageData.threadId);
+    console.log('Answer from AI: ', answer)
+    let timestamp = answer.created_at;
+    if (timestamp.toString().length === 10) {
+      // OpenAI timestamps are in seconds, not millis :-(
+      timestamp = timestamp * 1000;
+    }
+    return {
+      thread_id: messageData.threadId,
+      role: answer.assistant_id ? 'assistant' : 'user',
+      content:
+          answer.content[0].type === 'text'
+            ? answer.content[0].text?.value
             : '',
-        dateTime: messageData.created_at,
-      })),
-    });
+      created_at: new Date(timestamp), 
+    }
+  } else {
+    console.error(`OpenAI run.status for thread ${messageData.threadId}: `, run.status);
+    throw new Error(`OpenAI run.status for thread ${messageData.threadId}: ` + run.status);
   }
-  return NextResponse.json({ messages: [] });
+}
+
+export async function sendMessage(threadId: string, role: 'user' | 'assistant', content: string) {
+  return await client.beta.threads.messages.create(
+    threadId,
+    {
+      role,
+      content,
+    }
+  );
 }
 
 async function getAllMessages(threadId: string) {
-  let allMessages: any[] = [];
+  let allMessages = [];
   let cursor: string | undefined = undefined;
   
   while (true) {
@@ -90,4 +102,18 @@ export async function getGPTCompletion(instructions: string): Promise<string> {
     console.error('Error getting answer:', error);
     throw error;
   }
+}
+
+async function getLastReply(threadId: string) {
+  return (await client.beta.threads.messages.list(threadId, {
+    limit: 1,
+    order: 'desc',
+  })).data[0];
+}
+
+export async function deleteAssistants(idsToDelete: string[]) {
+  idsToDelete.forEach((id) => {
+    console.log(`Deleting assistant with id ${id}`);
+    client.beta.assistants.del(id);
+  });
 }
