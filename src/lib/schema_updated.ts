@@ -207,9 +207,9 @@ export function createCustomDbInstance(
   connectionUrl = `postgresql://${process.env.LOCAL_DB_USER_PWD}@localhost:5432/local_verceldDb`
 ) {
   type Databases = {
-    [K in typeof host]: UserSessionsTable;
+    [K in typeof host]: HostSessionsTable;
   } & {
-    [K in typeof user]: HostSessionsTable;
+    [K in typeof user]: UserSessionsTable;
   } & {
     [K in typeof message]: MessagesTable;
   };

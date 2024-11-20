@@ -10,9 +10,9 @@ type Client = 'CMI' | 'DEV' | 'APP' | 'ALL' | '' | undefined;
 // Migration within database; this script might often get updated.
 // Set this if you want to migrate only a subset of the data
 const clientId: Client = 'DEV';
-const hostDbName = 'host_temp_trial'; // For the 'real' migration, replace this with 'host_data'
-const userDbName = 'user_temp_trial'; // For the 'real' migration, replace this with 'user_data'
-const messageDbName = 'messages_temp_trial'; // For the 'real' migration, replace this
+// const hostDbName = 'host_temp_trial'; // For the 'real' migration, replace this with 'host_data'
+// const userDbName = 'user_temp_trial'; // For the 'real' migration, replace this with 'user_data'
+// const messageDbName = 'messages_temp_trial'; // For the 'real' migration, replace this
 const updateOrCreateNewTables = true;
 const dropTablesIfAlreadyPresent = true;
 const skipEmptyHostSessions = true;
@@ -25,14 +25,6 @@ const skipEmptyUserSessions = true;
 // you shouldn't need to touch anything below this: //
 //////////////////////////////////////////////////////
 
-// Shortcut: Create dump of the current database, then read it from the file here.
-// That way it's a bit nicer to experiment with the migration script.
-// Optimally we'd also do that with a local database first, let's see.
-
-// Import from local dump:
-import { readFileSync } from 'fs';
-import { create } from 'domain';
-
 type DBConfig = {
   db: Kysely<any>;
   dbNames: { host: string; user: string, message?: string };
@@ -43,9 +35,9 @@ const dbContainer = {
   db_orig_local: s_orig.createCustomDbInstance('host_db', 'user_db'),
   db_orig_remote: s_orig.createProdDbInstance(),
   db_new_local: s_new.createCustomDbInstance(
-    hostDbName,
-    userDbName,
-    messageDbName
+    'host_temp_trial',
+    'user_temp_trial',
+    'messages_temp_trial'
   ),
 }
 
@@ -247,8 +239,11 @@ async function migrate(db_orig: DBConfig, db_new: DBConfig) {
   // Create tables if they don't exist:
   await setupTables(db_new);
 
-  await db_new.db.insertInto(userDbName).values(newUserSessions).execute();
-  await db_new.db.insertInto(messageDbName).values(messages).execute();
+  await db_new.db.insertInto(db_new.dbNames.user).values(newUserSessions).execute();
+  if (!db_new.dbNames.message) {
+    throw new Error('No message table found!');
+  }
+  await db_new.db.insertInto(db_new.dbNames.message).values(messages).execute();
 
   console.log(`Migrated:
 - ${newUserSessions.length} user sessions
