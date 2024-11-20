@@ -30,9 +30,8 @@ export default function SessionResultParticipants({
   ];
 
   const sortableData: Data[] = userData
-    .filter((data) => data.chat_text)
     .map((data) => ({
-      userName: extractName(data.chat_text!),
+      userName: data.user_name,
       sessionStatus: data.active ? 'Started' : 'Finished',
       userData: data,
     }));

@@ -44,8 +44,11 @@ export type RequestData = {
 };
 
 // use this insteads of Message
-export type OpenAIMessage = { role: 'assistant' | 'user'; content: string };
-
+export interface OpenAIMessage {
+  role: 'assistant' | 'user';
+  content: string
+  contextThreadIds?: string[];
+};
 
 export type WebhookData = {
   session_id?: string;

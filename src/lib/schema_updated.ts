@@ -32,10 +32,10 @@ export interface UserSessionsTable {
   session_id: string;
   user_id: string;
   thread_id: string;
+  active: boolean;
   user_name?: string;
   feedback?: string;
   summary?: string; // Todo: Do we ever set this? (I think this is always only part of the chat text, isn't it?)
-  active: boolean;
   step?: ColumnType<number, number, number | RawBuilder<unknown>>;
   start_time: ColumnType<Date, Date | undefined, never>;
   last_edit: Generated<Date>;

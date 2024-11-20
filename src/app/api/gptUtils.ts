@@ -17,14 +17,15 @@ export async function handleCreateThread(messagesData?: Array<OpenAIMessage>) {
         content: messageData.content,
       })),
     });
+
   } else {
     thread = await client.beta.threads.create();
   }
 
-  return NextResponse.json({ thread: thread });
+  return thread;
 }
 
-export async function handleGenerateAnswer(messageData: AssistantMessageData): Promise<NewMessage[]> {
+export async function handleGenerateAnswer(messageData: AssistantMessageData): Promise<NewMessage> {
   await sendMessage(messageData.threadId, 'user', messageData.messageText);
 
   let run = await client.beta.threads.runs.createAndPoll(messageData.threadId, {
@@ -33,19 +34,20 @@ export async function handleGenerateAnswer(messageData: AssistantMessageData): P
   });
 
   if (run.status === 'completed') {
-    const allMessages = await getAllMessages(messageData.threadId);
-
-    return allMessages.map((messageData) => ({
-      role: messageData.assistant_id ? 'assistant' : 'user',
+    const answer = await getLastReply(messageData.threadId);
+    return {
+      thread_id: messageData.threadId,
+      role: answer.assistant_id ? 'assistant' : 'user',
       content:
-        messageData.content[0].type === 'text'
-          ? messageData.content[0].text?.value
-          : '',
-      thread_id: messageData.thread_id,
-      created_at: new Date(messageData.created_at),
-    }));
+          answer.content[0].type === 'text'
+            ? answer.content[0].text?.value
+            : '',
+      created_at: new Date(answer.created_at),
+    }
+  } else {
+    console.error(`OpenAI run.status for thread ${messageData.threadId}: `, run.status);
+    throw new Error(`OpenAI run.status for thread ${messageData.threadId}: ` + run.status);
   }
-  return [];
 }
 
 export async function sendMessage(threadId: string, role: 'user' | 'assistant', content: string) {
@@ -94,6 +96,13 @@ export async function getGPTCompletion(instructions: string): Promise<string> {
     console.error('Error getting answer:', error);
     throw error;
   }
+}
+
+async function getLastReply(threadId: string) {
+  return (await client.beta.threads.messages.list(threadId, {
+    limit: 1,
+    order: 'desc',
+  })).data[0];
 }
 
 export async function deleteAssistants(idsToDelete: string[]) {

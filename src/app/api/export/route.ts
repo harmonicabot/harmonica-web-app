@@ -31,12 +31,12 @@ export async function POST(request: ExportRequest) {
 
 async function extractAndFormatForExport(messages: string[], exportDataQuery: string) {
   console.log(`Creating thread...`);
-  const threadResponse = await handleCreateThread([{
+  const thread = await handleCreateThread([{
     role: 'assistant',
     content: `Any exported data should be derived from information from the following chat history (you will receive each users history as separate instruction). 
 ##### START of CHAT HISTORY #####`,
   }]);    
-  const threadId = (await threadResponse.json()).thread.id;
+  const threadId = thread.id;
   
   for (const message of messages) {
     await sendMessage(threadId, 'assistant', '\n---- NEXT USER: ----\n'+ message);
@@ -44,7 +44,7 @@ async function extractAndFormatForExport(messages: string[], exportDataQuery: st
 
 
   console.log(`Got threadID: ${threadId}; asking AI to format data...`);
-  const answers = await handleGenerateAnswer({
+  const answer = await handleGenerateAnswer({
     threadId: threadId,
     assistantId: 'asst_DAO97DuTb6856Z5eFqa8EwaP', // TODO: This is a random assistant; we don't actually need one, or we should create one!
     messageText:
@@ -54,7 +54,5 @@ async function extractAndFormatForExport(messages: string[], exportDataQuery: st
 
 ONLY return the plain JSON in your answer, without any additional text! Don't even include a \`\`\`json [...] \`\`\`\n`,
   });
-  console.log(`Got answers: ${JSON.stringify(answers)}`);
-  const lastReplyFromAI = answers[answers.length-1].content;
-  return lastReplyFromAI;
+  return answer.content;
 }

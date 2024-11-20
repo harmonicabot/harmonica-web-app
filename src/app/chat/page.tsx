@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import {
   getHostSessionById,
+  increaseSessionsCount,
   updateHostSession,
   updateUserSession,
 } from '@/lib/db';
@@ -59,9 +60,7 @@ const StandaloneChat = () => {
       last_edit: new Date(),
     })
       .then(() => {
-        updateHostSession(sessionId!, {
-          num_finished: sql`num_finished + 1`,
-        });
+        increaseSessionsCount(sessionId!, 'num_finished');
       })
       .then(() => {
         setIsLoading(false);

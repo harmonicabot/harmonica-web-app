@@ -135,6 +135,16 @@ export async function updateHostSession(
   }
 }
 
+export async function increaseSessionsCount(id: string, toIncrease: 'num_sessions' | 'num_finished') {
+  // This is a bit clumsy, but I couldn't find a way with kysely to do it in one go. Submitting sql`...` breaks it :-(
+  const previousNum = (await db
+    .selectFrom(hostDbName)
+    .where('id', '=', id)
+    .select(toIncrease)
+    .executeTakeFirstOrThrow())[toIncrease];
+  updateHostSession(id, {[toIncrease]: previousNum+1})
+}
+
 export async function deleteHostSession(id: string): Promise<void> {
   try {
     await db.deleteFrom(hostDbName).where('id', '=', id).execute();
@@ -158,6 +168,24 @@ export async function getUsersBySessionId(
     throw error;
   }
 }
+
+export async function insertUserSession(
+  data: s.NewUserSession
+): Promise<string> {
+  try {
+    console.log('Inserting user session with data:', data);
+    const result = await db
+      .insertInto(userDbName)
+      .values(data)
+      .returning('id')
+      .executeTakeFirstOrThrow();
+    return result.id;
+  } catch (error) {
+    console.error('Error inserting user session:', error);
+    throw error;
+  }
+}
+
 
 export async function insertUserSessions(
   data: s.NewUserSession | s.NewUserSession[]

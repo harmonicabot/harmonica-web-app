@@ -16,9 +16,8 @@ export default function SessionResultChat({ userData }: { userData: UserSession[
             userNameInFirstMessage={false}
             context={{
               role: 'assistant',
-              content: `You will be asked questions based on the session data. Answer short. The context of the session is: ${userData.map((user) => user.chat_text).join(' --- next USER ---')}
-
-             ------------`,
+              content: `You will be asked questions based on the session data. Answer short.`,
+              contextThreadIds: userData.map(user => user.thread_id),
             }}
             assistantId="asst_LQospxVfX4vMTONASzSkSUwb"
             entryMessage={{
