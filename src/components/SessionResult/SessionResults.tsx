@@ -51,17 +51,41 @@ export default function SessionResults({
 
     const blob = await response.blob();
     const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute(
-      'download',
-      `Harmonica_${allData.host_data.topic ?? id}.json`
+    exportAndDownload(
+      blob,
+      link,
+      `Harmonica_${allData.host_data.topic ?? id}.json`,
+      id
     );
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
 
+    setExportInProgress(false);
+    setIsExportPopupVisible(false);
+  };
+
+  const exportAllData = async () => {
+    const exportData = allData.user_data.map((user) => {
+      const user_id = user.user_id;
+      const user_name = user.user_name;
+      const raw_chat_text = user.chat_text;
+      const introString = `Use it in communication. Don't ask it again. Start the session.\n`;
+      const startOfIntro = raw_chat_text?.indexOf(introString);
+      const chat_text =
+        startOfIntro && startOfIntro > 0
+          ? raw_chat_text?.substring(startOfIntro + introString.length)
+          : raw_chat_text;
+
+      return {
+        user_id,
+        user_name,
+        chat_text,
+      };
+    });
+    exportAndDownload(
+      new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' }),
+      document.createElement('a'),
+      `Harmonica_${allData.host_data.topic ?? id}_allData.json`,
+      id
+    );
     setExportInProgress(false);
     setIsExportPopupVisible(false);
   };
@@ -178,9 +202,13 @@ export default function SessionResults({
                       Exporting...
                     </>
                   ) : (
-                    <>
+                    <div className="flex justify-between items-center">
                       <Button type="submit">Submit</Button>
-                    </>
+                      <Button onClick={exportAllData} variant="ghost">
+                        {' '}
+                        Export All{' '}
+                      </Button>
+                    </div>
                   )}
                 </form>
               </div>
@@ -203,4 +231,18 @@ export default function SessionResults({
         : showShareResultsCard()}
     </>
   );
+}
+function exportAndDownload(
+  blob: Blob,
+  link: HTMLAnchorElement,
+  filename: string,
+  id: string
+) {
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }

@@ -4,7 +4,6 @@ import {
   Selectable,
   Insertable,
   Updateable,
-  QueryExecutorProvider,
   RawBuilder,
 } from 'kysely';
 import { sql, Kysely } from 'kysely';
@@ -29,13 +28,11 @@ export interface UserSessionsTable {
   id: Generated<string>;
   session_id: string;
   user_id: string;
-  template: string;
+  user_name?: string;
   feedback?: string;
   chat_text?: string;
   thread_id?: string;
-  result_text?: string;
-  bot_id?: string;
-  host_chat_id?: string;
+  summary?: string; // Todo: Do we ever set this? (I think this is always only part of the chat text, isn't it?)
   active: boolean;
   step?: number;
   start_time: ColumnType<Date, Date | string | undefined, never>;
@@ -130,14 +127,12 @@ export async function createUserTable(
     .addColumn('id', 'text', (col) => col.primaryKey().defaultTo(sql`substr(md5(random()::text), 1, 12)`))
     .addColumn('session_id', 'text', (col) => col.notNull())
     .addColumn('user_id', 'text', (col) => col.notNull())
-    .addColumn('template', 'text', (col) => col.notNull())
     .addColumn('active', 'boolean', (col) => col.notNull())
+    .addColumn('user_name', 'text')
     .addColumn('chat_text', 'text')
     .addColumn('feedback', 'text')
     .addColumn('thread_id', 'text')
-    .addColumn('result_text', 'text')
-    .addColumn('bot_id', 'text')
-    .addColumn('host_chat_id', 'text')
+    .addColumn('summary', 'text')
     .addColumn('start_time', 'timestamp')
     .addColumn('step', 'numeric', (col) => col.defaultTo(0))
     .addColumn('last_edit', 'timestamp', (col) => col.defaultTo(sql`CURRENT_TIMESTAMP`))

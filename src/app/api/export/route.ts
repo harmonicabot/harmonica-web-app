@@ -1,6 +1,6 @@
 import { RequestData } from "@/lib/types";
 import { NextResponse } from "next/server";
-import { handleCreateThread, handleGenerateAnswer } from "../gptUtils";
+import { handleCreateThread, handleGenerateAnswer, sendMessage } from "../gptUtils";
 
 // Expected: { sessionId: string, exportDataQuery: string }
 export const maxDuration = 200;
@@ -33,14 +33,16 @@ async function extractAndFormatForExport(messages: string[], exportDataQuery: st
   console.log(`Creating thread...`);
   const threadResponse = await handleCreateThread([{
     role: 'assistant',
-    content: `Any exported data should be derived from information from the following chat history: 
-##### START of CHAT HISTORY #####
-${messages.join(' --- next USER ---')}
-##### END of CHAT HISTORY #####`,
-  }]);
-    
+    content: `Any exported data should be derived from information from the following chat history (you will receive each users history as separate instruction). 
+##### START of CHAT HISTORY #####`,
+  }]);    
   const threadId = (await threadResponse.json()).thread.id;
   
+  for (const message of messages) {
+    await sendMessage(threadId, 'assistant', '\n---- NEXT USER: ----\n'+ message);
+  }
+
+
   console.log(`Got threadID: ${threadId}; asking AI to format data...`);
   const answerResponse = await handleGenerateAnswer({
     threadId: threadId,

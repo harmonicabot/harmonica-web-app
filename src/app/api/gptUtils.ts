@@ -24,13 +24,7 @@ export async function handleCreateThread(messagesData?: Array<OpenAIMessage>) {
 }
 
 export async function handleGenerateAnswer(messageData: AssistantMessageData) {
-  const message = await client.beta.threads.messages.create(
-    messageData.threadId,
-    {
-      role: 'user',
-      content: messageData.messageText,
-    },
-  );
+  await sendMessage(messageData.threadId, 'user', messageData.messageText);
 
   let run = await client.beta.threads.runs.createAndPoll(messageData.threadId, {
     assistant_id: messageData.assistantId,
@@ -52,6 +46,16 @@ export async function handleGenerateAnswer(messageData: AssistantMessageData) {
     });
   }
   return NextResponse.json({ messages: [] });
+}
+
+export async function sendMessage(threadId: string, role: 'user' | 'assistant', content: string) {
+  return await client.beta.threads.messages.create(
+    threadId,
+    {
+      role,
+      content,
+    }
+  );
 }
 
 async function getAllMessages(threadId: string) {

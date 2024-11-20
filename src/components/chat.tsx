@@ -83,7 +83,6 @@ Help & Support:
             insertUserSessions({
               session_id: sessionId,
               user_id: user?.email ?? 'anonymous',
-              template: assistantId,
               thread_id: threadId,
               active: true,
               start_time: new Date(),
@@ -149,6 +148,11 @@ Help & Support:
 
     if (userNameInFirstMessage && messages.length === 1) {
       setUserName(messageText);
+      if (userSessionId) {
+        db.updateUserSession(userSessionId, {
+          user_name: messageText,
+        });
+      }
     }
     setMessages([...messages, { text: messageText, type: 'USER' }]);
     setFormData({ messageText: '' });
