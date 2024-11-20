@@ -105,7 +105,7 @@ export default function SessionResult() {
 Generate a short **REPORT** that answers the OBJECTIVE of the session and suits the overall session style.\n\n
 The **OBJECTIVE** is stated in this prompt:\n
 ##### PROMPT #####\n
-${sessionData.host_data.prompt}\n
+${hostData.prompt}\n
 ##### END PROMPT #####\n
 And the content for the report:\n\n
 ##### START CONTENT #####\n
