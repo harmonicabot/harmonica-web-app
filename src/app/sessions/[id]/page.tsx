@@ -87,10 +87,13 @@ Generate a short **REPORT** that answers the OBJECTIVE of the session and suits 
 The **OBJECTIVE** is stated in this prompt:\n
 ##### PROMPT #####\n
 ${sessionData.host_data.prompt}\n
-##### PROMPT #####\n
+##### END PROMPT #####\n
 And the content for the report:\n\n
-##### Next Participant: #####\n
-${chats.join('##### Next Participant: #####\n')}
+##### START CONTENT #####\n
+----- Next Participant: -----\n
+${chats.join('\n\n----- Next Participant: -----\n')}
+----- END PARTICIPANTS -----\n
+##### END CONTENT #####\n\n
 `;
     const summary = await getGPTCompletion(instructions);
     console.log('Summary: ', summary);
