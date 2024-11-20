@@ -3,7 +3,7 @@ import { HostSession, Message, UserSession } from '@/lib/schema_updated';
 
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,7 +14,7 @@ import SessionResultSummary from './SessionResultSummary';
 import ShareSession from './ShareSession';
 import { countChatMessages, getAllChatMessagesInOrder } from '@/lib/db';
 
-export default async function SessionResults({
+export default function SessionResultsSection({
   hostType,
   hostData,
   userData,
@@ -29,6 +29,16 @@ export default async function SessionResults({
   handleCreateSummary: () => void;
   hasNewMessages: boolean;
 }) {
+  const [hasMessages, setHasMessages] = useState(false);
+
+  useEffect(() => {
+    const hasAnyMessages = userData
+      .map(async (data) => countChatMessages(data.thread_id))
+      .filter(async (sum) => (await sum) > 0).length > 0;
+    console.log("This session seems to have ")
+    setHasMessages(hasAnyMessages);
+  }, [userData])
+
   const [exportInProgress, setExportInProgress] = useState(false);
   const exportSessionResults = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,11 +245,7 @@ export default async function SessionResults({
   return (
     <>
       <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
-      {userData
-        .map(async (data) => countChatMessages(data.thread_id))
-        .filter(async (sum) => (await sum) > 0).length > 0
-        ? showResultsSection()
-        : showShareResultsCard()}
+      {hasMessages ? (showResultsSection()) : (showShareResultsCard())}
     </>
   );
 }

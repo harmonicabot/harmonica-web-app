@@ -21,7 +21,8 @@ export default function ParicipantSessionRow({
   const [messages, setMessages] = useState<Message[]>([]);
 
   const handleViewClick = async () => {
-    const messageHistory = await getAllChatMessagesInOrder(userData.thread_id)
+    const messageHistory = await getAllChatMessagesInOrder(userData.thread_id);
+    console.log('Messages fetched: ', messageHistory);
     setMessages(messageHistory);
 
     setIsPopupVisible(true);

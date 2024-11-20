@@ -207,21 +207,28 @@ Help & Support:
       messageText,
       assistantId: assistantId,
     };
+    if (userSessionId) {
+      db.insertChatMessage({
+        thread_id: threadId,
+        role: 'user',
+        content: messageText,
+        created_at: now
+      })
+    }
 
     handleGenerateAnswer(messageData)
       .then((answer) => {
-        // These are generally all the messages in the thread...
-        setIsLoading(false);
-
+        console.log('received answer from ChatGPT: ', answer)
         const now = new Date();
         addMessage(answer);
-
+        
         if (userSessionId) {
           db.insertChatMessage(answer);
           db.updateUserSession(userSessionId, {
             last_edit: now,
           });
         }
+        setIsLoading(false);
       })
       .catch((error) => {
         console.error(error);

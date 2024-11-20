@@ -15,7 +15,7 @@ if (typeof window === 'undefined') {
 
 const hostDbName = 'host_temp_trial';
 const userDbName = 'user_temp_trial';
-const messageDbName = 'message_temp_trial';
+const messageDbName = 'messages_temp_trial';
 interface Databases {
   [hostDbName]: s.HostSessionsTable;
   [userDbName]: s.UserSessionsTable;
@@ -267,7 +267,12 @@ export async function searchUserSessions(
 }
 
 export async function insertChatMessage(message: s.NewMessage) {
-  await db.insertInto(messageDbName).values(message).execute();
+  console.log("Inserting chat message: ", JSON.stringify(message));
+  try {
+    await db.insertInto(messageDbName).values(message).execute();
+  } catch (error) {
+    console.error('Error inserting chat message: ', error)
+  }
 }
 
 export async function countChatMessages(threadId: string) {

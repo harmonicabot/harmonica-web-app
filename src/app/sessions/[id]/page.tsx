@@ -12,7 +12,7 @@ import SessionResultHeader, {
 import SessionResultControls from '@/components/SessionResult/SessionResultControls';
 import SessionResultStatus from '@/components/SessionResult/SessionResultStatus';
 import SessionResultShare from '@/components/SessionResult/SessionResultShare';
-import SessionResults from '@/components/SessionResult/SessionResults';
+import SessionResultsSection from '@/components/SessionResult/SessionResultsSection';
 import {
   countChatMessages,
   deactivateHostSession,
@@ -49,7 +49,7 @@ export default function SessionResult() {
 
 
   const { error } = useSWR(`sessions/${decryptedId}`, () => fetcher(decryptedId), {
-    refreshInterval: 60000, // Poll every 60 seconds
+    refreshInterval: 5*60000, // Poll every 5 minutes
     revalidateOnFocus: true,
     onSuccess: ({ hostData, userData }) => {
       console.log('Updated session data fetched:', userData);
@@ -181,7 +181,7 @@ ${chats.join('##### Next Participant: #####\n')}
           <SessionResultShare sessionId={decryptedId} />
         )}
       </div>
-      <SessionResults
+      <SessionResultsSection
         hostType={hostType}
         hostData={hostData}
         userData={sessionsWithChat}
