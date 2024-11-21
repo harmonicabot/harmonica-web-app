@@ -188,8 +188,8 @@ export async function createMessagesTable(
 }
 
 export function createProdDbInstance() {
-  const userDbName = 'user_db';
   const hostDbName = 'host_db';
+  const userDbName = 'user_db';
   const messageDbName = 'message_db';
   interface Databases {
     [hostDbName]: HostSessionsTable;
@@ -197,7 +197,7 @@ export function createProdDbInstance() {
     [messageDbName]: MessagesTable;
   }
   const db = createKysely<Databases>();
-  return db;
+  return { db, dbNames: { host:hostDbName, user:userDbName, message:messageDbName } };
 }
 
 export function createCustomDbInstance<T extends Record<string, any> = Databases>(
