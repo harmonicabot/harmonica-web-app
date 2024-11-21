@@ -32,10 +32,13 @@ export interface UserSessionsTable {
   session_id: string;
   user_id: string;
   user_name?: string;
+  template: string;
   feedback?: string;
   chat_text?: string;
   thread_id?: string;
-  summary?: string; // Todo: Do we ever set this? (I think this is always only part of the chat text, isn't it?)
+  result_text?: string;
+  bot_id?: string;
+  host_chat_id?: string;
   active: boolean;
   step?: number;
   start_time: ColumnType<Date, Date | string | undefined, never>;
@@ -153,23 +156,25 @@ export function createProdDbInstance() {
   return { db, dbNames: { host, user } };
 }
 
-export function createCustomDbInstance(
+
+
+export function createCustomDbInstance<T extends Record<string, any> = Databases>(
   host = 'temp_host_db',
   user = 'temp_user_db',
-  connectionUrl = `postgresql://${process.env.LOCAL_DB_USER_PWD}@localhost:5432/local_verceldDb`
+  connectionUrl = process.env.CUSTOM_DATABASE
 ) {
-  type Databases = {
-    [K in typeof host]: UserSessionsTable
-  } & {
-    [K in typeof user]: HostSessionsTable
-  };
+  // type Databases = {
+  //   [K in typeof host]: HostSessionsTable
+  // } & {
+  //   [K in typeof user]: UserSessionsTable
+  // };
 
   const dialect = new PostgresDialect({
     pool: new pg.Pool({
       connectionString: connectionUrl,
       max:10,
   })})
-  const db = new Kysely<Databases>({ dialect });
+  const db = new Kysely<T>({ dialect });
   
   return { db, dbNames: { host, user } };
 }

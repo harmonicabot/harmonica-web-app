@@ -41,3 +41,5 @@ amplifyconfiguration*
 .migrations
 .env*
 tsconfig.tsbuildinfo
+
+*.sql

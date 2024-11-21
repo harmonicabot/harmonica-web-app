@@ -200,19 +200,19 @@ export function createProdDbInstance() {
   return db;
 }
 
-export function createCustomDbInstance(
+export function createCustomDbInstance<T extends Record<string, any> = Databases>(
   host = 'temp_host_db',
   user = 'temp_user_db',
   message = 'temp_message_db',
-  connectionUrl = `postgresql://${process.env.LOCAL_DB_USER_PWD}@localhost:5432/local_verceldDb`
+  connectionUrl = process.env.CUSTOM_DATABASE
 ) {
-  type Databases = {
-    [K in typeof host]: UserSessionsTable;
-  } & {
-    [K in typeof user]: HostSessionsTable;
-  } & {
-    [K in typeof message]: MessagesTable;
-  };
+  // type Databases = {
+  //   [K in typeof host]: HostSessionsTable;
+  // } & {
+  //   [K in typeof user]: UserSessionsTable;
+  // } & {
+  //   [K in typeof message]: MessagesTable;
+  // };
 
   const dialect = new PostgresDialect({
     pool: new pg.Pool({
@@ -220,6 +220,6 @@ export function createCustomDbInstance(
       max: 10,
     }),
   });
-  const db = new Kysely<Databases>({ dialect });
+  const db = new Kysely<T>({ dialect });
   return { db, dbNames: { host, user, message } };
 }
