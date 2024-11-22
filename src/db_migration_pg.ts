@@ -14,10 +14,10 @@ const hostDbName = 'dev_host_db';
 const userDbName = 'dev_user_db';
 const messageDbName = 'dev_messages_db';
 const updateOrCreateNewTables = true;
-const dropTablesIfAlreadyPresent = false;
+const dropTablesIfAlreadyPresent = true;
 const skipEmptyHostSessions = true;
 const skipEmptyUserSessions = true;
-const isNewUserDb = true; 
+const isNewUserDb = true;
 const isNewHostDb = true;
 
 // Run this with:
@@ -34,9 +34,10 @@ type DBConfig = {
 
 // Putting these dbs into a 'container' just to make sure I'm not referencing one of them by accident 😆
 const dbContainer = {
-  db_orig_local: s_orig.createProdDbInstance(),
-  // db_orig_remote: s_orig.createProdDbInstance(),
-  db_new_local: s_new.createProdDbInstanceWithDbNames(),
+  db_orig_local: s_orig.createCustomDbInstance(oldHostDbName, oldUserDbName),
+  db_orig_remote: s_orig.createProdDbInstance(),
+  db_new_local: s_new.createCustomDbInstance(hostDbName, userDbName, messageDbName),
+  db_new_remote: s_new.createProdDbInstanceWithDbNames(),
 };
 
 // setupTables(db_new);
@@ -131,7 +132,7 @@ async function transferHostTable(db_orig: DBConfig, db_new: DBConfig) {
 }
 
 async function migrate(db_orig: DBConfig, db_new: DBConfig) {
-  await setupTables(db_new)
+  await setupTables(db_new);
 
   // Nothing has changed for the host table, but because we might have a new table, we still need to fill it.
   await transferHostTable(db_orig, db_new);
@@ -166,28 +167,22 @@ async function migrate(db_orig: DBConfig, db_new: DBConfig) {
   // Get user sessions
 
   let userSessions: s_orig.UserSession[];
-  if (
-    existsSync('./userSessions.json')
-  ) {
-    userSessions = JSON.parse(
-      readFileSync('./userSessions.json').toString()
-    );
+  if (existsSync('./userSessions.json')) {
+    userSessions = JSON.parse(readFileSync('./userSessions.json').toString());
   } else {
     userSessions = (await db_orig.db
       .selectFrom(db_orig.dbNames.user)
       .selectAll()
       .execute()) as s_orig.UserSession[];
 
-    writeFileSync(
-      './userSessions.json',
-      JSON.stringify(userSessions, null, 2)
-    );
+    writeFileSync('./userSessions.json', JSON.stringify(userSessions, null, 2));
   }
-  
-  let userSessionsAndMessages: {newUserSessions?: s_new.NewUserSession; messages?: s_new.NewMessage[];}[];
-  if (
-    existsSync('./userSessionsAndMessages.json')
-  ) {
+
+  let userSessionsAndMessages: {
+    newUserSessions?: s_new.NewUserSession;
+    messages?: s_new.NewMessage[];
+  }[];
+  if (existsSync('./userSessionsAndMessages.json')) {
     userSessionsAndMessages = JSON.parse(
       readFileSync('./userSessionsAndMessages.json').toString()
     );
@@ -257,17 +252,32 @@ async function migrate(db_orig: DBConfig, db_new: DBConfig) {
           const chatText = session.chat_text as string;
           // Split chat_text into messages based on "Answer:" pattern
           const parts = chatText.split(/(?=Answer\s?:)|(?=Question\s?:)/);
-
+          if (parts.length === 0) {
+            return {};
+          }
+          const invertedRoles =
+            parts[0].startsWith('Question') &&
+            parts[0].includes(`Don't ask it again.`);
           let creationTimeCounter = 0;
-          const messages: s_new.NewMessage[] = parts.map((part) => ({
-            thread_id: threadId,
-            role: part.trim().startsWith('Answer') ? 'user' : 'assistant',
-            content: part.replace(/^(Answer\s?:|Question\s?:)/, '').trim(),
-            // For each part, increase the time from the original start time by 5 seconds so that there's a specific order
-            created_at: new Date(
-              new Date(session.start_time).getTime() + 5000 * creationTimeCounter++
-            ),
-          }));
+          const messages: s_new.NewMessage[] = parts.map((part) => {
+            const role = part.trim().startsWith('Answer')
+              ? invertedRoles
+                ? 'assistant'
+                : 'user'
+              : invertedRoles
+              ? 'user'
+              : 'assistant';
+            return {
+              thread_id: threadId,
+              role,
+              content: part.replace(/^(Answer\s?:|Question\s?:)/, '').trim(),
+              // For each part, increase the time from the original start time by 5 seconds so that there's a specific order
+              created_at: new Date(
+                new Date(session.start_time).getTime() +
+                  5000 * creationTimeCounter++
+              ),
+            };
+          });
 
           return {
             newUserSessions,
@@ -276,11 +286,11 @@ async function migrate(db_orig: DBConfig, db_new: DBConfig) {
         }
       )
       .filter((data) => data.newUserSessions && data.messages);
-    
-      writeFileSync(
-        './userSessionsAndMessages.json',
-        JSON.stringify(userSessionsAndMessages, null, 2)
-      );
+
+    writeFileSync(
+      './userSessionsAndMessages.json',
+      JSON.stringify(userSessionsAndMessages, null, 2)
+    );
   }
 
   const newUserSessions = userSessionsAndMessages.map(
@@ -327,7 +337,7 @@ async function setupTables(dbConfig: DBConfig) {
     .createHostTable(dbConfig.db, dbConfig.dbNames.host)
     .then(() =>
       s_new.createTriggerOnHostUpdateLastEditSummary(dbConfig.dbNames.host)
-  );
+    );
   if (isNewUserDb) {
     await s_new
       .createUserTable(dbConfig.db, dbConfig.dbNames.user)
