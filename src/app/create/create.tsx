@@ -80,7 +80,7 @@ export default function CreateSession({
           name="sessionName"
           value={formData.sessionName}
           onChange={handleInputChange}
-          placeholder="Marketing Strategy Brainstorm"
+          placeholder="Your session name"
           required
           className={
             isSubmitAttempted && errors.sessionName

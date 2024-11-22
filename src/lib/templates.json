@@ -23,7 +23,7 @@
       "description": "Analyze organizational Strengths, Weaknesses, Opportunities, and Threats to inform strategic planning",
       "defaults": {
         "goal": "Develop a strategy based on shared understanding of the org's context",
-        "critical": "Strengths: characteristics of the business or project that give it an advantage over others\n\nWeaknesses: characteristics that place the business or project at a disadvantage relative to others",
+        "critical": "Strengths: characteristics of the business or project that give it an advantage over others\nWeaknesses: characteristics that place the business or project at a disadvantage relative to others\nOpportunities: elements in the environment that the business or project could exploit to its advantage\nThreats: elements in the environment that could cause trouble for the business or project",
         "context": "",
         "createSummary": true,
         "summaryFeedback": true,
@@ -49,14 +49,14 @@
       }
     },
     {
-      "id": "idea-ranking",
-      "icon": "list-ordered",
-      "title": "Idea Ranking",
-      "description": "Evaluate and prioritize ideas using structured criteria to identify the most promising opportunities",
+      "id": "community-policy-proposal",
+      "icon": "leaf",
+      "title": "Community Policy Proposal Generation",
+      "description": "Generate and prioritize community policy proposals to address specific needs and opportunities.",
       "defaults": {
-        "goal": "Facilitate a ranking process for pre-defined ideas based on criteria like feasibility, impact, and strategic alignment.",
-        "critical": "Ratings or rankings for each host-provided idea based on: Feasibility, Impact, Alignment.\nParticipant comments on strengths, weaknesses, and potential improvements, if needed.",
-        "context": "Present the provided ideas along with relevant criteria and organizational goals to guide consistent evaluation.",
+        "goal": "Facilitate the development of a structured policy proposal that addresses a specific community need or issue.",
+        "critical": "Problem Definition: Collect insights on the specific issue the policy aims to address.\nProposed Solutions: Generate potential solutions or approaches to the problem.\nPolicy Goals: Define the desired outcomes or objectives of the policy.\nCommunity Impact: Identify potential benefits and challenges for the community.",
+        "context": "Provide background information on the community issue or need, including relevant data, previous discussions, and examples of related policies, if applicable. Outline the purpose of the proposal and expected outcomes.",
         "createSummary": true,
         "summaryFeedback": true,
         "requireContext": true,
