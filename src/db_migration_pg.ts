@@ -37,7 +37,7 @@ const dbContainer = {
   db_orig_local: s_orig.createCustomDbInstance(oldHostDbName, oldUserDbName),
   db_orig_remote: s_orig.createProdDbInstance(),
   db_new_local: s_new.createCustomDbInstance(hostDbName, userDbName, messageDbName),
-  db_new_remote: s_new.createProdDbInstanceWithDbNames(),
+  db_new_remote: s_new.createProdDbInstanceWithDbNames(hostDbName, userDbName, messageDbName),
 };
 
 // setupTables(db_new);

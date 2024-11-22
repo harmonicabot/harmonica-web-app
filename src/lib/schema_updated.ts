@@ -218,16 +218,13 @@ export function createCustomDbInstance<T extends Record<string, any>>(
   return { db, dbNames: { host, user, message } };
 }
 
-export function createProdDbInstanceWithDbNames() {
-  const hostDbName = 'dev_host_db';
-const userDbName = 'dev_user_db';
-  const messageDbName = 'dev_messages_db';
-  interface Databases {
-    [hostDbName]: HostSessionsTable;
-    [userDbName]: UserSessionsTable;
-    [messageDbName]: MessagesTable; 
-  }
-  const db = createKysely<Databases>();
-  return { db, dbNames: { host: hostDbName, user: userDbName, message: messageDbName } };
+export function createProdDbInstanceWithDbNames<T extends Record<string, any>>(
+  host = 'prod_host_db',
+  user = 'prod_user_db',
+  message = 'prod_messages_db',
+) {
+
+  const db = createKysely<T>();
+  return { db, dbNames: { host, user, message } };
 }
 
