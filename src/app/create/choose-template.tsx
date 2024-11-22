@@ -18,6 +18,7 @@ import {
   ListChecks,
   ShieldAlert,
   Sparkles,
+  Leaf,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,6 +33,7 @@ const iconMap = {
   'activity-square': ActivitySquare,
   'list-checks': ListChecks,
   'shield-alert': ShieldAlert,
+  leaf: Leaf,
 } as const;
 
 interface ChooseTemplateProps {
