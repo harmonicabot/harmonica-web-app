@@ -31,6 +31,7 @@ export interface UserSessionsTable {
   id: Generated<string>;
   session_id: string;
   user_id: string;
+  user_name?: string;
   template: string;
   feedback?: string;
   chat_text?: string;
