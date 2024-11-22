@@ -20,7 +20,7 @@ interface Databases {
   [messageTableName]: s.MessagesTable;
 }
 
-let dbConfig = s.createProdDbInstanceWithDbNames();
+let dbConfig = process.env.NODE_ENV === 'production' ? s.createProdDbInstanceWithDbNames() : s.createCustomDbInstance<Databases>(hostTableName, userTableName, messageTableName);
 const db = dbConfig.db;
 
 // const db = createKysely<Databases>();
