@@ -7,6 +7,7 @@ import {
   Updateable,
   RawBuilder,
   PostgresDialect,
+  AlterColumnBuilder,
 } from 'kysely';
 import { sql, Kysely } from 'kysely';
 import pg from 'pg';
@@ -49,13 +50,6 @@ export interface MessagesTable {
   created_at: Generated<Date>;
 }
 
-// Database names:
-export interface Databases {
-  host_data: HostSessionsTable;
-  user_data: UserSessionsTable;
-  messages: MessagesTable;
-}
-
 export type HostSession = Selectable<HostSessionsTable>;
 export type NewHostSession = Insertable<HostSessionsTable>;
 export type HostSessionUpdate = Updateable<HostSessionsTable>;
@@ -95,7 +89,7 @@ export function createTriggerOnUserUpdateLastEditChatText(
   sql`CREATE OR REPLACE FUNCTION update_last_edit()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.chat_text IS DISTINCT FROM OLD.chat_text THEN
+        NEW.last_edit = CURRENT_TIMESTAMP;
         NEW.last_edit = CURRENT_TIMESTAMP;
     END IF;
     RETURN NEW;
@@ -109,10 +103,7 @@ CREATE TRIGGER update_last_edit_on_chat_change
 `;
 }
 
-export async function createHostTable(
-  db: Kysely<any>,
-  tableName: string = 'temp_host_db'
-) {
+export async function createHostTable(db: Kysely<any>, tableName: string) {
   await db.schema
     .createTable(tableName)
     .ifNotExists()
@@ -138,12 +129,26 @@ export async function createHostTable(
     .execute();
 }
 
-export async function createUserTable(
-  db: Kysely<any>,
-  tableName: string = 'temp_user_db'
-) {
+export async function updateUserTable(db: Kysely<any>, tableName: string) {
+  await db.schema
+    .alterTable(tableName)
+    .dropColumn('template')
+    .dropColumn('bot_id')
+    .dropColumn('host_chat_id')
+    .dropColumn('chat_text')
+    .addColumn('user_name', 'text')
+    .execute();
+
+  await db.schema
+    .alterTable(tableName)
+    .renameColumn('result_text', 'summary')
+    .execute();
+}
+
+export async function createUserTable(db: Kysely<any>, tableName: string) {
   await db.schema
     .createTable(tableName)
+    .ifNotExists()
     .addColumn('id', 'text', (col) =>
       col.primaryKey().defaultTo(sql`substr(md5(random()::text), 1, 12)`)
     )
@@ -164,19 +169,18 @@ export async function createUserTable(
 
 export async function createMessagesTable(
   db: Kysely<any>,
-  tableName: string = 'temp_message_db',
-  userDbTableName: string = 'temp_user_db'
+  tableName: string,
+  userDbTableName: string
 ) {
   await db.schema
     .createTable(tableName)
+    .ifNotExists()
     .addColumn('id', 'text', (col) =>
       col
         .primaryKey()
         .defaultTo(sql`'msg_' || substr(md5(random()::text), 1, 12)`)
     )
-    .addColumn('thread_id', 'text', (col) =>
-      col.notNull().references(`${userDbTableName}.thread_id`)
-    )
+    .addColumn('thread_id', 'text', (col) => col.notNull())
     .addColumn('role', 'text', (col) =>
       col.notNull().check(sql`role IN ('user', 'assistant')`)
     )
@@ -187,33 +191,23 @@ export async function createMessagesTable(
     .execute();
 }
 
-export function createProdDbInstance() {
+export function createProdDbInstance<T extends Record<string, any>>() {
   const hostDbName = 'host_db';
   const userDbName = 'user_db';
   const messageDbName = 'message_db';
-  interface Databases {
-    [hostDbName]: HostSessionsTable;
-    [userDbName]: UserSessionsTable;
-    [messageDbName]: MessagesTable;
-  }
-  const db = createKysely<Databases>();
-  return { db, dbNames: { host:hostDbName, user:userDbName, message:messageDbName } };
+  const db = createKysely<T>();
+  return {
+    db,
+    dbNames: { host: hostDbName, user: userDbName, message: messageDbName },
+  };
 }
 
-export function createCustomDbInstance<T extends Record<string, any> = Databases>(
+export function createCustomDbInstance<T extends Record<string, any>>(
   host = 'temp_host_db',
   user = 'temp_user_db',
   message = 'temp_message_db',
   connectionUrl = process.env.CUSTOM_DATABASE
 ) {
-  // type Databases = {
-  //   [K in typeof host]: HostSessionsTable;
-  // } & {
-  //   [K in typeof user]: UserSessionsTable;
-  // } & {
-  //   [K in typeof message]: MessagesTable;
-  // };
-
   const dialect = new PostgresDialect({
     pool: new pg.Pool({
       connectionString: connectionUrl,
@@ -223,3 +217,17 @@ export function createCustomDbInstance<T extends Record<string, any> = Databases
   const db = new Kysely<T>({ dialect });
   return { db, dbNames: { host, user, message } };
 }
+
+export function createProdDbInstanceWithDbNames() {
+  const hostDbName = 'dev_host_db';
+const userDbName = 'dev_user_db';
+  const messageDbName = 'dev_messages_db';
+  interface Databases {
+    [hostDbName]: HostSessionsTable;
+    [userDbName]: UserSessionsTable;
+    [messageDbName]: MessagesTable; 
+  }
+  const db = createKysely<Databases>();
+  return { db, dbNames: { host: hostDbName, user: userDbName, message: messageDbName } };
+}
+

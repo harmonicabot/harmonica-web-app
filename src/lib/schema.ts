@@ -31,7 +31,6 @@ export interface UserSessionsTable {
   id: Generated<string>;
   session_id: string;
   user_id: string;
-  user_name?: string;
   template: string;
   feedback?: string;
   chat_text?: string;
@@ -155,8 +154,6 @@ export function createProdDbInstance() {
   const db = createKysely<Databases>();
   return { db, dbNames: { host, user } };
 }
-
-
 
 export function createCustomDbInstance<T extends Record<string, any> = Databases>(
   host = 'temp_host_db',

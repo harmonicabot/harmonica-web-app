@@ -15,14 +15,12 @@ import ShareSession from './ShareSession';
 import { countChatMessages, getAllChatMessagesInOrder } from '@/lib/db';
 
 export default function SessionResultsSection({
-  hostType,
   hostData,
   userData,
   id,
   handleCreateSummary,
   hasNewMessages,
 }: {
-  hostType: boolean;
   hostData: HostSession;
   userData: UserSession[];
   id: string;
@@ -32,11 +30,18 @@ export default function SessionResultsSection({
   const [hasMessages, setHasMessages] = useState(false);
 
   useEffect(() => {
-    const hasAnyMessages = userData
-      .map(async (data) => countChatMessages(data.thread_id))
-      .filter(async (sum) => (await sum) > 0).length > 0;
-    console.log("This session seems to have ")
+    const count = userData
+      .map(async (data) => {
+        console.log('Counting messages for ', data.thread_id);
+        return countChatMessages(data.thread_id);
+      })
+      .filter(async (sum) => (await sum) > 0).length;
+    const hasAnyMessages = count > 0;
+    console.log(`This session seems to have ${count} user contributions`);
     setHasMessages(hasAnyMessages);
+    if (hasAnyMessages && !hostData.summary) {
+      handleCreateSummary();
+    }
   }, [userData])
 
   const [exportInProgress, setExportInProgress] = useState(false);
@@ -131,9 +136,7 @@ export default function SessionResultsSection({
         defaultValue={
           hostData.summary
             ? 'SUMMARY'
-            : hostType
-            ? 'RESPONSES'
-            : 'SUMMARY'
+            : 'RESPONSES'
         }
       >
         <TabsList>
@@ -152,11 +155,9 @@ export default function SessionResultsSection({
               </TabsTrigger>
             </>
           )}
-          {hostType && (
-            <TabsTrigger className="ms-0" value="RESPONSES">
-              Responses
-            </TabsTrigger>
-          )}
+          <TabsTrigger className="ms-0" value="RESPONSES">
+            Responses
+          </TabsTrigger>
         </TabsList>
         <div className="flex flex-col md:flex-row gap-4">
           <div className="w-full md:w-2/3">
@@ -172,12 +173,10 @@ export default function SessionResultsSection({
                   <Spinner /> Creating your session summary...
                 </>
               )}
+          </TabsContent>
+            <TabsContent value="RESPONSES" className="mt-4">
+              <SessionResultParticipants userData={userData} />
             </TabsContent>
-            {hostType && (
-              <TabsContent value="RESPONSES" className="mt-4">
-                <SessionResultParticipants userData={userData} />
-              </TabsContent>
-            )}
           </div>
           <div className="w-full md:w-1/3 mt-4 gap-4">
             <SessionResultChat userData={userData} />

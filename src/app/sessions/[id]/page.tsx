@@ -83,7 +83,7 @@ export default function SessionResult() {
     processUserData();
   }, [userData]);
 
-  const [hostType, setHostType] = useState(false);
+  // const [hostType, setHostType] = useState(false);
 
 
   const finishSession = async () => { 
@@ -165,7 +165,7 @@ ${chats.join('\n\n----- Next Participant: -----\n')}
         }
       />
       <div className="flex flex-col md:flex-row gap-4">
-        {hostData.active && hostType && (
+        {hostData.active && (
           <SessionResultControls
             id={decryptedId}
             isFinished={!hostData.active}
@@ -185,7 +185,6 @@ ${chats.join('\n\n----- Next Participant: -----\n')}
         )}
       </div>
       <SessionResultsSection
-        hostType={hostType}
         hostData={hostData}
         userData={sessionsWithChat}
         id={decryptedId}
