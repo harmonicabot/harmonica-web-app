@@ -34,7 +34,7 @@ const fetcher = async (id: string) => {
 
 export default function SessionResult() {
   const { id } = useParams() as { id: string };
-  const decryptedId = id;
+  const decryptedId = decryptId(id);
 
   const [sessionsWithChat, setSessionsWithChat] = useState<UserSession[]>([]);
   const [numSessions, setNumSessions] = useState(0);
