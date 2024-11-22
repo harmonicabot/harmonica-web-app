@@ -11,21 +11,16 @@ if (typeof window === 'undefined') {
   console.log('Nope, not running on the server.');
 }
 
-const hostTableName = 'temp_host_db';
-const userTableName = 'temp_user_db';
-const messageTableName = 'temp_message_db';
+const hostTableName = 'dev_host_db';
+const userTableName = 'dev_user_db';
+const messageTableName = 'dev_messages_db';
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
   [userTableName]: s.UserSessionsTable;
   [messageTableName]: s.MessagesTable;
 }
 
-let dbConfig;
-if (process.env.NODE_ENV === 'production') {
-  dbConfig = s.createProdDbInstance();
-} else {
-  dbConfig = s.createCustomDbInstance<Databases>(hostTableName, userTableName, messageTableName);
-}
+let dbConfig = s.createProdDbInstanceWithDbNames();
 const db = dbConfig.db;
 
 // const db = createKysely<Databases>();
