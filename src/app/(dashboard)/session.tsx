@@ -27,7 +27,7 @@ export function Session({
   return (
     <TableRow>
       <TableCell className="font-medium text-base">
-        <Link href={`/sessions/${session.id}`}>{session.topic}</Link>
+        <Link href={`/sessions/${encryptId(session.id)}`}>{session.topic}</Link>
       </TableCell>
       <TableCell>
         <Badge
