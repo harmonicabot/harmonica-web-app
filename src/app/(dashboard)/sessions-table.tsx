@@ -2,25 +2,21 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Session } from './session';
-import {
-  AllSessionsData,
-  HostAndUserData,
-} from '@/lib/types';
 import { Key, useEffect, useState } from 'react';
 import SortableTable from '@/components/SortableTable';
+import { HostSession } from '@/lib/schema_updated';
 
 export type SessionData = {
-  sessionId: string;
-  name: string;
+  id: string;
+  topic: string;
   status: string;
   active: boolean;
   num_sessions: number;
   num_finished: number;
   created_on: string;
-  data: HostAndUserData;
 };
 
-export function SessionsTable({ sessions }: { sessions: AllSessionsData }) {
+export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
   const tableHeaders = [
     {
       label: 'Name',
@@ -57,49 +53,40 @@ export function SessionsTable({ sessions }: { sessions: AllSessionsData }) {
   const [tableSessions, setTableSessions] = useState<SessionData[]>([]);
 
   useEffect(() => {
-    const asSessionData: SessionData[] = Object.entries(sessions)
-      .map(([sessionId, session]) => {
-        const host = session.host_data;
-        const topic = host.topic;
-        const template = host.template;
-        const name = topic
-          ? topic
-          : template && !template.startsWith('asst_')
-            ? template
-            : null;
-
-        const status = !host.active || host.final_report_sent
+    const asSessionData: SessionData[] = sessions
+      .map(session => {
+        
+        const status = !session.active || session.final_report_sent
                 ? 'Finished'
-                : host.num_sessions === 0
+                : session.num_sessions === 0
                   ? 'Draft'
             : 'Active';
         const created_on = new Intl.DateTimeFormat(undefined, {
           dateStyle: 'medium',
           timeStyle: 'short',
-        }).format(new Date(host.start_time));
+        }).format(new Date(session.start_time));
 
         return {
-          sessionId,
-          name: name || '',
+          id: session.id,
+          topic: session.topic,
           status: status,
-          active: host.active,
-          num_sessions: host.num_sessions,
-          num_finished: host.num_finished,
-          created_on,
-          data: session,
+          active: session.active,
+          num_sessions: session.num_sessions,
+          num_finished: session.num_finished,
+          created_on
         };
       })
       .filter((cleaned) => {
-        return !!cleaned.name;
+        return !!cleaned.topic;
       })
     setTableSessions(asSessionData);
   }, [sessions]);
 
-  const handleOnDelete = (deleted: SessionData) => {
+  const handleOnDelete = (deletedId: string) => {
     console.log('Deleted session, now updating table');
     setTableSessions((prevSessions) =>
       prevSessions.filter(
-        (session) => session.sessionId !== deleted.sessionId
+        (session) => session.id !== deletedId
       )
     );
   };

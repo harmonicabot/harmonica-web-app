@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Chat from '@/components/chat';
-import { UserSession } from '@/lib/schema';
+import { UserSession } from '@/lib/schema_updated';
 
 export default function SessionResultChat({ userData }: { userData: UserSession[] }) {
   return (
@@ -16,14 +16,13 @@ export default function SessionResultChat({ userData }: { userData: UserSession[
             userNameInFirstMessage={false}
             context={{
               role: 'assistant',
-              content: `You will be asked questions based on the session data. Answer short. The context of the session is: ${userData.map((user) => user.chat_text).join(' --- next USER ---')}
-
-             ------------`,
+              content: `You will be asked questions based on the session data. Answer short.`,
+              contextThreadIds: userData.map(user => user.thread_id),
             }}
             assistantId="asst_LQospxVfX4vMTONASzSkSUwb"
             entryMessage={{
-              type: 'ASSISTANT',
-              text: `Hi there! Consider me your expert analyst, I can help you to better understand your session.
+              role: 'assistant',
+              content: `Hi there! Consider me your expert analyst, I can help you to better understand your session.
 
 Here are a few examples of what you can ask me:
   - What was the most common response?

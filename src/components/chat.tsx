@@ -11,6 +11,8 @@ import { ChatMessage } from './ChatMessage';
 import { Send } from './icons';
 import { insertUserSessions } from '@/lib/db';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { handleCreateThread, handleGenerateAnswer } from 'app/api/gptUtils';
+import { Message, NewMessage } from '@/lib/schema_updated';
 
 export default function Chat({
   assistantId,
@@ -27,14 +29,14 @@ export default function Chat({
   sessionId?: string;
   userSessionId?: string;
   setUserSessionId?: (id: string) => void;
-  entryMessage?: { type: string; text: string };
+  entryMessage?: OpenAIMessage;
   userNameInFirstMessage?: boolean;
   placeholderText?: string;
 }) {
   const { user } = useUser();
-  const defaultEntryMessage = {
-    type: 'ASSISTANT',
-    text: `Nice to meet you! Before we get started, here are a few things to keep in mind
+  const defaultEntryMessage: OpenAIMessage = {
+    role: 'assistant',
+    content: `Nice to meet you! Before we get started, here are a few things to keep in mind
 
 I’m going to ask you a few questions to help structure your contribution to this session.
 
@@ -58,50 +60,24 @@ Help & Support:
     messageText: '',
   });
   const [threadId, setThreadId] = useState('');
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<OpenAIMessage[]>([
     entryMessage ? entryMessage : defaultEntryMessage,
   ]);
+  const addMessage = (newMessage: OpenAIMessage) => {
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+  };
+
   const [isLoading, setIsLoading] = useState(false);
   const [userName, setUserName] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!threadId) {
-      console.log('creating thread');
-      sendApiCall({
-        action: ApiAction.CreateThread,
-        target: ApiTarget.Chat,
-        data: context ? [context] : [],
-      })
-        .then((response) => {
-          setIsLoading(false);
-          setThreadId(response.thread.id);
-        })
-        .then(() => {
-          if (sessionId) {
-            insertUserSessions({
-              session_id: sessionId,
-              user_id: user?.email ?? 'anonymous',
-              template: assistantId,
-              thread_id: threadId,
-              active: true,
-              start_time: new Date(),
-              last_edit: new Date(),
-            })
-              .then((ids) => {
-                if (ids[0] && setUserSessionId) setUserSessionId(ids[0]);
-              })
-              .catch((error) =>
-                console.error('[!] error creating user session -> ', error)
-              );
-          }
-        })
-        .catch((error) => {
-          console.error(error);
-        });
-    }
-  }, []);
+  const entityAskingQuestions = userNameInFirstMessage ? 'ASSISTANT' : 'USER';
+  function prependWithQuestionOrAnswer(message: any) {
+    return `${
+      message.type === entityAskingQuestions ? 'Question' : 'Answer'
+    } : ${message.text}`;
+  }
 
   useEffect(() => {
     if (messagesEndRef.current && messages.length > 1) {
@@ -118,7 +94,21 @@ Help & Support:
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const createThreadInProgressRef = useRef(false);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!threadId && !createThreadInProgressRef.current) {
+      createThreadInProgressRef.current = true;
+      createThread(
+        context,
+        setIsLoading,
+        setThreadId,
+        sessionId,
+        user,
+        setUserSessionId
+      );
+    }
+
     if (e.key === 'Enter' && !isLoading) {
       if (e.metaKey) {
         e.preventDefault();
@@ -142,75 +132,103 @@ Help & Support:
     }
   };
 
+  function createThread(
+    context: OpenAIMessage | undefined,
+    setIsLoading: (isLoading: boolean) => void,
+    setThreadId: (threadId: string) => void,
+    sessionId: string | undefined,
+    user: any,
+    setUserSessionId: ((id: string) => void) | undefined
+  ) {
+    console.log('creating thread');
+    handleCreateThread([])
+      .then((thread) => {
+        setIsLoading(false);
+        setThreadId(thread.id);
+
+        if (sessionId) {
+          const data = {
+            session_id: sessionId,
+            user_id: user?.email ?? 'anonymous',
+            thread_id: thread.id,
+            active: true,
+            start_time: new Date(),
+            last_edit: new Date(),
+          };
+          console.log('Inserting new session with initial data: ', data);
+          insertUserSessions(data)
+            .then((ids) => {
+              if (ids[0] && setUserSessionId) setUserSessionId(ids[0]);
+            })
+            .catch((error) =>
+              console.error('[!] error creating user session -> ', error)
+            );
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const messageText = formData.messageText;
+    let messageText = formData.messageText;
+    // This makes the message show up in the chat window:
+    addMessage({
+      role: 'user',
+      content: messageText,
+    });
 
-    if (userNameInFirstMessage && messages.length === 1) {
-      setUserName(messageText);
-    }
-    setMessages([...messages, { text: messageText, type: 'USER' }]);
     setFormData({ messageText: '' });
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
 
-    sendApiCall({
-      action: ApiAction.GenerateAnswer,
-      target: ApiTarget.Chat,
-      data: {
-        threadId: threadId,
-        messageText:
-          userNameInFirstMessage && messages.length === 1
-            ? `User name is ${messageText}. Use it in communication. Don't ask it again. Start the session.`
-            : messageText,
-        assistantId: assistantId
-          ? assistantId
-          : 'asst_fHg4kGRWn357GnejZJQnVbJW', // Fall back to 'Daily Review' by default
-      },
-    })
-      .then((response) => {
-        setIsLoading(false);
-        let actualMessages = [...response.messages];
+    if (userNameInFirstMessage && messages.length === 1) {
+      const userName = messageText;
+      setUserName(userName);
+      if (userSessionId) {
+        db.updateUserSession(userSessionId, {
+          user_name: userName,
+        });
+      }
+      messageText = `User name is ${userName}. Use it in communication. Don't ask it again. Start the session.`;
+    }
 
-        if (context) actualMessages.shift();
-        if (userNameInFirstMessage) {
-          actualMessages.shift();
-          actualMessages = [
-            {
-              text: userName.length ? userName : messageText,
-              type: 'USER',
-            },
-            ...actualMessages,
-          ];
-        }
-        if (userSessionId && response.messages) {
-          const updatedChatText = response.messages
-            .map(
-              (m: any) =>
-                `${
-                  m.type === (userNameInFirstMessage ? 'ASSISTANT' : 'USER')
-                    ? 'Question'
-                    : 'Answer'
-                } : ${m.text}`
-            )
-            .join('\n');
+    const now = new Date();
+    if (!threadId) {
+    // At this point, the thread should already be created, but just in case it's still in progress, let's add some wait in here:
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    const messageData = {
+      threadId: threadId,
+      messageText,
+      assistantId: assistantId,
+    };
+    if (userSessionId) {
+      db.insertChatMessage({
+        thread_id: threadId,
+        role: 'user',
+        content: messageText,
+        created_at: now
+      })
+    }
+
+    handleGenerateAnswer(messageData)
+      .then((answer) => {
+        console.log('received answer from ChatGPT: ', answer)
+        const now = new Date();
+        addMessage(answer);
+        
+        if (userSessionId) {
+          db.insertChatMessage(answer);
           db.updateUserSession(userSessionId, {
-            chat_text: updatedChatText,
-            active: true,
-            last_edit: new Date(),
+            last_edit: now,
           });
         }
-
-        setMessages(
-          response.messages
-            ? [
-                entryMessage ? entryMessage : defaultEntryMessage,
-                ...actualMessages,
-              ]
-            : []
-        );
+        setIsLoading(false);
       })
       .catch((error) => {
         console.error(error);
@@ -221,10 +239,7 @@ Help & Support:
     <div className="h-full max-h-[65vh] flex-grow flex flex-col">
       <div className="h-full flex-grow overflow-y-auto">
         {messages.map((message, index) => (
-          <ChatMessage
-            key={index}
-            message={message as { type: 'USER' | 'AI'; text: string }}
-          />
+          <ChatMessage key={index} message={message} />
         ))}
         {isLoading && (
           <div className="flex">

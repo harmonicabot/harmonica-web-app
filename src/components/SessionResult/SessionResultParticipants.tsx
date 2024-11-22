@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/card';
 import ParticipantSessionRow from './ParticipantSessionRow';
 import SortableTable from '../SortableTable';
-import { UserSession } from '@/lib/schema';
+import { UserSession } from '@/lib/schema_updated';
 
 export default function SessionResultParticipants({
   userData,
@@ -17,7 +17,7 @@ export default function SessionResultParticipants({
   type Data = {
     userName: string;
     sessionStatus: string;
-    session: UserSession;
+    userData: UserSession;
   };
 
   const tableHeaders: Array<{
@@ -30,31 +30,11 @@ export default function SessionResultParticipants({
   ];
 
   const sortableData: Data[] = userData
-    .filter((session) => session.chat_text)
-    .map((session) => ({
-      userName: extractName(session.chat_text!),
-      sessionStatus: session.active ? 'Started' : 'Finished',
-      session: session,
+    .map((data) => ({
+      userName: data.user_name ?? 'anonymous',
+      sessionStatus: data.active ? 'Started' : 'Finished',
+      userData: data,
     }));
-
-  function extractName(input: string): string {
-    const prefix = ' : User name is ';
-    const startIndex = input.indexOf(prefix);
-    if (startIndex === -1) return 'anonymous';
-
-    const nameStart = startIndex + prefix.length;
-    let nameEnd = input.length;
-
-    for (let i = nameStart; i < input.length; i++) {
-      if (input[i] === '.' || input.slice(i, i + 6) === 'Answer') {
-        nameEnd = i;
-        break;
-      }
-    }
-
-    const name = input.slice(nameStart, nameEnd).trim();
-    return name || 'anonymous';
-  }
 
   const getTableRow = (session: Data, index: number) => {
     return <ParticipantSessionRow key={index} {...session} />;

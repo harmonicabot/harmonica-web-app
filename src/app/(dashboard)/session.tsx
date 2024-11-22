@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { HostAndUserData } from '@/lib/types';
+import { encryptId } from '@/lib/encryptionUtils';
 import Link from 'next/link';
 import { User, UserCheck } from '@/components/icons';
 
@@ -21,13 +21,13 @@ export function Session({
   onDelete,
 }: {
   session: SessionData;
-  onDelete: (session: SessionData) => void;
+  onDelete: (sessionId: string) => void;
   }) {
 
   return (
     <TableRow>
       <TableCell className="font-medium text-base">
-        <Link href={`/sessions/${session.sessionId}`}>{session.name}</Link>
+        <Link href={`/sessions/${encryptId(session.id)}`}>{session.topic}</Link>
       </TableCell>
       <TableCell>
         <Badge
@@ -59,7 +59,7 @@ export function Session({
         {session.created_on}
       </TableCell>
       <TableCell>
-        <Link href={`/sessions/${session.sessionId}`}>
+        <Link href={`/sessions/${encryptId(session.id)}`}>
           <Button variant="outline">View</Button>
         </Link>
         <DropdownMenu>
@@ -84,8 +84,8 @@ export function Session({
             <DropdownMenuItem>
               <form
                 action={async () => {
-                  if (await deleteSession(session.data)) {
-                    onDelete(session);
+                  if (await deleteSession(session.id)) {
+                    onDelete(session.id);
                   }
                 }}
               >

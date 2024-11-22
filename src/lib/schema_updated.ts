@@ -7,6 +7,7 @@ import {
   Updateable,
   RawBuilder,
   PostgresDialect,
+  AlterColumnBuilder,
 } from 'kysely';
 import { sql, Kysely } from 'kysely';
 import pg from 'pg';
@@ -14,16 +15,16 @@ import pg from 'pg';
 export interface HostSessionsTable {
   id: Generated<string>;
   active: boolean;
-  num_sessions: number;
+  num_sessions: ColumnType<number, number, number | RawBuilder<unknown>>;
   num_finished: ColumnType<number, number, number | RawBuilder<unknown>>;
-  prompt?: string;
-  template?: string;
+  prompt: string;
+  template: string;
   topic: string;
   final_report_sent: boolean;
   context?: string;
   client?: string;
   summary?: string;
-  start_time: ColumnType<Date | string, Date | string | undefined, never>;
+  start_time: ColumnType<Date, Date | undefined, never>;
   last_edit: Generated<Date>;
 }
 
@@ -31,24 +32,22 @@ export interface UserSessionsTable {
   id: Generated<string>;
   session_id: string;
   user_id: string;
-  user_name?: string;
-  template: string;
-  feedback?: string;
-  chat_text?: string;
-  thread_id?: string;
-  result_text?: string;
-  bot_id?: string;
-  host_chat_id?: string;
+  thread_id: string;
   active: boolean;
-  step?: number;
-  start_time: ColumnType<Date, Date | string | undefined, never>;
+  user_name?: string;
+  feedback?: string;
+  summary?: string; // Todo: Do we ever set this? (I think this is always only part of the chat text, isn't it?)
+  step?: ColumnType<number, number, number | RawBuilder<unknown>>;
+  start_time: ColumnType<Date, Date | undefined, never>;
   last_edit: Generated<Date>;
 }
 
-// Database names:
-export interface Databases {
-  host_data: HostSessionsTable;
-  user_data: UserSessionsTable;
+export interface MessagesTable {
+  id: Generated<string>;
+  thread_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: Generated<Date>;
 }
 
 export type HostSession = Selectable<HostSessionsTable>;
@@ -57,6 +56,8 @@ export type HostSessionUpdate = Updateable<HostSessionsTable>;
 export type UserSession = Selectable<UserSessionsTable>;
 export type NewUserSession = Insertable<UserSessionsTable>;
 export type UserSessionUpdate = Updateable<UserSessionsTable>;
+export type Message = Selectable<MessagesTable>;
+export type NewMessage = Insertable<MessagesTable>;
 
 // Triggers & Setup helpers:
 
@@ -88,7 +89,7 @@ export function createTriggerOnUserUpdateLastEditChatText(
   sql`CREATE OR REPLACE FUNCTION update_last_edit()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.chat_text IS DISTINCT FROM OLD.chat_text THEN
+        NEW.last_edit = CURRENT_TIMESTAMP;
         NEW.last_edit = CURRENT_TIMESTAMP;
     END IF;
     RETURN NEW;
@@ -102,13 +103,15 @@ CREATE TRIGGER update_last_edit_on_chat_change
 `;
 }
 
-export async function createHostTable(
-  db: Kysely<any>,
-  tableName: string = 'temp_host_db'
-) {
+export async function createHostTable(db: Kysely<any>, tableName: string) {
   await db.schema
-    .createTable(tableName).ifNotExists()
-    .addColumn('id', 'text', (col) => col.primaryKey().defaultTo(sql`substr(md5(random()::text), 1, 12)`))
+    .createTable(tableName)
+    .ifNotExists()
+    .addColumn('id', 'text', (col) =>
+      col
+        .primaryKey()
+        .defaultTo(sql`'hst_' || substr(md5(random()::text), 1, 12)`)
+    )
     .addColumn('active', 'boolean', (col) => col.notNull())
     .addColumn('num_sessions', 'integer', (col) => col.notNull())
     .addColumn('num_finished', 'integer', (col) => col.notNull())
@@ -120,59 +123,108 @@ export async function createHostTable(
     .addColumn('summary', 'text')
     .addColumn('final_report_sent', 'boolean', (col) => col.defaultTo(false))
     .addColumn('start_time', 'timestamp')
-    .addColumn('last_edit', 'timestamp', (col) => col.defaultTo(sql`CURRENT_TIMESTAMP`))
+    .addColumn('last_edit', 'timestamp', (col) =>
+      col.defaultTo(sql`CURRENT_TIMESTAMP`)
+    )
     .execute();
 }
 
-export async function createUserTable(
-  db: Kysely<any>,
-  tableName: string = 'temp_user_db'
-) {
+export async function updateUserTable(db: Kysely<any>, tableName: string) {
   await db.schema
-    .createTable(tableName).ifNotExists()
-    .addColumn('id', 'text', (col) => col.primaryKey().defaultTo(sql`substr(md5(random()::text), 1, 12)`))
+    .alterTable(tableName)
+    .dropColumn('template')
+    .dropColumn('bot_id')
+    .dropColumn('host_chat_id')
+    .dropColumn('chat_text')
+    .addColumn('user_name', 'text')
+    .execute();
+
+  await db.schema
+    .alterTable(tableName)
+    .renameColumn('result_text', 'summary')
+    .execute();
+}
+
+export async function createUserTable(db: Kysely<any>, tableName: string) {
+  await db.schema
+    .createTable(tableName)
+    .ifNotExists()
+    .addColumn('id', 'text', (col) =>
+      col.primaryKey().defaultTo(sql`substr(md5(random()::text), 1, 12)`)
+    )
     .addColumn('session_id', 'text', (col) => col.notNull())
     .addColumn('user_id', 'text', (col) => col.notNull())
     .addColumn('active', 'boolean', (col) => col.notNull())
+    .addColumn('thread_id', 'text', (col) => col.notNull().unique())
     .addColumn('user_name', 'text')
-    .addColumn('chat_text', 'text')
     .addColumn('feedback', 'text')
-    .addColumn('thread_id', 'text')
     .addColumn('summary', 'text')
     .addColumn('start_time', 'timestamp')
     .addColumn('step', 'numeric', (col) => col.defaultTo(0))
-    .addColumn('last_edit', 'timestamp', (col) => col.defaultTo(sql`CURRENT_TIMESTAMP`))
+    .addColumn('last_edit', 'timestamp', (col) =>
+      col.defaultTo(sql`CURRENT_TIMESTAMP`)
+    )
     .execute();
 }
 
-export function createProdDbInstance() {
-  const host = 'host_db';
-  const user = 'user_db';
-  interface Databases {
-    [host]: HostSessionsTable;
-    [user]: UserSessionsTable;
-  }
-  const db = createKysely<Databases>();
-  return { db, dbNames: { host, user } };
+export async function createMessagesTable(
+  db: Kysely<any>,
+  tableName: string,
+  userDbTableName: string
+) {
+  await db.schema
+    .createTable(tableName)
+    .ifNotExists()
+    .addColumn('id', 'text', (col) =>
+      col
+        .primaryKey()
+        .defaultTo(sql`'msg_' || substr(md5(random()::text), 1, 12)`)
+    )
+    .addColumn('thread_id', 'text', (col) => col.notNull())
+    .addColumn('role', 'text', (col) =>
+      col.notNull().check(sql`role IN ('user', 'assistant')`)
+    )
+    .addColumn('content', 'text', (col) => col.notNull())
+    .addColumn('created_at', 'timestamp', (col) =>
+      col.defaultTo(sql`CURRENT_TIMESTAMP`)
+    )
+    .execute();
 }
 
-export function createCustomDbInstance<T extends Record<string, any> = Databases>(
+export function createProdDbInstance<T extends Record<string, any>>() {
+  const hostDbName = 'host_db';
+  const userDbName = 'user_db';
+  const messageDbName = 'message_db';
+  const db = createKysely<T>();
+  return {
+    db,
+    dbNames: { host: hostDbName, user: userDbName, message: messageDbName },
+  };
+}
+
+export function createCustomDbInstance<T extends Record<string, any>>(
   host = 'temp_host_db',
   user = 'temp_user_db',
+  message = 'temp_message_db',
   connectionUrl = process.env.CUSTOM_DATABASE
 ) {
-  // type Databases = {
-  //   [K in typeof host]: HostSessionsTable
-  // } & {
-  //   [K in typeof user]: UserSessionsTable
-  // };
-
   const dialect = new PostgresDialect({
     pool: new pg.Pool({
       connectionString: connectionUrl,
-      max:10,
-  })})
+      max: 10,
+    }),
+  });
   const db = new Kysely<T>({ dialect });
-  
-  return { db, dbNames: { host, user } };
+  return { db, dbNames: { host, user, message } };
 }
+
+export function createProdDbInstanceWithDbNames<T extends Record<string, any>>(
+  host = 'prod_host_db',
+  user = 'prod_user_db',
+  message = 'prod_messages_db',
+) {
+
+  const db = createKysely<T>();
+  return { db, dbNames: { host, user, message } };
+}
+
