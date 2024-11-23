@@ -40,35 +40,40 @@ export default function SessionResult() {
   const [numSessions, setNumSessions] = useState(0);
   const [completedSessions, setCompletedSessions] = useState(0);
 
-  const [hostData, addHostData, userData = [], addUserData] = useSessionStore((state) => [
-    state.hostData[decryptedId],
-    state.addHostData,
-    state.userData[id],
-    state.addUserData,
-  ]);
+  const [hostData, addHostData, userData = [], addUserData] = useSessionStore(
+    (state) => [
+      state.hostData[decryptedId],
+      state.addHostData,
+      state.userData[id],
+      state.addUserData,
+    ],
+  );
 
-
-  const { error } = useSWR(`sessions/${decryptedId}`, () => fetcher(decryptedId), {
-    refreshInterval: 5*60000, // Poll every 5 minutes
-    revalidateOnFocus: true,
-    onSuccess: ({ hostData, userData }) => {
-      console.log('Updated session data fetched:', userData);
-      addHostData(decryptedId, hostData)
-      addUserData(id, userData);
+  const { error } = useSWR(
+    `sessions/${decryptedId}`,
+    () => fetcher(decryptedId),
+    {
+      refreshInterval: 5 * 60000, // Poll every 5 minutes
+      revalidateOnFocus: true,
+      onSuccess: ({ hostData, userData }) => {
+        console.log('Updated session data fetched:', userData);
+        addHostData(decryptedId, hostData);
+        addUserData(id, userData);
+      },
     },
-  });
+  );
 
   const { user } = useUser();
 
   useEffect(() => {
     const processUserData = async () => {
       if (!userData) return;
-      
+
       const withChatText = await Promise.all(
         userData.map(async (user) => {
           const messageCount = await countChatMessages(user.thread_id);
           return { user, messageCount };
-        })
+        }),
       );
 
       const filtered = withChatText
@@ -77,7 +82,7 @@ export default function SessionResult() {
 
       setSessionsWithChat(filtered);
       setNumSessions(filtered.length);
-      setCompletedSessions(filtered.filter(user => !user.active).length);
+      setCompletedSessions(filtered.filter((user) => !user.active).length);
     };
 
     processUserData();
@@ -85,8 +90,7 @@ export default function SessionResult() {
 
   // const [hostType, setHostType] = useState(false);
 
-
-  const finishSession = async () => { 
+  const finishSession = async () => {
     await deactivateHostSession(decryptedId);
     await createSummary();
   };
@@ -95,10 +99,10 @@ export default function SessionResult() {
     console.log(`Creating summary for ${decryptedId}...`);
     const chats = await Promise.all(
       sessionsWithChat.map(
-        async (user) => await getAllChatMessagesInOrder(user.thread_id)
-      )
+        async (user) => await getAllChatMessagesInOrder(user.thread_id),
+      ),
     );
-    const prompt = await getFromHostSession(id, 'prompt')
+    const prompt = await getFromHostSession(id, 'prompt');
 
     // TODO: The chat messages here are not concatenated properly yet, AND we want to pass them individually to chatGPT instead of all at once, otherwise it might fail due to size limitations.
     const instructions = `
@@ -159,9 +163,7 @@ ${chats.join('\n\n----- Next Participant: -----\n')}
       <SessionResultHeader
         topic={hostData.topic}
         status={
-          !hostData.active
-            ? SessionStatus.REPORT_SENT
-            : SessionStatus.ACTIVE
+          !hostData.active ? SessionStatus.REPORT_SENT : SessionStatus.ACTIVE
         }
       />
       <div className="flex flex-col md:flex-row gap-4">
@@ -180,9 +182,7 @@ ${chats.join('\n\n----- Next Participant: -----\n')}
           numSessions={numSessions}
           completedSessions={completedSessions}
         />
-        {hostData.active && (
-          <SessionResultShare sessionId={decryptedId} />
-        )}
+        {hostData.active && <SessionResultShare sessionId={decryptedId} />}
       </div>
       <SessionResultsSection
         hostData={hostData}

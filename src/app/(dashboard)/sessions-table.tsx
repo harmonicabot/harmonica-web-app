@@ -5,6 +5,7 @@ import { Session } from './session';
 import { Key, useEffect, useState } from 'react';
 import SortableTable from '@/components/SortableTable';
 import { HostSession } from '@/lib/schema_updated';
+import * as db from '@/lib/db';
 
 export type SessionData = {
   id: string;
@@ -20,7 +21,7 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
   const tableHeaders = [
     {
       label: 'Name',
-      sortKey: 'name',
+      sortKey: 'topic',
       className: 'cursor-pointer',
     },
     {
@@ -53,13 +54,23 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
   const [tableSessions, setTableSessions] = useState<SessionData[]>([]);
 
   useEffect(() => {
-    const asSessionData: SessionData[] = sessions
-      .map(session => {
-        
-        const status = !session.active || session.final_report_sent
-                ? 'Finished'
-                : session.num_sessions === 0
-                  ? 'Draft'
+    setAsSessionData(sessions);
+  }, [sessions]);
+
+  async function setAsSessionData(sessions: HostSession[]) {
+    const totalAndFinished = await db.getNumberOfTotalAndFinishedThreads(sessions); 
+    const asSessionData = totalAndFinished
+      .map((sessionAndNumbers) => {
+        const sessionId = sessionAndNumbers.id;
+        const totalUsers = sessionAndNumbers.total_users as number;
+        const finishedUsers = sessionAndNumbers.finished_users as number;
+        const session = sessions.find(session => session.id === sessionId);
+        if (!session || !session.topic) return;
+        const status = 
+          !session.active || session.final_report_sent
+            ? 'Finished'
+            : totalUsers === 0
+            ? 'Draft'
             : 'Active';
         const created_on = new Intl.DateTimeFormat(undefined, {
           dateStyle: 'medium',
@@ -71,23 +82,20 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
           topic: session.topic,
           status: status,
           active: session.active,
-          num_sessions: session.num_sessions,
-          num_finished: session.num_finished,
-          created_on
+          num_sessions: totalUsers,
+          num_finished: finishedUsers,
+          created_on,
         };
-      })
-      .filter((cleaned) => {
-        return !!cleaned.topic;
-      })
-    setTableSessions(asSessionData);
-  }, [sessions]);
+      }).filter((session) => session !== undefined);
+    if (asSessionData !== undefined) {
+      setTableSessions(asSessionData);
+    }
+  }
 
   const handleOnDelete = (deletedId: string) => {
     console.log('Deleted session, now updating table');
     setTableSessions((prevSessions) =>
-      prevSessions.filter(
-        (session) => session.id !== deletedId
-      )
+      prevSessions.filter((session) => session.id !== deletedId)
     );
   };
 
