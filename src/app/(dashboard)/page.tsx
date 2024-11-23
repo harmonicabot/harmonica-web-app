@@ -21,7 +21,7 @@ export default function Dashboard({
   const [hostData, setHostData] = useState<HostSession[]>([]);
   const { user } = useUser();
   useEffect(() => {
-    console.log('Erm... getting host sessions?')
+    console.log('Getting host sessions')
     getSessionData();
   }, []);
 

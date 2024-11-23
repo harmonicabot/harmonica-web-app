@@ -30,17 +30,6 @@ interface Databases {
 let dbConfig = s.createProdDbInstanceWithDbNames<Databases>(hostTableName, userTableName, messageTableName);
 const db = dbConfig.db;
 
-// const db = createKysely<Databases>();
-// const connectionUrl = `postgresql://${process.env.LOCAL_DB_USER_PWD}@localhost:5432/local_verceldDb`;
-
-
-// const dialect = new PostgresDialect({
-//   pool: new pg.Pool({
-//     connectionString: connectionUrl,
-//     max: 10,
-//   }),
-// });
-// const db = new Kysely<Databases>({ dialect });
 
 async function getAuthForClient() {
   const session = await authGetSession();
@@ -274,6 +263,26 @@ export async function searchUserSessions(
     console.error('Error searching user sessions:', error);
     throw error;
   }
+}
+
+export async function getNumberOfTotalAndFinishedThreads(sessions: s.HostSession[]) {
+  // console.log('Getting number of active and inactive threads for sessions');
+  const sessionIds = sessions.map(session => session.id);
+  const result = await db
+    .selectFrom(hostTableName)
+    .leftJoin(userTableName, `${userTableName}.session_id`, `${hostTableName}.id`)
+    .where(`${hostTableName}.id`, 'in', sessionIds)
+    .select(({ fn }) => [
+      `${hostTableName}.id`,
+      fn.countAll().as('total_users'),
+      fn.countAll()
+        .filterWhere(`${userTableName}.active`, '=', false)
+        .as('finished_users')
+    ])
+    .groupBy(`${hostTableName}.id`)
+    .execute()
+
+  return result
 }
 
 export async function insertChatMessage(message: s.NewMessage) {
