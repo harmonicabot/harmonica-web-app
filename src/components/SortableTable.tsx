@@ -28,21 +28,23 @@ export default function SortableTable({
   tableHeaders,
   getTableRow,
   data,
+  defaultSort,
 }: {
   tableHeaders: TableHeaderData[];
   getTableRow: (data: any, index: number) => JSX.Element;
   data: ColumnData;
+  defaultSort?: { column: string, direction: Direction };
 }) {
 
-  const defaultSort = (sortDirection: Direction, a: any, b: any) => {
+  const defaultLocalCompare = (sortDirection: Direction, a: any, b: any) => {
     return sortDirection === 'asc' ? 
       String(a).localeCompare(String(b), undefined, { numeric: true }) :
       String(b).localeCompare(String(a), undefined, { numeric: true });
   };
 
   type SortColumn = TableHeaderData['sortKey'];
-  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
-  const [sortDirection, setSortDirection] = useState<Direction>('asc');
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(defaultSort?.column ?? null);
+  const [sortDirection, setSortDirection] = useState<Direction>(defaultSort?.direction ?? 'asc');
   const [showSpinner, setShowSpinner] = useState(true);
 
   useEffect(() => {
@@ -68,7 +70,7 @@ export default function SortableTable({
       const headerToSort = tableHeaders.find(
         (header) => header.sortKey === sortColumn
       );
-      let sortBy = headerToSort?.sortBy ?? defaultSort;
+      let sortBy = headerToSort?.sortBy ?? defaultLocalCompare;
       return sortBy(sortDirection, aValue, bValue);
     });
   }, [data, sortColumn, sortDirection, tableHeaders]);
