@@ -156,7 +156,7 @@ const StandaloneChat = () => {
                             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-8">
                               {user && user.sub && (
                                 <Link
-                                  href={`/sessions/${sessionId}`}
+                                  href={`/sessions/${encryptId(sessionId!)}`}
                                   passHref
                                   className="w-full sm:w-auto"
                                 >
