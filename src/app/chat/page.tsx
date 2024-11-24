@@ -17,6 +17,7 @@ import {
 import { sql } from 'kysely';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { OpenAIMessage } from '@/lib/types';
+import { encryptId } from '@/lib/encryptionUtils';
 
 const StandaloneChat = () => {
   const [message, setMessage] = useState<OpenAIMessage>({
@@ -128,7 +129,7 @@ const StandaloneChat = () => {
                         participants have finished to receive the final report.
                       </p>
                       {user && user.sub && (
-                        <Link href={`/sessions/${sessionId}`} passHref>
+                        <Link href={`/sessions/${encryptId(sessionId!)}`} passHref>
                           <Button size="lg" className="mt-4">
                             View Session Results
                           </Button>
@@ -155,7 +156,7 @@ const StandaloneChat = () => {
                             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-8">
                               {user && user.sub && (
                                 <Link
-                                  href={`/sessions/${sessionId}`}
+                                  href={`/sessions/${encryptId(sessionId!)}`}
                                   passHref
                                   className="w-full sm:w-auto"
                                 >
