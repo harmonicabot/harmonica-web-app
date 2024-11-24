@@ -4,6 +4,8 @@ export function encryptId(input: string): string {
 }
 
 export function decryptId(encoded: string): string {
-    let decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+    // Decode URL-encoded string
+    let decodedUrl = decodeURIComponent(encoded);
+    let decoded = Buffer.from(decodedUrl, 'base64').toString('utf-8');
     return decoded; 
 }
