@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NewHostSession } from '@/lib/schema_updated';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
+import { encryptId } from '@/lib/encryptionUtils';
 
 // Todo: This class has become unwieldy. Think about splitting more functionality out. (Might not be easy though, because this is the 'coordinator' page that needs to somehow bind together all the functionality of the three sub-steps.)
 // One possibility to do that might be to have better state management / a session store or so, into which sub-steps can write to.
@@ -185,7 +186,7 @@ export default function CreationFlow() {
       expirationDate.setDate(expirationDate.getDate() + 30); // Cookie expires in 30 days
       document.cookie = `sessionId=${session_id}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
 
-      route.push(`/sessions/${session_id}`);
+      route.push(`/sessions/${encryptId(session_id)}`);
     });
   };
 
