@@ -112,6 +112,7 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
           tableHeaders={tableHeaders}
           getTableRow={getTableRow}
           data={tableSessions}
+          defaultSort={{ column: 'created_on', direction: 'desc' }}
         />
       </CardContent>
       {/* <CardFooter>
