@@ -71,14 +71,7 @@ Help & Support:
   const [userName, setUserName] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const entityAskingQuestions = userNameInFirstMessage ? 'ASSISTANT' : 'USER';
-  function prependWithQuestionOrAnswer(message: any) {
-    return `${
-      message.type === entityAskingQuestions ? 'Question' : 'Answer'
-    } : ${message.text}`;
-  }
-
+  
   useEffect(() => {
     if (messagesEndRef.current && messages.length > 1) {
       messagesEndRef.current.scrollIntoView({
