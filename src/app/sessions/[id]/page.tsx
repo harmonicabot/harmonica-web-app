@@ -25,6 +25,20 @@ import {
 import { decryptId } from '@/lib/encryptionUtils';
 import { UserSession } from '@/lib/schema_updated';
 
+// Define the type for a chat message
+interface ChatMessage {
+  content: string;
+  created_at: Date;
+  id: string;
+  role: 'user' | 'ai' | 'assistant'; // Added 'assistant' to the role type
+  thread_id: string;
+}
+
+// Define the type for the grouped chats
+interface GroupedChats {
+  [threadId: string]: ChatMessage[];
+}
+
 const fetcher = async (id: string) => {
   const hostData = await getHostSessionById(id);
   const userData = await getUsersBySessionId(id);
@@ -94,9 +108,26 @@ export default function SessionResult() {
         async (user) => await getAllChatMessagesInOrder(user.thread_id),
       ),
     );
-    const prompt = await getFromHostSession(id, 'prompt');
 
-    // TODO: The chat messages here are not concatenated properly yet, AND we want to pass them individually to chatGPT instead of all at once, otherwise it might fail due to size limitations.
+    // Flatten the chats and group by thread_id to distinguish participants
+    const flattenedChats: ChatMessage[] = chats.flat();
+    const groupedChats: GroupedChats = flattenedChats.reduce((acc, chat) => {
+      const participant = chat.thread_id; // Use thread_id to identify the participant
+      if (!acc[participant]) {
+        acc[participant] = [];
+      }
+      acc[participant].push(chat);
+      return acc;
+    }, {} as GroupedChats); // Type assertion for the accumulator
+
+    // Create formatted messages for each participant
+    const chatMessages = Object.entries(groupedChats).map(([participantId, messages]) => {
+      const participantMessages = messages.map(chat => {
+        return `${chat.role === 'user' ? 'User' : 'AI'}: ${chat.content}`;
+      }).join('\n'); // Join messages for the same participant
+      return `Participant ${participantId}:\n${participantMessages}`; // Format for each participant
+    }).join('\n\n----- Next Participant: -----\n'); // Join participants
+
     const instructions = `
 Generate a short **REPORT** that answers the OBJECTIVE of the session and suits the overall session style.\n\n
 The **OBJECTIVE** is stated in this prompt:\n
@@ -105,8 +136,7 @@ ${hostData.prompt}\n
 ##### END PROMPT #####\n
 And the content for the report:\n\n
 ##### START CONTENT #####\n
------ Next Participant: -----\n
-${chats.join('\n\n----- Next Participant: -----\n')}
+${chatMessages}
 ----- END PARTICIPANTS -----\n
 ##### END CONTENT #####\n\n
 `;
