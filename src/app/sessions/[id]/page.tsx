@@ -25,6 +25,9 @@ import {
 import { decryptId } from '@/lib/encryptionUtils';
 import { UserSession } from '@/lib/schema_updated';
 
+// Increase the maximum execution time for this function on vercel
+export const maxDuration = 60;  // in seconds
+
 // Define the type for a chat message
 interface ChatMessage {
   content: string;
