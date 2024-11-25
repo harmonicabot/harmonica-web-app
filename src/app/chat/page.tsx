@@ -22,7 +22,8 @@ import { encryptId } from '@/lib/encryptionUtils';
 const StandaloneChat = () => {
   const [message, setMessage] = useState<OpenAIMessage>({
     role: 'assistant',
-    content: `Nice to meet you! Could you please let me know your name?
+    content: `How should we call you?\n
+Please type your name or "anonymous" if you prefer
 `,
   });
 
