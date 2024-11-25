@@ -267,23 +267,23 @@ export async function searchUserSessions(
 }
 
 export async function getNumberOfTotalAndFinishedThreads(sessions: s.HostSession[]) {
-  // console.log('Getting number of active and inactive threads for sessions');
   const sessionIds = sessions.map(session => session.id);
   if (sessionIds.length === 0) return [];
   const result = await db
-    .selectFrom(hostTableName)
-    .leftJoin(userTableName, `${userTableName}.session_id`, `${hostTableName}.id`)
+  .selectFrom(hostTableName)
+  .leftJoin(userTableName, `${userTableName}.session_id`, `${hostTableName}.id`)
     .where(`${hostTableName}.id`, 'in', sessionIds)
     .select(({ fn }) => [
       `${hostTableName}.id`,
-      fn.countAll().as('total_users'),
-      fn.countAll()
-        .filterWhere(`${userTableName}.active`, '=', false)
-        .as('finished_users')
+      fn.count(`${userTableName}.id`).as('total_users'),
+      fn.count(`${userTableName}.id`)
+      .filterWhere(`${userTableName}.active`, '=', false)
+      .as('finished_users')
     ])
     .groupBy(`${hostTableName}.id`)
     .execute()
-
+    
+  // console.log(`Counts for ${sessionIds}: `, result); 
   return result
 }
 
