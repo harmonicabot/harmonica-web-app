@@ -3,7 +3,7 @@ import { HostSession, Message, UserSession } from '@/lib/schema_updated';
 
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,7 +12,7 @@ import SessionResultChat from './SessionResultChat';
 import SessionResultParticipants from './SessionResultParticipants';
 import SessionResultSummary from './SessionResultSummary';
 import ShareSession from './ShareSession';
-import { countChatMessages, getAllChatMessagesInOrder } from '@/lib/db';
+import { getAllChatMessagesInOrder, getUsersWithMessages } from '@/lib/db';
 
 export default function SessionResultsSection({
   hostData,
@@ -30,18 +30,14 @@ export default function SessionResultsSection({
   const [hasMessages, setHasMessages] = useState(false);
 
   useEffect(() => {
-    const count = userData
-      .map(async (data) => {
-        console.log('Counting messages for ', data.thread_id);
-        return countChatMessages(data.thread_id);
-      })
-      .filter(async (sum) => (await sum) > 0).length;
-    const hasAnyMessages = count > 0;
-    console.log(`This session seems to have ${count} user contributions`);
-    setHasMessages(hasAnyMessages);
-    if (hasAnyMessages && !hostData.summary) {
-      handleCreateSummary();
-    }
+    getUsersWithMessages(userData).then(usersWithMessages => {
+      const count = usersWithMessages.length;
+      console.log(`This session seems to have ${count} user contributions`);
+      setHasMessages(count > 0);
+      if (count > 0 && !hostData.summary) {
+        handleCreateSummary();
+      }
+    })
   }, [userData])
 
   const [exportInProgress, setExportInProgress] = useState(false);

@@ -296,13 +296,18 @@ export async function insertChatMessage(message: s.NewMessage) {
   }
 }
 
-export async function countChatMessages(threadId: string) {
-  const result = await db.selectFrom(messageTableName)
-    .where('thread_id', '=', threadId)
-    .select(({ fn }) => [fn.count('id').as('count')])
-    .executeTakeFirst();
-  
-  return Number(result?.count ?? 0);
+export async function getUsersWithMessages(users: s.UserSession[]) {
+  if (users.length === 0) return [];
+  const userIdsWithMessages = await db
+    .selectFrom(userTableName)
+    .leftJoin(messageTableName, `${messageTableName}.thread_id`, `${userTableName}.thread_id`)
+    .where(`${userTableName}.id`, 'in', users.map(user => user.id))
+    .select(`${userTableName}.id`)
+    .having(({ fn }) => fn.count(`${messageTableName}.id`), '>', 0)
+    .groupBy(`${userTableName}.id`)
+    .execute();
+  const userIdsSet = new Set(userIdsWithMessages.map(row => row.id));
+  return users.filter(user => userIdsSet.has(user.id));
 }
 
 export async function getAllChatMessagesInOrder(threadId: string) {
