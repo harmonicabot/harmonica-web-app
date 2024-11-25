@@ -6,25 +6,31 @@ import { useEffect, useState } from 'react';
 import { ChatMessage } from '../ChatMessage';
 import { getAllChatMessagesInOrder } from '@/lib/db';
 import { ParticipantsTableData } from './SessionResultParticipants';
+import { Spinner } from '../icons';
 
-export default function ParicipantSessionRow(
-  { tableData }: { tableData: ParticipantsTableData }
-) {
+export default function ParicipantSessionRow({
+  tableData,
+}: {
+  tableData: ParticipantsTableData;
+}) {
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const userData = tableData.userData;
 
   const handleViewClick = async () => {
+    setIsPopupVisible(true);
     const messageHistory = await getAllChatMessagesInOrder(userData.thread_id);
     // console.log('Messages fetched: ', messageHistory);
     if (messageHistory.length === 0) {
-      console.error('No messages found for ', userData.thread_id, ' but it should be there!');
+      console.error(
+        'No messages found for ',
+        userData.thread_id,
+        ' but it should be there!'
+      );
       return;
     }
     removeFirstFakeUserEntry(messageHistory);
     setMessages(messageHistory);
-
-    setIsPopupVisible(true);
   };
 
   const handleCloseClick = () => {
@@ -39,14 +45,15 @@ export default function ParicipantSessionRow(
   // All users passed into this method should also have some messages.
 
   function removeFirstFakeUserEntry(messages: Message[]) {
-    if (messages[0].role === 'user' && messages[0].content.startsWith('User name is ')) {
+    if (
+      messages[0].role === 'user' &&
+      messages[0].content.startsWith('User name is ')
+    ) {
       messages.shift();
     }
   }
 
-  function parseMessages(
-    input: string,
-  ) {
+  function parseMessages(input: string) {
     try {
       const regex =
         /(Answer|Question)\s*:\s*([\s\S]*?)(?=(Answer|Question)\s*:|$)/g;
@@ -68,7 +75,7 @@ export default function ParicipantSessionRow(
         handleCloseClick();
       }
     };
-  
+
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
@@ -83,15 +90,22 @@ export default function ParicipantSessionRow(
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
             <div className="bg-purple-100 border-purple-200 p-8 rounded-lg w-4/5 h-4/5 md:w-3/5 md:h-3/5 lg:w-1/2 lg:h-3/4 flex flex-col">
               <div className="flex justify-between mb-4">
-                <h2 className="text-2xl font-bold">{tableData.userName} transcript</h2>
+                <h2 className="text-2xl font-bold">
+                  {tableData.userName} transcript
+                </h2>
                 <Button onClick={handleCloseClick}>Close</Button>
               </div>
 
               <div className="flex-1 overflow-auto rounded-lg">
-                { messages.map((message, index) => (
+                {messages.length > 0 ? (
+                  messages.map((message, index) => (
                     <ChatMessage key={index} message={message} />
                   ))
-                }
+                ) : (
+                  <div className="flex items-center justify-center m-4">
+                    <Spinner /> Loading Transcript ...
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -107,13 +121,14 @@ export default function ParicipantSessionRow(
         {new Intl.DateTimeFormat(undefined, {
           dateStyle: 'medium',
           timeStyle: 'short',
-        }).format(tableData.createdDate)}.
+        }).format(tableData.createdDate)}
+        .
       </TableCell>
       <TableCell>
         {new Intl.DateTimeFormat(undefined, {
           dateStyle: 'medium',
           timeStyle: 'short',
-        }).format(tableData.updatedDate)} 
+        }).format(tableData.updatedDate)}
       </TableCell>
       {/* <TableCell>
         <Switch></Switch>
