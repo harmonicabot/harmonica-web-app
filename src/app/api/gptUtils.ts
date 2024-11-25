@@ -1,28 +1,27 @@
 'use server';
-import { Message, NewMessage } from "@/lib/schema_updated";
+import { NewMessage } from "@/lib/schema_updated";
 import { AssistantMessageData, OpenAIMessage } from "@/lib/types";
-import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function handleCreateThread(messagesData?: Array<OpenAIMessage>) {
-  let thread;
-  if (messagesData) {
-    thread = await client.beta.threads.create({
-      messages: messagesData.map((messageData) => ({
+export async function handleCreateThread(messageData?: OpenAIMessage, additionalContext?: string[]) {
+  if (messageData) {
+    const thread = await client.beta.threads.create({
+      messages: [{
         role: messageData.role,
         content: messageData.content,
-      })),
+      }],
     });
-
+    for (const context of additionalContext ?? []) {
+      await sendMessage(thread.id, 'assistant', context);
+    }
+    return thread.id;
   } else {
-    thread = await client.beta.threads.create();
+    return (await client.beta.threads.create()).id;
   }
-
-  return thread;
 }
 
 export async function handleGenerateAnswer(messageData: AssistantMessageData): Promise<NewMessage> {
@@ -56,8 +55,8 @@ export async function sendMessage(threadId: string, role: 'user' | 'assistant', 
   return await client.beta.threads.messages.create(
     threadId,
     {
-      role,
-      content,
+      role: role,
+      content: content,
     }
   );
 }

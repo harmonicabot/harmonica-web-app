@@ -1,4 +1,3 @@
-import { ApiTarget } from '@/lib/types';
 import { HostSession, Message, UserSession } from '@/lib/schema_updated';
 
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,7 +11,11 @@ import SessionResultChat from './SessionResultChat';
 import SessionResultParticipants from './SessionResultParticipants';
 import SessionResultSummary from './SessionResultSummary';
 import ShareSession from './ShareSession';
-import { countChatMessages, getAllChatMessagesInOrder } from '@/lib/db';
+import {
+  getAllMessagesForUsersSorted,
+  filterForUsersWithMessages,
+} from '@/lib/db';
+import { formatForExport } from 'app/api/exportUtils';
 
 export default function SessionResultsSection({
   hostData,
@@ -30,19 +33,17 @@ export default function SessionResultsSection({
   const [hasMessages, setHasMessages] = useState(false);
 
   useEffect(() => {
-    const count = userData
-      .map(async (data) => {
-        console.log('Counting messages for ', data.thread_id);
-        return countChatMessages(data.thread_id);
-      })
-      .filter(async (sum) => (await sum) > 0).length;
-    const hasAnyMessages = count > 0;
-    console.log(`This session seems to have ${count} user contributions`);
-    setHasMessages(hasAnyMessages);
-    if (hasAnyMessages && !hostData.summary) {
-      handleCreateSummary();
-    }
-  }, [userData])
+    filterForUsersWithMessages(userData).then((usersWithMessages) => {
+      const count = usersWithMessages.length;
+      console.log(
+        `This session seems to have contributions from ${count} users`
+      );
+      setHasMessages(count > 0);
+      if (count > 0 && !hostData.summary) {
+        handleCreateSummary();
+      }
+    });
+  }, [userData]);
 
   const [exportInProgress, setExportInProgress] = useState(false);
   const exportSessionResults = async (e: React.FormEvent) => {
@@ -50,54 +51,42 @@ export default function SessionResultsSection({
     setIsExportPopupVisible(true);
     setExportInProgress(true);
 
-    const allUsersMessages = await Promise.all(
-      userData.map(
-        async (data) => await getAllChatMessagesInOrder(data.thread_id)
-      )
+    const allUsersMessages = await getAllMessagesForUsersSorted(userData);
+    const messagesByThread = allUsersMessages.reduce((acc, message) => {
+      acc[message.thread_id] = acc[message.thread_id] || []; // to make sure this array exists
+      acc[message.thread_id].push(message);
+      return acc;
+    }, {} as Record<string, Message[]>);
+    const chatMessages = Object.entries(messagesByThread).map(
+      ([threadId, messages]) => concatenateMessages(messages)
     );
+    const response = await formatForExport(chatMessages, exportInstructions);
 
-    const response = await fetch('/api/' + ApiTarget.Export, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        data: {
-          chatMessages: allUsersMessages
-            .map(messagesFromOneUser => {
-              concatenateMessages(messagesFromOneUser);
-            }),
-          exportDataQuery: exportInstructions,
-        },
-      }),
+    
+    const blob = new Blob([JSON.stringify(response, null, 2)], {
+      type: 'application/json',
     });
-
-    const blob = await response.blob();
     const link = document.createElement('a');
-    exportAndDownload(
-      blob,
-      link,
-      `Harmonica_${hostData.topic ?? id}.json`,
-      id
-    );
+    exportAndDownload(blob, link, `Harmonica_${hostData.topic ?? id}.json`, id);
 
     setExportInProgress(false);
     setIsExportPopupVisible(false);
   };
 
   const exportAllData = async () => {
-
-    const exportData = userData.map( async (user) => {
+    const allMessages = await getAllMessagesForUsersSorted(userData);
+    const exportData = userData.map((user) => {
       const user_id = user.user_id;
       const user_name = user.user_name;
-      const chat_text = concatenateMessages(await getAllChatMessagesInOrder(user.thread_id));
       const introString = `Use it in communication. Don't ask it again. Start the session.\n`;
-      // const startOfIntro = raw_chat_text?.indexOf(introString);
-      // const chat_text =
-        // startOfIntro && startOfIntro > 0
-          // ? raw_chat_text?.substring(startOfIntro + introString.length)
-          // : raw_chat_text;
-
+      const messagesForOneUser = allMessages.filter(
+        (msg) => msg.thread_id === user.thread_id
+      );
+      if (messagesForOneUser.length === 0) return;
+      if (messagesForOneUser[0].content.includes(introString)) {
+        messagesForOneUser.shift();
+      }
+      const chat_text = concatenateMessages(messagesForOneUser);
       return {
         user_id,
         user_name,
@@ -133,11 +122,7 @@ export default function SessionResultsSection({
     <>
       <Tabs
         className="mb-4"
-        defaultValue={
-          hostData.summary
-            ? 'SUMMARY'
-            : 'RESPONSES'
-        }
+        defaultValue={hostData.summary ? 'SUMMARY' : 'RESPONSES'}
       >
         <TabsList>
           {hostData.summary ? (
@@ -173,7 +158,7 @@ export default function SessionResultsSection({
                   <Spinner /> Creating your session summary...
                 </>
               )}
-          </TabsContent>
+            </TabsContent>
             <TabsContent value="RESPONSES" className="mt-4">
               <SessionResultParticipants userData={userData} />
             </TabsContent>
@@ -244,12 +229,17 @@ export default function SessionResultsSection({
   return (
     <>
       <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
-      {hasMessages ? (showResultsSection()) : (showShareResultsCard())}
+      {hasMessages ? showResultsSection() : showShareResultsCard()}
     </>
   );
 }
 function concatenateMessages(messagesFromOneUser: Message[]) {
-  return messagesFromOneUser.map(message => `${message.role} : ${message.content}`).join();
+  messagesFromOneUser.sort(
+    (a, b) => a.created_at.getTime() - b.created_at.getTime()
+  );
+  return messagesFromOneUser
+    .map((message) => `${message.role} : ${message.content}`)
+    .join();
 }
 
 function exportAndDownload(

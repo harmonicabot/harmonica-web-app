@@ -267,23 +267,23 @@ export async function searchUserSessions(
 }
 
 export async function getNumberOfTotalAndFinishedThreads(sessions: s.HostSession[]) {
-  // console.log('Getting number of active and inactive threads for sessions');
   const sessionIds = sessions.map(session => session.id);
   if (sessionIds.length === 0) return [];
   const result = await db
-    .selectFrom(hostTableName)
-    .leftJoin(userTableName, `${userTableName}.session_id`, `${hostTableName}.id`)
+  .selectFrom(hostTableName)
+  .leftJoin(userTableName, `${userTableName}.session_id`, `${hostTableName}.id`)
     .where(`${hostTableName}.id`, 'in', sessionIds)
     .select(({ fn }) => [
       `${hostTableName}.id`,
-      fn.countAll().as('total_users'),
-      fn.countAll()
-        .filterWhere(`${userTableName}.active`, '=', false)
-        .as('finished_users')
+      fn.count(`${userTableName}.id`).as('total_users'),
+      fn.count(`${userTableName}.id`)
+      .filterWhere(`${userTableName}.active`, '=', false)
+      .as('finished_users')
     ])
     .groupBy(`${hostTableName}.id`)
     .execute()
-
+    
+  // console.log(`Counts for ${sessionIds}: `, result); 
   return result
 }
 
@@ -296,13 +296,18 @@ export async function insertChatMessage(message: s.NewMessage) {
   }
 }
 
-export async function countChatMessages(threadId: string) {
-  const result = await db.selectFrom(messageTableName)
-    .where('thread_id', '=', threadId)
-    .select(({ fn }) => [fn.count('id').as('count')])
-    .executeTakeFirst();
-  
-  return Number(result?.count ?? 0);
+export async function filterForUsersWithMessages(users: s.UserSession[]) {
+  if (users.length === 0) return [];
+  const userIdsWithMessages = await db
+    .selectFrom(userTableName)
+    .leftJoin(messageTableName, `${messageTableName}.thread_id`, `${userTableName}.thread_id`)
+    .where(`${userTableName}.id`, 'in', users.map(user => user.id))
+    .select(`${userTableName}.id`)
+    .having(({ fn }) => fn.count(`${messageTableName}.id`), '>', 0)
+    .groupBy(`${userTableName}.id`)
+    .execute();
+  const userIdsSet = new Set(userIdsWithMessages.map(row => row.id));
+  return users.filter(user => userIdsSet.has(user.id));
 }
 
 export async function getAllChatMessagesInOrder(threadId: string) {
@@ -312,6 +317,17 @@ export async function getAllChatMessagesInOrder(threadId: string) {
     .orderBy('created_at', 'asc')
     .execute();
 }
+
+export async function getAllMessagesForUsersSorted(users: s.UserSession[]): Promise<s.Message[]> {
+  const messages = await db
+    .selectFrom(messageTableName)
+    .where('thread_id', 'in', users.map(user => user.thread_id))
+    .selectAll()
+    .orderBy('created_at', 'asc')
+    .execute();
+  return messages;
+}
+
 
 export async function deleteSessionById(id: string): Promise<boolean> {
   try {

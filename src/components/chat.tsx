@@ -3,16 +3,15 @@
 import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { sendApiCall } from '@/lib/utils';
 import * as db from '@/lib/db';
 
-import { ApiAction, ApiTarget, OpenAIMessage } from '@/lib/types';
+import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
 import { ChatMessage } from './ChatMessage';
 import { Send } from './icons';
 import { insertUserSessions } from '@/lib/db';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { handleCreateThread, handleGenerateAnswer } from 'app/api/gptUtils';
-import { Message, NewMessage } from '@/lib/schema_updated';
+import { Message } from '@/lib/schema_updated';
 
 export default function Chat({
   assistantId,
@@ -25,11 +24,11 @@ export default function Chat({
   placeholderText,
 }: {
   assistantId: string;
-  context?: OpenAIMessage;
   sessionId?: string;
-  userSessionId?: string;
   setUserSessionId?: (id: string) => void;
+  userSessionId?: string;
   entryMessage?: OpenAIMessage;
+  context?: OpenAIMessageWithContext;
   userNameInFirstMessage?: boolean;
   placeholderText?: string;
 }) {
@@ -59,7 +58,7 @@ Help & Support:
   const [formData, setFormData] = useState<{ messageText: string }>({
     messageText: '',
   });
-  const [threadId, setThreadId] = useState('');
+  const threadIdRef = useRef<string>('');
   const [messages, setMessages] = useState<OpenAIMessage[]>([
     entryMessage ? entryMessage : defaultEntryMessage,
   ]);
@@ -90,15 +89,12 @@ Help & Support:
   const createThreadInProgressRef = useRef(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!threadId && !createThreadInProgressRef.current) {
+    if (!threadIdRef.current && !createThreadInProgressRef.current) {
       createThreadInProgressRef.current = true;
       createThread(
         context,
-        setIsLoading,
-        setThreadId,
         sessionId,
         user,
-        setUserSessionId
       );
     }
 
@@ -125,25 +121,48 @@ Help & Support:
     }
   };
 
-  function createThread(
-    context: OpenAIMessage | undefined,
-    setIsLoading: (isLoading: boolean) => void,
-    setThreadId: (threadId: string) => void,
+  function concatenateMessages(messagesFromOneUser: Message[]) {
+    messagesFromOneUser.sort(
+      (a, b) => a.created_at.getTime() - b.created_at.getTime()
+    );
+    return messagesFromOneUser
+      .map((message) => `${message.role} : ${message.content}`)
+      .join('\n\n');
+  }
+
+  async function createThread(
+    context: OpenAIMessageWithContext | undefined,
     sessionId: string | undefined,
-    user: any,
-    setUserSessionId: ((id: string) => void) | undefined
+    user: any
   ) {
     console.log('creating thread');
-    handleCreateThread([])
-      .then((thread) => {
-        setIsLoading(false);
-        setThreadId(thread.id);
+    const chatMessages = [];
+    if (context?.userData) {
+      const allUsersMessages = await db.getAllMessagesForUsersSorted(context.userData);
+      const messagesByThread = allUsersMessages.reduce((acc, message) => {
+        acc[message.thread_id] = acc[message.thread_id] || []; // to make sure this array exists
+        acc[message.thread_id].push(message);
+        return acc;
+      }, {} as Record<string, Message[]>);
+      chatMessages.push('\n----START CHAT HISTORY for CONTEXT----\n');
+      const concatenatedUserMessages = Object.entries(messagesByThread).map(
+        ([threadId, messages]) => {
+          return `\n----START NEXT USER CHAT----\n${concatenateMessages(messages)}\n----END USER CHAT----\n`;
+        }
+      );
+      chatMessages.push(...concatenatedUserMessages);
+      chatMessages.push('\n----END CHAT HISTORY for CONTEXT----\n');
+    }
+    handleCreateThread(context, chatMessages)
+      .then((threadId) => {
+        console.log('Created threadId ', threadId)
+        threadIdRef.current = threadId;
 
         if (sessionId) {
           const data = {
             session_id: sessionId,
             user_id: user?.email ?? 'anonymous',
-            thread_id: thread.id,
+            thread_id: threadId,
             active: true,
             start_time: new Date(),
             last_edit: new Date(),
@@ -190,19 +209,25 @@ Help & Support:
     }
 
     const now = new Date();
-    if (!threadId) {
+    let waitedCycles = 0;
+    while (!threadIdRef.current) {
     // At this point, the thread should already be created, but just in case it's still in progress, let's add some wait in here:
+      if (waitedCycles > 20) {
+        throw new Error('Could not get a reply from Monica. Please reload the page and try again.');
+      }
       await new Promise((resolve) => setTimeout(resolve, 1000));
+      waitedCycles++;
+      console.log(`Waiting ${waitedCycles}s for thread to be created...`);
     }
-
+    console.log('Got threadId: ', threadIdRef.current);
     const messageData = {
-      threadId: threadId,
+      threadId: threadIdRef.current,
       messageText,
       assistantId: assistantId,
     };
     if (userSessionId) {
       db.insertChatMessage({
-        thread_id: threadId,
+        thread_id: threadIdRef.current,
         role: 'user',
         content: messageText,
         created_at: now
@@ -211,6 +236,7 @@ Help & Support:
 
     handleGenerateAnswer(messageData)
       .then((answer) => {
+        setIsLoading(false);
         console.log('received answer from ChatGPT: ', answer)
         const now = new Date();
         addMessage(answer);
@@ -221,7 +247,6 @@ Help & Support:
             last_edit: now,
           });
         }
-        setIsLoading(false);
       })
       .catch((error) => {
         console.error(error);
