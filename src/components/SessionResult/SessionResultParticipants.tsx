@@ -9,35 +9,41 @@ import ParticipantSessionRow from './ParticipantSessionRow';
 import SortableTable from '../SortableTable';
 import { UserSession } from '@/lib/schema_updated';
 
+export type ParticipantsTableData = {
+  userName: string;
+  sessionStatus: string;
+  createdDate: Date;
+  updatedDate: Date;
+  userData: UserSession;
+};
+
 export default function SessionResultParticipants({
   userData,
 }: {
   userData: UserSession[];
 }) {
-  type Data = {
-    userName: string;
-    sessionStatus: string;
-    userData: UserSession;
-  };
-
   const tableHeaders: Array<{
     label: string;
-    sortKey: keyof Data;
+    sortKey: keyof ParticipantsTableData;
     className?: string;
   }> = [
     { label: 'Name', sortKey: 'userName', className: '' },
-    { label: 'Status', sortKey: 'sessionStatus' },
+      { label: 'Status', sortKey: 'sessionStatus' },
+    { label: 'Created', sortKey: 'createdDate' },
+    { label: 'Updated', sortKey: 'updatedDate' },
   ];
 
-  const sortableData: Data[] = userData
+  const sortableData: ParticipantsTableData[] = userData
     .map((data) => ({
       userName: data.user_name ?? 'anonymous',
       sessionStatus: data.active ? 'Started' : 'Finished',
+      createdDate: new Date(data.start_time),
+      updatedDate: new Date(data.last_edit),
       userData: data,
     }));
 
-  const getTableRow = (session: Data, index: number) => {
-    return <ParticipantSessionRow key={index} {...session} />;
+  const getTableRow = (session: ParticipantsTableData, index: number) => {
+    return <ParticipantSessionRow key={index} tableData={session} />;
   };
 
   return (
@@ -53,6 +59,7 @@ export default function SessionResultParticipants({
           tableHeaders={tableHeaders}
           getTableRow={getTableRow}
           data={sortableData}
+          defaultSort={{ column: 'updatedDate', direction: 'desc' }}
         />
       </CardContent>
     </Card>
