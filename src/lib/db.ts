@@ -32,8 +32,9 @@ const db = dbConfig.db;
 
 
 async function getAuthForClient() {
-  const session = await authGetSession();
-  const userSub = session?.user?.sub || '';
+  const authSession = await authGetSession();
+  // console.log('Session: ', JSON.stringify(authSession, null, 2));
+  const userSub = authSession?.user?.sub || '';
   const adminIds = process.env.ADMIN_ID ? process.env.ADMIN_ID.split(',') : [];
   if (adminIds.includes(userSub)) {
     return undefined;
@@ -268,6 +269,7 @@ export async function searchUserSessions(
 export async function getNumberOfTotalAndFinishedThreads(sessions: s.HostSession[]) {
   // console.log('Getting number of active and inactive threads for sessions');
   const sessionIds = sessions.map(session => session.id);
+  if (sessionIds.length === 0) return [];
   const result = await db
     .selectFrom(hostTableName)
     .leftJoin(userTableName, `${userTableName}.session_id`, `${hostTableName}.id`)

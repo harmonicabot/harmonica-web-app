@@ -36,11 +36,7 @@ export async function handleGenerateAnswer(messageData: AssistantMessageData): P
   if (run.status === 'completed') {
     const answer = await getLastReply(messageData.threadId);
     console.log('Answer from AI: ', answer)
-    let timestamp = answer.created_at;
-    if (timestamp.toString().length === 10) {
-      // OpenAI timestamps are in seconds, not millis :-(
-      timestamp = timestamp * 1000;
-    }
+
     return {
       thread_id: messageData.threadId,
       role: answer.assistant_id ? 'assistant' : 'user',
@@ -48,7 +44,7 @@ export async function handleGenerateAnswer(messageData: AssistantMessageData): P
           answer.content[0].type === 'text'
             ? answer.content[0].text?.value
             : '',
-      created_at: new Date(timestamp), 
+      created_at: new Date(),
     }
   } else {
     console.error(`OpenAI run.status for thread ${messageData.threadId}: `, run.status);
