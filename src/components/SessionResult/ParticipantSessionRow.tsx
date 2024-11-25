@@ -5,20 +5,14 @@ import { Message, UserSession } from '@/lib/schema_updated';
 import { useEffect, useState } from 'react';
 import { ChatMessage } from '../ChatMessage';
 import { getAllChatMessagesInOrder } from '@/lib/db';
+import { ParticipantsTableData } from './SessionResultParticipants';
 
-interface SessionData {
-  userName: string;
-  sessionStatus: string;
-  userData: UserSession;
-}
-
-export default function ParicipantSessionRow({
-  userName,
-  sessionStatus,
-  userData,
-}: SessionData) {
+export default function ParicipantSessionRow(
+  { tableData }: { tableData: ParticipantsTableData }
+) {
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const userData = tableData.userData;
 
   const handleViewClick = async () => {
     const messageHistory = await getAllChatMessagesInOrder(userData.thread_id);
@@ -82,14 +76,14 @@ export default function ParicipantSessionRow({
   return (
     <TableRow>
       <TableCell onClick={handleViewClick} className="font-medium">
-        {userName}
+        {tableData.userName}
       </TableCell>
       <TableCell>
         {isPopupVisible && (
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
             <div className="bg-purple-100 border-purple-200 p-8 rounded-lg w-4/5 h-4/5 md:w-3/5 md:h-3/5 lg:w-1/2 lg:h-3/4 flex flex-col">
               <div className="flex justify-between mb-4">
-                <h2 className="text-2xl font-bold">{userName} transcript</h2>
+                <h2 className="text-2xl font-bold">{tableData.userName} transcript</h2>
                 <Button onClick={handleCloseClick}>Close</Button>
               </div>
 
@@ -106,8 +100,20 @@ export default function ParicipantSessionRow({
           variant="outline"
           className={userData.active ? 'capitalize' : 'capitalize bg-[#ECFCCB]'}
         >
-          {sessionStatus}
+          {tableData.sessionStatus}
         </Badge>
+      </TableCell>
+      <TableCell>
+        {new Intl.DateTimeFormat(undefined, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }).format(tableData.createdDate)}.
+      </TableCell>
+      <TableCell>
+        {new Intl.DateTimeFormat(undefined, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }).format(tableData.updatedDate)} 
       </TableCell>
       {/* <TableCell>
         <Switch></Switch>
