@@ -25,6 +25,20 @@ import {
 import { decryptId } from '@/lib/encryptionUtils';
 import { UserSession } from '@/lib/schema_updated';
 
+// Define the type for a chat message
+interface ChatMessage {
+  content: string;
+  created_at: Date;
+  id: string;
+  role: 'user' | 'ai' | 'assistant'; // Added 'assistant' to the role type
+  thread_id: string;
+}
+
+// Define the type for the grouped chats
+interface GroupedChats {
+  [threadId: string]: ChatMessage[];
+}
+
 const fetcher = async (id: string) => {
   const hostData = await getHostSessionById(id);
   const userData = await getUsersBySessionId(id);
@@ -94,30 +108,84 @@ export default function SessionResult() {
         async (user) => await getAllChatMessagesInOrder(user.thread_id),
       ),
     );
-    const prompt = await getFromHostSession(id, 'prompt');
 
-    // TODO: The chat messages here are not concatenated properly yet, AND we want to pass them individually to chatGPT instead of all at once, otherwise it might fail due to size limitations.
+    // Flatten the chats and group by thread_id to distinguish participants
+    const flattenedChats: ChatMessage[] = chats.flat();
+    const groupedChats: GroupedChats = flattenedChats.reduce((acc, chat) => {
+      const participant = chat.thread_id; // Use thread_id to identify the participant
+      if (!acc[participant]) {
+        acc[participant] = [];
+      }
+      acc[participant].push(chat);
+      return acc;
+    }, {} as GroupedChats); // Type assertion for the accumulator
+
+    // Create formatted messages for each participant
+    const chatMessages = Object.entries(groupedChats).map(([participantId, messages]) => {
+      const participantMessages = messages.map(chat => {
+        return `${chat.role === 'user' ? 'User' : 'AI'}: ${chat.content}`;
+      }).join('\n'); // Join messages for the same participant
+      return `Participant ${participantId}:\n${participantMessages}`; // Format for each participant
+    }).join('\n\n----- Next Participant: -----\n'); // Join participants
+
     const instructions = `
-Generate a short **REPORT** that answers the OBJECTIVE of the session and suits the overall session style.\n\n
-The **OBJECTIVE** is stated in this prompt:\n
-##### PROMPT #####\n
+Generate a structured **REPORT** based on all participant session transcripts. The report must address the stated **OBJECTIVE** of the session and follow the formatting and style guidance below.
+\n
+---\n
+
+**OBJECTIVE**: \n
 ${hostData.prompt}\n
-##### END PROMPT #####\n
-And the content for the report:\n\n
-##### START CONTENT #####\n
------ Next Participant: -----\n
-${chats.join('\n\n----- Next Participant: -----\n')}
------ END PARTICIPANTS -----\n
-##### END CONTENT #####\n\n
+\n
+**Participant Data**:\n
+${chatMessages}
+
+### Report Structure:\n
+\n
+1. **Introduction**:\n
+   - Briefly restate the session objective and purpose.\n
+   - Provide context or background if necessary.\n
+\n
+2. **Key Themes**:\n
+   - Summarize the most common and important points raised by participants.\n
+   - Organize responses into clear themes or categories.\n
+\n
+3. **Divergent Opinions**:\n
+   - Highlight significant areas of disagreement or unique insights that deviate from the common themes.\n
+    \n
+4. **Actionable Insights**:\n
+   - Derive clear, actionable recommendations based on participant inputs.\n
+   - Where possible, link these recommendations directly to the sessions objective.\n
+\n
+5. **Conclusion**:\n
+   - Summarize the key takeaways and outline any next steps.\n
+\n
+---
+
+### Style and Tone:\n
+\n
+- **Professional and Clear**: Use concise and precise language.\n
+- **Accessible**: Avoid jargon; ensure readability for a general audience.\n
+- **Well-Formatted**: \n
+   - Use headers, bullet points, and bold/italic text for clarity and emphasis.\n
+   - Include logical breaks between sections for easy navigation.\n
+\n
+### Additional Notes:\n
+\n
+- Prioritize recurring themes or insights if participant data is extensive.\n
+- Flag any incomplete or conflicting responses for host review.\n
+- Ensure that the report ties all findings back to the stated **OBJECTIVE**.\n
+\n
+---\n
+
 `;
     const summary = await getGPTCompletion(instructions);
     console.log('Summary: ', summary);
 
-    // So that we don't have to re-fetch all data from the DB, we just update the summary in the store directly
-    updateHostSession(decryptedId, {
+    await updateHostSession(decryptedId, {
       summary: summary ?? undefined,
       last_edit: new Date(),
-    }).then(() => mutate(`sessions/${id}`));
+    });
+    mutate(`sessions/${decryptedId}`); 
   };
 
   const [hasNewMessages, setHasNewMessages] = useState(false);
