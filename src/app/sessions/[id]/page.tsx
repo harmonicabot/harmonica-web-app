@@ -14,12 +14,12 @@ import SessionResultStatus from '@/components/SessionResult/SessionResultStatus'
 import SessionResultShare from '@/components/SessionResult/SessionResultShare';
 import SessionResultsSection from '@/components/SessionResult/SessionResultsSection';
 import {
-  countChatMessages,
   deactivateHostSession,
   getAllChatMessagesInOrder,
   getFromHostSession,
   getHostSessionById,
   getUsersBySessionId,
+  getUsersWithMessages,
   updateHostSession,
 } from '@/lib/db';
 import { decryptId } from '@/lib/encryptionUtils';
@@ -69,20 +69,12 @@ export default function SessionResult() {
     const processUserData = async () => {
       if (!userData) return;
 
-      const withChatText = await Promise.all(
-        userData.map(async (user) => {
-          const messageCount = await countChatMessages(user.thread_id);
-          return { user, messageCount };
-        }),
-      );
-
-      const filtered = withChatText
-        .filter(({ messageCount }) => messageCount > 1)
-        .map(({ user }) => user);
-
-      setSessionsWithChat(filtered);
-      setNumSessions(filtered.length);
-      setCompletedSessions(filtered.filter((user) => !user.active).length);
+      getUsersWithMessages(userData)
+        .then(usersWithMessages => {
+          setSessionsWithChat(usersWithMessages);
+          setNumSessions(usersWithMessages.length);
+          setCompletedSessions(usersWithMessages.filter((user) => !user.active).length);
+        })
     };
 
     processUserData();
