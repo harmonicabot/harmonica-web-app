@@ -296,7 +296,7 @@ export async function insertChatMessage(message: s.NewMessage) {
   }
 }
 
-export async function getUsersWithMessages(users: s.UserSession[]) {
+export async function filterForUsersWithMessages(users: s.UserSession[]) {
   if (users.length === 0) return [];
   const userIdsWithMessages = await db
     .selectFrom(userTableName)
@@ -317,6 +317,17 @@ export async function getAllChatMessagesInOrder(threadId: string) {
     .orderBy('created_at', 'asc')
     .execute();
 }
+
+export async function getAllMessagesForUsersSorted(users: s.UserSession[]): Promise<s.Message[]> {
+  const messages = await db
+    .selectFrom(messageTableName)
+    .where('thread_id', 'in', users.map(user => user.thread_id))
+    .selectAll()
+    .orderBy('created_at', 'asc')
+    .execute();
+  return messages;
+}
+
 
 export async function deleteSessionById(id: string): Promise<boolean> {
   try {

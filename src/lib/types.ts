@@ -20,10 +20,6 @@ export enum ApiAction {
 
 export enum ApiTarget {
   Builder = 'builder',
-  Session = 'session',
-  Sessions = 'sessions',
-  Chat = 'chat',
-  Export = 'export',
 }
 
 export type RequestData = {
@@ -47,7 +43,10 @@ export type RequestData = {
 export interface OpenAIMessage {
   role: 'assistant' | 'user';
   content: string
-  contextThreadIds?: string[];
+};
+
+export interface OpenAIMessageWithContext extends OpenAIMessage {
+  userData?: UserSession[];
 };
 
 export type WebhookData = {

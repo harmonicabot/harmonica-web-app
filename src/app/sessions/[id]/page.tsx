@@ -19,7 +19,7 @@ import {
   getFromHostSession,
   getHostSessionById,
   getUsersBySessionId,
-  getUsersWithMessages,
+  filterForUsersWithMessages,
   updateHostSession,
 } from '@/lib/db';
 import { decryptId } from '@/lib/encryptionUtils';
@@ -69,7 +69,7 @@ export default function SessionResult() {
     const processUserData = async () => {
       if (!userData) return;
 
-      getUsersWithMessages(userData)
+      filterForUsersWithMessages(userData)
         .then(usersWithMessages => {
           setSessionsWithChat(usersWithMessages);
           setNumSessions(usersWithMessages.length);
