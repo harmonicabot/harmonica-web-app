@@ -17,9 +17,9 @@ export default function SessionResultChat({ userData }: { userData: UserSession[
             context={{
               role: 'assistant',
               content: `You will be asked questions based on the session data. Answer short.`,
-              contextThreadIds: userData.map(user => user.thread_id),
+              userData: userData,
             }}
-            assistantId="asst_LQospxVfX4vMTONASzSkSUwb"
+            assistantId={process.env.RESULT_CHAT_ASSISTANT ?? 'asst_LQospxVfX4vMTONASzSkSUwb'} 
             entryMessage={{
               role: 'assistant',
               content: `Hi there! Consider me your expert analyst, I can help you to better understand your session.
