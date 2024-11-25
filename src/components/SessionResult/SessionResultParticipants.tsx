@@ -6,7 +6,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import ParticipantSessionRow from './ParticipantSessionRow';
-import SortableTable from '../SortableTable';
+import SortableTable, { TableHeaderData } from '../SortableTable';
 import { UserSession } from '@/lib/schema_updated';
 
 export type ParticipantsTableData = {
@@ -22,15 +22,16 @@ export default function SessionResultParticipants({
 }: {
   userData: UserSession[];
 }) {
-  const tableHeaders: Array<{
-    label: string;
-    sortKey: keyof ParticipantsTableData;
-    className?: string;
-  }> = [
+  const dateSorter = (sortDirection: string, a: string, b: string) => {
+    return sortDirection === 'asc'
+      ? new Date(a).getTime() - new Date(b).getTime()
+      : new Date(b).getTime() - new Date(a).getTime();
+  };
+  const tableHeaders: TableHeaderData[] = [
     { label: 'Name', sortKey: 'userName', className: '' },
-      { label: 'Status', sortKey: 'sessionStatus' },
-    { label: 'Created', sortKey: 'createdDate' },
-    { label: 'Updated', sortKey: 'updatedDate' },
+    { label: 'Status', sortKey: 'sessionStatus' },
+    { label: 'Created', sortKey: 'createdDate', sortBy: dateSorter },
+    { label: 'Updated', sortKey: 'updatedDate', sortBy: dateSorter },
   ];
 
   const sortableData: ParticipantsTableData[] = userData

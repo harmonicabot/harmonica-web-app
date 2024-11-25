@@ -10,7 +10,7 @@ import { Spinner } from './icons';
 
 type Direction = 'asc' | 'desc';
 
-interface TableHeaderData {
+export interface TableHeaderData {
   label: string;
   sortKey: string;
   className?: string;
