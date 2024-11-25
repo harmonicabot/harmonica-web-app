@@ -63,7 +63,7 @@ export default function SessionResultsSection({
     const response = await formatForExport(chatMessages, exportInstructions);
 
     
-    const blob = new Blob([JSON.stringify(response, null, 2)], {
+    const blob = new Blob([JSON.stringify(JSON.parse(response), null, 2)], {
       type: 'application/json',
     });
     const link = document.createElement('a');
