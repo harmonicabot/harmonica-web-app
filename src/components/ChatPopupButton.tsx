@@ -7,19 +7,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import Chat from '@/components/chat';
 import LoadingMessage from 'app/create/loading';
 import { sendApiCall } from '@/lib/utils';
 import { ApiAction, ApiTarget, OpenAIMessage } from '@/lib/types';
 import { VersionedPrompt } from 'app/create/page';
-
-interface TestInputProps {
-  onTest: () => Promise<{
-    assistantId: string;
-    entryMessage: OpenAIMessage;
-  }>;
-}
 
 const ChatPopupButton = ({
   prompt,
@@ -49,7 +41,11 @@ const ChatPopupButton = ({
 I'll run through the session with you so you get an idea how this would work once finalised, 
 but bear in mind that I might phrase some things differently depending on our interaction.\n
 I won't store any of your replies in this test chat.\n
-If you're ready to start: What is your name?`,
+If you're ready to start:
+
+How should we call you?\n
+Please type your name or "anonymous" if you prefer
+`,
     });
     // All these temp assistants can be deleted again once the user chooses a final version.
     handleSetTempAssistantIds((prev) => [
@@ -61,11 +57,7 @@ If you're ready to start: What is your name?`,
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          className="mr-2"
-          onClick={handleTestVersion}
-        >
+        <Button variant="outline" className="mr-2" onClick={handleTestVersion}>
           Test
         </Button>
       </DialogTrigger>
