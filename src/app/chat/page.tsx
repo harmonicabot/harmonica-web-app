@@ -101,36 +101,9 @@ Please type your name or "anonymous" if you prefer
 
   const sessionClosed = !hostData?.active;
 
-  useEffect(() => {
-    const chatContainer = document.getElementById('chat-container');
-
-    const adjustHeight = () => {
-      if (chatContainer) {
-        chatContainer.style.maxHeight = 'calc(100vh - 150px)';
-      }
-    };
-
-    const resetHeight = () => {
-      if (chatContainer) {
-        chatContainer.style.maxHeight = 'calc(100%-150px)';
-      }
-    };
-
-    window.addEventListener('focusin', adjustHeight);
-    window.addEventListener('focusout', resetHeight);
-
-    return () => {
-      window.removeEventListener('focusin', adjustHeight);
-      window.removeEventListener('focusout', resetHeight);
-    };
-  }, []);
-
   return (
     <div
-      className="flex flex-col md:flex-row bg-purple-50"
-      style={{
-        height: 'calc(100vh - 100px)',
-      }}
+      className="flex flex-col md:flex-row bg-purple-50 h-100vh md:h-[calc(100vh-100px)]"
     >
       <div className="hidden">
         <div data-tf-live="01JB9CRNXPX488VHX879VNF3E6"></div>
@@ -271,7 +244,7 @@ Please type your name or "anonymous" if you prefer
               </div>
             </div>
           ) : (
-            <div id="chat-container" className="flex flex-col w-full h-full fixed inset-0 z-50 md:flex-row md:relative bg-purple-50">
+            <div id="chat-container" className="flex flex-col w-full h-100vh md:h-full fixed inset-0 z-50 md:flex-row md:relative bg-purple-50">
               <div className="w-full md:w-1/4 p-6 pb-3 md:pb-6">
                 <p className="text-sm text-muted-foreground mb-2 hidden md:block">
                   Your Session
@@ -302,8 +275,8 @@ Please type your name or "anonymous" if you prefer
                 </div>
               </div>
               <hr className="md:hidden border-t border-white ms-4 me-4" />
-              <div className="w-full md:w-3/4 h-full flex-grow flex flex-col px-6 pt-3 md:pb-6">
-                <div className="h-full max-h-[calc(100%-150px)] md:max-h-[calc(100%-50px)] max-w-2xl flex m-4">
+              <div className="w-full md:w-3/4 max-h-[calc(100vh-110px)] h-[calc(100vh-110px)] mb:h-full flex-grow flex flex-col px-6 pt-3 md:pb-6">
+                <div className="h-full max-w-2xl flex m-4">
                   {(hostData?.template || assistantId) && (
                     <Chat
                       entryMessage={message}

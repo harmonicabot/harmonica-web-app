@@ -255,7 +255,7 @@ Help & Support:
 
   return (
     <div className="h-full flex-grow flex flex-col">
-      <div className="h-full flex-grow overflow-y-auto">
+      <div className="h-full flex-grow overflow-y-auto mb-100px">
         {messages.map((message, index) => (
           <ChatMessage key={index} message={message} />
         ))}
@@ -276,7 +276,7 @@ Help & Support:
         <div ref={messagesEndRef} />
       </div>
 
-      <form className="space-y-4 mt-4 -mx-6 -mb-6" onSubmit={handleSubmit}>
+      <form className="space-y-4 mt-4 -mx-6 mb-4" onSubmit={handleSubmit}>
         <div className="relative">
           <Textarea
             name="messageText"
