@@ -18,6 +18,7 @@ import { sql } from 'kysely';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { OpenAIMessage } from '@/lib/types';
 import { encryptId } from '@/lib/encryptionUtils';
+import { PoweredByHarmonica } from '@/components/icons';
 
 const StandaloneChat = () => {
   const [message, setMessage] = useState<OpenAIMessage>({
@@ -290,6 +291,9 @@ Please type your name or "anonymous" if you prefer
                     />
                   )}
                 </div>
+              </div>
+              <div className="md:hidden absolute bottom-0 w-full flex justify-center items-center pb-3">
+                <PoweredByHarmonica/>
               </div>
             </div>
           )}
