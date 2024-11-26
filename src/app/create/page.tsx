@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import CreateSession from './create';
 import ReviewPrompt from './review';
 import LoadingMessage from './loading';
@@ -14,6 +14,8 @@ import { NewHostSession } from '@/lib/schema_updated';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
 import { encryptId } from '@/lib/encryptionUtils';
+
+export const maxDuration = 60; // Hosting function timeout, in seconds
 
 // Todo: This class has become unwieldy. Think about splitting more functionality out. (Might not be easy though, because this is the 'coordinator' page that needs to somehow bind together all the functionality of the three sub-steps.)
 // One possibility to do that might be to have better state management / a session store or so, into which sub-steps can write to.
@@ -34,17 +36,12 @@ export default function CreationFlow() {
   const [activeStep, setActiveStep] = useState<Step>(STEPS[0]);
   const [threadId, setThreadId] = useState('');
   const [builderAssistantId, setBuilderAssistantId] = useState('');
-  const [sessionAssistantId, setSessionAssistantId] = useState('');
-  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>(
-    [],
-  );
+  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>([]);
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
   const [prompts, setPrompts] = useState<VersionedPrompt[]>([]);
   const [currentVersion, setCurrentVersion] = useState(-1);
-  const [sessionId, setSessionId] = useState('');
-  const [botId, setBotId] = useState('');
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
 
   const addPrompt = (versionedPrompt: VersionedPrompt) => {
@@ -163,8 +160,6 @@ export default function CreationFlow() {
 
     deleteTemporaryAssistants(temporaryAssistantIds);
 
-    setSessionAssistantId(assistantResponse.assistantId);
-
     // Create a new session in the host db
     const data: NewHostSession = {
       template: assistantResponse.assistantId,
@@ -179,8 +174,6 @@ export default function CreationFlow() {
 
     db.insertHostSessions(data).then((sessionIds) => {
       const session_id = sessionIds[0];
-      setSessionId(session_id);
-
       // Set the cookie using document.cookie
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 30); // Cookie expires in 30 days
