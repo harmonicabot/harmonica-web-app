@@ -29,8 +29,7 @@ export async function handleGenerateAnswer(messageData: AssistantMessageData): P
 
   try {
     let run = await client.beta.threads.runs.createAndPoll(messageData.threadId, {
-      assistant_id: messageData.assistantId,
-      instructions: messageData.messageText,
+      assistant_id: messageData.assistantId
     });
 
     if (run.status === 'completed') {
