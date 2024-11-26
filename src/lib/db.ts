@@ -319,6 +319,7 @@ export async function getAllChatMessagesInOrder(threadId: string) {
 }
 
 export async function getAllMessagesForUsersSorted(users: s.UserSession[]): Promise<s.Message[]> {
+  if (users.length === 0) return [];
   const messages = await db
     .selectFrom(messageTableName)
     .where('thread_id', 'in', users.map(user => user.thread_id))

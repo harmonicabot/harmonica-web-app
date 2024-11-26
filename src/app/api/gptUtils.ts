@@ -27,27 +27,32 @@ export async function handleCreateThread(messageData?: OpenAIMessage, additional
 export async function handleGenerateAnswer(messageData: AssistantMessageData): Promise<NewMessage> {
   await sendMessage(messageData.threadId, 'user', messageData.messageText);
 
-  let run = await client.beta.threads.runs.createAndPoll(messageData.threadId, {
-    assistant_id: messageData.assistantId,
-    instructions: '',
-  });
+  try {
+    let run = await client.beta.threads.runs.createAndPoll(messageData.threadId, {
+      assistant_id: messageData.assistantId,
+      instructions: messageData.messageText,
+    });
 
-  if (run.status === 'completed') {
-    const answer = await getLastReply(messageData.threadId);
-    console.log('Answer from AI: ', answer)
+    if (run.status === 'completed') {
+      const answer = await getLastReply(messageData.threadId);
+      console.log('Answer from AI: ', answer)
 
-    return {
-      thread_id: messageData.threadId,
-      role: answer.assistant_id ? 'assistant' : 'user',
-      content:
+      return {
+        thread_id: messageData.threadId,
+        role: answer.assistant_id ? 'assistant' : 'user',
+        content:
           answer.content[0].type === 'text'
             ? answer.content[0].text?.value
             : '',
-      created_at: new Date(),
+        created_at: new Date(),
+      }
+    } else {
+      console.error(`OpenAI run.status for thread ${messageData.threadId}: `, run.status);
+      throw new Error(`OpenAI run.status for thread ${messageData.threadId}: ` + run.status);
     }
-  } else {
-    console.error(`OpenAI run.status for thread ${messageData.threadId}: `, run.status);
-    throw new Error(`OpenAI run.status for thread ${messageData.threadId}: ` + run.status);
+  } catch (error) {
+    console.error('Error getting answer from OpenAI:', error);
+    throw new Error(`Error getting answer from OpenAI: ${error}`);
   }
 }
 

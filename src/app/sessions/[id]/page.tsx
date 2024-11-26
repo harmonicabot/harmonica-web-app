@@ -5,7 +5,8 @@ import useSWR, { mutate } from 'swr';
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '@/stores/SessionStore';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { getGPTCompletion } from 'app/api/gptUtils';
+import * as gpt from 'app/api/gptUtils';
+import * as db from '@/lib/db';
 import SessionResultHeader, {
   SessionStatus,
 } from '@/components/SessionResult/SessionResultHeader';
@@ -13,38 +14,20 @@ import SessionResultControls from '@/components/SessionResult/SessionResultContr
 import SessionResultStatus from '@/components/SessionResult/SessionResultStatus';
 import SessionResultShare from '@/components/SessionResult/SessionResultShare';
 import SessionResultsSection from '@/components/SessionResult/SessionResultsSection';
-import {
-  deactivateHostSession,
-  getAllChatMessagesInOrder,
-  getFromHostSession,
-  getHostSessionById,
-  getUsersBySessionId,
-  filterForUsersWithMessages,
-  updateHostSession,
-} from '@/lib/db';
 import { decryptId } from '@/lib/encryptionUtils';
-import { UserSession } from '@/lib/schema_updated';
+import { Message, UserSession } from '@/lib/schema_updated';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 60;  // in seconds
 
-// Define the type for a chat message
-interface ChatMessage {
-  content: string;
-  created_at: Date;
-  id: string;
-  role: 'user' | 'ai' | 'assistant'; // Added 'assistant' to the role type
-  thread_id: string;
-}
-
 // Define the type for the grouped chats
 interface GroupedChats {
-  [threadId: string]: ChatMessage[];
+  [threadId: string]: Message[];
 }
 
 const fetcher = async (id: string) => {
-  const hostData = await getHostSessionById(id);
-  const userData = await getUsersBySessionId(id);
+  const hostData = await db.getHostSessionById(id);
+  const userData = await db.getUsersBySessionId(id);
   console.log('hostData', hostData);
   return { hostData, userData };
 };
@@ -63,7 +46,7 @@ export default function SessionResult() {
       state.addHostData,
       state.userData[id],
       state.addUserData,
-    ],
+    ]
   );
 
   const { error } = useSWR(
@@ -77,7 +60,7 @@ export default function SessionResult() {
         addHostData(decryptedId, hostData);
         addUserData(id, userData);
       },
-    },
+    }
   );
 
   const { user } = useUser();
@@ -86,12 +69,13 @@ export default function SessionResult() {
     const processUserData = async () => {
       if (!userData) return;
 
-      filterForUsersWithMessages(userData)
-        .then(usersWithMessages => {
-          setSessionsWithChat(usersWithMessages);
-          setNumSessions(usersWithMessages.length);
-          setCompletedSessions(usersWithMessages.filter((user) => !user.active).length);
-        })
+      db.filterForUsersWithMessages(userData).then((usersWithMessages) => {
+        setSessionsWithChat(usersWithMessages);
+        setNumSessions(usersWithMessages.length);
+        setCompletedSessions(
+          usersWithMessages.filter((user) => !user.active).length
+        );
+      });
     };
 
     processUserData();
@@ -100,21 +84,16 @@ export default function SessionResult() {
   // const [hostType, setHostType] = useState(false);
 
   const finishSession = async () => {
-    await deactivateHostSession(decryptedId);
+    await db.deactivateHostSession(decryptedId);
     await createSummary();
   };
 
   const createSummary = async () => {
     console.log(`Creating summary for ${decryptedId}...`);
-    const chats = await Promise.all(
-      sessionsWithChat.map(
-        async (user) => await getAllChatMessagesInOrder(user.thread_id),
-      ),
-    );
+    const chats = await db.getAllMessagesForUsersSorted(sessionsWithChat);
 
     // Flatten the chats and group by thread_id to distinguish participants
-    const flattenedChats: ChatMessage[] = chats.flat();
-    const groupedChats: GroupedChats = flattenedChats.reduce((acc, chat) => {
+    const groupedChats: GroupedChats = chats.reduce((acc, chat) => {
       const participant = chat.thread_id; // Use thread_id to identify the participant
       if (!acc[participant]) {
         acc[participant] = [];
@@ -124,71 +103,43 @@ export default function SessionResult() {
     }, {} as GroupedChats); // Type assertion for the accumulator
 
     // Create formatted messages for each participant
-    const chatMessages = Object.entries(groupedChats).map(([participantId, messages]) => {
-      const participantMessages = messages.map(chat => {
-        return `${chat.role === 'user' ? 'User' : 'AI'}: ${chat.content}`;
-      }).join('\n'); // Join messages for the same participant
-      return `Participant ${participantId}:\n${participantMessages}`; // Format for each participant
-    }).join('\n\n----- Next Participant: -----\n'); // Join participants
+    const chatMessages = Object.entries(groupedChats).map(
+      ([participantId, messages]) => {
+        const participantMessages = messages
+          .map((chat) => {
+            return `${chat.role === 'user' ? 'User' : 'AI'}: ${chat.content}`;
+          })
+          .join(`\n----END Participant ${participantId}----\n`); // Join messages for the same participant
+        return `\`\`\`\n----START Participant ${participantId}:----\n${participantMessages}\n\`\`\``; // Format for each participant
+      }
+    );
 
-    const instructions = `
-Generate a structured **REPORT** based on all participant session transcripts. The report must address the stated **OBJECTIVE** of the session and follow the formatting and style guidance below.
-\n
----\n
-
-**OBJECTIVE**: \n
-${hostData.prompt}\n
-\n
-**Participant Data**:\n
-${chatMessages}
-
-### Report Structure:\n
-\n
-1. **Introduction**:\n
-   - Briefly restate the session objective and purpose.\n
-   - Provide context or background if necessary.\n
-\n
-2. **Key Themes**:\n
-   - Summarize the most common and important points raised by participants.\n
-   - Organize responses into clear themes or categories.\n
-\n
-3. **Divergent Opinions**:\n
-   - Highlight significant areas of disagreement or unique insights that deviate from the common themes.\n
-    \n
-4. **Actionable Insights**:\n
-   - Derive clear, actionable recommendations based on participant inputs.\n
-   - Where possible, link these recommendations directly to the sessions objective.\n
-\n
-5. **Conclusion**:\n
-   - Summarize the key takeaways and outline any next steps.\n
-\n
----
-
-### Style and Tone:\n
-\n
-- **Professional and Clear**: Use concise and precise language.\n
-- **Accessible**: Avoid jargon; ensure readability for a general audience.\n
-- **Well-Formatted**: \n
-   - Use headers, bullet points, and bold/italic text for clarity and emphasis.\n
-   - Include logical breaks between sections for easy navigation.\n
-\n
-### Additional Notes:\n
-\n
-- Prioritize recurring themes or insights if participant data is extensive.\n
-- Flag any incomplete or conflicting responses for host review.\n
-- Ensure that the report ties all findings back to the stated **OBJECTIVE**.\n
-\n
----\n
-
-`;
-    const summary = await getGPTCompletion(instructions);
+    const promptForObjective = `\`\`\`This is the original session prompt, it _contains_ the **OBJECTIVE** somewhere in its body.\n
+    Look for the objective, and format the report to address the objective found in this prompt.\n\n
+    ----START PROMPT----\n
+    ${hostData.prompt}
+    \n----END PROMPT----\n\`\`\``;
+    console.log('Sending chat history to GPT-4: ', chatMessages);
+    const threadId = await gpt.handleCreateThread(
+      {
+        role: 'assistant',
+        content: 'Use the following messages as context for user input.',
+      },
+      [...chatMessages, promptForObjective]
+    );
+    const summaryReply = await gpt.handleGenerateAnswer({
+      threadId: threadId,
+      assistantId: process.env.SUMMARY_ASSISTANT ?? 'asst_QTmamFSqEIcbUX4ZwrjEqdm8',
+      messageText: "Generate the report based on the participant data provided addressing the objective.",
+    });
+    const summary = summaryReply.content;
     console.log('Summary: ', summary);
 
-    await updateHostSession(decryptedId, {
+    await db.updateHostSession(decryptedId, {
       summary: summary ?? undefined,
       last_edit: new Date(),
     });
-    mutate(`sessions/${decryptedId}`); 
+    mutate(`sessions/${decryptedId}`);
   };
 
   const [hasNewMessages, setHasNewMessages] = useState(false);
