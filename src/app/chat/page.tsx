@@ -100,6 +100,31 @@ Please type your name or "anonymous" if you prefer
   }, [message, isFirstMessage]);
 
   const sessionClosed = !hostData?.active;
+
+  useEffect(() => {
+    const chatContainer = document.getElementById('chat-container');
+
+    const adjustHeight = () => {
+      if (chatContainer) {
+        chatContainer.style.maxHeight = 'calc(100vh - 150px)';
+      }
+    };
+
+    const resetHeight = () => {
+      if (chatContainer) {
+        chatContainer.style.maxHeight = 'calc(100%-150px)';
+      }
+    };
+
+    window.addEventListener('focusin', adjustHeight);
+    window.addEventListener('focusout', resetHeight);
+
+    return () => {
+      window.removeEventListener('focusin', adjustHeight);
+      window.removeEventListener('focusout', resetHeight);
+    };
+  }, []);
+
   return (
     <div
       className="flex flex-col md:flex-row bg-purple-50"
