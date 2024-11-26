@@ -254,7 +254,7 @@ Help & Support:
   };
 
   return (
-    <div className="h-full max-h-[65vh] flex-grow flex flex-col">
+    <div className="h-full flex-grow flex flex-col">
       <div className="h-full flex-grow overflow-y-auto">
         {messages.map((message, index) => (
           <ChatMessage key={index} message={message} />

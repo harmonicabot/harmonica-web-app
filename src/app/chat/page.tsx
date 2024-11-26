@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { useSessionStore } from '@/stores/SessionStore';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Loader2, HelpCircle } from 'lucide-react';
 import {
   getHostSessionById,
   increaseSessionsCount,
@@ -245,20 +245,39 @@ Please type your name or "anonymous" if you prefer
               </div>
             </div>
           ) : (
-            <>
-              <div className="w-full md:w-1/4 p-6">
-                <p className="text-sm text-muted-foreground mb-2">
+            <div id="chat-container" className="flex flex-col w-full h-full fixed inset-0 z-50 md:flex-row md:relative bg-purple-50">
+              <div className="w-full md:w-1/4 p-6 pb-3 md:pb-6">
+                <p className="text-sm text-muted-foreground mb-2 hidden md:block">
                   Your Session
                 </p>
-                <h1 className="text-2xl font-semibold mb-0 md:mb-6">
-                  {hostData?.topic ?? 'Test'}
-                </h1>
-                {isMounted && !isLoading && (
-                  <Button onClick={finishSession}>Finish</Button>
-                )}
+                <div className="flex items-center md:items-start md:flex-col justify-between w-full">
+                  <h1 className="text-xl font-semibold mb-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                    {hostData?.topic ?? 'Test'}
+                  </h1>
+                  {isMounted && !isLoading && (
+                    <div className="flex items-center">
+                      <Button onClick={finishSession} variant="outline" className="text-sm md:text-base mt-0 md:mt-4">
+                        Finish
+                      </Button>
+                      <Link
+                        href="https://oldspeak.notion.site/Help-Center-fcf198f4683b4e3099beddf48971bd40"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button
+                          variant="outline"
+                          className="md:hidden w-10 h-10 p-2.5 ms-2 flex items-center justify-center rounded-full text-sm md:text-base mt-0"
+                        >
+                          <HelpCircle className="text-lg" />
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="w-full md:w-3/4 h-full flex-grow flex flex-col p-6">
-                <div className="h-full max-w-2xl flex m-4">
+              <hr className="md:hidden border-t border-white ms-4 me-4" />
+              <div className="w-full md:w-3/4 h-full flex-grow flex flex-col px-6 pt-3 md:pb-6">
+                <div className="h-full max-h-[calc(100%-150px)] md:max-h-[calc(100%-50px)] max-w-2xl flex m-4">
                   {(hostData?.template || assistantId) && (
                     <Chat
                       entryMessage={message}
@@ -272,7 +291,7 @@ Please type your name or "anonymous" if you prefer
                   )}
                 </div>
               </div>
-            </>
+            </div>
           )}
         </>
       )}
