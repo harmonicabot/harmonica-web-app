@@ -334,9 +334,81 @@ Please type your name or "anonymous" if you prefer
                   height: `calc(${viewportHeight} - 110px)`,
                 }}
               >
+                <div className="flex-1 overflow-y-auto mb-4">
+                  <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
+                    do eiusmod tempor incididunt ut labore et dolore magna
+                    aliqua.
+                  </p>
+                  <p>
+                    Ut enim ad minim veniam, quis nostrud exercitation ullamco
+                    laboris nisi ut aliquip ex ea commodo consequat.
+                  </p>
+                  <p>
+                    Duis aute irure dolor in reprehenderit in voluptate velit
+                    esse cillum dolore eu fugiat nulla pariatur.
+                  </p>
+                  <p>
+                    Excepteur sint occaecat cupidatat non proident, sunt in
+                    culpa qui officia deserunt mollit anim id est laborum.
+                  </p>
+                  {/* Repeat the above paragraphs multiple times to ensure scrolling */}
+                  <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
+                    do eiusmod tempor incididunt ut labore et dolore magna
+                    aliqua.
+                  </p>
+                  <p>
+                    Ut enim ad minim veniam, quis nostrud exercitation ullamco
+                    laboris nisi ut aliquip ex ea commodo consequat.
+                  </p>
+                  <p>
+                    Duis aute irure dolor in reprehenderit in voluptate velit
+                    esse cillum dolore eu fugiat nulla pariatur.
+                  </p>
+                  <p>
+                    Excepteur sint occaecat cupidatat non proident, sunt in
+                    culpa qui officia deserunt mollit anim id est laborum.
+                  </p>
+                  <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
+                    do eiusmod tempor incididunt ut labore et dolore magna
+                    aliqua.
+                  </p>
+                  <p>
+                    Ut enim ad minim veniam, quis nostrud exercitation ullamco
+                    laboris nisi ut aliquip ex ea commodo consequat.
+                  </p>
+                  <p>
+                    Duis aute irure dolor in reprehenderit in voluptate velit
+                    esse cillum dolore eu fugiat nulla pariatur.
+                  </p>
+                  <p>
+                    Excepteur sint occaecat cupidatat non proident, sunt in
+                    culpa qui officia deserunt mollit anim id est laborum.
+                  </p>
+                  {/* Repeat the above paragraphs multiple times to ensure scrolling */}
+                  <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
+                    do eiusmod tempor incididunt ut labore et dolore magna
+                    aliqua.
+                  </p>
+                  <p>
+                    Ut enim ad minim veniam, quis nostrud exercitation ullamco
+                    laboris nisi ut aliquip ex ea commodo consequat.
+                  </p>
+                  <p>
+                    Duis aute irure dolor in reprehenderit in voluptate velit
+                    esse cillum dolore eu fugiat nulla pariatur.
+                  </p>
+                  <p>
+                    Excepteur sint occaecat cupidatat non proident, sunt in
+                    culpa qui officia deserunt mollit anim id est laborum.
+                  </p>
+                </div>
                 <input
                   type="text"
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 pb-3"
                   placeholder="Type your message..."
                 />
 
@@ -351,9 +423,9 @@ Please type your name or "anonymous" if you prefer
                     />
                   )}
                 </div> */}
-              </div>
-              <div className="md:hidden absolute bottom-0 w-full flex justify-center items-center pb-3">
-                <PoweredByHarmonica />
+                <div className="md:hidden w-full flex justify-center items-center py-3">
+                  <PoweredByHarmonica />
+                </div>
               </div>
             </div>
           )}
