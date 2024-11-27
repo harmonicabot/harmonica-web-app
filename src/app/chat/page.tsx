@@ -332,10 +332,9 @@ Please type your name or "anonymous" if you prefer
                 className="w-full md:w-3/4 flex-grow flex flex-col px-6 pt-3 md:pb-6 overflow-hidden"
                 style={{
                   height: `calc(${viewportHeight} - 110px)`,
-                  paddingBottom: 'env(safe-area-inset-bottom)',
                 }}
               >
-                <div className="flex-1 overflow-y-auto mb-4">
+                <div className="flex-1 overflow-y-auto mb-4 pb-20">
                   <p>
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
                     do eiusmod tempor incididunt ut labore et dolore magna
@@ -407,17 +406,49 @@ Please type your name or "anonymous" if you prefer
                     culpa qui officia deserunt mollit anim id est laborum.
                   </p>
                 </div>
-                <div className="sticky bottom-0">
-                  <input
-                    type="text"
-                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="Type your message..."
-                    onFocus={() => {
-                      setTimeout(() => {
-                        window.scrollTo(0, 0);
-                      }, 100);
-                    }}
-                  />
+                <div
+                  className="fixed bottom-0 left-0 right-0 bg-white px-6 py-2"
+                  style={{
+                    maxWidth: '75%',
+                    margin: '0 auto',
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      className="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="Type your message..."
+                      onFocus={() => {
+                        // Add a small delay to ensure keyboard is fully shown
+                        setTimeout(() => {
+                          const element = document.activeElement as HTMLElement;
+                          element?.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                          });
+                        }, 300);
+                      }}
+                    />
+                    <button
+                      className="p-2 rounded-lg hover:bg-gray-100"
+                      onClick={() => {}}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-6 h-6"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
