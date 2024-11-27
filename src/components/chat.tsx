@@ -253,6 +253,14 @@ Help & Support:
       });
   };
 
+  // Focus the textarea when the component mounts
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.focus(); // Automatically focus the textarea
+    }
+  }, []);
+
   return (
     <div className="h-full flex-grow flex flex-col">
       <div className="h-full flex-grow overflow-y-auto mb-100px">
