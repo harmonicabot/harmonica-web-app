@@ -46,6 +46,7 @@ Please type your name or "anonymous" if you prefer
   const [isFirstMessage, setIsFirstMessage] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     setIsMounted(true);
@@ -134,6 +135,29 @@ Please type your name or "anonymous" if you prefer
     }
   }, []);
 
+  useEffect(() => {
+    const detectKeyboard = () => {
+      const viewportHeight =
+        window.visualViewport?.height ?? window.innerHeight;
+      const heightDiff = window.innerHeight - viewportHeight;
+      if (heightDiff > 100) {
+        // Threshold to determine if keyboard is shown
+        setKeyboardHeight(heightDiff);
+      } else {
+        setKeyboardHeight(0);
+      }
+    };
+
+    // Add listeners for viewport changes
+    window.visualViewport?.addEventListener('resize', detectKeyboard);
+    window.visualViewport?.addEventListener('scroll', detectKeyboard);
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', detectKeyboard);
+      window.visualViewport?.removeEventListener('scroll', detectKeyboard);
+    };
+  }, []);
+
   return (
     <div
       ref={chatContainerRef}
@@ -164,7 +188,10 @@ Please type your name or "anonymous" if you prefer
                         participants have finished to receive the final report.
                       </p>
                       {user && user.sub && (
-                        <Link href={`/sessions/${encryptId(sessionId!)}`} passHref>
+                        <Link
+                          href={`/sessions/${encryptId(sessionId!)}`}
+                          passHref
+                        >
                           <Button size="lg" className="mt-4">
                             View Session Results
                           </Button>
@@ -184,7 +211,7 @@ Please type your name or "anonymous" if you prefer
                             className={`mb-6 ${sessionClosed ? 'sm:mb-8' : ''}`}
                           >
                             {sessionClosed
-                              ? "You can create a new session on any topic and invite others to participate."
+                              ? 'You can create a new session on any topic and invite others to participate.'
                               : 'Welcome to our interactive session! We value your input and would love to hear your thoughts on the topic at hand. Your responses will be combined with others to create an AI-powered overview.'}
                           </p>
                           {sessionClosed ? (
@@ -195,7 +222,10 @@ Please type your name or "anonymous" if you prefer
                                   passHref
                                   className="w-full sm:w-auto"
                                 >
-                                  <Button size="lg" className="w-full sm:w-auto">
+                                  <Button
+                                    size="lg"
+                                    className="w-full sm:w-auto"
+                                  >
                                     View Session Results
                                   </Button>
                                 </Link>
@@ -279,7 +309,10 @@ Please type your name or "anonymous" if you prefer
               </div>
             </div>
           ) : (
-            <div id="chat-container" className="flex flex-col w-full h-100vh md:h-full fixed inset-0 z-50 md:flex-row md:relative bg-purple-50">
+            <div
+              id="chat-container"
+              className="flex flex-col w-full h-100vh md:h-full fixed inset-0 z-50 md:flex-row md:relative bg-purple-50"
+            >
               <div className="w-full md:w-1/4 p-6 pb-3 md:pb-6">
                 <p className="text-sm text-muted-foreground mb-2 hidden md:block">
                   Your Session
@@ -290,7 +323,11 @@ Please type your name or "anonymous" if you prefer
                   </h1>
                   {isMounted && !isLoading && (
                     <div className="flex items-center">
-                      <Button onClick={finishSession} variant="outline" className="text-sm md:text-base mt-0 md:mt-4">
+                      <Button
+                        onClick={finishSession}
+                        variant="outline"
+                        className="text-sm md:text-base mt-0 md:mt-4"
+                      >
                         Finish
                       </Button>
                       <Link
@@ -315,9 +352,7 @@ Please type your name or "anonymous" if you prefer
                   {(hostData?.template || assistantId) && (
                     <Chat
                       entryMessage={message}
-                      assistantId={
-                        hostData?.template ?? assistantId!
-                      }
+                      assistantId={hostData?.template ?? assistantId!}
                       sessionId={hostData?.id}
                       userSessionId={userSessionId ?? undefined}
                       setUserSessionId={setUserSessionId}
@@ -326,12 +361,15 @@ Please type your name or "anonymous" if you prefer
                 </div>
               </div>
               <div className="md:hidden absolute bottom-0 w-full flex justify-center items-center pb-3">
-                <PoweredByHarmonica/>
+                <PoweredByHarmonica />
               </div>
             </div>
           )}
         </>
       )}
+      <p className="fixed bottom-20 left-4 z-50 bg-white px-2 py-1 rounded shadow">
+        Keyboard height: {keyboardHeight}px
+      </p>
     </div>
   );
 };
