@@ -14,11 +14,11 @@ import {
   updateHostSession,
   updateUserSession,
 } from '@/lib/db';
-import { sql } from 'kysely';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { OpenAIMessage } from '@/lib/types';
 import { encryptId } from '@/lib/encryptionUtils';
 import { PoweredByHarmonica } from '@/components/icons';
+import ErrorPage from '@/components/Error';
 
 const StandaloneChat = () => {
   const [message, setMessage] = useState<OpenAIMessage>({
@@ -32,10 +32,12 @@ Please type your name or "anonymous" if you prefer
 
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('s');
-  const assistantId = searchParams.get('a');
-
+  if (!sessionId) {
+    return <ErrorPage title='No Session ID provided' message={`The URL needs to have a valid Session ID, otherwise we don't know which chat to start.`} />
+  }
+  
   const [hostData, addHostData] = useSessionStore((state) => [
-    sessionId ? state.hostData[sessionId] : null,
+    state.hostData[sessionId],
     state.addHostData,
   ]);
 

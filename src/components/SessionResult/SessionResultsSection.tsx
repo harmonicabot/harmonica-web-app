@@ -1,8 +1,11 @@
-import { HostSession, Message, UserSession } from '@/lib/schema_updated';
+'use client'
 
+import { HostSession, Message, UserSession } from '@/lib/schema_updated';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
 import { useEffect, useState } from 'react';
+import { mutate } from 'swr';
+
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,47 +14,42 @@ import SessionResultChat from './SessionResultChat';
 import SessionResultParticipants from './SessionResultParticipants';
 import SessionResultSummary from './SessionResultSummary';
 import ShareSession from './ShareSession';
-import {
-  getAllMessagesForUsersSorted,
-  filterForUsersWithMessages,
-} from '@/lib/db';
+import * as db from '@/lib/db';
 import { formatForExport } from 'app/api/exportUtils';
+import { checkSummaryAndMessageTimes, createSummary } from '@/lib/utils';
 
 export default function SessionResultsSection({
   hostData,
-  userData,
+  userData, // Already filtered to only those users having messages
   id,
-  handleCreateSummary,
-  hasNewMessages,
 }: {
   hostData: HostSession;
   userData: UserSession[];
   id: string;
-  handleCreateSummary: () => void;
-  hasNewMessages: boolean;
 }) {
-  const [hasMessages, setHasMessages] = useState(false);
+  
+  const hasMessages = userData.length > 0;
+  const {hasNewMessages, lastMessage, lastSummaryUpdate} = checkSummaryAndMessageTimes(hostData, userData)
 
-  useEffect(() => {
-    filterForUsersWithMessages(userData).then((usersWithMessages) => {
-      const count = usersWithMessages.length;
-      console.log(
-        `This session seems to have contributions from ${count} users`
-      );
-      setHasMessages(count > 0);
-      if (count > 0 && !hostData.summary) {
-        handleCreateSummary();
-      }
-    });
-  }, [userData]);
-
+  if (
+    hasNewMessages &&
+    lastMessage > lastSummaryUpdate &&
+    new Date().getTime() - lastSummaryUpdate > 1000 * 60 * 10
+  ) {
+    const minutesAgo = (new Date().getTime() - lastSummaryUpdate) / (1000 * 60);
+    console.log(`Last summary created ${minutesAgo} minutes ago, 
+        and new messages were received since then. Creating an updated one.`);
+    createSummary(hostData.id);
+    mutate(`sessions/${id}`);
+  }
+  
   const [exportInProgress, setExportInProgress] = useState(false);
   const exportSessionResults = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsExportPopupVisible(true);
     setExportInProgress(true);
 
-    const allUsersMessages = await getAllMessagesForUsersSorted(userData);
+    const allUsersMessages = await db.getAllMessagesForUsersSorted(userData);
     const messagesByThread = allUsersMessages.reduce((acc, message) => {
       acc[message.thread_id] = acc[message.thread_id] || []; // to make sure this array exists
       acc[message.thread_id].push(message);
@@ -74,7 +72,7 @@ export default function SessionResultsSection({
   };
 
   const exportAllData = async () => {
-    const allMessages = await getAllMessagesForUsersSorted(userData);
+    const allMessages = await db.getAllMessagesForUsersSorted(userData);
     const exportData = userData.map((user) => {
       const user_id = user.user_id;
       const user_name = user.user_name;
@@ -134,7 +132,7 @@ export default function SessionResultsSection({
               <TabsTrigger
                 className="ms-0"
                 value="SUMMARY"
-                onClick={() => handleCreateSummary()}
+                onClick={() => createSummary(id)}
               >
                 Create Summary
               </TabsTrigger>
@@ -151,7 +149,7 @@ export default function SessionResultsSection({
                 <SessionResultSummary
                   summary={hostData.summary}
                   hasNewMessages={hasNewMessages}
-                  onUpdateSummary={handleCreateSummary}
+                  onUpdateSummary={() => createSummary(id)}
                 />
               ) : (
                 <>

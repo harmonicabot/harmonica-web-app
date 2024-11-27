@@ -14,6 +14,7 @@ import { NewHostSession } from '@/lib/schema_updated';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
 import { encryptId } from '@/lib/encryptionUtils';
+import { metadata } from 'app/metadata';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 

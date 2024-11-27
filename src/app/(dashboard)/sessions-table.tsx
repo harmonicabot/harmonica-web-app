@@ -55,7 +55,7 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
 
   useEffect(() => {
     setAsSessionData(sessions);
-  }, [sessions]);
+  }, []);
 
   async function setAsSessionData(sessions: HostSession[]) {
     const totalAndFinished = await db.getNumberOfTotalAndFinishedThreads(sessions); 

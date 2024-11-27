@@ -44,7 +44,6 @@ export default function ReviewPrompt({
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
-    console.log(e.currentTarget.value);
     setEditValue(e.currentTarget.value);
   };
 
@@ -55,8 +54,6 @@ export default function ReviewPrompt({
       __html: DOMPurify.sanitize(cleaned),
     };
   }
-
-  const [tempAssistantId, setTempAssistant] = useState('');
 
   const showFullPrompt = (promptId: number) => {
     setModalState({ open: true, text: prompts[promptId - 1].fullPrompt });
