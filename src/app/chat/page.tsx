@@ -334,6 +334,12 @@ Please type your name or "anonymous" if you prefer
                   height: `calc(${viewportHeight} - 110px)`,
                 }}
               >
+                <input
+                  type="text"
+                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Type your message..."
+                />
+
                 {/* <div className="h-full max-w-2xl flex m-4">
                   {(hostData?.template || assistantId) && (
                     <Chat
