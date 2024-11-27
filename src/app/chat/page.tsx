@@ -166,7 +166,7 @@ Please type your name or "anonymous" if you prefer
     <div
       ref={chatContainerRef}
       className="flex flex-col md:flex-row bg-purple-50"
-      style={{ height: '100vh' }}
+      style={{ height: `calc(100vh - ${keyboardHeight}px)` }}
     >
       <div className="hidden">
         <div data-tf-live="01JB9CRNXPX488VHX879VNF3E6"></div>
@@ -315,7 +315,8 @@ Please type your name or "anonymous" if you prefer
           ) : (
             <div
               id="chat-container"
-              className="flex flex-col w-full h-100vh md:h-full fixed inset-0 z-50 md:flex-row md:relative bg-purple-50"
+              className="flex flex-col w-full fixed inset-0 z-50 md:flex-row md:relative bg-purple-50"
+              style={{ height: `calc(100vh - ${keyboardHeight}px)` }}
             >
               <div className="w-full md:w-1/4 p-6 pb-3 md:pb-6">
                 <p className="text-sm text-muted-foreground mb-2 hidden md:block">
@@ -351,7 +352,13 @@ Please type your name or "anonymous" if you prefer
                 </div>
               </div>
               <hr className="md:hidden border-t border-white ms-4 me-4" />
-              <div className="w-full md:w-3/4 max-h-[calc(100vh-110px)] h-[calc(100vh-110px)] mb:h-full flex-grow flex flex-col px-6 pt-3 md:pb-6">
+              <div
+                className="w-full md:w-3/4 flex-grow flex flex-col px-6 pt-3 md:pb-6"
+                style={{
+                  maxHeight: `calc(100vh - ${keyboardHeight}px - 110px)`,
+                  height: `calc(100vh - ${keyboardHeight}px - 110px)`,
+                }}
+              >
                 <div className="h-full max-w-2xl flex m-4">
                   {(hostData?.template || assistantId) && (
                     <Chat
