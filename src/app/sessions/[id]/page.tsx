@@ -16,9 +16,10 @@ import SessionResultShare from '@/components/SessionResult/SessionResultShare';
 import SessionResultsSection from '@/components/SessionResult/SessionResultsSection';
 import { decryptId } from '@/lib/encryptionUtils';
 import { Message, UserSession } from '@/lib/schema_updated';
+import ErrorPage from '@/components/Error';
 
 // Increase the maximum execution time for this function on vercel
-export const maxDuration = 60;  // in seconds
+export const maxDuration = 60; // in seconds
 
 // Define the type for the grouped chats
 interface GroupedChats {
@@ -26,9 +27,9 @@ interface GroupedChats {
 }
 
 const fetcher = async (id: string) => {
+  console.log('Updating session data...');
   const hostData = await db.getHostSessionById(id);
   const userData = await db.getUsersBySessionId(id);
-  console.log('hostData', hostData);
   return { hostData, userData };
 };
 
@@ -49,39 +50,37 @@ export default function SessionResult() {
     ]
   );
 
+  const processUserData = async (userData: UserSession[]) => {
+    if (!userData) return;
+    db.filterForUsersWithMessages(userData).then((usersWithMessages) => {
+      setSessionsWithChat(usersWithMessages);
+      setNumSessions(usersWithMessages.length);
+      setCompletedSessions(
+        usersWithMessages.filter((user) => !user.active).length
+      );
+    });
+  };
+
   const { error } = useSWR(
     `sessions/${decryptedId}`,
     () => fetcher(decryptedId),
     {
       refreshInterval: 5 * 60000, // Poll every 5 minutes
       revalidateOnFocus: true,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       onSuccess: ({ hostData, userData }) => {
         console.log('Updated session data fetched:', userData);
-        addHostData(decryptedId, hostData);
-        addUserData(id, userData);
+        if (hostData) {
+          addHostData(decryptedId, hostData);
+        }
+        if (userData) {
+          addUserData(id, userData);
+          processUserData(userData);
+        }
       },
     }
   );
-
-  const { user } = useUser();
-
-  useEffect(() => {
-    const processUserData = async () => {
-      if (!userData) return;
-
-      db.filterForUsersWithMessages(userData).then((usersWithMessages) => {
-        setSessionsWithChat(usersWithMessages);
-        setNumSessions(usersWithMessages.length);
-        setCompletedSessions(
-          usersWithMessages.filter((user) => !user.active).length
-        );
-      });
-    };
-
-    processUserData();
-  }, [userData]);
-
-  // const [hostType, setHostType] = useState(false);
 
   const finishSession = async () => {
     await db.deactivateHostSession(decryptedId);
@@ -129,8 +128,10 @@ export default function SessionResult() {
     );
     const summaryReply = await gpt.handleGenerateAnswer({
       threadId: threadId,
-      assistantId: process.env.SUMMARY_ASSISTANT ?? 'asst_QTmamFSqEIcbUX4ZwrjEqdm8',
-      messageText: "Generate the report based on the participant data provided addressing the objective.",
+      assistantId:
+        process.env.SUMMARY_ASSISTANT ?? 'asst_QTmamFSqEIcbUX4ZwrjEqdm8',
+      messageText:
+        'Generate the report based on the participant data provided addressing the objective.',
     });
     const summary = summaryReply.content;
     console.log('Summary: ', summary);
@@ -143,6 +144,7 @@ export default function SessionResult() {
   };
 
   const [hasNewMessages, setHasNewMessages] = useState(false);
+
   useEffect(() => {
     if (!hostData) return;
     console.log('Checking for new messages...');
@@ -170,6 +172,14 @@ export default function SessionResult() {
   }, [hostData]);
 
   // if (error) return <div>{`Failed to load session data :-(`}</div>;
+
+  if (error) {
+    console.error(`Error occured fetching data: `, error);
+    return (
+      <ErrorPage title={"Error loading session"} message={"The session ID might be incorrect or the session may no longer exist."}/>
+    );
+  }
+
   if (!hostData) return <div>Loading...</div>;
 
   return (
