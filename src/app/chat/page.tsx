@@ -123,9 +123,9 @@ Please type your name or "anonymous" if you prefer
         setKeyboardHeight(offsetTop);
         setViewportHeight(`${window.visualViewport.height}px`);
 
-        if (offsetTop > 0) {
-          window.scrollTo(0, document.documentElement.scrollHeight);
-        }
+        // if (offsetTop > 0) {
+        //   window.scrollTo(0, document.documentElement.scrollHeight);
+        // }
       }
     };
 
@@ -418,16 +418,6 @@ Please type your name or "anonymous" if you prefer
                       type="text"
                       className="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                       placeholder="Type your message..."
-                      onFocus={() => {
-                        // Add a small delay to ensure keyboard is fully shown
-                        setTimeout(() => {
-                          const element = document.activeElement as HTMLElement;
-                          element?.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center',
-                          });
-                        }, 300);
-                      }}
                     />
                     <button
                       className="p-2 rounded-lg hover:bg-gray-100"
