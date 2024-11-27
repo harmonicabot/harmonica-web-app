@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isChatPage = pathname?.startsWith('/chat');
+  const isChatPage = pathname?.startsWith('/test-chat');
 
   return (
     <html lang="en" className={instrumentSans.className}>
