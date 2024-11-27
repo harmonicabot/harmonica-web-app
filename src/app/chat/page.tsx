@@ -332,6 +332,7 @@ Please type your name or "anonymous" if you prefer
                 className="w-full md:w-3/4 flex-grow flex flex-col px-6 pt-3 md:pb-6 overflow-hidden"
                 style={{
                   height: `calc(${viewportHeight} - 110px)`,
+                  paddingBottom: 'env(safe-area-inset-bottom)',
                 }}
               >
                 <div className="flex-1 overflow-y-auto mb-4">
@@ -406,25 +407,17 @@ Please type your name or "anonymous" if you prefer
                     culpa qui officia deserunt mollit anim id est laborum.
                   </p>
                 </div>
-                <input
-                  type="text"
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 pb-3"
-                  placeholder="Type your message..."
-                />
-
-                {/* <div className="h-full max-w-2xl flex m-4">
-                  {(hostData?.template || assistantId) && (
-                    <Chat
-                      entryMessage={message}
-                      assistantId={hostData?.template ?? assistantId!}
-                      sessionId={hostData?.id}
-                      userSessionId={userSessionId ?? undefined}
-                      setUserSessionId={setUserSessionId}
-                    />
-                  )}
-                </div> */}
-                <div className="md:hidden w-full flex justify-center items-center py-3">
-                  <PoweredByHarmonica />
+                <div className="sticky bottom-0">
+                  <input
+                    type="text"
+                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Type your message..."
+                    onFocus={() => {
+                      setTimeout(() => {
+                        window.scrollTo(0, 0);
+                      }, 100);
+                    }}
+                  />
                 </div>
               </div>
             </div>
