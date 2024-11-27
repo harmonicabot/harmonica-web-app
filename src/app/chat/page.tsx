@@ -47,9 +47,14 @@ Please type your name or "anonymous" if you prefer
   const [isMounted, setIsMounted] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState('100vh');
 
   useEffect(() => {
     setIsMounted(true);
+    setViewportHeight(
+      `${window.visualViewport?.height || window.innerHeight}px`,
+    );
+
     const loadData = async () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setIsLoading(false);
@@ -113,21 +118,17 @@ Please type your name or "anonymous" if you prefer
   useEffect(() => {
     const detectKeyboard = () => {
       if (window.visualViewport) {
-        // Add padding to compensate for keyboard offset
         document.body.style.paddingTop = `${window.visualViewport.offsetTop}px`;
-
-        // Update keyboard height for other calculations if needed
         const offsetTop = window.visualViewport.offsetTop || 0;
         setKeyboardHeight(offsetTop);
+        setViewportHeight(`${window.visualViewport.height}px`);
 
-        // Ensure content stays in view
         if (offsetTop > 0) {
           window.scrollTo(0, document.documentElement.scrollHeight);
         }
       }
     };
 
-    // Focus on viewport changes
     window.visualViewport?.addEventListener('scroll', detectKeyboard);
     window.visualViewport?.addEventListener('resize', detectKeyboard);
 
@@ -140,8 +141,8 @@ Please type your name or "anonymous" if you prefer
   return (
     <div
       ref={chatContainerRef}
-      className="flex flex-col md:flex-row bg-purple-50"
-      style={{ height: `calc(100vh - ${keyboardHeight}px)` }}
+      className="flex flex-col md:flex-row bg-purple-50 fixed inset-0 overflow-hidden"
+      style={{ height: viewportHeight }}
     >
       <div className="hidden">
         <div data-tf-live="01JB9CRNXPX488VHX879VNF3E6"></div>
@@ -290,8 +291,8 @@ Please type your name or "anonymous" if you prefer
           ) : (
             <div
               id="chat-container"
-              className="flex flex-col w-full fixed inset-0 z-50 md:flex-row md:relative bg-purple-50"
-              style={{ height: `calc(100vh - ${keyboardHeight}px)` }}
+              className="flex flex-col w-full fixed inset-0 z-50 md:flex-row md:relative bg-red-500 overflow-hidden"
+              style={{ height: viewportHeight }}
             >
               <div className="w-full md:w-1/4 p-6 pb-3 md:pb-6">
                 <p className="text-sm text-muted-foreground mb-2 hidden md:block">
@@ -328,13 +329,12 @@ Please type your name or "anonymous" if you prefer
               </div>
               <hr className="md:hidden border-t border-white ms-4 me-4" />
               <div
-                className="w-full md:w-3/4 flex-grow flex flex-col px-6 pt-3 md:pb-6"
+                className="w-full md:w-3/4 flex-grow flex flex-col px-6 pt-3 md:pb-6 overflow-hidden"
                 style={{
-                  maxHeight: `calc(100vh - ${keyboardHeight}px - 110px)`,
-                  height: `calc(100vh - ${keyboardHeight}px - 110px)`,
+                  height: `calc(${viewportHeight} - 110px)`,
                 }}
               >
-                <div className="h-full max-w-2xl flex m-4">
+                {/* <div className="h-full max-w-2xl flex m-4">
                   {(hostData?.template || assistantId) && (
                     <Chat
                       entryMessage={message}
@@ -344,7 +344,7 @@ Please type your name or "anonymous" if you prefer
                       setUserSessionId={setUserSessionId}
                     />
                   )}
-                </div>
+                </div> */}
               </div>
               <div className="md:hidden absolute bottom-0 w-full flex justify-center items-center pb-3">
                 <PoweredByHarmonica />
