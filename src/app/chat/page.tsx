@@ -137,34 +137,28 @@ Please type your name or "anonymous" if you prefer
 
   useEffect(() => {
     const detectKeyboard = () => {
-      // Get the actual visible height
-      const viewportHeight =
-        window.visualViewport?.height ?? window.innerHeight;
-      // Get the full screen height
-      const windowHeight = window.innerHeight;
-      // Calculate difference and account for iOS safe areas
-      const heightDiff = Math.abs(windowHeight - viewportHeight);
+      if (window.visualViewport) {
+        // Add padding to compensate for keyboard offset
+        document.body.style.paddingTop = `${window.visualViewport.offsetTop}px`;
 
-      // Use a more generous threshold for iOS
-      if (heightDiff > 150) {
-        setKeyboardHeight(heightDiff);
-        // Scroll to bottom when keyboard shows
-        window.scrollTo(0, document.documentElement.scrollHeight);
-      } else {
-        setKeyboardHeight(0);
+        // Update keyboard height for other calculations if needed
+        const offsetTop = window.visualViewport.offsetTop || 0;
+        setKeyboardHeight(offsetTop);
+
+        // Ensure content stays in view
+        if (offsetTop > 0) {
+          window.scrollTo(0, document.documentElement.scrollHeight);
+        }
       }
     };
 
-    // Listen to both resize and scroll events
-    window.visualViewport?.addEventListener('resize', detectKeyboard);
+    // Focus on viewport changes
     window.visualViewport?.addEventListener('scroll', detectKeyboard);
-    // Also listen to window resize as fallback
-    window.addEventListener('resize', detectKeyboard);
+    window.visualViewport?.addEventListener('resize', detectKeyboard);
 
     return () => {
-      window.visualViewport?.removeEventListener('resize', detectKeyboard);
       window.visualViewport?.removeEventListener('scroll', detectKeyboard);
-      window.removeEventListener('resize', detectKeyboard);
+      window.visualViewport?.removeEventListener('resize', detectKeyboard);
     };
   }, []);
 
