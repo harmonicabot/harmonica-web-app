@@ -137,24 +137,34 @@ Please type your name or "anonymous" if you prefer
 
   useEffect(() => {
     const detectKeyboard = () => {
+      // Get the actual visible height
       const viewportHeight =
         window.visualViewport?.height ?? window.innerHeight;
-      const heightDiff = window.innerHeight - viewportHeight;
-      if (heightDiff > 100) {
-        // Threshold to determine if keyboard is shown
+      // Get the full screen height
+      const windowHeight = window.innerHeight;
+      // Calculate difference and account for iOS safe areas
+      const heightDiff = Math.abs(windowHeight - viewportHeight);
+
+      // Use a more generous threshold for iOS
+      if (heightDiff > 150) {
         setKeyboardHeight(heightDiff);
+        // Scroll to bottom when keyboard shows
+        window.scrollTo(0, document.documentElement.scrollHeight);
       } else {
         setKeyboardHeight(0);
       }
     };
 
-    // Add listeners for viewport changes
+    // Listen to both resize and scroll events
     window.visualViewport?.addEventListener('resize', detectKeyboard);
     window.visualViewport?.addEventListener('scroll', detectKeyboard);
+    // Also listen to window resize as fallback
+    window.addEventListener('resize', detectKeyboard);
 
     return () => {
       window.visualViewport?.removeEventListener('resize', detectKeyboard);
       window.visualViewport?.removeEventListener('scroll', detectKeyboard);
+      window.removeEventListener('resize', detectKeyboard);
     };
   }, []);
 
