@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useState, useRef } from 'react';
 
 import Chat from '@/components/chat';
 import { useSearchParams } from 'next/navigation';
@@ -45,6 +45,7 @@ Please type your name or "anonymous" if you prefer
   const [isLoading, setIsLoading] = useState(true);
   const [isFirstMessage, setIsFirstMessage] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -101,22 +102,43 @@ Please type your name or "anonymous" if you prefer
 
   const sessionClosed = !hostData?.active;
 
-  useEffect(() => {
-    const handleResize = () => {
+  const adjustHeight = () => {
+    if (chatContainerRef.current) {
       const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
+      chatContainerRef.current.style.height = `${vh * 100}px`;
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('resize', adjustHeight);
+    adjustHeight(); // Set initial height
+
+    return () => {
+      window.removeEventListener('resize', adjustHeight);
     };
+  }, []);
 
-    window.addEventListener('resize', handleResize);
-    handleResize(); // Call on mount to set initial value
+  useEffect(() => {
+    const input = document.querySelector('input'); // Adjust this selector based on your input field
+    if (input) {
+      const handleFocus = () => adjustHeight();
+      const handleBlur = () => adjustHeight();
 
-    return () => window.removeEventListener('resize', handleResize);
+      input.addEventListener('focus', handleFocus);
+      input.addEventListener('blur', handleBlur);
+
+      return () => {
+        input.removeEventListener('focus', handleFocus);
+        input.removeEventListener('blur', handleBlur);
+      };
+    }
   }, []);
 
   return (
     <div
+      ref={chatContainerRef}
       className="flex flex-col md:flex-row bg-purple-50"
-      style={{ height: 'calc(var(--vh, 1vh) * 100)' }}
+      style={{ height: '100vh' }}
     >
       <div className="hidden">
         <div data-tf-live="01JB9CRNXPX488VHX879VNF3E6"></div>
