@@ -101,9 +101,22 @@ Please type your name or "anonymous" if you prefer
 
   const sessionClosed = !hostData?.active;
 
+  useEffect(() => {
+    const handleResize = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Call on mount to set initial value
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <div
-      className="flex flex-col md:flex-row bg-purple-50 h-100vh md:h-[calc(100vh-100px)]"
+      className="flex flex-col md:flex-row bg-purple-50"
+      style={{ height: 'calc(var(--vh, 1vh) * 100)' }}
     >
       <div className="hidden">
         <div data-tf-live="01JB9CRNXPX488VHX879VNF3E6"></div>
