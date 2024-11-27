@@ -110,45 +110,45 @@ Please type your name or "anonymous" if you prefer
     }
   };
 
-  useEffect(() => {
-    window.addEventListener('resize', adjustHeight);
-    adjustHeight(); // Set initial height
+  // useEffect(() => {
+  //   window.addEventListener('resize', adjustHeight);
+  //   adjustHeight(); // Set initial height
 
-    return () => {
-      window.removeEventListener('resize', adjustHeight);
-    };
-  }, []);
+  //   return () => {
+  //     window.removeEventListener('resize', adjustHeight);
+  //   };
+  // }, []);
 
-  useEffect(() => {
-    const input = document.querySelector('input'); // Adjust this selector based on your input field
-    if (input) {
-      const handleFocus = () => adjustHeight();
-      const handleBlur = () => adjustHeight();
+  // useEffect(() => {
+  //   const input = document.querySelector('input'); // Adjust this selector based on your input field
+  //   if (input) {
+  //     const handleFocus = () => adjustHeight();
+  //     const handleBlur = () => adjustHeight();
 
-      input.addEventListener('focus', handleFocus);
-      input.addEventListener('blur', handleBlur);
+  //     input.addEventListener('focus', handleFocus);
+  //     input.addEventListener('blur', handleBlur);
 
-      return () => {
-        input.removeEventListener('focus', handleFocus);
-        input.removeEventListener('blur', handleBlur);
-      };
-    }
-  }, []);
+  //     return () => {
+  //       input.removeEventListener('focus', handleFocus);
+  //       input.removeEventListener('blur', handleBlur);
+  //     };
+  //   }
+  // }, []);
 
   useEffect(() => {
     const detectKeyboard = () => {
       if (window.visualViewport) {
         // Add padding to compensate for keyboard offset
-        document.body.style.paddingTop = `${window.visualViewport.offsetTop}px`;
+        // document.body.style.paddingTop = `${window.visualViewport.offsetTop}px`;
 
         // Update keyboard height for other calculations if needed
         const offsetTop = window.visualViewport.offsetTop || 0;
         setKeyboardHeight(offsetTop);
 
-        // Ensure content stays in view
-        if (offsetTop > 0) {
-          window.scrollTo(0, document.documentElement.scrollHeight);
-        }
+        // // Ensure content stays in view
+        // if (offsetTop > 0) {
+        //   window.scrollTo(0, document.documentElement.scrollHeight);
+        // }
       }
     };
 
