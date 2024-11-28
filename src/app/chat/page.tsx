@@ -20,6 +20,9 @@ import { OpenAIMessage } from '@/lib/types';
 import { encryptId } from '@/lib/encryptionUtils';
 import { PoweredByHarmonica } from '@/components/icons';
 
+// Increase the maximum execution time for this function on vercel
+export const maxDuration = 60; // in seconds
+
 const StandaloneChat = () => {
   const [message, setMessage] = useState<OpenAIMessage>({
     role: 'assistant',
