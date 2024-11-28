@@ -7,7 +7,7 @@ import ClientLayout from './clientLayout';
 export const metadata = {
   title: {
     template: '%s | Harmonica',
-    default: 'Harmonica sensemaking',
+    default: 'Harmonica - AI sensemaking',
   },
 };
 
