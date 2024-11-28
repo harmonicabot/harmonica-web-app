@@ -5,7 +5,7 @@ import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { VersionedPrompt } from './page';
+import { VersionedPrompt } from './creationFlow';
 import { Spinner } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import Markdown from 'react-markdown';
