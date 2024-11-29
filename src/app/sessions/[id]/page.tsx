@@ -19,7 +19,6 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = params;
   const decryptedId = decryptId(id);
-  console.log(`Encrypted in Metadata: ${id}, Decrypted: ${decryptedId}`)
   const hostData = await db.getHostSessionById(decryptedId);
   
   return {
@@ -38,7 +37,6 @@ export default async function SessionResult({
 }) {
   const { id } = params;
   const decryptedId = decryptId(id);
-  console.log(`Encrypted: ${id}, Decrypted: ${decryptedId}`)
 
   try {
     const hostData = await db.getHostSessionById(decryptedId);
