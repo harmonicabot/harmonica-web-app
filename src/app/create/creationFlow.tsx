@@ -14,7 +14,6 @@ import { NewHostSession } from '@/lib/schema_updated';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
 import { encryptId } from '@/lib/encryptionUtils';
-import { metadata } from 'app/metadata';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -48,15 +47,6 @@ export default function CreationFlow() {
   const addPrompt = (versionedPrompt: VersionedPrompt) => {
     setPrompts((prev) => [...prev, versionedPrompt]);
   };
-
-  // TODO: Remove after development!
-  // if (prompts.length < 1) {
-  //   const prompt = "Some fake testing prompt that should be removed again.";
-  //   addPrompt(prompt)
-  //   updateStreamingPrompt(prompt)
-  //   setAssistantId("asst_5T4EakkOmaRfgna5qJnCc8sX")
-  //   setThreadId("thread_fZPMzWCxFPYhwVAuh8UzBLOL")
-  // }
 
   // When streaming starts:
   const startStreaming = () => {
