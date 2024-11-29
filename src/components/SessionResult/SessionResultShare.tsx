@@ -1,4 +1,5 @@
-import { useState } from 'react';
+'use client'
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Share2, Clipboard } from "lucide-react";
@@ -9,11 +10,17 @@ interface SessionResultShareProps {
 }
 
 export  default function SessionResultShare({ sessionId }: SessionResultShareProps) {
+  const [url, setUrl] = useState('');
+  const [urlDomainOnly, setUrlDomainOnly] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const url = `${window.location.origin}/chat?s=${sessionId}`;
-  const urlDomainOnly = `${window.location.host}/chat?s=${sessionId}`;
+  useEffect(() => {
+    // Need to set the URL in useEffect, otherwise next.js is doing SSR on the server side where window isn't available
+    setUrl(`${window.location.origin}/chat?s=${sessionId}`);
+    setUrlDomainOnly(`${window.location.host}/chat?s=${sessionId}`);
+  }, [sessionId]);
+  
   const copyToClipboard = () => {
     navigator.clipboard.writeText(url).then(() => {
       setShowToast(true);

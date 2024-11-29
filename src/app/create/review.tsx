@@ -5,7 +5,7 @@ import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { VersionedPrompt } from './page';
+import { VersionedPrompt } from './creationFlow';
 import { Spinner } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import Markdown from 'react-markdown';
@@ -44,7 +44,6 @@ export default function ReviewPrompt({
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
-    console.log(e.currentTarget.value);
     setEditValue(e.currentTarget.value);
   };
 
@@ -55,8 +54,6 @@ export default function ReviewPrompt({
       __html: DOMPurify.sanitize(cleaned),
     };
   }
-
-  const [tempAssistantId, setTempAssistant] = useState('');
 
   const showFullPrompt = (promptId: number) => {
     setModalState({ open: true, text: prompts[promptId - 1].fullPrompt });
