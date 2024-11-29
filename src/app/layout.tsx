@@ -11,14 +11,10 @@ export const metadata = {
     template: '%s | Harmonica',
     default: 'Harmonica - AI sensemaking',
   },
-  description: `Create AI-facilitated conversations to gather insights from your team, users, or community. Design custom sessions and transform collective input into actionable strategies.`,
   openGraph: {
     title: "Harmonica - Ultrafast sensemaking",
     description: 'Create AI-facilitated conversations to gather insights from your team, users, or community. Design custom sessions and transform collective input into actionable strategies.',
-    siteName: 'Harmonica.chat',
-  },
-  icons: {
-    icon: '/favicon.ico',
+    siteName: 'harmonica.chat',
   },
 };
 

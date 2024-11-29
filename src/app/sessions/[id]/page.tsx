@@ -23,10 +23,6 @@ export async function generateMetadata(
   
   return {
     title: `${hostData.topic}`,
-    description: `Ready to share your perspective? Join this AI-facilitated conversation to help shape decisions and move your group forward together.`,
-    openGraph: {
-      images: ['/og_chat.png'],
-    },
   };
 }
 
