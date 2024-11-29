@@ -14,7 +14,7 @@ export async function generateMetadata(
     },
     description: `Ready to share your perspective? Join this AI-facilitated conversation to help shape decisions and move your group forward together.`,
     openGraph: {
-      images: ['/og_chat.png'],
+      description:`Join an AI-facilitated conversation to share your thoughts and help shape collective decisions. Contribute meaningfully to your group's goals through guided dialogue.`,
     },
   };
 }

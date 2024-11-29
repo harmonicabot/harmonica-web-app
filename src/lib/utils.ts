@@ -38,7 +38,6 @@ export const sendApiCall = async (request: RequestData) => {
 import * as db from './db';
 import * as gpt from 'app/api/gptUtils';
 import { Message, HostSession, UserSession } from './schema_updated';
-import { mutate } from 'swr';
 
 // Define the type for the grouped chats
 interface GroupedChats {
@@ -99,7 +98,6 @@ export async function createSummary(sessionId: string) {
     summary: summary ?? undefined,
     last_edit: new Date(),
   });
-  mutate(`sessions/${sessionId}`);
 }
 
 export function checkSummaryAndMessageTimes(
