@@ -1,4 +1,5 @@
 import { withMiddlewareAuthRequired } from '@auth0/nextjs-auth0/edge';
+import { NextResponse } from 'next/server';
 
 // These are added so that common bots can access metadata
 const BOTS = [
@@ -23,16 +24,20 @@ const BOTS = [
 export const config = {
   matcher: [
     '/((?!api|_next/static|_next/image|favicon.ico|login|chat|h_chat_icon.png|opengraph-image.png).*)',
-    {
-      source: '/(.*)',
-      has: [{
-        type: 'header',
-        key: 'user-agent',
-        value: `(?i)(${BOTS.join('|')})`,
-      }],
-    },
   ],
 };
 
 
-export default withMiddlewareAuthRequired();
+export default withMiddlewareAuthRequired(async (req, event) => {
+  const userAgent = req.headers.get('user-agent') || '';
+  
+  const isBot = BOTS.some(bot => {
+    const botPattern = new RegExp(bot, 'i'); // Case-insensitive
+    return botPattern.test(userAgent);
+  });
+
+  if (isBot) {
+    // Allow bots without authentication
+    return NextResponse.next();
+  }
+});
