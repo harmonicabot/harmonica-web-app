@@ -25,7 +25,7 @@ export const config = {
     '/((?!api|_next/static|_next/image|favicon.ico|login|chat|h_chat_icon.png|opengraph-image.png).*)',
     {
       source: '/(.*)',
-      missing: [{
+      has: [{
         type: 'header',
         key: 'user-agent',
         value: BOTS.join('|'),
