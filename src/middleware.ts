@@ -28,7 +28,7 @@ export const config = {
       has: [{
         type: 'header',
         key: 'user-agent',
-        value: BOTS.join('|'),
+        value: `(?i)(${BOTS.join('|')})`,
       }],
     },
   ],
