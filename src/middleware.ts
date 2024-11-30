@@ -1,25 +1,6 @@
 import { withMiddlewareAuthRequired } from '@auth0/nextjs-auth0/edge';
 import { NextResponse } from 'next/server';
-
-// These are added so that common bots can access metadata
-const BOTS = [
-  'googlebot',
-  'bingbot',
-  'slackbot',
-  'twitterbot',
-  'facebookexternalhit',
-  'linkedinbot',
-  'embedly',
-  'discordbot',
-  'notionbot',
-  'whatsapp',
-  'discord',
-  'notion',
-  'discourse-forum',
-  'telegrambot',
-  'telegram-bot',
-  'tg:social',
-];
+import { isbot } from 'isbot';
 
 export const config = {
   matcher: [
@@ -28,15 +9,12 @@ export const config = {
 };
 
 
-export default withMiddlewareAuthRequired(async (req, event) => {
-  const userAgent = req.headers.get('user-agent') || '';
+export default withMiddlewareAuthRequired(async (req) => {
+  const userAgent = req.headers.get('User-Agent');
+  const isABot = isbot(userAgent);
   
-  const isBot = BOTS.some(bot => {
-    const botPattern = new RegExp(bot, 'i'); // Case-insensitive
-    return botPattern.test(userAgent);
-  });
-
-  if (isBot) {
+  if (isABot) {
+    console.log('Detected bot: ', userAgent)
     // Allow bots without authentication
     return NextResponse.next();
   }
