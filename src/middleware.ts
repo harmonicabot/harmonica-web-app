@@ -1,6 +1,5 @@
 import { withMiddlewareAuthRequired } from '@auth0/nextjs-auth0/edge';
-import { NextResponse } from 'next/server';
-import { isbot } from 'isbot';
+import { NextResponse, userAgent } from 'next/server';
 
 export const config = {
   matcher: [
@@ -10,12 +9,12 @@ export const config = {
 
 
 export default withMiddlewareAuthRequired(async (req) => {
-  const userAgent = req.headers.get('User-Agent');
-  const isABot = isbot(userAgent);
+  const usrAgent = userAgent(req)
   
-  if (isABot) {
-    console.log('Detected bot: ', userAgent)
+  if (usrAgent.isBot && !req.nextUrl.pathname.startsWith('/api')) {
+    console.log('Detected bot: ', usrAgent)
     // Allow bots without authentication
-    return NextResponse.next();
+    return NextResponse.rewrite(new URL('/api/metadata' + req.nextUrl.pathname, req.url))
   }
+  return NextResponse.next()
 });
