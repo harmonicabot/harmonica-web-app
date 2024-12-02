@@ -1,7 +1,8 @@
-import { getGeneratedMetadata } from "app/api/metadata/metadata";
 import CreationFlow from "./creationFlow";
 
-export const metadata = getGeneratedMetadata('/create');
+export const metadata = {
+  title: 'Create'
+}
 
 export default function Create() {
   return <CreationFlow/>
