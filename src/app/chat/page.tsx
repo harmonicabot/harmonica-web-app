@@ -1,10 +1,10 @@
 import { Metadata } from "next";
 import StandaloneChat from "./StandaloneChat";
 import * as db from '@/lib/db';
-import { getGeneratedMetadata } from "app/api/metadata/metadata";
+import { getGeneratedMetadata } from "app/api/metadata";
 
 export async function generateMetadata(
-  { searchParams }: {searchParams: { s: string } } ,
+  { searchParams }: { searchParams: { s: string } } ,
 ): Promise<Metadata> {
   if (!searchParams.s) {
     throw new Error('No Chat ID provided');
@@ -14,4 +14,4 @@ export async function generateMetadata(
 
 export default function Chat() {
   return <StandaloneChat/>
-} 
+}

@@ -1,4 +1,4 @@
-import { getGeneratedMetadata } from "app/api/metadata/metadata";
+import { getGeneratedMetadata } from "app/api/metadata";
 import CreationFlow from "./creationFlow";
 
 export const metadata = getGeneratedMetadata('/create');

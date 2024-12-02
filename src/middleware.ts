@@ -4,20 +4,18 @@ import { isbot } from 'isbot';
 
 export async function middleware(req: NextRequest, ev: NextFetchEvent) {
   const isAbot = isbot(req.headers.get('User-Agent'));
-  console.log('Identified as bot: ', isAbot);
-
   if (isAbot && !req.nextUrl.pathname.startsWith('/api')) {
-    console.log('Detected bot!');
-    const redirectUrl = NextResponse.rewrite(new URL('/api/metadata', req.url));
-    return redirectUrl;
+    const botUrl = new URL('/bots', req.nextUrl);
+    botUrl.searchParams.set('pathAndSearch', req.nextUrl.pathname + req.nextUrl.search)
+    return NextResponse.rewrite(botUrl);
   }
 
   if (
+    // Allow these without authentication:
     req.nextUrl.pathname.match(
-      /^\/(?:api|login|chat|favicon\.ico|h_chat_icon\.png|opengraph-image\.png|_next\/static|_next\/image)/
+      /^\/(?:api|login|chat|favicon\.ico|h_chat_icon\.png|.*opengraph-image\.png|_next\/static|_next\/image)/
     )
   ) {
-    // Allow these without authentication:
     return NextResponse.next();
   }
 

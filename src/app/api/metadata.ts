@@ -1,6 +1,5 @@
 import { decryptId } from '@/lib/encryptionUtils';
 import { Metadata } from 'next';
-import { NextRequest } from 'next/server';
 import * as db from '@/lib/db';
 
 type MetadataConfig = {
@@ -19,18 +18,25 @@ const defaultMetadata = {
     'Form',
     'Survey',
   ],
-  title: 'Harmonica - Ultrafast sensemaking',
+  title: 'Harmonica - AI sensemaking',
   description: `Create AI-facilitated conversations to gather insights from your team, users, or community. Design custom sessions and transform collective input into actionable strategies.`,
 };
 
 const defaultOpenGraph = {
   title: defaultMetadata.title,
   description: defaultMetadata.description || '',
-  image: './og_app.png',
+  images: [
+    {
+      url: './og_app.png',
+      width: 1200,
+      height: 675,
+      alt: 'Harmonica - The AI-powered virtual facilitator'
+    }
+  ],
 };
 
 export const routeMetadata: MetadataConfig = {
-  '/': getWithTitleAndDescription('Dashboard | Harmonica'),
+  '/': getWithTitleAndDescription('Dashboard'),
   '/create': getWithTitleAndDescription(
     'Create',
     'Manage your Harmonica conversations and settings'
@@ -39,9 +45,13 @@ export const routeMetadata: MetadataConfig = {
 };
 
 function getWithTitleAndDescription(
-  title: string,
+  customTitle: string | {absolute: string},
   description?: string
 ): Metadata {
+  let title = customTitle;
+  if (typeof customTitle === 'string') {
+    title = `${customTitle} | Harmonica`
+  }
   return {
     ...defaultMetadata,
     title,
@@ -55,35 +65,40 @@ function getWithTitleAndDescription(
 }
 
 export async function getGeneratedMetadata(path: string) {
-  let metadata = routeMetadata[path] || routeMetadata['/'];
-  console.log(`Default Metadata for path ${path}: `, metadata);
   // Handle dynamic session & chat routes
   let sessionId;
   if (path.startsWith('/sessions/')) {
     const rawSessionId = path.split('/')[2];
     sessionId = decryptId(rawSessionId);
     const hostData = await db.getHostSessionById(sessionId);
-    metadata.title = hostData.topic;
-    metadata.openGraph!.title = hostData.topic;
+    return getWithTitleAndDescription(hostData.topic)
   }
-  else if (path.startsWith('/chat?')) {
+  else if (path.startsWith('/chat?s=')) {
     sessionId = path.split('?s=')[1];
     const hostData = await db.getHostSessionById(sessionId);
     const description = `Join an AI-facilitated conversation to share your thoughts and help shape collective decisions. Contribute meaningfully to your group's goals through guided dialogue.`;
-    metadata = {
+    const absoluteTitle = `${hostData.topic}${hostData.topic.length < 15 ? ` | powered by Harmonica` : ''}`;
+    return {
       ...defaultMetadata,
       title: {
-        absolute: hostData.topic,
+        absolute: absoluteTitle,
       },
       description: description,
       openGraph: {
         ...defaultOpenGraph,
         title: hostData.topic,
         description: description,
-        images: {url: './og_chat.png'}
+        images: [
+          {
+            url: './og_chat.png',
+            width: 1200,
+            height: 675,
+            alt: 'You have been invited to share...',
+          }
+        ],
       },
     }
   }
 
-  return metadata;
+  return routeMetadata[path] || routeMetadata['/'];
 }
