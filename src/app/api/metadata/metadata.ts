@@ -26,7 +26,7 @@ const defaultMetadata = {
 const defaultOpenGraph = {
   title: defaultMetadata.title,
   description: defaultMetadata.description || '',
-  image: '/og_app.png',
+  image: './og_app.png',
 };
 
 export const routeMetadata: MetadataConfig = {
@@ -80,7 +80,7 @@ export async function getGeneratedMetadata(path: string) {
         ...defaultOpenGraph,
         title: hostData.topic,
         description: description,
-        images: {url: '/og_chat.png'}
+        images: {url: './og_chat.png'}
       },
     }
   }
