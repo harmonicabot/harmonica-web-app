@@ -1,6 +1,7 @@
+'use client'
 import { Button } from '@/components/ui/button';
 import QRCode from 'qrcode.react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Share } from '../icons';
 import { Copy } from 'lucide-react';
@@ -10,9 +11,13 @@ export default function ShareSession({
 }: {
   makeSessionId: string;
 }) {
-  const chatUrl = `${window.location.origin}/chat?s=${makeSessionId}`;
+  const [chatUrl, setChatUrl] = useState(''); 
   const [showToast, setShowToast] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    setChatUrl(`${window.location.origin}/chat?s=${makeSessionId}`)
+  }, [makeSessionId])
 
   const copyToClipboard = (url: string, event: React.MouseEvent) => {
     setMousePosition({ x: event.clientX, y: event.clientY });
