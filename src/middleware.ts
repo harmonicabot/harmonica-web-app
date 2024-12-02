@@ -1,20 +1,26 @@
 import { withMiddlewareAuthRequired } from '@auth0/nextjs-auth0/edge';
-import { NextResponse, userAgent } from 'next/server';
+import { NextFetchEvent, NextRequest, NextResponse } from 'next/server';
+import { isbot } from 'isbot';
 
-export const config = {
-  matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|login|chat|h_chat_icon.png|opengraph-image.png).*)',
-  ],
-};
+export async function middleware(req: NextRequest, ev: NextFetchEvent) {
+  const isAbot = isbot(req.headers.get('User-Agent'));
+  console.log('Identified as bot: ', isAbot);
 
-
-export default withMiddlewareAuthRequired(async (req) => {
-  const usrAgent = userAgent(req)
-  
-  if (usrAgent.isBot && !req.nextUrl.pathname.startsWith('/api')) {
-    console.log('Detected bot: ', usrAgent)
-    // Allow bots without authentication
-    return NextResponse.rewrite(new URL('/api/metadata' + req.nextUrl.pathname, req.url))
+  if (isAbot && !req.nextUrl.pathname.startsWith('/api')) {
+    console.log('Detected bot!');
+    const redirectUrl = NextResponse.rewrite(new URL('/api/metadata', req.url));
+    return redirectUrl;
   }
-  return NextResponse.next()
-});
+
+  if (
+    req.nextUrl.pathname.match(
+      /^\/(?:api|login|chat|favicon\.ico|h_chat_icon\.png|opengraph-image\.png|_next\/static|_next\/image)/
+    )
+  ) {
+    // Allow these without authentication:
+    return NextResponse.next();
+  }
+
+  const authRequiredMiddleware = withMiddlewareAuthRequired();
+  return authRequiredMiddleware(req, ev);
+}

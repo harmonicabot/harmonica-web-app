@@ -13,6 +13,16 @@ import SessionResultsOverview from '@/components/SessionResult/SessionResultsOve
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 60; // in seconds
 export const revalidate = 5 * 60; // check new data only every 5 minutes
+export async function generateMetadata(
+  { params }: { params: { id: string } } ,
+): Promise<Metadata> {
+  const decryptedId = decryptId(params.id);
+  const hostData = await db.getHostSessionById(decryptedId);
+  
+  return {
+    title: `${hostData.topic}`,
+  };
+}
 
 export default async function SessionResult({
   params,

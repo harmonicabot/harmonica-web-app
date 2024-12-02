@@ -8,6 +8,9 @@ import { cache } from 'react';
 import ErrorPage from '@/components/Error';
 
 export const revalidate = 300;  // Revalidate the data every 5 minutes (or on page reload)
+export const metadata = {
+  title: 'Dashboard'
+}
 
 const sessionCache = cache(async () => {
   try {
