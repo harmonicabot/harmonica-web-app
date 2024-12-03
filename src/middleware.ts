@@ -13,7 +13,7 @@ export async function middleware(req: NextRequest, ev: NextFetchEvent) {
   if (
     // Allow these without authentication:
     req.nextUrl.pathname.match(
-      /^\/(?:api|login|chat|favicon\.ico|h_chat_icon\.png|.*opengraph-image\.png|_next\/static|_next\/image)/
+      /^\/(?:api|login|chat|favicon\.ico|h_chat_icon\.png|.*opengraph-image\.png|.*og_.*\.png|_next\/static|_next\/image)/
     )
   ) {
     return NextResponse.next();
