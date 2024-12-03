@@ -6,6 +6,8 @@ type MetadataConfig = {
   [route: string]: Metadata;
 };
 
+const defaultDescription = `Create AI-facilitated conversations to gather insights from your team, users, or community. Design custom sessions and transform collective input into actionable strategies.`;
+
 const defaultMetadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_BASE_URL || 'https://app.harmonica.chat'
@@ -55,11 +57,11 @@ function getWithTitleAndDescription(
   return {
     ...defaultMetadata,
     title,
-    description: description || `Perform superfast async AI deliberations`,
+    description: description || defaultDescription,
     openGraph: {
       ...defaultOpenGraph,
       title,
-      description: description || `Perform superfast async AI deliberations`,
+      description: description || defaultDescription,
     },
   };
 }
