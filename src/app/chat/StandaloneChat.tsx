@@ -7,11 +7,7 @@ import { useSessionStore } from '@/stores/SessionStore';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Loader2, HelpCircle } from 'lucide-react';
-import {
-  getHostSessionById,
-  increaseSessionsCount,
-  updateUserSession,
-} from '@/lib/db';
+import * as db from '@/lib/db';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { OpenAIMessage } from '@/lib/types';
 import { encryptId } from '@/lib/encryptionUtils';
@@ -30,9 +26,14 @@ Please type your name or "anonymous" if you prefer
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('s');
   if (!sessionId) {
-    return <ErrorPage title='No Session ID provided' message={`The URL needs to have a valid Session ID, otherwise we don't know which chat to start.`} />
+    return (
+      <ErrorPage
+        title="No Session ID provided"
+        message={`The URL needs to have a valid Session ID, otherwise we don't know which chat to start.`}
+      />
+    );
   }
-  
+
   const [hostData, addHostData] = useSessionStore((state) => [
     state.hostData[sessionId],
     state.addHostData,
@@ -47,11 +48,15 @@ Please type your name or "anonymous" if you prefer
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [viewportHeight, setViewportHeight] = useState('100vh');
+  const [errorMessage, setErrorMessage] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
     setViewportHeight(
-      `${window.visualViewport?.height || window.innerHeight}px`,
+      `${window.visualViewport?.height || window.innerHeight}px`
     );
 
     const loadData = async () => {
@@ -64,14 +69,20 @@ Please type your name or "anonymous" if you prefer
   const finishSession = () => {
     setIsLoading(true);
     setShowModal(true);
-    updateUserSession(userSessionId!, {
+    db.updateUserSession(userSessionId!, {
       active: false,
       last_edit: new Date(),
     })
       .then(() => {
-        increaseSessionsCount(sessionId!, 'num_finished');
+        db.increaseSessionsCount(sessionId!, 'num_finished');
       })
-      .then(() => {
+      .catch((error) =>
+        setErrorMessage({
+          title: 'Failed to update session data',
+          message: error,
+        })
+      )
+      .finally(() => {
         setIsLoading(false);
         setUserFinished(true);
       });
@@ -88,12 +99,22 @@ Please type your name or "anonymous" if you prefer
 
     if (sessionId && !hostData) {
       setIsLoading(true);
-      getHostSessionById(sessionId).then((data) => {
-        addHostData(sessionId, data);
-        setIsLoading(false);
-      });
+      db.getHostSessionById(sessionId)
+        .then((data) => {
+          addHostData(sessionId, data);
+        })
+        .catch((error) =>
+          setErrorMessage({
+            title: 'Failed to get chat data',
+            message: error,
+          })
+        )
+        .finally(() => setIsLoading(false));
     } else {
       setIsLoading(false);
+      if (!sessionId) {
+        setErrorMessage({title: 'No SessionId provided', message: 'A SessionId must be set in order to get the chat data.'})
+      }
     }
 
     return () => window.removeEventListener('message', handleMessage);
@@ -136,6 +157,10 @@ Please type your name or "anonymous" if you prefer
       window.visualViewport?.removeEventListener('resize', detectKeyboard);
     };
   }, []);
+
+  if (errorMessage) {
+    <ErrorPage title={errorMessage.title} message={errorMessage.message} />;
+  }
 
   return (
     <div
