@@ -14,6 +14,7 @@ import { NewHostSession } from '@/lib/schema_updated';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
 import { encryptId } from '@/lib/encryptionUtils';
+import { createPromptContent } from 'app/api/utils';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -43,6 +44,8 @@ export default function CreationFlow() {
   const [prompts, setPrompts] = useState<VersionedPrompt[]>([]);
   const [currentVersion, setCurrentVersion] = useState(-1);
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
+  const [createNewPromptBecauseCreationContentChanged,
+    setCreateNewPromptBecauseCreationContentChanged] = useState(false);
 
   const addPrompt = (versionedPrompt: VersionedPrompt) => {
     setPrompts((prev) => [...prev, versionedPrompt]);
@@ -87,6 +90,9 @@ export default function CreationFlow() {
 
   const onFormDataChange = (form: Partial<SessionBuilderData>) => {
     setFormData((prevData) => ({ ...prevData, ...form }));
+    if (prompts.length > 0) {
+      setCreateNewPromptBecauseCreationContentChanged(true)
+    }
   };
 
   const handleCreateComplete = async (e: React.FormEvent) => {
@@ -106,33 +112,11 @@ export default function CreationFlow() {
     setActiveStep('Review');
     if (prompts.length == 0) {
       await getInitialPrompt();
+    } else if (createNewPromptBecauseCreationContentChanged) {
+      await handleCreatePrompt()
     } else {
       setIsLoading(false);
     }
-  };
-
-  const handleEditPrompt = async (editValue: string) => {
-    console.log('Edit instructions: ', editValue);
-
-    // We need to slightly update the edit instructions so that AI knows to apply those changes to the full prompt, not the summary.
-    editValue = `Apply the following changes/improvements to the last full template: \n${editValue}`;
-    const payload = {
-      target: ApiTarget.Builder,
-      action: ApiAction.EditPrompt,
-      data: {
-        threadId: threadId,
-        assistantId: builderAssistantId,
-        instructions: editValue,
-      },
-    };
-
-    const newPromptResponse = await sendApiCall(payload);
-    latestFullPromptRef.current = newPromptResponse.fullPrompt;
-
-    getStreamOfSummary({
-      threadId,
-      assistantId: builderAssistantId,
-    });
   };
 
   const handleReviewComplete = async (e: React.FormEvent) => {
@@ -323,6 +307,53 @@ export default function CreationFlow() {
     getStreamOfSummary({
       threadId: responseFullPrompt.threadId,
       assistantId: responseFullPrompt.assistantId,
+    });
+  }
+
+  async function handleCreatePrompt() {
+    const promptInstructions = createPromptContent(formData)
+    // We need to slightly update the instructions so that AI knows to create a new full prompt, not to base it on what was there before.
+    const newPromptInstructions = `Create a new prompt based on the following instructions: \n${promptInstructions}`;
+    const payload = {
+      target: ApiTarget.Builder,
+      action: ApiAction.EditPrompt,
+      data: {
+        threadId: threadId,
+        assistantId: builderAssistantId,
+        instructions: newPromptInstructions,
+      },
+    };
+
+    const newPromptResponse = await sendApiCall(payload);
+    latestFullPromptRef.current = newPromptResponse.fullPrompt;
+
+    getStreamOfSummary({
+      threadId,
+      assistantId: builderAssistantId,
+    });
+  }
+
+  async function handleEditPrompt(editValue: string) {
+    console.log('Edit instructions: ', editValue);
+
+    // We need to slightly update the edit instructions so that AI knows to apply those changes to the full prompt, not the summary.
+    editValue = `Apply the following changes/improvements to the last full template: \n${editValue}`;
+    const payload = {
+      target: ApiTarget.Builder,
+      action: ApiAction.EditPrompt,
+      data: {
+        threadId: threadId,
+        assistantId: builderAssistantId,
+        instructions: editValue,
+      },
+    };
+
+    const newPromptResponse = await sendApiCall(payload);
+    latestFullPromptRef.current = newPromptResponse.fullPrompt;
+
+    getStreamOfSummary({
+      threadId,
+      assistantId: builderAssistantId,
     });
   }
 
