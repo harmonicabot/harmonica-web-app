@@ -10,9 +10,7 @@ import OpenAI from 'openai';
 import {
   finishedResponse,
   handleResponse,
-  streamResponse,
-  waitForRunCompletion,
-} from '../utils';
+} from '../gptUtils';
 
 export const maxDuration = 200;
 const client = new OpenAI({
