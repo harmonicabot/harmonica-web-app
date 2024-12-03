@@ -4,14 +4,13 @@ import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import * as db from '@/lib/db';
-
+import * as gpt from 'app/api/gptUtils';
 import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
 import { ChatMessage } from './ChatMessage';
 import { Send } from './icons';
-import { insertUserSessions } from '@/lib/db';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { handleCreateThread, handleGenerateAnswer } from 'app/api/gptUtils';
 import { Message } from '@/lib/schema_updated';
+import ErrorPage from './Error';
 
 export default function Chat({
   assistantId,
@@ -31,7 +30,9 @@ export default function Chat({
   context?: OpenAIMessageWithContext;
   userNameInFirstMessage?: boolean;
   placeholderText?: string;
-}) {
+  }) {
+  const [errorMessage, setErrorMessage] = useState<{ title: string, message: string } | null>(null)
+  const [errorToastMessage, setErrorToastMessage] = useState('');
   const { user } = useUser();
   const defaultEntryMessage: OpenAIMessage = {
     role: 'assistant',
@@ -153,7 +154,7 @@ Help & Support:
       chatMessages.push(...concatenatedUserMessages);
       chatMessages.push('\n----END CHAT HISTORY for CONTEXT----\n');
     }
-    handleCreateThread(context, chatMessages)
+    gpt.handleCreateThread(context, chatMessages)
       .then((threadId) => {
         console.log('Created threadId ', threadId)
         threadIdRef.current = threadId;
@@ -168,17 +169,19 @@ Help & Support:
             last_edit: new Date(),
           };
           console.log('Inserting new session with initial data: ', data);
-          insertUserSessions(data)
+          db.insertUserSessions(data)
             .then((ids) => {
               if (ids[0] && setUserSessionId) setUserSessionId(ids[0]);
             })
-            .catch((error) =>
-              console.error('[!] error creating user session -> ', error)
-            );
+            .catch((error) => {
+              console.error('[!] error creating user session -> ', error);
+              setErrorMessage({ title: 'Failed to create session', message: 'Oops, that should not have happened. Please try again.' })
+            });
         }
       })
       .catch((error) => {
         console.error(error);
+        setErrorMessage({ title: 'Failed to create message thread', message: 'Sorry for the inconvenience. Please try again.'})
       });
   }
 
@@ -203,7 +206,7 @@ Help & Support:
       if (userSessionId) {
         db.updateUserSession(userSessionId, {
           user_name: userName,
-        });
+        }).catch(error => showErrorToast('Oops, something went wrong setting your username. Please just continue'));
       }
       messageText = `User name is ${userName}. Use it in communication. Don't ask it again. Start the session.`;
     }
@@ -213,7 +216,7 @@ Help & Support:
     while (!threadIdRef.current) {
     // At this point, the thread should already be created, but just in case it's still in progress, let's add some wait in here:
       if (waitedCycles > 20) {
-        throw new Error('Could not get a reply from Monica. Please reload the page and try again.');
+        setErrorMessage({ title: 'The chat seems to be stuck.', message: 'Please reload the page and try again.' });
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
       waitedCycles++;
@@ -231,10 +234,13 @@ Help & Support:
         role: 'user',
         content: messageText,
         created_at: now
-      })
+      }).catch(error => {
+        console.log('Error in insertChatMessage: ', error);
+        showErrorToast('Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can');
+      });
     }
 
-    handleGenerateAnswer(messageData)
+    gpt.handleGenerateAnswer(messageData)
       .then((answer) => {
         setIsLoading(false);
         console.log('received answer from ChatGPT: ', answer)
@@ -242,16 +248,28 @@ Help & Support:
         addMessage(answer);
         
         if (userSessionId) {
-          db.insertChatMessage(answer);
-          db.updateUserSession(userSessionId, {
-            last_edit: now,
+          Promise.all([
+            db.insertChatMessage(answer),
+            db.updateUserSession(userSessionId, {
+              last_edit: now,
+            })
+          ]).catch(error => {
+            console.log('Error storing answer or updating last edit: ', error);
+            showErrorToast(`Uhm; there should be an answer, but we couldn't store it. It won't show up in the summary, but everything else should be fine. Please continue.`);
           });
         }
       })
       .catch((error) => {
         console.error(error);
-      });
+        showErrorToast(`Sorry, we failed to answer... Please try again.`);
+      })
+      .finally(() => setIsLoading(false));
   };
+
+  function showErrorToast(message: string) {
+    setErrorToastMessage(message);
+    setTimeout(() => setErrorToastMessage(''), 6000);
+  }
 
   // Focus the textarea when the component mounts
   useEffect(() => {
@@ -261,12 +279,21 @@ Help & Support:
     }
   }, []);
 
+  if (errorMessage) {
+    return <ErrorPage {...errorMessage}/> 
+  }
+
   return (
     <div className="h-full flex-grow flex flex-col">
       <div className="h-full flex-grow overflow-y-auto mb-100px">
         {messages.map((message, index) => (
           <ChatMessage key={index} message={message} />
         ))}
+        {errorToastMessage && (
+          <div className="fixed top-4 right-4 bg-red-500 text-white py-2 px-4 rounded shadow-lg">
+            {errorToastMessage}
+          </div>
+        )}
         {isLoading && (
           <div className="flex">
             <img
