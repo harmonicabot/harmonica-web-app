@@ -6,6 +6,7 @@ import { Key, useEffect, useState } from 'react';
 import SortableTable from '@/components/SortableTable';
 import { HostSession } from '@/lib/schema_updated';
 import * as db from '@/lib/db';
+import { getUserStats } from '@/lib/utils';
 
 export type SessionData = {
   id: string;
@@ -58,13 +59,10 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
   }, []);
 
   async function setAsSessionData(sessions: HostSession[]) {
-    const totalAndFinished = await db.getNumberOfTotalAndFinishedThreads(sessions); 
-    const asSessionData = totalAndFinished
-      .map((sessionAndNumbers) => {
-        const sessionId = sessionAndNumbers.id;
-        const totalUsers = sessionAndNumbers.total_users as number;
-        const finishedUsers = sessionAndNumbers.finished_users as number;
-        const session = sessions.find(session => session.id === sessionId);
+    const sessionToUserStats = await db.getNumUsersAndMessages(sessions); 
+    const asSessionData = sessions
+      .map((session) => {
+        const {totalUsers, finishedUsers} = getUserStats(sessionToUserStats, session.id)
         if (!session || !session.topic) return;
         const status = 
           !session.active || session.final_report_sent

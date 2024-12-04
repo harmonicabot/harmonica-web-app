@@ -271,25 +271,43 @@ export async function searchUserSessions(
   }
 }
 
-export async function getNumberOfTotalAndFinishedThreads(sessions: s.HostSession[]) {
+export async function getNumUsersAndMessages(sessions: s.HostSession[]) {
   const sessionIds = sessions.map(session => session.id);
-  if (sessionIds.length === 0) return [];
+  if (sessionIds.length === 0) return {};
+  
   const result = await db
-  .selectFrom(hostTableName)
-  .leftJoin(userTableName, `${userTableName}.session_id`, `${hostTableName}.id`)
+    .selectFrom(hostTableName)
+    .leftJoin(userTableName, `${userTableName}.session_id`, `${hostTableName}.id`)
+    .leftJoin(messageTableName, `${messageTableName}.thread_id`, `${userTableName}.thread_id`)
     .where(`${hostTableName}.id`, 'in', sessionIds)
     .select(({ fn }) => [
-      `${hostTableName}.id`,
-      fn.count(`${userTableName}.id`).as('total_users'),
-      fn.count(`${userTableName}.id`)
-      .filterWhere(`${userTableName}.active`, '=', false)
-      .as('finished_users')
+      `${hostTableName}.id as sessionId`,
+      `${userTableName}.id as userId`,
+      `${userTableName}.active`,
+      fn.count(`${messageTableName}.id`).as('message_count')
     ])
-    .groupBy(`${hostTableName}.id`)
-    .execute()
-    
-  // console.log(`Counts for ${sessionIds}: `, result); 
-  return result
+    .groupBy([
+      `${hostTableName}.id`,
+      `${userTableName}.id`,
+      `${userTableName}.active`
+    ])
+    .execute();
+
+  const stats: Record<string, Record<string, { num_messages: number, finished: boolean }>> = {};
+  
+  for (const row of result) {
+    if (!stats[row.sessionId]) {
+      stats[row.sessionId] = {};
+    }
+    if (row.userId) {
+      stats[row.sessionId][row.userId] = {
+        num_messages: Number(row.message_count),
+        finished: !row.active
+      };
+    }
+  }
+
+  return stats;
 }
 
 export async function insertChatMessage(message: s.NewMessage) {
@@ -299,20 +317,6 @@ export async function insertChatMessage(message: s.NewMessage) {
   } catch (error) {
     console.error('Error inserting chat message: ', error)
   }
-}
-
-export async function filterForUsersWithMessages(users: s.UserSession[]) {
-  if (users.length === 0) return [];
-  const userIdsWithMessages = await db
-    .selectFrom(userTableName)
-    .leftJoin(messageTableName, `${messageTableName}.thread_id`, `${userTableName}.thread_id`)
-    .where(`${userTableName}.id`, 'in', users.map(user => user.id))
-    .select(`${userTableName}.id`)
-    .having(({ fn }) => fn.count(`${messageTableName}.id`), '>', 0)
-    .groupBy(`${userTableName}.id`)
-    .execute();
-  const userIdsSet = new Set(userIdsWithMessages.map(row => row.id));
-  return users.filter(user => userIdsSet.has(user.id));
 }
 
 export async function getAllChatMessagesInOrder(threadId: string) {
