@@ -32,7 +32,7 @@ export default async function SessionResult({
     const hostData = await db.getHostSessionById(decryptedId);
     const userData = await db.getUsersBySessionId(decryptedId);
 
-    const sessionsWithChat = await db.filterForUsersWithMessages(userData)
+    const sessionsWithChat = await db.filterForUsersWithatLeast2Messages(userData)
     const numSessions = sessionsWithChat.length;
     const completedSessions = sessionsWithChat.filter((user) => !user.active).length;
 

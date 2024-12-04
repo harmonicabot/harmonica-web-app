@@ -271,6 +271,46 @@ export async function searchUserSessions(
   }
 }
 
+export async function getNumUsersAndMessages(sessions: s.HostSession[]) {
+  const sessionIds = sessions.map(session => session.id);
+  if (sessionIds.length === 0) return {};
+  
+  const result = await db
+    .selectFrom(hostTableName)
+    .leftJoin(userTableName, `${userTableName}.session_id`, `${hostTableName}.id`)
+    .leftJoin(messageTableName, `${messageTableName}.thread_id`, `${userTableName}.thread_id`)
+    .where(`${hostTableName}.id`, 'in', sessionIds)
+    .select(({ fn }) => [
+      `${hostTableName}.id as sessionId`,
+      `${userTableName}.id as userId`,
+      `${userTableName}.active`,
+      fn.count(`${messageTableName}.id`).as('message_count')
+    ])
+    .groupBy([
+      `${hostTableName}.id`,
+      `${userTableName}.id`,
+      `${userTableName}.active`
+    ])
+    .execute();
+
+  const stats: Record<string, Record<string, { num_messages: number, finished: boolean }>> = {};
+  
+  for (const row of result) {
+    if (!stats[row.sessionId]) {
+      stats[row.sessionId] = {};
+    }
+    if (row.userId) {
+      stats[row.sessionId][row.userId] = {
+        num_messages: Number(row.message_count),
+        finished: !row.active
+      };
+    }
+  }
+
+  return stats;
+}
+
+
 export async function getNumberOfTotalAndFinishedThreads(sessions: s.HostSession[]) {
   const sessionIds = sessions.map(session => session.id);
   if (sessionIds.length === 0) return [];
@@ -301,14 +341,14 @@ export async function insertChatMessage(message: s.NewMessage) {
   }
 }
 
-export async function filterForUsersWithMessages(users: s.UserSession[]) {
+export async function filterForUsersWithatLeast2Messages(users: s.UserSession[]) {
   if (users.length === 0) return [];
   const userIdsWithMessages = await db
     .selectFrom(userTableName)
     .leftJoin(messageTableName, `${messageTableName}.thread_id`, `${userTableName}.thread_id`)
     .where(`${userTableName}.id`, 'in', users.map(user => user.id))
     .select(`${userTableName}.id`)
-    .having(({ fn }) => fn.count(`${messageTableName}.id`), '>', 0)
+    .having(({ fn }) => fn.count(`${messageTableName}.id`), '>', 2)
     .groupBy(`${userTableName}.id`)
     .execute();
   const userIdsSet = new Set(userIdsWithMessages.map(row => row.id));

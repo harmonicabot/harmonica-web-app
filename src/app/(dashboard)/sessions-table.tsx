@@ -15,6 +15,7 @@ export type SessionData = {
   num_sessions: number;
   num_finished: number;
   created_on: string;
+  session_stats: [string, { num_messages: number, finished: boolean }][]
 };
 
 export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
@@ -58,13 +59,14 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
   }, []);
 
   async function setAsSessionData(sessions: HostSession[]) {
-    const totalAndFinished = await db.getNumberOfTotalAndFinishedThreads(sessions); 
-    const asSessionData = totalAndFinished
-      .map((sessionAndNumbers) => {
-        const sessionId = sessionAndNumbers.id;
-        const totalUsers = sessionAndNumbers.total_users as number;
-        const finishedUsers = sessionAndNumbers.finished_users as number;
-        const session = sessions.find(session => session.id === sessionId);
+    const sessionToUserStats = await db.getNumUsersAndMessages(sessions); 
+    const asSessionData = sessions
+      .map((session) => {
+        const userStats = sessionToUserStats[session.id];
+        const iterableStats = Object.entries(userStats);
+        const usersWithMoreThan2Messages = iterableStats.filter(([_key, value]) => value.num_messages > 2);
+        const totalUsers = usersWithMoreThan2Messages.length;
+        const finishedUsers = usersWithMoreThan2Messages.filter(([_, value]) => value.finished).length;
         if (!session || !session.topic) return;
         const status = 
           !session.active || session.final_report_sent
@@ -85,6 +87,7 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
           num_sessions: totalUsers,
           num_finished: finishedUsers,
           created_on,
+          session_stats: usersWithMoreThan2Messages,
         };
       }).filter((session) => session !== undefined);
     if (asSessionData !== undefined) {
