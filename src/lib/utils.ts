@@ -115,3 +115,12 @@ export function checkSummaryAndMessageTimes(
   const hasNewMessages = lastMessage > lastSummaryUpdate;
   return {hasNewMessages, lastMessage, lastSummaryUpdate}
 }
+
+export function getUserStats(sessionToUserStats: Record<string, Record<string, {num_messages: number, finished: boolean}>>, sessionId: string) {
+  const userStats = sessionToUserStats[sessionId];
+  const iterableStats = Object.entries(userStats);
+  const usersWithMoreThan2Messages = iterableStats.filter(([_key, value]) => value.num_messages > 2);
+  const totalUsers = usersWithMoreThan2Messages.length;
+  const finishedUsers = usersWithMoreThan2Messages.filter(([_, value]) => value.finished).length;
+  return {totalUsers, finishedUsers}
+}

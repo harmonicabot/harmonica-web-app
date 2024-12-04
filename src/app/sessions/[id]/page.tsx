@@ -8,6 +8,7 @@ import SessionResultsSection from '@/components/SessionResult/SessionResultsSect
 import { decryptId } from '@/lib/encryptionUtils';
 import ErrorPage from '@/components/Error';
 import SessionResultsOverview from '@/components/SessionResult/SessionResultsOverview';
+import { getUserStats } from '@/lib/utils';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 60; // in seconds
@@ -31,11 +32,10 @@ export default async function SessionResult({
   try {
     const hostData = await db.getHostSessionById(decryptedId);
     const userData = await db.getUsersBySessionId(decryptedId);
-
-    const sessionsWithChat = await db.filterForUsersWithatLeast2Messages(userData)
-    const numSessions = sessionsWithChat.length;
-    const completedSessions = sessionsWithChat.filter((user) => !user.active).length;
-
+    const stats = await db.getNumUsersAndMessages([hostData])
+    const sessionsWithChat = userData.filter(user => stats[decryptedId][user.id].num_messages > 2);
+    const {totalUsers, finishedUsers} = getUserStats(stats, decryptedId)
+    
     if (!hostData)
       return (
         <ErrorPage
@@ -58,8 +58,8 @@ export default async function SessionResult({
             id={hostData.id}
             active={hostData.active}
             startTime={hostData.start_time}
-            numSessions={numSessions}
-            completedSessions={completedSessions}
+            numSessions={totalUsers}
+            completedSessions={finishedUsers}
           />
           <SessionResultsSection
             hostData={hostData}

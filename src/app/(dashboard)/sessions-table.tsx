@@ -6,6 +6,7 @@ import { Key, useEffect, useState } from 'react';
 import SortableTable from '@/components/SortableTable';
 import { HostSession } from '@/lib/schema_updated';
 import * as db from '@/lib/db';
+import { getUserStats } from '@/lib/utils';
 
 export type SessionData = {
   id: string;
@@ -15,7 +16,6 @@ export type SessionData = {
   num_sessions: number;
   num_finished: number;
   created_on: string;
-  session_stats: [string, { num_messages: number, finished: boolean }][]
 };
 
 export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
@@ -62,11 +62,7 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
     const sessionToUserStats = await db.getNumUsersAndMessages(sessions); 
     const asSessionData = sessions
       .map((session) => {
-        const userStats = sessionToUserStats[session.id];
-        const iterableStats = Object.entries(userStats);
-        const usersWithMoreThan2Messages = iterableStats.filter(([_key, value]) => value.num_messages > 2);
-        const totalUsers = usersWithMoreThan2Messages.length;
-        const finishedUsers = usersWithMoreThan2Messages.filter(([_, value]) => value.finished).length;
+        const {totalUsers, finishedUsers} = getUserStats(sessionToUserStats, session.id)
         if (!session || !session.topic) return;
         const status = 
           !session.active || session.final_report_sent
@@ -87,7 +83,6 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
           num_sessions: totalUsers,
           num_finished: finishedUsers,
           created_on,
-          session_stats: usersWithMoreThan2Messages,
         };
       }).filter((session) => session !== undefined);
     if (asSessionData !== undefined) {

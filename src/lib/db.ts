@@ -310,28 +310,6 @@ export async function getNumUsersAndMessages(sessions: s.HostSession[]) {
   return stats;
 }
 
-
-export async function getNumberOfTotalAndFinishedThreads(sessions: s.HostSession[]) {
-  const sessionIds = sessions.map(session => session.id);
-  if (sessionIds.length === 0) return [];
-  const result = await db
-  .selectFrom(hostTableName)
-  .leftJoin(userTableName, `${userTableName}.session_id`, `${hostTableName}.id`)
-    .where(`${hostTableName}.id`, 'in', sessionIds)
-    .select(({ fn }) => [
-      `${hostTableName}.id`,
-      fn.count(`${userTableName}.id`).as('total_users'),
-      fn.count(`${userTableName}.id`)
-      .filterWhere(`${userTableName}.active`, '=', false)
-      .as('finished_users')
-    ])
-    .groupBy(`${hostTableName}.id`)
-    .execute()
-    
-  // console.log(`Counts for ${sessionIds}: `, result); 
-  return result
-}
-
 export async function insertChatMessage(message: s.NewMessage) {
   console.log("Inserting chat message: ", JSON.stringify(message));
   try {
@@ -339,20 +317,6 @@ export async function insertChatMessage(message: s.NewMessage) {
   } catch (error) {
     console.error('Error inserting chat message: ', error)
   }
-}
-
-export async function filterForUsersWithatLeast2Messages(users: s.UserSession[]) {
-  if (users.length === 0) return [];
-  const userIdsWithMessages = await db
-    .selectFrom(userTableName)
-    .leftJoin(messageTableName, `${messageTableName}.thread_id`, `${userTableName}.thread_id`)
-    .where(`${userTableName}.id`, 'in', users.map(user => user.id))
-    .select(`${userTableName}.id`)
-    .having(({ fn }) => fn.count(`${messageTableName}.id`), '>', 2)
-    .groupBy(`${userTableName}.id`)
-    .execute();
-  const userIdsSet = new Set(userIdsWithMessages.map(row => row.id));
-  return users.filter(user => userIdsSet.has(user.id));
 }
 
 export async function getAllChatMessagesInOrder(threadId: string) {
