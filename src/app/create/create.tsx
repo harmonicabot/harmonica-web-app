@@ -148,6 +148,7 @@ export default function CreateSession({
           value={formData.context}
           onChange={handleInputChange}
           placeholder="Our company is developing a new app, and this session is part of our usability testing to gather user feedback on key features."
+          rows={7}
         />
         <p className="text-sm text-muted-foreground">
           Provide background to help our AI to understand the purpose of your

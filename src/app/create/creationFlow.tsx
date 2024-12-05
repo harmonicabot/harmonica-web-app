@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import CreateSession from './create';
 import ReviewPrompt from './review';
 import LoadingMessage from './loading';
@@ -14,6 +14,16 @@ import { NewHostSession } from '@/lib/schema_updated';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
 import { encryptId } from '@/lib/encryptionUtils';
+import { ChevronLeft, ChevronRight, Pencil, Sparkles } from 'lucide-react';
+import ShareParticipants from './ShareParticipants';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { QuestionInfo } from './types';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -26,7 +36,7 @@ export type VersionedPrompt = {
   fullPrompt: string;
 };
 
-const STEPS = ['Template', 'Create', 'Review'] as const;
+const STEPS = ['Template', 'Create', 'Refine', 'Share'] as const;
 type Step = (typeof STEPS)[number];
 const enabledSteps = [true, false, false];
 
@@ -43,6 +53,8 @@ export default function CreationFlow() {
   const [prompts, setPrompts] = useState<VersionedPrompt[]>([]);
   const [currentVersion, setCurrentVersion] = useState(-1);
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
+  const [showLaunchModal, setShowLaunchModal] = useState(false);
+  const [participantQuestions, setParticipantQuestions] = useState<QuestionInfo[]>([]);
 
   const addPrompt = (versionedPrompt: VersionedPrompt) => {
     setPrompts((prev) => [...prev, versionedPrompt]);
@@ -103,7 +115,7 @@ export default function CreationFlow() {
 
     setIsLoading(true);
     enabledSteps[1] = true;
-    setActiveStep('Review');
+    setActiveStep('Refine');
     if (prompts.length == 0) {
       await getInitialPrompt();
     } else {
@@ -135,11 +147,11 @@ export default function CreationFlow() {
     });
   };
 
-  const handleReviewComplete = async (e: React.FormEvent) => {
+  const handleShareComplete = async (e: React.FormEvent, mode: 'launch' | 'draft' = 'launch') => {
     e.preventDefault();
     setIsLoading(true);
     const prompt = prompts[currentVersion - 1].fullPrompt;
-    console.log('Creating assistant');
+
     const assistantResponse = await sendApiCall({
       action: ApiAction.CreateAssistant,
       target: ApiTarget.Builder,
@@ -151,27 +163,36 @@ export default function CreationFlow() {
 
     deleteTemporaryAssistants(temporaryAssistantIds);
 
-    // Create a new session in the host db
     const data: NewHostSession = {
       template: assistantResponse.assistantId,
       topic: formData.sessionName,
       prompt: prompt,
       num_sessions: 0,
       num_finished: 0,
-      active: true,
+      active: mode === 'launch', // Set active based on mode
       final_report_sent: false,
       start_time: new Date(),
     };
 
-    db.insertHostSessions(data).then((sessionIds) => {
-      const session_id = sessionIds[0];
-      // Set the cookie using document.cookie
-      const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + 30); // Cookie expires in 30 days
-      document.cookie = `sessionId=${session_id}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
+    const sessionIds = await db.insertHostSessions(data);
+    const session_id = sessionIds[0];
 
+    // Set cookie
+    const expirationDate = new Date();
+    expirationDate.setDate(expirationDate.getDate() + 30);
+    document.cookie = `sessionId=${session_id}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
+
+    // Navigate based on mode
+    if (mode === 'launch') {
       route.push(`/sessions/${encryptId(session_id)}`);
-    });
+    } else {
+      route.push('/');
+    }
+  };
+
+  const handleReviewComplete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActiveStep('Share');
   };
 
   function deleteTemporaryAssistants(assistantIds: string[]) {
@@ -205,7 +226,7 @@ export default function CreationFlow() {
         onValidationError={setHasValidationErrors}
       />
     ),
-    Review: isLoading ? (
+    Refine: isLoading ? (
       <LoadingMessage />
     ) : (
       <ReviewPrompt
@@ -218,14 +239,20 @@ export default function CreationFlow() {
         setTemporaryAssistantIds={setTemporaryAssistantIds}
       />
     ),
+    Share: !isLoading && activeStep === 'Share' && (
+      <div className="max-w-[540px] mx-auto">
+        <ShareParticipants 
+          onQuestionsUpdate={setParticipantQuestions}
+        />
+      </div>
+    ),
   };
 
   return (
     <div className="min-h-screen pt-16 sm:px-14 pb-16 bg-gray-50 dark:bg-gray-900">
       <div
-        className={`mx-auto items-center align-middle ${
-          isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
-        }`}
+        className={`mx-auto items-center align-middle ${isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
+          }`}
       >
         <div className="flex items-center justify-center mb-6">
           <div className="mr-4">
@@ -238,7 +265,7 @@ export default function CreationFlow() {
           value={activeStep}
           onValueChange={(value) => setActiveStep(value as Step)}
         >
-          <TabsList className="grid w-fit mx-auto grid-cols-3 gap-4 mb-6">
+          <TabsList className="grid w-fit mx-auto grid-cols-4 gap-4 mb-6">
             {STEPS.map((step, index) => (
               <TabsTrigger
                 key={step}
@@ -256,26 +283,29 @@ export default function CreationFlow() {
           ))}
         </Tabs>
 
-        {!isLoading && activeStep !== 'Template' && (
+        {!isLoading && activeStep !== 'Template' && activeStep !== 'Share' && (
           <div className="flex justify-between items-center pt-4">
             <Button
               className="m-2"
-              variant="outline"
+              variant="ghost"
               onClick={() =>
                 activeStep === 'Create'
                   ? route.push('/')
                   : setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])
               }
             >
+              <ChevronLeft className="w-4 h-4 me-2" strokeWidth={1.5} />
               Back
             </Button>
             <div className="flex space-x-2">
-              {activeStep === 'Review' && !isEditingPrompt && (
+              {activeStep === 'Refine' && !isEditingPrompt && (
                 <Button
                   className="m-2"
+                  variant="outline"
                   onClick={() => setIsEditingPrompt(true)}
                 >
-                  Edit
+                  <Pencil className="w-4 h-4 me-2" strokeWidth={1.5} />
+                  Edit Session
                 </Button>
               )}
               <Button
@@ -293,12 +323,83 @@ export default function CreationFlow() {
                     !formData.goal?.trim())
                 }
               >
-                {activeStep === 'Create' ? 'Next' : 'Launch'}
+                {activeStep === 'Create' ? (
+                  <>
+                    <Sparkles className="w-4 h-4 me-2" strokeWidth={1.5} />
+                    Generate
+                  </>
+                ) : (
+                  <>
+                    Finish
+                    <ChevronRight className="w-4 h-4 ms-2" strokeWidth={1.5} />
+                  </>
+                )}
               </Button>
             </div>
           </div>
         )}
+
+        {!isLoading && activeStep === 'Share' && (
+          <div className="flex justify-between items-center pt-4 max-w-[540px] mx-auto">
+            <Button
+              className="m-2 w-[100px]"
+              variant="ghost"
+              onClick={() => setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])}
+            >
+              <ChevronLeft className="w-4 h-4 me-2" strokeWidth={1.5} />
+              Back
+            </Button>
+            <Button
+              className="m-2 w-[100px]"
+              onClick={() => {
+                const replacer = (key: string, value: any) => {
+                  if (key === 'type') {
+                    return value.toString();
+                  }
+                  return value;
+                };
+                
+                console.log(participantQuestions,JSON.stringify(participantQuestions, replacer, 2));
+                setShowLaunchModal(true)
+                }
+              }
+            >
+              Launch
+            </Button>
+          </div>
+        )}
       </div>
+      {showLaunchModal && (
+        <Dialog open={showLaunchModal} onOpenChange={setShowLaunchModal}>
+          <DialogContent className="max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Ready to launch?</DialogTitle>
+              <DialogDescription className="text-base pt-2">
+                Deploy your new session in one-click.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-between mt-6">
+              <Button
+                variant="outline"
+                onClick={(e) => {
+                  setShowLaunchModal(false);
+                  handleShareComplete(e as any, 'draft');
+                }}
+              >
+                Save to drafts
+              </Button>
+              <Button
+                onClick={(e) => {
+                  setShowLaunchModal(false);
+                  handleShareComplete(e as any, 'launch');
+                }}
+              >
+                Launch
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 
