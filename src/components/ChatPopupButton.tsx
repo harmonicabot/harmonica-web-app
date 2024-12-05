@@ -11,7 +11,7 @@ import Chat from '@/components/chat';
 import LoadingMessage from 'app/create/loading';
 import { sendApiCall } from '@/lib/utils';
 import { ApiAction, ApiTarget, OpenAIMessage } from '@/lib/types';
-import { VersionedPrompt } from 'app/create/page';
+import { VersionedPrompt } from 'app/create/creationFlow';
 
 const ChatPopupButton = ({
   prompt,

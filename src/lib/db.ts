@@ -30,6 +30,9 @@ interface Databases {
 let dbConfig = s.createProdDbInstanceWithDbNames<Databases>(hostTableName, userTableName, messageTableName);
 const db = dbConfig.db;
 
+export async function getDb() {
+  return db;
+}
 
 async function getAuthForClient() {
   const authSession = await authGetSession();
@@ -45,6 +48,7 @@ async function getAuthForClient() {
 export async function getHostSessions(
   columns: (keyof s.HostSessionsTable)[]
 ): Promise<s.HostSession[]> {
+  console.log('Database call to getHostSessions at:', new Date().toISOString());
   const client = await getAuthForClient();
 
   let query = db
@@ -60,6 +64,7 @@ export async function getHostSessions(
 }
 
 export async function getHostSessionById(id: string): Promise<s.HostSession> {
+  console.log("ID: ", id)
   try {
     return await db
       .selectFrom(hostTableName)
@@ -329,6 +334,20 @@ export async function getAllMessagesForUsersSorted(users: s.UserSession[]): Prom
   return messages;
 }
 
+export async function getAllMessagesForSessionSorted(sessionId: string): Promise<s.Message[]> {
+  if (!sessionId) return [];
+
+  const messages = await db
+    .selectFrom(hostTableName)
+    .innerJoin(userTableName, `${userTableName}.session_id`, `${hostTableName}.id`)
+    .innerJoin(messageTableName, `${messageTableName}.thread_id`, `${userTableName}.thread_id`)
+    .where(`${hostTableName}.id`, '=', sessionId)
+    .selectAll(`${messageTableName}`)
+    .orderBy(`${messageTableName}.created_at`, 'asc')
+    .execute();
+    
+  return messages;
+}
 
 export async function deleteSessionById(id: string): Promise<boolean> {
   try {

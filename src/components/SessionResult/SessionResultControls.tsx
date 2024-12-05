@@ -3,28 +3,31 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings } from 'lucide-react';
+import { LoaderCircle, Settings } from 'lucide-react';
+import * as db from '@/lib/db'
+import { createSummary } from '@/lib/utils'
 
 interface SessionResultControlsProps {
   id: string;
   isFinished: boolean;
   readyToGetSummary: boolean;
-  createSummary: () => Promise<void>;
-  finishSession: () => Promise<void>;
 }
 
 export default function SessionResultControls({
   id,
   isFinished,
   readyToGetSummary,
-  createSummary: createSummary,
-  finishSession: finishSession,
 }: SessionResultControlsProps) {
   const [loadSummary, setLoadSummary] = useState(false);
 
+  const finishSession = async () => {
+    await db.deactivateHostSession(id);
+    await createSummary(id);
+  };
+
   const updateSummary = async () => {
     setLoadSummary(true);
-    await createSummary();
+    await createSummary(id);
     setLoadSummary(false);
   };
 
@@ -53,8 +56,9 @@ export default function SessionResultControls({
                 variant="secondary"
                 onClick={updateSummary}
                 disabled={loadSummary}
-              >
-                Get summary
+                >
+                  Get Summary
+                {loadSummary && <LoaderCircle className='ml-2 w-6 h-6 animate-spin'/>}
               </Button>
             )}
           </div>
