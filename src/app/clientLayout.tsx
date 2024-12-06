@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import PostHogPageView from './PostHogPageView';
 import { usePathname } from 'next/navigation';
 import Navigation from './navigation';
@@ -9,7 +9,7 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isChatPage = pathname?.startsWith('/chat');
+  const isChatPage = pathname?.startsWith('/tes-chat');
 
   return (
     <div>
