@@ -12,12 +12,14 @@ import { NewHostSession } from '@/lib/schema_updated';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
 import { encryptId } from '@/lib/encryptionUtils';
+
 import ShareParticipants from './ShareParticipants';
 import { QuestionInfo } from './types';
 import { StepHeader } from './StepHeader';
 import { StepNavigation } from './StepNavigation';
 import { LaunchModal } from './LaunchModal';
 import { Step, STEPS } from './types';
+import { createPromptContent } from 'app/api/utils';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -38,7 +40,9 @@ export default function CreationFlow() {
   const [activeStep, setActiveStep] = useState<Step>(STEPS[0]);
   const [threadId, setThreadId] = useState('');
   const [builderAssistantId, setBuilderAssistantId] = useState('');
-  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>([]);
+  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>(
+    [],
+  );
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
@@ -46,7 +50,14 @@ export default function CreationFlow() {
   const [currentVersion, setCurrentVersion] = useState(-1);
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
   const [showLaunchModal, setShowLaunchModal] = useState(false);
-  const [participantQuestions, setParticipantQuestions] = useState<QuestionInfo[]>([]);
+  const [participantQuestions, setParticipantQuestions] = useState<
+    QuestionInfo[]
+  >([]);
+
+  const [
+    createNewPromptBecauseCreationContentChanged,
+    setCreateNewPromptBecauseCreationContentChanged,
+  ] = useState(false);
 
   const addPrompt = (versionedPrompt: VersionedPrompt) => {
     setPrompts((prev) => [...prev, versionedPrompt]);
@@ -91,6 +102,9 @@ export default function CreationFlow() {
 
   const onFormDataChange = (form: Partial<SessionBuilderData>) => {
     setFormData((prevData) => ({ ...prevData, ...form }));
+    if (prompts.length > 0) {
+      setCreateNewPromptBecauseCreationContentChanged(true);
+    }
   };
 
   const handleCreateComplete = async (e: React.FormEvent) => {
@@ -110,6 +124,8 @@ export default function CreationFlow() {
     setActiveStep('Refine');
     if (prompts.length == 0) {
       await getInitialPrompt();
+    } else if (createNewPromptBecauseCreationContentChanged) {
+      await handleCreatePrompt();
     } else {
       setIsLoading(false);
     }
@@ -139,7 +155,10 @@ export default function CreationFlow() {
     });
   };
 
-  const handleShareComplete = async (e: React.FormEvent, mode: 'launch' | 'draft' = 'launch') => {
+  const handleShareComplete = async (
+    e: React.FormEvent,
+    mode: 'launch' | 'draft' = 'launch',
+  ) => {
     e.preventDefault();
     setIsLoading(true);
     const prompt = prompts[currentVersion - 1].fullPrompt;
@@ -234,22 +253,29 @@ export default function CreationFlow() {
     ),
     Share: !isLoading && activeStep === 'Share' && (
       <div className="max-w-[540px] mx-auto">
-        <ShareParticipants 
-          onQuestionsUpdate={setParticipantQuestions}
-        />
+        <ShareParticipants onQuestionsUpdate={setParticipantQuestions} />
       </div>
     ),
   };
 
   return (
     <div className="min-h-screen pt-16 sm:px-14 pb-16 bg-gray-50 dark:bg-gray-900">
-      <div className={`mx-auto items-center align-middle ${isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'}`}>
+      <div
+        className={`mx-auto items-center align-middle ${isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'}`}
+      >
         <StepHeader />
-        
-        <Tabs value={activeStep} onValueChange={(value) => setActiveStep(value as Step)}>
+
+        <Tabs
+          value={activeStep}
+          onValueChange={(value) => setActiveStep(value as Step)}
+        >
           <TabsList className="grid w-fit mx-auto grid-cols-4 gap-4 mb-6">
             {STEPS.map((step, index) => (
-              <TabsTrigger key={step} value={step} disabled={!enabledSteps[index]}>
+              <TabsTrigger
+                key={step}
+                value={step}
+                disabled={!enabledSteps[index]}
+              >
                 {step}
               </TabsTrigger>
             ))}
@@ -261,14 +287,14 @@ export default function CreationFlow() {
           ))}
         </Tabs>
 
-        <StepNavigation 
+        <StepNavigation
           activeStep={activeStep}
           isLoading={isLoading}
           isEditingPrompt={isEditingPrompt}
           hasValidationErrors={hasValidationErrors}
           formData={formData}
           setIsEditingPrompt={setIsEditingPrompt}
-          handleBack={() => 
+          handleBack={() =>
             activeStep === 'Create'
               ? route.push('/')
               : setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])
@@ -277,17 +303,17 @@ export default function CreationFlow() {
             activeStep === 'Create'
               ? handleCreateComplete
               : activeStep === 'Share'
-              ? (e) => {
-                  e.preventDefault();
-                  setShowLaunchModal(true);
-                }
-              : handleReviewComplete
+                ? (e) => {
+                    e.preventDefault();
+                    setShowLaunchModal(true);
+                  }
+                : handleReviewComplete
           }
           nextLabel={activeStep === 'Share' ? 'Launch' : undefined}
         />
 
         {showLaunchModal && (
-          <LaunchModal 
+          <LaunchModal
             showLaunchModal={showLaunchModal}
             setShowLaunchModal={setShowLaunchModal}
             handleShareComplete={handleShareComplete}
@@ -318,6 +344,29 @@ export default function CreationFlow() {
     getStreamOfSummary({
       threadId: responseFullPrompt.threadId,
       assistantId: responseFullPrompt.assistantId,
+    });
+  }
+
+  async function handleCreatePrompt() {
+    const promptInstructions = createPromptContent(formData);
+    // We need to slightly update the instructions so that AI knows to create a new full prompt, not to base it on what was there before.
+    const newPromptInstructions = `Create a new prompt based on the following instructions: \n${promptInstructions}`;
+    const payload = {
+      target: ApiTarget.Builder,
+      action: ApiAction.EditPrompt,
+      data: {
+        threadId: threadId,
+        assistantId: builderAssistantId,
+        instructions: newPromptInstructions,
+      },
+    };
+
+    const newPromptResponse = await sendApiCall(payload);
+    latestFullPromptRef.current = newPromptResponse.fullPrompt;
+
+    getStreamOfSummary({
+      threadId,
+      assistantId: builderAssistantId,
     });
   }
 

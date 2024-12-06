@@ -27,14 +27,7 @@ const defaultMetadata = {
 const defaultOpenGraph = {
   title: defaultMetadata.title,
   description: defaultMetadata.description || '',
-  images: [
-    {
-      url: './og_app.png',
-      width: 1200,
-      height: 675,
-      alt: 'Harmonica - The AI-powered virtual facilitator'
-    }
-  ],
+  images: '/opengraph-image.png',
 };
 
 export const routeMetadata: MetadataConfig = {
@@ -90,14 +83,7 @@ export async function getGeneratedMetadata(path: string) {
         ...defaultOpenGraph,
         title: hostData.topic,
         description: description,
-        images: [
-          {
-            url: './og_chat.png',
-            width: 1200,
-            height: 675,
-            alt: 'You have been invited to share...',
-          }
-        ],
+        images: '/chat/opengraph-image.png',
       },
     }
   }
