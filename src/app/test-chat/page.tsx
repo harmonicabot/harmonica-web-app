@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useState, useRef } from 'react';
 
 import Chat from '@/components/chat';
 import { useSearchParams } from 'next/navigation';
@@ -45,9 +45,16 @@ Please type your name or "anonymous" if you prefer
   const [isLoading, setIsLoading] = useState(true);
   const [isFirstMessage, setIsFirstMessage] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState('100vh');
 
   useEffect(() => {
     setIsMounted(true);
+    setViewportHeight(
+      `${window.visualViewport?.height || window.innerHeight}px`,
+    );
+
     const loadData = async () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setIsLoading(false);
@@ -101,36 +108,41 @@ Please type your name or "anonymous" if you prefer
 
   const sessionClosed = !hostData?.active;
 
+  const adjustHeight = () => {
+    if (chatContainerRef.current) {
+      const vh = window.innerHeight * 0.01;
+      chatContainerRef.current.style.height = `${vh * 100}px`;
+    }
+  };
+
   useEffect(() => {
-    const chatContainer = document.getElementById('chat-container');
+    const detectKeyboard = () => {
+      if (window.visualViewport) {
+        document.body.style.paddingTop = `${window.visualViewport.offsetTop}px`;
+        const offsetTop = window.visualViewport.offsetTop || 0;
+        setKeyboardHeight(offsetTop);
+        setViewportHeight(`${window.visualViewport.height}px`);
 
-    const adjustHeight = () => {
-      if (chatContainer) {
-        chatContainer.style.maxHeight = 'calc(100vh - 150px)';
+        // if (offsetTop > 0) {
+        //   window.scrollTo(0, document.documentElement.scrollHeight);
+        // }
       }
     };
 
-    const resetHeight = () => {
-      if (chatContainer) {
-        chatContainer.style.maxHeight = 'calc(100%-150px)';
-      }
-    };
-
-    window.addEventListener('focusin', adjustHeight);
-    window.addEventListener('focusout', resetHeight);
+    window.visualViewport?.addEventListener('scroll', detectKeyboard);
+    window.visualViewport?.addEventListener('resize', detectKeyboard);
 
     return () => {
-      window.removeEventListener('focusin', adjustHeight);
-      window.removeEventListener('focusout', resetHeight);
+      window.visualViewport?.removeEventListener('scroll', detectKeyboard);
+      window.visualViewport?.removeEventListener('resize', detectKeyboard);
     };
   }, []);
 
   return (
     <div
-      className="flex flex-col md:flex-row bg-purple-50"
-      style={{
-        height: 'calc(100vh - 100px)',
-      }}
+      ref={chatContainerRef}
+      className="flex flex-col md:flex-row bg-purple-50 fixed inset-0 overflow-hidden"
+      style={{ height: viewportHeight }}
     >
       <div className="hidden">
         <div data-tf-live="01JB9CRNXPX488VHX879VNF3E6"></div>
@@ -279,7 +291,8 @@ Please type your name or "anonymous" if you prefer
           ) : (
             <div
               id="chat-container"
-              className="flex flex-col w-full h-full fixed inset-0 z-50 md:flex-row md:relative bg-purple-50"
+              className="flex flex-col w-full fixed inset-0 z-50 md:flex-row md:relative bg-red-500 overflow-hidden"
+              style={{ height: viewportHeight }}
             >
               <div className="w-full md:w-1/4 p-6 pb-3 md:pb-6">
                 <p className="text-sm text-muted-foreground mb-2 hidden md:block">
@@ -315,26 +328,126 @@ Please type your name or "anonymous" if you prefer
                 </div>
               </div>
               <hr className="md:hidden border-t border-white ms-4 me-4" />
-              <div className="w-full md:w-3/4 h-full flex-grow flex flex-col px-6 pt-3 md:pb-6">
-                <div className="h-full max-h-[calc(100%-150px)] md:max-h-[calc(100%-50px)] max-w-2xl flex m-4">
-                  {(hostData?.template || assistantId) && (
-                    <Chat
-                      entryMessage={message}
-                      assistantId={hostData?.template ?? assistantId!}
-                      sessionId={hostData?.id}
-                      userSessionId={userSessionId ?? undefined}
-                      setUserSessionId={setUserSessionId}
-                    />
-                  )}
+              <div
+                className="w-full md:w-3/4 flex-grow flex flex-col px-6 pt-3 md:pb-6 overflow-hidden"
+                style={{
+                  height: `calc(${viewportHeight} - 110px)`,
+                }}
+              >
+                <div className="flex-1 overflow-y-auto mb-4 pb-20">
+                  <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
+                    do eiusmod tempor incididunt ut labore et dolore magna
+                    aliqua.
+                  </p>
+                  <p>
+                    Ut enim ad minim veniam, quis nostrud exercitation ullamco
+                    laboris nisi ut aliquip ex ea commodo consequat.
+                  </p>
+                  <p>
+                    Duis aute irure dolor in reprehenderit in voluptate velit
+                    esse cillum dolore eu fugiat nulla pariatur.
+                  </p>
+                  <p>
+                    Excepteur sint occaecat cupidatat non proident, sunt in
+                    culpa qui officia deserunt mollit anim id est laborum.
+                  </p>
+                  {/* Repeat the above paragraphs multiple times to ensure scrolling */}
+                  <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
+                    do eiusmod tempor incididunt ut labore et dolore magna
+                    aliqua.
+                  </p>
+                  <p>
+                    Ut enim ad minim veniam, quis nostrud exercitation ullamco
+                    laboris nisi ut aliquip ex ea commodo consequat.
+                  </p>
+                  <p>
+                    Duis aute irure dolor in reprehenderit in voluptate velit
+                    esse cillum dolore eu fugiat nulla pariatur.
+                  </p>
+                  <p>
+                    Excepteur sint occaecat cupidatat non proident, sunt in
+                    culpa qui officia deserunt mollit anim id est laborum.
+                  </p>
+                  <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
+                    do eiusmod tempor incididunt ut labore et dolore magna
+                    aliqua.
+                  </p>
+                  <p>
+                    Ut enim ad minim veniam, quis nostrud exercitation ullamco
+                    laboris nisi ut aliquip ex ea commodo consequat.
+                  </p>
+                  <p>
+                    Duis aute irure dolor in reprehenderit in voluptate velit
+                    esse cillum dolore eu fugiat nulla pariatur.
+                  </p>
+                  <p>
+                    Excepteur sint occaecat cupidatat non proident, sunt in
+                    culpa qui officia deserunt mollit anim id est laborum.
+                  </p>
+                  {/* Repeat the above paragraphs multiple times to ensure scrolling */}
+                  <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
+                    do eiusmod tempor incididunt ut labore et dolore magna
+                    aliqua.
+                  </p>
+                  <p>
+                    Ut enim ad minim veniam, quis nostrud exercitation ullamco
+                    laboris nisi ut aliquip ex ea commodo consequat.
+                  </p>
+                  <p>
+                    Duis aute irure dolor in reprehenderit in voluptate velit
+                    esse cillum dolore eu fugiat nulla pariatur.
+                  </p>
+                  <p>
+                    Excepteur sint occaecat cupidatat non proident, sunt in
+                    culpa qui officia deserunt mollit anim id est laborum.
+                  </p>
                 </div>
-              </div>
-              <div className="md:hidden absolute bottom-0 w-full flex justify-center items-center pb-3">
-                <PoweredByHarmonica />
+                <div
+                  className="fixed bottom-0 left-0 right-0 bg-white px-6 py-2"
+                  style={{
+                    maxWidth: '75%',
+                    margin: '0 auto',
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      className="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="Type your message..."
+                    />
+                    <button
+                      className="p-2 rounded-lg hover:bg-gray-100"
+                      onClick={() => {}}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-6 h-6"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </>
       )}
+      <p className="fixed bottom-20 left-4 z-50 bg-white px-2 py-1 rounded shadow">
+        Keyboard height: {keyboardHeight}px
+      </p>
     </div>
   );
 };
