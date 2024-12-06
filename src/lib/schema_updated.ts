@@ -26,6 +26,7 @@ export interface HostSessionsTable {
   summary?: string;
   start_time: ColumnType<Date, Date | undefined, never>;
   last_edit: Generated<Date>;
+  questions?: JSON;
 }
 
 export interface UserSessionsTable {
@@ -126,6 +127,7 @@ export async function createHostTable(db: Kysely<any>, tableName: string) {
     .addColumn('last_edit', 'timestamp', (col) =>
       col.defaultTo(sql`CURRENT_TIMESTAMP`)
     )
+    .addColumn('questions', 'json')
     .execute();
 }
 

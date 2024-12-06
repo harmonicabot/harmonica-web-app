@@ -5,8 +5,6 @@ import CreateSession from './create';
 import ReviewPrompt from './review';
 import LoadingMessage from './loading';
 import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
-import { MagicWand } from '@/components/icons';
-import { Button } from '@/components/ui/button';
 import { sendApiCall } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,16 +12,12 @@ import { NewHostSession } from '@/lib/schema_updated';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
 import { encryptId } from '@/lib/encryptionUtils';
-import { ChevronLeft, ChevronRight, Pencil, Sparkles } from 'lucide-react';
 import ShareParticipants from './ShareParticipants';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { QuestionInfo } from './types';
+import { StepHeader } from './StepHeader';
+import { StepNavigation } from './StepNavigation';
+import { LaunchModal } from './LaunchModal';
+import { Step, STEPS } from './types';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -36,8 +30,6 @@ export type VersionedPrompt = {
   fullPrompt: string;
 };
 
-const STEPS = ['Template', 'Create', 'Refine', 'Share'] as const;
-type Step = (typeof STEPS)[number];
 const enabledSteps = [true, false, false];
 
 export default function CreationFlow() {
@@ -172,6 +164,7 @@ export default function CreationFlow() {
       active: mode === 'launch', // Set active based on mode
       final_report_sent: false,
       start_time: new Date(),
+      questions: JSON.stringify(participantQuestions) as unknown as JSON,
     };
 
     const sessionIds = await db.insertHostSessions(data);
@@ -250,28 +243,13 @@ export default function CreationFlow() {
 
   return (
     <div className="min-h-screen pt-16 sm:px-14 pb-16 bg-gray-50 dark:bg-gray-900">
-      <div
-        className={`mx-auto items-center align-middle ${isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
-          }`}
-      >
-        <div className="flex items-center justify-center mb-6">
-          <div className="mr-4">
-            <MagicWand />
-          </div>
-          <h1 className="text-3xl font-bold">New Session</h1>
-        </div>
-
-        <Tabs
-          value={activeStep}
-          onValueChange={(value) => setActiveStep(value as Step)}
-        >
+      <div className={`mx-auto items-center align-middle ${isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'}`}>
+        <StepHeader />
+        
+        <Tabs value={activeStep} onValueChange={(value) => setActiveStep(value as Step)}>
           <TabsList className="grid w-fit mx-auto grid-cols-4 gap-4 mb-6">
             {STEPS.map((step, index) => (
-              <TabsTrigger
-                key={step}
-                value={step}
-                disabled={!enabledSteps[index]}
-              >
+              <TabsTrigger key={step} value={step} disabled={!enabledSteps[index]}>
                 {step}
               </TabsTrigger>
             ))}
@@ -283,123 +261,39 @@ export default function CreationFlow() {
           ))}
         </Tabs>
 
-        {!isLoading && activeStep !== 'Template' && activeStep !== 'Share' && (
-          <div className="flex justify-between items-center pt-4">
-            <Button
-              className="m-2"
-              variant="ghost"
-              onClick={() =>
-                activeStep === 'Create'
-                  ? route.push('/')
-                  : setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])
-              }
-            >
-              <ChevronLeft className="w-4 h-4 me-2" strokeWidth={1.5} />
-              Back
-            </Button>
-            <div className="flex space-x-2">
-              {activeStep === 'Refine' && !isEditingPrompt && (
-                <Button
-                  className="m-2"
-                  variant="outline"
-                  onClick={() => setIsEditingPrompt(true)}
-                >
-                  <Pencil className="w-4 h-4 me-2" strokeWidth={1.5} />
-                  Edit Session
-                </Button>
-              )}
-              <Button
-                type="submit"
-                onClick={
-                  activeStep === 'Create'
-                    ? handleCreateComplete
-                    : handleReviewComplete
+        <StepNavigation 
+          activeStep={activeStep}
+          isLoading={isLoading}
+          isEditingPrompt={isEditingPrompt}
+          hasValidationErrors={hasValidationErrors}
+          formData={formData}
+          setIsEditingPrompt={setIsEditingPrompt}
+          handleBack={() => 
+            activeStep === 'Create'
+              ? route.push('/')
+              : setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])
+          }
+          handleNext={
+            activeStep === 'Create'
+              ? handleCreateComplete
+              : activeStep === 'Share'
+              ? (e) => {
+                  e.preventDefault();
+                  setShowLaunchModal(true);
                 }
-                className="m-2"
-                disabled={
-                  activeStep === 'Create' &&
-                  (hasValidationErrors ||
-                    !formData.sessionName?.trim() ||
-                    !formData.goal?.trim())
-                }
-              >
-                {activeStep === 'Create' ? (
-                  <>
-                    <Sparkles className="w-4 h-4 me-2" strokeWidth={1.5} />
-                    Generate
-                  </>
-                ) : (
-                  <>
-                    Finish
-                    <ChevronRight className="w-4 h-4 ms-2" strokeWidth={1.5} />
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
+              : handleReviewComplete
+          }
+          nextLabel={activeStep === 'Share' ? 'Launch' : undefined}
+        />
 
-        {!isLoading && activeStep === 'Share' && (
-          <div className="flex justify-between items-center pt-4 max-w-[540px] mx-auto">
-            <Button
-              className="m-2 w-[100px]"
-              variant="ghost"
-              onClick={() => setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])}
-            >
-              <ChevronLeft className="w-4 h-4 me-2" strokeWidth={1.5} />
-              Back
-            </Button>
-            <Button
-              className="m-2 w-[100px]"
-              onClick={() => {
-                const replacer = (key: string, value: any) => {
-                  if (key === 'type') {
-                    return value.toString();
-                  }
-                  return value;
-                };
-                
-                console.log(participantQuestions,JSON.stringify(participantQuestions, replacer, 2));
-                setShowLaunchModal(true)
-                }
-              }
-            >
-              Launch
-            </Button>
-          </div>
+        {showLaunchModal && (
+          <LaunchModal 
+            showLaunchModal={showLaunchModal}
+            setShowLaunchModal={setShowLaunchModal}
+            handleShareComplete={handleShareComplete}
+          />
         )}
       </div>
-      {showLaunchModal && (
-        <Dialog open={showLaunchModal} onOpenChange={setShowLaunchModal}>
-          <DialogContent className="max-w-[400px]">
-            <DialogHeader>
-              <DialogTitle className="text-2xl">Ready to launch?</DialogTitle>
-              <DialogDescription className="text-base pt-2">
-                Deploy your new session in one-click.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-between mt-6">
-              <Button
-                variant="outline"
-                onClick={(e) => {
-                  setShowLaunchModal(false);
-                  handleShareComplete(e as any, 'draft');
-                }}
-              >
-                Save to drafts
-              </Button>
-              <Button
-                onClick={(e) => {
-                  setShowLaunchModal(false);
-                  handleShareComplete(e as any, 'launch');
-                }}
-              >
-                Launch
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 

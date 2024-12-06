@@ -30,7 +30,7 @@ export const sendApiCall = async (request: RequestData) => {
   } else {
     const responseText = await response.text();
     const result = JSON.parse(responseText);
-    console.log('API response:', result);
+    // console.log('API response:', result);
     return result;
   }
 };

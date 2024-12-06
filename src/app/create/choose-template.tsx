@@ -34,6 +34,7 @@ const iconMap = {
   'activity-square': ActivitySquare,
   'list-checks': ListChecks,
   'shield-alert': ShieldAlert,
+  sparkles: Sparkles,
   leaf: Leaf,
 } as const;
 

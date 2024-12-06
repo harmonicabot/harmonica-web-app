@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import QuestionList from './QuestionList';
+import { QuestionInfo, QuestionType } from './types';
 import QuestionModal from './QuestionModal';
-import { ClipboardList, Plus } from 'lucide-react';
-import EmptyQuestions from './EmptyQuestions';
-import { QuestionInfo, QuestionType, isQuestionType } from './types';
+import { QuestionContainerHeader } from './QuestionContainerHeader';
+import { QuestionContainer } from './QuestionContainer';
 
 interface ShareParticipantsProps {
   onQuestionsUpdate: (questions: QuestionInfo[]) => void;
@@ -84,44 +82,23 @@ export default function ShareParticipants({ onQuestionsUpdate }: ShareParticipan
     } else {
       document.body.style.overflow = 'unset';
     }
-
     return () => {
       document.body.style.overflow = 'unset';
     };
   }, [modalOpen]);
 
-  // Update questions state to notify parent
   useEffect(() => {
     onQuestionsUpdate(questions);
   }, [questions, onQuestionsUpdate]);
 
   return (
-    <div   className="bg-white mx-auto p-10 rounded-xl shadow p-6">
-      <div className="space-y-2.5 mb-8">
-        <h2 className="text-2xl font-semibold">Your participants</h2>
-        <p className="text-base text-black pt-8 font-semibold">
-          What information do you want participants to share?
-        </p>
-        <p className="text-sm">
-          This information can be used to identify responses in your results.
-        </p>
-      </div>
-
-      {questions.length === 0 ? (
-        <EmptyQuestions openModal={openModal} />
-      ) : (
-        <>
-          <QuestionList 
-            questions={questions} 
-            openModal={openModal} 
-            handleDelete={handleDelete} 
-          />
-          <Button variant="outline" onClick={() => openModal()} className="mt-4">
-            + Add Question
-          </Button>
-        </>
-      )}
-
+    <div className="bg-white mx-auto p-10 rounded-xl shadow p-6">
+      <QuestionContainerHeader />
+      <QuestionContainer 
+        questions={questions}
+        openModal={openModal}
+        handleDelete={handleDelete}
+      />
       <QuestionModal 
         currentQuestion={currentQuestion} 
         setCurrentQuestion={setCurrentQuestion} 

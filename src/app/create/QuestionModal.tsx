@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QuestionInfo, QuestionType } from './types';
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface QuestionModalProps {
   currentQuestion: QuestionInfo | null;
@@ -81,12 +82,11 @@ const QuestionModal: React.FC<QuestionModalProps> = ({
               )}
 
               <label className="flex items-center">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={currentQuestion?.required || false}
-                  onChange={(e) => setCurrentQuestion((prev): QuestionInfo => ({
+                  onCheckedChange={(checked: boolean) => setCurrentQuestion((prev): QuestionInfo => ({
                     ...prev!,
-                    required: e.target.checked
+                    required: checked
                   }))}
                   className="mr-2"
                 />

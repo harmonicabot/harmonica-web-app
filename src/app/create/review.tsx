@@ -59,10 +59,10 @@ export default function ReviewPrompt({
     setModalState({ open: true, text: prompts[promptId - 1].fullPrompt });
   };
 
-  console.log(
-    `#Prompts: ${prompts.length}, CurrentVersion: ${currentVersion}`,
-    prompts,
-  );
+  // console.log(
+  //   `#Prompts: ${prompts.length}, CurrentVersion: ${currentVersion}`,
+  //   prompts,
+  // );
 
   return (
     <>

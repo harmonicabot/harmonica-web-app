@@ -17,4 +17,7 @@ export interface QuestionInfo {
   required: boolean;
   options?: string[];
   optionsInput?: string;
-} 
+}
+
+export const STEPS = ['Template', 'Create', 'Refine', 'Share'] as const;
+export type Step = (typeof STEPS)[number]; 
