@@ -25,6 +25,7 @@ export interface HostSessionsTable {
   summary?: string;
   start_time: ColumnType<Date | string, Date | string | undefined, never>;
   last_edit: Generated<Date>;
+  questions?: JSON;
 }
 
 export interface UserSessionsTable {

@@ -59,10 +59,10 @@ export default function ReviewPrompt({
     setModalState({ open: true, text: prompts[promptId - 1].fullPrompt });
   };
 
-  console.log(
-    `#Prompts: ${prompts.length}, CurrentVersion: ${currentVersion}`,
-    prompts,
-  );
+  // console.log(
+  //   `#Prompts: ${prompts.length}, CurrentVersion: ${currentVersion}`,
+  //   prompts,
+  // );
 
   return (
     <>
@@ -137,7 +137,10 @@ export default function ReviewPrompt({
                     >
                       Full Prompt
                     </Button> */}
-                    <ChatPopupButton prompt={prompt} handleSetTempAssistantIds={setTemporaryAssistantIds} />
+                    <ChatPopupButton
+                      prompt={prompt}
+                      handleSetTempAssistantIds={setTemporaryAssistantIds}
+                    />
                     {prompt.id !== currentVersion ? (
                       <Button onClick={() => setCurrentVersion(prompt.id)}>
                         Select
