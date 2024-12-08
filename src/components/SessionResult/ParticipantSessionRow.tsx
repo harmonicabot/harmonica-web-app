@@ -20,16 +20,16 @@ export default function ParicipantSessionRow({
   const handleViewClick = async () => {
     setIsPopupVisible(true);
     const messageHistory = await getAllChatMessagesInOrder(userData.thread_id);
-    // console.log('Messages fetched: ', messageHistory);
+
     if (messageHistory.length === 0) {
       console.error(
         'No messages found for ',
         userData.thread_id,
-        ' but it should be there!'
+        ' but it should be there!',
       );
       return;
     }
-    removeFirstFakeUserEntry(messageHistory);
+
     setMessages(messageHistory);
   };
 
@@ -37,21 +37,6 @@ export default function ParicipantSessionRow({
     console.log('Close clicked');
     setIsPopupVisible(false);
   };
-
-  // const userName = session.chat_text
-  //   ? extractName(session.chat_text)
-  //   : `User ${session.user_id}`;
-
-  // All users passed into this method should also have some messages.
-
-  function removeFirstFakeUserEntry(messages: Message[]) {
-    if (
-      messages[0].role === 'user' &&
-      messages[0].content.startsWith('User name is ')
-    ) {
-      messages.shift();
-    }
-  }
 
   function parseMessages(input: string) {
     try {

@@ -1,7 +1,7 @@
 export enum QuestionType {
   SHORT_FIELD = 'Short field',
   EMAIL = 'Email',
-  OPTIONS = 'Options'
+  OPTIONS = 'Options',
 }
 
 // Add a type guard to ensure proper serialization
@@ -20,4 +20,4 @@ export interface QuestionInfo {
 }
 
 export const STEPS = ['Template', 'Create', 'Refine', 'Share'] as const;
-export type Step = (typeof STEPS)[number]; 
+export type Step = (typeof STEPS)[number];

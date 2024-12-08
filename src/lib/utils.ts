@@ -68,7 +68,7 @@ export async function createSummary(sessionId: string) {
         })
         .join(`\n----END Participant ${participantId}----\n`); // Join messages for the same participant
       return `\`\`\`\n----START Participant ${participantId}:----\n${participantMessages}\n\`\`\``; // Format for each participant
-    }
+    },
   );
 
   const promptForObjective = `\`\`\`This is the original session prompt, it _contains_ the **OBJECTIVE** somewhere in its body.\n
@@ -76,13 +76,13 @@ export async function createSummary(sessionId: string) {
   ----START PROMPT----\n
   ${prompt}
   \n----END PROMPT----\n\`\`\``;
-  console.log('Sending chat history to GPT-4: ', chatMessages);
+  // console.log('Sending chat history to GPT-4: ', chatMessages);
   const threadId = await gpt.handleCreateThread(
     {
       role: 'assistant',
       content: 'Use the following messages as context for user input.',
     },
-    [...chatMessages, promptForObjective]
+    [...chatMessages, promptForObjective],
   );
   const summaryReply = await gpt.handleGenerateAnswer({
     threadId: threadId,
@@ -102,7 +102,7 @@ export async function createSummary(sessionId: string) {
 
 export function checkSummaryAndMessageTimes(
   hostData: HostSession,
-  userData: UserSession[]
+  userData: UserSession[],
 ) {
   console.log('Checking for new messages...');
   const lastMessage = userData.reduce((latest, user) => {
@@ -113,14 +113,80 @@ export function checkSummaryAndMessageTimes(
   console.log('Last summary update:', hostData);
   const lastSummaryUpdate = hostData.last_edit.getTime();
   const hasNewMessages = lastMessage > lastSummaryUpdate;
-  return {hasNewMessages, lastMessage, lastSummaryUpdate}
+  return { hasNewMessages, lastMessage, lastSummaryUpdate };
 }
 
-export function getUserStats(sessionToUserStats: Record<string, Record<string, {num_messages: number, finished: boolean}>>, sessionId: string) {
+export function getUserStats(
+  sessionToUserStats: Record<
+    string,
+    Record<string, { num_messages: number; finished: boolean }>
+  >,
+  sessionId: string,
+) {
   const userStats = sessionToUserStats[sessionId];
   const iterableStats = Object.entries(userStats);
-  const usersWithMoreThan2Messages = iterableStats.filter(([_key, value]) => value.num_messages > 2);
+  const usersWithMoreThan2Messages = iterableStats.filter(
+    ([_key, value]) => value.num_messages > 2,
+  );
   const totalUsers = usersWithMoreThan2Messages.length;
-  const finishedUsers = usersWithMoreThan2Messages.filter(([_, value]) => value.finished).length;
-  return {totalUsers, finishedUsers}
+  const finishedUsers = usersWithMoreThan2Messages.filter(
+    ([_, value]) => value.finished,
+  ).length;
+  return { totalUsers, finishedUsers };
+}
+
+export function getUserNameFromContext(
+  userContext?: Record<string, string>,
+): string {
+  if (!userContext) return 'Anonymous User';
+
+  // Regex patterns for common username field variations
+  const patterns = [
+    /^name$/i,
+    /^(user)?name$/i,
+    /^(user|display)[\s_-]?name$/i,
+    /^(first|given)[\s_-]?name$/i,
+    /^(full|complete)[\s_-]?name$/i,
+    /^(preferred|nick)[\s_-]?name$/i,
+    /^(display|screen)[\s_-]?name$/i,
+    /^handle$/i,
+    /^alias$/i,
+    /^identity$/i,
+    /^(user)?id$/i,
+  ];
+
+  // Try primary patterns
+  for (const [key, value] of Object.entries(userContext)) {
+    if (patterns.some((pattern) => pattern.test(key)) && value) {
+      const cleanedValue = value.trim();
+      if (cleanedValue.length >= 2) return cleanedValue;
+    }
+  }
+
+  // Fallbacks
+  const nameKey = Object.keys(userContext).find(
+    (key) => /name/i.test(key) && userContext[key]?.trim().length >= 2,
+  );
+  if (nameKey) return userContext[nameKey].trim();
+
+  const emailKey = Object.keys(userContext).find(
+    (key) => /^email$/i.test(key) || /email/i.test(key),
+  );
+  if (emailKey && userContext[emailKey]) {
+    const emailParts = userContext[emailKey].split('@')[0];
+    if (emailParts.length >= 2) {
+      const cleanedEmail = emailParts
+        .replace(/[0-9._-]+$/, '')
+        .replace(/[._-]/g, ' ')
+        .trim();
+      if (cleanedEmail.length >= 2) {
+        return cleanedEmail
+          .split(' ')
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      }
+    }
+  }
+
+  return `Anonymous${Math.floor(Math.random() * 9000 + 1000)}`;
 }

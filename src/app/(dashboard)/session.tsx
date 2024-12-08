@@ -22,8 +22,7 @@ export function Session({
 }: {
   session: SessionData;
   onDelete: (sessionId: string) => void;
-  }) {
-
+}) {
   return (
     <TableRow>
       <TableCell className="font-medium text-base">
@@ -33,11 +32,13 @@ export function Session({
         <Badge
           variant="outline"
           className={`capitalize ${
-            session.active && session.num_sessions > 0 && session.num_sessions > session.num_finished
+            session.active &&
+            session.num_sessions > 0 &&
+            session.num_sessions > session.num_finished
               ? 'bg-lime-100 text-lime-900'
               : session.active && session.num_sessions === 0 // Draft
                 ? 'bg-purple-100 text-purple-900'
-                : ''  // Finished, remain white
+                : '' // Finished, remain white
           }`}
         >
           {session.status}
@@ -83,13 +84,16 @@ export function Session({
             </DropdownMenuItem> */}
             <DropdownMenuItem>
               <form
+                className="w-full"
                 action={async () => {
                   if (await deleteSession(session.id)) {
                     onDelete(session.id);
                   }
                 }}
               >
-                <button type="submit">Delete</button>
+                <button type="submit" className="w-full text-left">
+                  Delete
+                </button>
               </form>
             </DropdownMenuItem>
           </DropdownMenuContent>

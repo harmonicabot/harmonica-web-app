@@ -137,7 +137,10 @@ export default function ReviewPrompt({
                     >
                       Full Prompt
                     </Button> */}
-                    <ChatPopupButton prompt={prompt} handleSetTempAssistantIds={setTemporaryAssistantIds} />
+                    <ChatPopupButton
+                      prompt={prompt}
+                      handleSetTempAssistantIds={setTemporaryAssistantIds}
+                    />
                     {prompt.id !== currentVersion ? (
                       <Button onClick={() => setCurrentVersion(prompt.id)}>
                         Select

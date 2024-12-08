@@ -183,7 +183,16 @@ export default function CreationFlow() {
       active: mode === 'launch', // Set active based on mode
       final_report_sent: false,
       start_time: new Date(),
-      questions: JSON.stringify(participantQuestions) as unknown as JSON,
+      questions: JSON.stringify(
+        participantQuestions.map((q) => ({
+          id: q.id,
+          label: q.label,
+          type: q.type,
+          typeValue: q.typeValue,
+          required: q.required,
+          options: q.options,
+        })),
+      ) as unknown as JSON,
     };
 
     const sessionIds = await db.insertHostSessions(data);
