@@ -6,7 +6,15 @@ export async function middleware(req: NextRequest, ev: NextFetchEvent) {
   const isAbot = isbot(req.headers.get('User-Agent'));
   if (isAbot && !req.nextUrl.pathname.startsWith('/api')) {
     const botUrl = new URL('/bots', req.nextUrl);
-    botUrl.searchParams.set('pathAndSearch', req.nextUrl.pathname + req.nextUrl.search)
+    const path = req.nextUrl.pathname;
+
+    if (path.startsWith('/chat')) {
+      botUrl.pathname = '/bots/chat';
+    } else {
+      botUrl.pathname = '/bots/others';
+    }
+
+    botUrl.searchParams.set('pathAndSearch', path + req.nextUrl.search);
     return NextResponse.rewrite(botUrl);
   }
 
