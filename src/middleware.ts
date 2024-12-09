@@ -11,7 +11,7 @@ export async function middleware(req: NextRequest, ev: NextFetchEvent) {
     if (path.startsWith('/chat')) {
       botUrl.pathname = '/bots/chat';
     } else {
-      botUrl.pathname = '/bots/others';
+      botUrl.pathname = '/bots/';
     }
 
     botUrl.searchParams.set('pathAndSearch', path + req.nextUrl.search);
