@@ -7,11 +7,13 @@ type MetadataConfig = {
 };
 
 const defaultDescription = `Create AI-facilitated conversations to gather insights from your team, users, or community. Design custom sessions and transform collective input into actionable strategies.`;
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ||
+  (process.env.NODE_ENV === 'development'
+    ? 'http://localhost:3000'
+    : 'https://app.harmonica.chat');
 
 const defaultMetadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_BASE_URL || 'https://app.harmonica.chat'
-  ),
+  metadataBase: new URL(baseUrl),
   applicationName: 'Harmonica',
   keywords: [
     'Deliberation',
