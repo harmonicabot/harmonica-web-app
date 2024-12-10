@@ -23,17 +23,13 @@ export function StepNavigation({
   setIsEditingPrompt,
   handleBack,
   handleNext,
-  nextLabel = 'Next'
+  nextLabel = 'Next',
 }: StepNavigationProps) {
   if (isLoading || activeStep === 'Template') return null;
 
   return (
     <div className="flex justify-between items-center pt-4">
-      <Button
-        className="m-2"
-        variant="ghost"
-        onClick={handleBack}
-      >
+      <Button className="m-2" variant="ghost" onClick={handleBack}>
         <ChevronLeft className="w-4 h-4 me-2" strokeWidth={1.5} />
         Back
       </Button>
@@ -65,12 +61,10 @@ export function StepNavigation({
               Generate
             </>
           ) : activeStep === 'Share' ? (
-            <>
-              Launch
-            </>
+            <>Launch</>
           ) : (
             <>
-              Finish
+              Next
               <ChevronRight className="w-4 h-4 ms-2" strokeWidth={1.5} />
             </>
           )}
@@ -78,4 +72,4 @@ export function StepNavigation({
       </div>
     </div>
   );
-} 
+}

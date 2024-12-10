@@ -34,6 +34,19 @@ export type VersionedPrompt = {
 
 const enabledSteps = [true, false, false];
 
+type StepConfig = {
+  id: string;
+  value: Step;
+  label: string;
+};
+
+const STEP_CONFIG: StepConfig[] = [
+  { id: 'template', value: 'Template', label: 'Define Objective' },
+  { id: 'create', value: 'Create', label: 'Add Context' },
+  { id: 'refine', value: 'Refine', label: 'Refine Agenda' },
+  { id: 'share', value: 'Share', label: 'Set Data Form' },
+];
+
 export default function CreationFlow() {
   const route = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -279,19 +292,19 @@ export default function CreationFlow() {
           onValueChange={(value) => setActiveStep(value as Step)}
         >
           <TabsList className="grid w-fit mx-auto grid-cols-4 gap-4 mb-6">
-            {STEPS.map((step, index) => (
+            {STEP_CONFIG.map((step, index) => (
               <TabsTrigger
-                key={step}
-                value={step}
+                key={step.id}
+                value={step.value}
                 disabled={!enabledSteps[index]}
               >
-                {step}
+                {step.label}
               </TabsTrigger>
             ))}
           </TabsList>
-          {STEPS.map((step) => (
-            <TabsContent key={step} value={step}>
-              {stepContent[step]}
+          {STEP_CONFIG.map((step) => (
+            <TabsContent key={step.id} value={step.value}>
+              {stepContent[step.value]}
             </TabsContent>
           ))}
         </Tabs>

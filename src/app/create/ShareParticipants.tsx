@@ -8,7 +8,9 @@ interface ShareParticipantsProps {
   onQuestionsUpdate: (questions: QuestionInfo[]) => void;
 }
 
-export default function ShareParticipants({ onQuestionsUpdate }: ShareParticipantsProps) {
+export default function ShareParticipants({
+  onQuestionsUpdate,
+}: ShareParticipantsProps) {
   const [questions, setQuestions] = useState<QuestionInfo[]>([
     {
       id: 'name',
@@ -23,10 +25,12 @@ export default function ShareParticipants({ onQuestionsUpdate }: ShareParticipan
       type: QuestionType.EMAIL,
       typeValue: 'EMAIL',
       required: false,
-    }
+    },
   ]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState<QuestionInfo | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState<QuestionInfo | null>(
+    null,
+  );
 
   const addOrUpdateQuestion = () => {
     if (!currentQuestion) return;
@@ -34,21 +38,21 @@ export default function ShareParticipants({ onQuestionsUpdate }: ShareParticipan
     const cleanedQuestion = {
       ...currentQuestion,
       options: currentQuestion.options
-        ?.map(opt => opt.trim())
-        ?.filter(opt => opt !== '')
+        ?.map((opt) => opt.trim())
+        ?.filter((opt) => opt !== ''),
     };
 
-    setQuestions(prev => {
-      const editingIndex = prev.findIndex(q => q.id === currentQuestion.id);
+    setQuestions((prev) => {
+      const editingIndex = prev.findIndex((q) => q.id === currentQuestion.id);
       if (editingIndex >= 0) {
-        return prev.map((q) => 
-          q.id === currentQuestion.id ? cleanedQuestion : q
+        return prev.map((q) =>
+          q.id === currentQuestion.id ? cleanedQuestion : q,
         );
       } else {
         return [...prev, cleanedQuestion];
       }
     });
-    
+
     setModalOpen(false);
     setCurrentQuestion(null);
   };
@@ -58,16 +62,23 @@ export default function ShareParticipants({ onQuestionsUpdate }: ShareParticipan
     setQuestions(updatedQuestions);
   };
 
+  const handleReorder = (reorderedQuestions: QuestionInfo[]) => {
+    setQuestions(reorderedQuestions);
+  };
+
   const openModal = (question?: QuestionInfo) => {
-    setCurrentQuestion(() => question || {
-      id: Math.random().toString(36).substr(2, 9),
-      label: '',
-      type: QuestionType.SHORT_FIELD,
-      typeValue: 'SHORT_FIELD',
-      required: false,
-      options: [],
-      optionsInput: ''
-    });
+    setCurrentQuestion(
+      () =>
+        question || {
+          id: Math.random().toString(36).substr(2, 9),
+          label: '',
+          type: QuestionType.SHORT_FIELD,
+          typeValue: 'SHORT_FIELD',
+          required: false,
+          options: [],
+          optionsInput: '',
+        },
+    );
     setModalOpen(true);
   };
 
@@ -94,18 +105,19 @@ export default function ShareParticipants({ onQuestionsUpdate }: ShareParticipan
   return (
     <div className="bg-white mx-auto p-10 rounded-xl shadow p-6">
       <QuestionContainerHeader />
-      <QuestionContainer 
+      <QuestionContainer
         questions={questions}
         openModal={openModal}
         handleDelete={handleDelete}
+        onReorder={handleReorder}
       />
-      <QuestionModal 
-        currentQuestion={currentQuestion} 
-        setCurrentQuestion={setCurrentQuestion} 
-        modalOpen={modalOpen} 
-        closeModal={closeModal} 
-        addOrUpdateQuestion={addOrUpdateQuestion} 
+      <QuestionModal
+        currentQuestion={currentQuestion}
+        setCurrentQuestion={setCurrentQuestion}
+        modalOpen={modalOpen}
+        closeModal={closeModal}
+        addOrUpdateQuestion={addOrUpdateQuestion}
       />
     </div>
   );
-} 
+}
