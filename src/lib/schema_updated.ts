@@ -21,11 +21,14 @@ export interface HostSessionsTable {
   template: string;
   topic: string;
   final_report_sent: boolean;
-  context?: string;
   client?: string;
   summary?: string;
   start_time: ColumnType<Date, Date | undefined, never>;
   last_edit: Generated<Date>;
+  goal: string;
+  critical?: string,
+  context?: string;
+  prompt_summary: string,
   questions?: JSON;
 }
 

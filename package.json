@@ -5,7 +5,9 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
-    "start": "next start"
+    "start": "next start",
+    "migrate": "tsx src/db/migrator.ts",
+    "migrate:down": "tsx src/db/migrator.ts down"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^3.5.0",

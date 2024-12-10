@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import {
   finishedResponse,
+  handleCreateAssistant,
   handleResponse,
 } from '../gptUtils';
 import { createPromptContent } from '../utils';
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
         request.stream ?? false,
       );
     case ApiAction.CreateAssistant:
-      return await handleCreateAssistant(request.data as AssistantBuilderData);
+      return NextResponse.json({ assistantId: await handleCreateAssistant(request.data as AssistantBuilderData) });
     case ApiAction.DeleteAssistants:
       if (typeof request.data === 'object' && 'assistantIds' in request.data && Array.isArray(request.data.assistantIds)) {
         return await deleteAssistants(request.data.assistantIds);
@@ -83,20 +84,6 @@ async function createNewPrompt(data: SessionBuilderData) {
   }
 }
 
-async function getTempAssistants() {
-  // Currently unused, but could be used to periodically clean up or so.
-  const assistants = await client.beta.assistants.list({
-    limit: 100 /*, after: "asst_someId"*/,
-  });
-  console.log(
-    `Found assistants:\n${assistants.data.map((assistant) => assistant.name + ' ' + assistant.id).join('\n')}`,
-  );
-  const tempAssistantIds = assistants.data
-    .filter((assistant) => assistant.name!.startsWith('testing_'))
-    .map((assistant) => assistant.id);
-  return tempAssistantIds;
-}
-
 async function deleteAssistants(idsToDelete: string[]) {
   idsToDelete.forEach((id) => {
     console.log(`Deleting assistant with id ${id}`);
@@ -117,15 +104,4 @@ async function generateFullPrompt(
     createPromptContent(data),
   );
   return [thread.id, content];
-}
-
-async function handleCreateAssistant(data: AssistantBuilderData) {
-  // console.log('Creating assistant for data: ', data);
-
-  const assistant = await client.beta.assistants.create({
-    name: data.name,
-    instructions: data.prompt,
-    model: 'gpt-4o-mini',
-  });
-  return NextResponse.json({ assistantId: assistant.id });
 }

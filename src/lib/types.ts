@@ -64,11 +64,6 @@ export type SessionBuilderData = {
   goal: string;
   critical: string;
   context: string;
-  createSummary: boolean;
-  summaryFeedback: boolean;
-  requireContext: boolean;
-  contextDescription: string;
-  enableSkipSteps: boolean;
 };
 
 export type TemplateEditingData = {
