@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { RequestData } from '@/lib/types';
+import { ADJECTIVES, ANIMALS, COLORS } from './nameGeneratorData';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -138,7 +139,9 @@ export function getUserStats(
 export function getUserNameFromContext(
   userContext?: Record<string, string>,
 ): string {
-  if (!userContext) return 'Anonymous User';
+  if (!userContext) {
+    return generateRandomName();
+  }
 
   // Regex patterns for common username field variations
   const patterns = [
@@ -188,5 +191,23 @@ export function getUserNameFromContext(
     }
   }
 
-  return `Anonymous${Math.floor(Math.random() * 9000 + 1000)}`;
+  return generateRandomName();
+}
+
+function generateRandomName(): string {
+  const randomElement = (arr: string[]) =>
+    arr[Math.floor(Math.random() * arr.length)];
+
+  const pattern = Math.floor(Math.random() * 3);
+
+  switch (pattern) {
+    case 0:
+      return `${randomElement(ADJECTIVES)} ${randomElement(ANIMALS)}`;
+    case 1:
+      return `${randomElement(COLORS)} ${randomElement(ANIMALS)}`;
+    case 2:
+      return `${randomElement(COLORS)} ${randomElement(ADJECTIVES)} ${randomElement(ANIMALS)}`;
+    default:
+      return `${randomElement(ADJECTIVES)} ${randomElement(ANIMALS)}`;
+  }
 }
