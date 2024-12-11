@@ -148,7 +148,7 @@ export default function Chat({
       chatMessages.push('\n----END CHAT HISTORY for CONTEXT----\n');
       // console.log('[i] Chat messages for context: ', chatMessages);
     }
-    console.log('[i] User context: ', userContext);
+
     const userContextPrompt = userContext
       ? `IMPORTANT USER INFORMATION:\nPlease consider the following user details in your responses:\n${Object.entries(
           userContext,
@@ -182,6 +182,22 @@ export default function Chat({
             start_time: new Date(),
             last_edit: new Date(),
           };
+          //insert user formdata
+          db.insertChatMessage({
+            thread_id: threadIdRef.current,
+            role: 'user',
+            content: `User shared the following context:\n${Object.entries(
+              userContext || {},
+            )
+              .map(([key, value]) => `${key}: ${value}`)
+              .join('; ')}`,
+            created_at: new Date(),
+          }).catch((error) => {
+            console.log('Error in insertChatMessage: ', error);
+            showErrorToast(
+              'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can',
+            );
+          });
           console.log('Inserting new session with initial data: ', data);
           return db
             .insertUserSessions(data)
