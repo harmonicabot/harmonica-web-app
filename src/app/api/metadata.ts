@@ -7,11 +7,9 @@ type MetadataConfig = {
 };
 
 const defaultDescription = `Create AI-facilitated conversations to gather insights from your team, users, or community. Design custom sessions and transform collective input into actionable strategies.`;
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ||'https://app.harmonica.chat';
 
 const defaultMetadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_BASE_URL || 'https://app.harmonica.chat'
-  ),
   applicationName: 'Harmonica',
   keywords: [
     'Deliberation',
@@ -27,11 +25,13 @@ const defaultMetadata = {
 const defaultOpenGraph = {
   title: defaultMetadata.title,
   description: defaultMetadata.description || '',
-  images: '/opengraph-image.png',
 };
 
 export const routeMetadata: MetadataConfig = {
-  '/': getWithTitleAndDescription('Dashboard'),
+  '/': {
+    metadataBase: new URL(baseUrl),
+    ...getWithTitleAndDescription('Dashboard')
+  },
   '/create': getWithTitleAndDescription(
     'Create',
     'Manage your Harmonica conversations and settings'
@@ -83,7 +83,6 @@ export async function getGeneratedMetadata(path: string) {
         ...defaultOpenGraph,
         title: hostData.topic,
         description: description,
-        images: '/chat/opengraph-image.png',
       },
     }
   }

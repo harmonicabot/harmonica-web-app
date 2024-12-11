@@ -9,7 +9,7 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isChatPage = pathname?.startsWith('/test-chat');
+  const isChatPage = pathname?.startsWith('/tes-chat');
 
   return (
     <div>

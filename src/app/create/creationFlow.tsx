@@ -1,12 +1,10 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import CreateSession from './create';
 import ReviewPrompt from './review';
 import LoadingMessage from './loading';
 import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
-import { MagicWand } from '@/components/icons';
-import { Button } from '@/components/ui/button';
 import { sendApiCall } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,6 +12,14 @@ import { NewHostSession } from '@/lib/schema_updated';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
 import { encryptId } from '@/lib/encryptionUtils';
+
+import ShareParticipants from './ShareParticipants';
+import { QuestionInfo } from './types';
+import { StepHeader } from './StepHeader';
+import { StepNavigation } from './StepNavigation';
+import { LaunchModal } from './LaunchModal';
+import { Step, STEPS } from './types';
+import { createPromptContent } from 'app/api/utils';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -26,9 +32,20 @@ export type VersionedPrompt = {
   fullPrompt: string;
 };
 
-const STEPS = ['Template', 'Create', 'Review'] as const;
-type Step = (typeof STEPS)[number];
 const enabledSteps = [true, false, false];
+
+type StepConfig = {
+  id: string;
+  value: Step;
+  label: string;
+};
+
+const STEP_CONFIG: StepConfig[] = [
+  { id: 'template', value: 'Template', label: 'Define Objective' },
+  { id: 'create', value: 'Create', label: 'Add Context' },
+  { id: 'refine', value: 'Refine', label: 'Refine Agenda' },
+  { id: 'share', value: 'Share', label: 'Set Data Form' },
+];
 
 export default function CreationFlow() {
   const route = useRouter();
@@ -36,13 +53,24 @@ export default function CreationFlow() {
   const [activeStep, setActiveStep] = useState<Step>(STEPS[0]);
   const [threadId, setThreadId] = useState('');
   const [builderAssistantId, setBuilderAssistantId] = useState('');
-  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>([]);
+  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>(
+    [],
+  );
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
   const [prompts, setPrompts] = useState<VersionedPrompt[]>([]);
   const [currentVersion, setCurrentVersion] = useState(-1);
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
+  const [showLaunchModal, setShowLaunchModal] = useState(false);
+  const [participantQuestions, setParticipantQuestions] = useState<
+    QuestionInfo[]
+  >([]);
+
+  const [
+    createNewPromptBecauseCreationContentChanged,
+    setCreateNewPromptBecauseCreationContentChanged,
+  ] = useState(false);
 
   const addPrompt = (versionedPrompt: VersionedPrompt) => {
     setPrompts((prev) => [...prev, versionedPrompt]);
@@ -87,6 +115,9 @@ export default function CreationFlow() {
 
   const onFormDataChange = (form: Partial<SessionBuilderData>) => {
     setFormData((prevData) => ({ ...prevData, ...form }));
+    if (prompts.length > 0) {
+      setCreateNewPromptBecauseCreationContentChanged(true);
+    }
   };
 
   const handleCreateComplete = async (e: React.FormEvent) => {
@@ -103,9 +134,11 @@ export default function CreationFlow() {
 
     setIsLoading(true);
     enabledSteps[1] = true;
-    setActiveStep('Review');
+    setActiveStep('Refine');
     if (prompts.length == 0) {
       await getInitialPrompt();
+    } else if (createNewPromptBecauseCreationContentChanged) {
+      await handleCreatePrompt();
     } else {
       setIsLoading(false);
     }
@@ -135,11 +168,14 @@ export default function CreationFlow() {
     });
   };
 
-  const handleReviewComplete = async (e: React.FormEvent) => {
+  const handleShareComplete = async (
+    e: React.FormEvent,
+    mode: 'launch' | 'draft' = 'launch',
+  ) => {
     e.preventDefault();
     setIsLoading(true);
     const prompt = prompts[currentVersion - 1].fullPrompt;
-    console.log('Creating assistant');
+
     const assistantResponse = await sendApiCall({
       action: ApiAction.CreateAssistant,
       target: ApiTarget.Builder,
@@ -151,27 +187,46 @@ export default function CreationFlow() {
 
     deleteTemporaryAssistants(temporaryAssistantIds);
 
-    // Create a new session in the host db
     const data: NewHostSession = {
       template: assistantResponse.assistantId,
       topic: formData.sessionName,
       prompt: prompt,
       num_sessions: 0,
       num_finished: 0,
-      active: true,
+      active: mode === 'launch', // Set active based on mode
       final_report_sent: false,
       start_time: new Date(),
+      questions: JSON.stringify(
+        participantQuestions.map((q) => ({
+          id: q.id,
+          label: q.label,
+          type: q.type,
+          typeValue: q.typeValue,
+          required: q.required,
+          options: q.options,
+        })),
+      ) as unknown as JSON,
     };
 
-    db.insertHostSessions(data).then((sessionIds) => {
-      const session_id = sessionIds[0];
-      // Set the cookie using document.cookie
-      const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + 30); // Cookie expires in 30 days
-      document.cookie = `sessionId=${session_id}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
+    const sessionIds = await db.insertHostSessions(data);
+    const session_id = sessionIds[0];
 
+    // Set cookie
+    const expirationDate = new Date();
+    expirationDate.setDate(expirationDate.getDate() + 30);
+    document.cookie = `sessionId=${session_id}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
+
+    // Navigate based on mode
+    if (mode === 'launch') {
       route.push(`/sessions/${encryptId(session_id)}`);
-    });
+    } else {
+      route.push('/');
+    }
+  };
+
+  const handleReviewComplete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActiveStep('Share');
   };
 
   function deleteTemporaryAssistants(assistantIds: string[]) {
@@ -205,7 +260,7 @@ export default function CreationFlow() {
         onValidationError={setHasValidationErrors}
       />
     ),
-    Review: isLoading ? (
+    Refine: isLoading ? (
       <LoadingMessage />
     ) : (
       <ReviewPrompt
@@ -218,85 +273,73 @@ export default function CreationFlow() {
         setTemporaryAssistantIds={setTemporaryAssistantIds}
       />
     ),
+    Share: !isLoading && activeStep === 'Share' && (
+      <div className="max-w-[540px] mx-auto">
+        <ShareParticipants onQuestionsUpdate={setParticipantQuestions} />
+      </div>
+    ),
   };
 
   return (
     <div className="min-h-screen pt-16 sm:px-14 pb-16 bg-gray-50 dark:bg-gray-900">
       <div
-        className={`mx-auto items-center align-middle ${
-          isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
-        }`}
+        className={`mx-auto items-center align-middle ${isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'}`}
       >
-        <div className="flex items-center justify-center mb-6">
-          <div className="mr-4">
-            <MagicWand />
-          </div>
-          <h1 className="text-3xl font-bold">New Session</h1>
-        </div>
+        <StepHeader />
 
         <Tabs
           value={activeStep}
           onValueChange={(value) => setActiveStep(value as Step)}
         >
-          <TabsList className="grid w-fit mx-auto grid-cols-3 gap-4 mb-6">
-            {STEPS.map((step, index) => (
+          <TabsList className="grid w-fit mx-auto grid-cols-4 gap-4 mb-6">
+            {STEP_CONFIG.map((step, index) => (
               <TabsTrigger
-                key={step}
-                value={step}
+                key={step.id}
+                value={step.value}
                 disabled={!enabledSteps[index]}
               >
-                {step}
+                {step.label}
               </TabsTrigger>
             ))}
           </TabsList>
-          {STEPS.map((step) => (
-            <TabsContent key={step} value={step}>
-              {stepContent[step]}
+          {STEP_CONFIG.map((step) => (
+            <TabsContent key={step.id} value={step.value}>
+              {stepContent[step.value]}
             </TabsContent>
           ))}
         </Tabs>
 
-        {!isLoading && activeStep !== 'Template' && (
-          <div className="flex justify-between items-center pt-4">
-            <Button
-              className="m-2"
-              variant="outline"
-              onClick={() =>
-                activeStep === 'Create'
-                  ? route.push('/')
-                  : setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])
-              }
-            >
-              Back
-            </Button>
-            <div className="flex space-x-2">
-              {activeStep === 'Review' && !isEditingPrompt && (
-                <Button
-                  className="m-2"
-                  onClick={() => setIsEditingPrompt(true)}
-                >
-                  Edit
-                </Button>
-              )}
-              <Button
-                type="submit"
-                onClick={
-                  activeStep === 'Create'
-                    ? handleCreateComplete
-                    : handleReviewComplete
-                }
-                className="m-2"
-                disabled={
-                  activeStep === 'Create' &&
-                  (hasValidationErrors ||
-                    !formData.sessionName?.trim() ||
-                    !formData.goal?.trim())
-                }
-              >
-                {activeStep === 'Create' ? 'Next' : 'Launch'}
-              </Button>
-            </div>
-          </div>
+        <StepNavigation
+          activeStep={activeStep}
+          isLoading={isLoading}
+          isEditingPrompt={isEditingPrompt}
+          hasValidationErrors={hasValidationErrors}
+          formData={formData}
+          setIsEditingPrompt={setIsEditingPrompt}
+          handleBack={() =>
+            activeStep === 'Create'
+              ? route.push('/')
+              : setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])
+          }
+          handleNext={
+            activeStep === 'Create'
+              ? handleCreateComplete
+              : activeStep === 'Share'
+                ? (e) => {
+                    e.preventDefault();
+                    setShowLaunchModal(true);
+                  }
+                : handleReviewComplete
+          }
+          nextLabel={activeStep === 'Share' ? 'Launch' : undefined}
+        />
+
+        {showLaunchModal && (
+          <LaunchModal
+            showLaunchModal={showLaunchModal}
+            setShowLaunchModal={setShowLaunchModal}
+            handleShareComplete={handleShareComplete}
+          />
         )}
       </div>
     </div>
@@ -323,6 +366,29 @@ export default function CreationFlow() {
     getStreamOfSummary({
       threadId: responseFullPrompt.threadId,
       assistantId: responseFullPrompt.assistantId,
+    });
+  }
+
+  async function handleCreatePrompt() {
+    const promptInstructions = createPromptContent(formData);
+    // We need to slightly update the instructions so that AI knows to create a new full prompt, not to base it on what was there before.
+    const newPromptInstructions = `Create a new prompt based on the following instructions: \n${promptInstructions}`;
+    const payload = {
+      target: ApiTarget.Builder,
+      action: ApiAction.EditPrompt,
+      data: {
+        threadId: threadId,
+        assistantId: builderAssistantId,
+        instructions: newPromptInstructions,
+      },
+    };
+
+    const newPromptResponse = await sendApiCall(payload);
+    latestFullPromptRef.current = newPromptResponse.fullPrompt;
+
+    getStreamOfSummary({
+      threadId,
+      assistantId: builderAssistantId,
     });
   }
 

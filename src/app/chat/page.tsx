@@ -1,10 +1,8 @@
 import { Metadata } from "next";
 import StandaloneChat from "./StandaloneChat";
-import * as db from '@/lib/db';
 import { getGeneratedMetadata } from "app/api/metadata";
 
-// Increase the maximum execution time for this function on vercel
-export const maxDuration = 60; // in seconds
+export const maxDuration = 120; // 2 mins, this should prevent timeouts
 
 export async function generateMetadata(
   { searchParams }: { searchParams: { s: string } } ,

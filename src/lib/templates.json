@@ -1,6 +1,22 @@
 {
   "templates": [
     {
+      "id": "theory-of-change",
+      "icon": "lightbulb",
+      "title": "Theory of Change",
+      "description": "Facilitate a structured session to define the Theory of Change by addressing key elements of the process.",
+      "defaults": {
+        "goal": "Facilitate a structured session to define the Theory of Change by addressing key elements of the process: the problem, audience, entry points, actions, measurable effects, and long-term goals.",
+        "critical": "- Problem Identification: Clarify the specific problem being addressed.\n- Audience Definition: Identify the key audience.\n- Entry Points: Specify entry points for engaging the audience.\n- Steps to Change: Collect iterative inputs for the steps needed to bring about change.\n- Measurable Effects & Benefits: Gather measurable outcomes and wider benefits for each step.\n- Long-Term Goal: Define the overarching, long-term change envisioned.",
+        "context": "Provide background on the initiative, including the focus area (e.g., education, governance, sustainability). Share any relevant baseline data or current challenges.",
+        "createSummary": true,
+        "summaryFeedback": true,
+        "requireContext": false,
+        "contextDescription": "",
+        "enableSkipSteps": false
+      }
+    },
+    {
       "id": "retrospective",
       "icon": "history",
       "title": "Retrospective",
@@ -66,7 +82,7 @@
     },
     {
       "id": "brainstorming",
-      "icon": "lightbulb",
+      "icon": "sparkles",
       "title": "Brainstorming",
       "description": "Generate creative ideas and solutions through collaborative, unconstrained thinking",
       "defaults": {

@@ -26,6 +26,7 @@ export interface HostSessionsTable {
   summary?: string;
   start_time: ColumnType<Date, Date | undefined, never>;
   last_edit: Generated<Date>;
+  questions?: JSON;
 }
 
 export interface UserSessionsTable {
@@ -36,7 +37,8 @@ export interface UserSessionsTable {
   active: boolean;
   user_name?: string;
   feedback?: string;
-  summary?: string; // Todo: Do we ever set this? (I think this is always only part of the chat text, isn't it?)
+  summary?: string;
+  language?: string;
   step?: ColumnType<number, number, number | RawBuilder<unknown>>;
   start_time: ColumnType<Date, Date | undefined, never>;
   last_edit: Generated<Date>;
@@ -63,7 +65,7 @@ export type NewMessage = Insertable<MessagesTable>;
 
 // ***** TRIGGER running on pg to update the last_edit on summary changes: *****
 export function createTriggerOnHostUpdateLastEditSummary(
-  databaseName: string = 'host_data'
+  databaseName: string = 'host_data',
 ) {
   sql`CREATE OR REPLACE FUNCTION update_last_edit_summary()
 RETURNS TRIGGER AS $$
@@ -84,7 +86,7 @@ CREATE TRIGGER update_last_edit_on_summary_change
 
 // ***** TRIGGER running on pg to update the last_edit on chat_text change: *****
 export function createTriggerOnUserUpdateLastEditChatText(
-  databaseName: string = 'user_data'
+  databaseName: string = 'user_data',
 ) {
   sql`CREATE OR REPLACE FUNCTION update_last_edit()
 RETURNS TRIGGER AS $$
@@ -110,7 +112,7 @@ export async function createHostTable(db: Kysely<any>, tableName: string) {
     .addColumn('id', 'text', (col) =>
       col
         .primaryKey()
-        .defaultTo(sql`'hst_' || substr(md5(random()::text), 1, 12)`)
+        .defaultTo(sql`'hst_' || substr(md5(random()::text), 1, 12)`),
     )
     .addColumn('active', 'boolean', (col) => col.notNull())
     .addColumn('num_sessions', 'integer', (col) => col.notNull())
@@ -124,8 +126,9 @@ export async function createHostTable(db: Kysely<any>, tableName: string) {
     .addColumn('final_report_sent', 'boolean', (col) => col.defaultTo(false))
     .addColumn('start_time', 'timestamp')
     .addColumn('last_edit', 'timestamp', (col) =>
-      col.defaultTo(sql`CURRENT_TIMESTAMP`)
+      col.defaultTo(sql`CURRENT_TIMESTAMP`),
     )
+    .addColumn('questions', 'json')
     .execute();
 }
 
@@ -150,7 +153,7 @@ export async function createUserTable(db: Kysely<any>, tableName: string) {
     .createTable(tableName)
     .ifNotExists()
     .addColumn('id', 'text', (col) =>
-      col.primaryKey().defaultTo(sql`substr(md5(random()::text), 1, 12)`)
+      col.primaryKey().defaultTo(sql`substr(md5(random()::text), 1, 12)`),
     )
     .addColumn('session_id', 'text', (col) => col.notNull())
     .addColumn('user_id', 'text', (col) => col.notNull())
@@ -159,10 +162,11 @@ export async function createUserTable(db: Kysely<any>, tableName: string) {
     .addColumn('user_name', 'text')
     .addColumn('feedback', 'text')
     .addColumn('summary', 'text')
+    .addColumn('language', 'text')
     .addColumn('start_time', 'timestamp')
     .addColumn('step', 'numeric', (col) => col.defaultTo(0))
     .addColumn('last_edit', 'timestamp', (col) =>
-      col.defaultTo(sql`CURRENT_TIMESTAMP`)
+      col.defaultTo(sql`CURRENT_TIMESTAMP`),
     )
     .execute();
 }
@@ -170,7 +174,7 @@ export async function createUserTable(db: Kysely<any>, tableName: string) {
 export async function createMessagesTable(
   db: Kysely<any>,
   tableName: string,
-  userDbTableName: string
+  userDbTableName: string,
 ) {
   await db.schema
     .createTable(tableName)
@@ -178,15 +182,15 @@ export async function createMessagesTable(
     .addColumn('id', 'text', (col) =>
       col
         .primaryKey()
-        .defaultTo(sql`'msg_' || substr(md5(random()::text), 1, 12)`)
+        .defaultTo(sql`'msg_' || substr(md5(random()::text), 1, 12)`),
     )
     .addColumn('thread_id', 'text', (col) => col.notNull())
     .addColumn('role', 'text', (col) =>
-      col.notNull().check(sql`role IN ('user', 'assistant')`)
+      col.notNull().check(sql`role IN ('user', 'assistant')`),
     )
     .addColumn('content', 'text', (col) => col.notNull())
     .addColumn('created_at', 'timestamp', (col) =>
-      col.defaultTo(sql`CURRENT_TIMESTAMP`)
+      col.defaultTo(sql`CURRENT_TIMESTAMP`),
     )
     .execute();
 }
@@ -206,7 +210,7 @@ export function createCustomDbInstance<T extends Record<string, any>>(
   host = 'temp_host_db',
   user = 'temp_user_db',
   message = 'temp_message_db',
-  connectionUrl = process.env.CUSTOM_DATABASE
+  connectionUrl = process.env.CUSTOM_DATABASE,
 ) {
   const dialect = new PostgresDialect({
     pool: new pg.Pool({
@@ -223,8 +227,6 @@ export function createProdDbInstanceWithDbNames<T extends Record<string, any>>(
   user = 'prod_user_db',
   message = 'prod_messages_db',
 ) {
-
   const db = createKysely<T>();
   return { db, dbNames: { host, user, message } };
 }
-

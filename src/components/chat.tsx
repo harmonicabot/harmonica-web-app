@@ -4,14 +4,14 @@ import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import * as db from '@/lib/db';
-
+import * as gpt from 'app/api/gptUtils';
 import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
 import { ChatMessage } from './ChatMessage';
 import { Send } from './icons';
-import { insertUserSessions } from '@/lib/db';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { handleCreateThread, handleGenerateAnswer } from 'app/api/gptUtils';
 import { Message } from '@/lib/schema_updated';
+import ErrorPage from './Error';
+import { getUserNameFromContext } from '@/lib/utils';
 
 export default function Chat({
   assistantId,
@@ -20,8 +20,8 @@ export default function Chat({
   userSessionId,
   entryMessage,
   context,
-  userNameInFirstMessage = true,
   placeholderText,
+  userContext,
 }: {
   assistantId: string;
   sessionId?: string;
@@ -29,27 +29,15 @@ export default function Chat({
   userSessionId?: string;
   entryMessage?: OpenAIMessage;
   context?: OpenAIMessageWithContext;
-  userNameInFirstMessage?: boolean;
   placeholderText?: string;
+  userContext?: Record<string, string>;
 }) {
+  const [errorMessage, setErrorMessage] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
+  const [errorToastMessage, setErrorToastMessage] = useState('');
   const { user } = useUser();
-  const defaultEntryMessage: OpenAIMessage = {
-    role: 'assistant',
-    content: `Nice to meet you! Before we get started, here are a few things to keep in mind
-
-I’m going to ask you a few questions to help structure your contribution to this session.
-
-✨ After you share your thoughts, we’ll synthesize these with feedback from other participants to create an AI-powered overview
-
-🗣️ We’d love to see as much detail as possible, though even a few sentences are helpful. You can skip any questions simply by asking to move on.
-
-Help & Support:
-
-🌱 Harmonica is still in the early stages of development, so we would appreciate your patience and feedback
-
-💬 Could you please let me know your name?
-`,
-  };
 
   const placeholder = placeholderText
     ? placeholderText
@@ -59,18 +47,15 @@ Help & Support:
     messageText: '',
   });
   const threadIdRef = useRef<string>('');
-  const [messages, setMessages] = useState<OpenAIMessage[]>([
-    entryMessage ? entryMessage : defaultEntryMessage,
-  ]);
+  const [messages, setMessages] = useState<OpenAIMessage[]>([]);
   const addMessage = (newMessage: OpenAIMessage) => {
     setMessages((prevMessages) => [...prevMessages, newMessage]);
   };
 
   const [isLoading, setIsLoading] = useState(false);
-  const [userName, setUserName] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     if (messagesEndRef.current && messages.length > 1) {
       messagesEndRef.current.scrollIntoView({
@@ -81,7 +66,7 @@ Help & Support:
   }, [messages]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -91,11 +76,8 @@ Help & Support:
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (!threadIdRef.current && !createThreadInProgressRef.current) {
       createThreadInProgressRef.current = true;
-      createThread(
-        context,
-        sessionId,
-        user,
-      );
+      const userName = getUserNameFromContext(userContext);
+      createThread(context, sessionId, user, userName, userContext);
     }
 
     if (e.key === 'Enter' && !isLoading) {
@@ -123,7 +105,7 @@ Help & Support:
 
   function concatenateMessages(messagesFromOneUser: Message[]) {
     messagesFromOneUser.sort(
-      (a, b) => a.created_at.getTime() - b.created_at.getTime()
+      (a, b) => a.created_at.getTime() - b.created_at.getTime(),
     );
     return messagesFromOneUser
       .map((message) => `${message.role} : ${message.content}`)
@@ -133,133 +115,232 @@ Help & Support:
   async function createThread(
     context: OpenAIMessageWithContext | undefined,
     sessionId: string | undefined,
-    user: any
+    user: any,
+    userName?: string,
+    userContext?: Record<string, string>,
   ) {
-    console.log('creating thread');
     const chatMessages = [];
     if (context?.userData) {
-      const allUsersMessages = await db.getAllMessagesForUsersSorted(context.userData);
-      const messagesByThread = allUsersMessages.reduce((acc, message) => {
-        acc[message.thread_id] = acc[message.thread_id] || []; // to make sure this array exists
-        acc[message.thread_id].push(message);
-        return acc;
-      }, {} as Record<string, Message[]>);
+      const allUsersMessages = await db.getAllMessagesForUsersSorted(
+        context.userData,
+      );
+      const messagesByThread = allUsersMessages.reduce(
+        (acc, message) => {
+          acc[message.thread_id] = acc[message.thread_id] || []; // to make sure this array exists
+          acc[message.thread_id].push(message);
+          return acc;
+        },
+        {} as Record<string, Message[]>,
+      );
       chatMessages.push('\n----START CHAT HISTORY for CONTEXT----\n');
       const concatenatedUserMessages = Object.entries(messagesByThread).map(
         ([threadId, messages]) => {
           return `\n----START NEXT USER CHAT----\n${concatenateMessages(messages)}\n----END USER CHAT----\n`;
-        }
+        },
       );
       chatMessages.push(...concatenatedUserMessages);
       chatMessages.push('\n----END CHAT HISTORY for CONTEXT----\n');
+      // console.log('[i] Chat messages for context: ', chatMessages);
     }
-    handleCreateThread(context, chatMessages)
+    console.log('[i] User context: ', userContext);
+    const userContextPrompt = userContext
+      ? `IMPORTANT USER INFORMATION:\nPlease consider the following user details in your responses:\n${Object.entries(
+          userContext,
+        )
+          .map(([key, value]) => `- ${key}: ${value}`)
+          .join(
+            '\n',
+          )}\n\nPlease tailor your responses appropriately based on this user information.`
+      : '';
+
+    let threadEntryMessage = userContextPrompt
+      ? {
+          role: 'user' as const,
+          content: userContextPrompt,
+        }
+      : undefined;
+
+    return gpt
+      .handleCreateThread(threadEntryMessage, chatMessages)
       .then((threadId) => {
-        console.log('Created threadId ', threadId)
+        // console.log('[i] Created threadId ', threadId, sessionId);
         threadIdRef.current = threadId;
 
         if (sessionId) {
           const data = {
             session_id: sessionId,
-            user_id: user?.email ?? 'anonymous',
+            user_id: user,
+            user_name: userName,
             thread_id: threadId,
             active: true,
             start_time: new Date(),
             last_edit: new Date(),
           };
           console.log('Inserting new session with initial data: ', data);
-          insertUserSessions(data)
+          return db
+            .insertUserSessions(data)
             .then((ids) => {
               if (ids[0] && setUserSessionId) setUserSessionId(ids[0]);
+              return ids[0]; // Return the sessionId
             })
-            .catch((error) =>
-              console.error('[!] error creating user session -> ', error)
-            );
+            .catch((error) => {
+              console.error('[!] error creating user session -> ', error);
+              setErrorMessage({
+                title: 'Failed to create session',
+                message:
+                  'Oops, that should not have happened. Please try again.',
+              });
+              throw error; // Re-throw the error to be caught by the caller
+            });
         }
+        return undefined; // Return undefined if no sessionId was provided
       })
       .catch((error) => {
         console.error(error);
+        setErrorMessage({
+          title: 'Failed to create message thread',
+          message: 'Sorry for the inconvenience. Please try again.',
+        });
+        throw error; // Re-throw the error to be caught by the caller
       });
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (
+      userContext &&
+      !threadIdRef.current &&
+      !createThreadInProgressRef.current
+    ) {
+      const userName = getUserNameFromContext(userContext);
+
+      createThreadInProgressRef.current = true;
+      createThread(context, sessionId, user, userName, userContext).then(
+        (threadSessionId) => {
+          handleSubmit(undefined, true, threadSessionId);
+        },
+      );
+    }
+  }, [userContext]);
+
+  const handleSubmit = async (
+    e?: React.FormEvent,
+    isAutomatic?: boolean,
+    threadSessionId?: string,
+  ) => {
+    if (e) {
+      e.preventDefault();
+    }
+
+    if (isLoading) return;
     setIsLoading(true);
-    let messageText = formData.messageText;
-    // This makes the message show up in the chat window:
-    addMessage({
-      role: 'user',
-      content: messageText,
-    });
 
-    setFormData({ messageText: '' });
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-    }
+    try {
+      const messageText = isAutomatic
+        ? "Let's begin."
+        : formData.messageText.trim();
 
-    if (userNameInFirstMessage && messages.length === 1) {
-      const userName = messageText;
-      setUserName(userName);
-      if (userSessionId) {
-        db.updateUserSession(userSessionId, {
-          user_name: userName,
-        });
+      if (!messageText && !isAutomatic) return;
+
+      if (!isAutomatic) {
+        addMessage({ role: 'user', content: messageText });
+        setFormData({ messageText: '' });
+        textareaRef.current?.focus();
       }
-      messageText = `User name is ${userName}. Use it in communication. Don't ask it again. Start the session.`;
-    }
 
-    const now = new Date();
-    let waitedCycles = 0;
-    while (!threadIdRef.current) {
-    // At this point, the thread should already be created, but just in case it's still in progress, let's add some wait in here:
-      if (waitedCycles > 20) {
-        throw new Error('Could not get a reply from Monica. Please reload the page and try again.');
-      }
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      waitedCycles++;
-      console.log(`Waiting ${waitedCycles}s for thread to be created...`);
-    }
-    console.log('Got threadId: ', threadIdRef.current);
-    const messageData = {
-      threadId: threadIdRef.current,
-      messageText,
-      assistantId: assistantId,
-    };
-    if (userSessionId) {
-      db.insertChatMessage({
-        thread_id: threadIdRef.current,
-        role: 'user',
-        content: messageText,
-        created_at: now
-      })
-    }
-
-    handleGenerateAnswer(messageData)
-      .then((answer) => {
-        setIsLoading(false);
-        console.log('received answer from ChatGPT: ', answer)
-        const now = new Date();
-        addMessage(answer);
-        
-        if (userSessionId) {
-          db.insertChatMessage(answer);
-          db.updateUserSession(userSessionId, {
-            last_edit: now,
+      const now = new Date();
+      let waitedCycles = 0;
+      while (!threadIdRef.current) {
+        if (waitedCycles > 20) {
+          setErrorMessage({
+            title: 'The chat seems to be stuck.',
+            message: 'Please reload the page and try again.',
           });
         }
-      })
-      .catch((error) => {
-        console.error(error);
-      });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        waitedCycles++;
+        console.log(`Waiting ${waitedCycles}s for thread to be created...`);
+      }
+
+      if (userSessionId && !isAutomatic) {
+        db.insertChatMessage({
+          thread_id: threadIdRef.current,
+          role: 'user',
+          content: messageText,
+          created_at: now,
+        }).catch((error) => {
+          console.log('Error in insertChatMessage: ', error);
+          showErrorToast(
+            'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can',
+          );
+        });
+      }
+
+      const messageData = {
+        threadId: threadIdRef.current,
+        messageText,
+        assistantId: assistantId,
+      };
+
+      gpt
+        .handleGenerateAnswer(messageData)
+        .then((answer) => {
+          setIsLoading(false);
+          const now = new Date();
+          addMessage(answer);
+
+          if (userSessionId || threadSessionId) {
+            Promise.all([
+              db.insertChatMessage({
+                ...answer,
+                thread_id: threadIdRef.current,
+                created_at: now,
+              }),
+              userSessionId || threadSessionId
+                ? db.updateUserSession(userSessionId || threadSessionId!, {
+                    last_edit: now,
+                  })
+                : Promise.resolve(),
+            ]).catch((error) => {
+              console.log(
+                'Error storing answer or updating last edit: ',
+                error,
+              );
+              showErrorToast(
+                `Uhm; there should be an answer, but we couldn't store it. It won't show up in the summary, but everything else should be fine. Please continue.`,
+              );
+            });
+          }
+        })
+        .catch((error) => {
+          console.error(error);
+          showErrorToast(`Sorry, we failed to answer... Please try again.`);
+        })
+        .finally(() => setIsLoading(false));
+    } catch (error) {
+      console.error(error);
+      showErrorToast(`Sorry, we failed to answer... Please try again.`);
+    }
   };
+
+  function showErrorToast(message: string) {
+    setErrorToastMessage(message);
+    setTimeout(() => setErrorToastMessage(''), 6000);
+  }
 
   // Focus the textarea when the component mounts
   useEffect(() => {
     const textarea = textareaRef.current;
+    if (entryMessage) {
+      addMessage(entryMessage);
+    }
     if (textarea) {
       textarea.focus(); // Automatically focus the textarea
     }
   }, []);
+
+  if (errorMessage) {
+    return <ErrorPage {...errorMessage} />;
+  }
 
   return (
     <div className="h-full flex-grow flex flex-col">
@@ -267,6 +348,11 @@ Help & Support:
         {messages.map((message, index) => (
           <ChatMessage key={index} message={message} />
         ))}
+        {errorToastMessage && (
+          <div className="fixed top-4 right-4 bg-red-500 text-white py-2 px-4 rounded shadow-lg">
+            {errorToastMessage}
+          </div>
+        )}
         {isLoading && (
           <div className="flex">
             <img
