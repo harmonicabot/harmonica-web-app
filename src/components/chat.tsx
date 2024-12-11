@@ -77,7 +77,13 @@ export default function Chat({
     if (!threadIdRef.current && !createThreadInProgressRef.current) {
       createThreadInProgressRef.current = true;
       const userName = getUserNameFromContext(userContext);
-      createThread(context, sessionId, user, userName, userContext);
+      createThread(
+        context,
+        sessionId,
+        user ? user : userName,
+        userName,
+        userContext,
+      );
     }
 
     if (e.key === 'Enter' && !isLoading) {
@@ -214,11 +220,15 @@ export default function Chat({
       const userName = getUserNameFromContext(userContext);
 
       createThreadInProgressRef.current = true;
-      createThread(context, sessionId, user, userName, userContext).then(
-        (threadSessionId) => {
-          handleSubmit(undefined, true, threadSessionId);
-        },
-      );
+      createThread(
+        context,
+        sessionId,
+        user ? user : userName,
+        userName,
+        userContext,
+      ).then((threadSessionId) => {
+        handleSubmit(undefined, true, threadSessionId);
+      });
     }
   }, [userContext]);
 
