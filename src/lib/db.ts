@@ -11,16 +11,9 @@ if (typeof window === 'undefined') {
   console.log('Nope, not running on the server.');
 }
 
-// const isProd = process.env.NODE_ENV === 'production';
-// const prefix = isProd ? 'prod' : 'dev';
-// const hostTableName = prefix + '_host_db';
-// const userTableName = prefix + '_user_db';
-// const messageTableName = prefix + '_messages_db';
-
-
-const hostTableName = 'prod_host_db';
-const userTableName = 'prod_user_db';
-const messageTableName = 'prod_messages_db';
+const hostTableName = 'host_db';
+const userTableName = 'user_db';
+const messageTableName = 'messages_db';
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
   [userTableName]: s.UserSessionsTable;
