@@ -7,40 +7,56 @@ import {
   TooltipTrigger,
 } from '../ui/tooltip';
 import { RefreshCw } from 'lucide-react';
+import { HostSession } from '@/lib/schema_updated';
+import { Spinner } from '../icons';
+import ExpandableCard from '../ui/expandable-card';
 
 interface SessionResultSummaryProps {
-  summary: string;
+  hostData: HostSession;
   hasNewMessages: boolean;
   onUpdateSummary: () => void;
 }
 
 export default function SessionResultSummary({
-  summary,
+  hostData,
   hasNewMessages,
   onUpdateSummary,
 }: SessionResultSummaryProps) {
-  
   return (
-    <Card className="h-full relative">
-      {hasNewMessages && (
-        <TooltipProvider>
-          <Tooltip delayDuration={50}>
-            <TooltipTrigger className="absolute top-4 right-4">
-              <RefreshCw
-                onClick={onUpdateSummary}
-                className="absolute top-4 right-4 h-4 w-4 cursor-pointer hover:text-primary"
-              />
-            </TooltipTrigger>
-            <TooltipContent
-              side="top"
-              align="end"
-            >
-              <p>New responses available. Update summary!</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+    <>
+      {hostData.prompt_summary && (
+        <div className="mb-4">
+        <ExpandableCard title="Session Recap">
+          <HRMarkdown content={hostData.prompt_summary}/>
+        </ExpandableCard>
+        </div>
       )}
-      <CardContent>{summary && <HRMarkdown content={summary} />}</CardContent>
-    </Card>
+      <Card className="h-full relative">
+        {hasNewMessages && (
+          <TooltipProvider>
+            <Tooltip delayDuration={50}>
+              <TooltipTrigger className="absolute top-4 right-4">
+                <RefreshCw
+                  onClick={onUpdateSummary}
+                  className="absolute top-4 right-4 h-4 w-4 cursor-pointer hover:text-primary"
+                />
+              </TooltipTrigger>
+              <TooltipContent side="top" align="end">
+                <p>New responses available. Update summary!</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        <CardContent>
+          {hostData.summary ? (
+            <HRMarkdown content={hostData.summary} />
+          ) : (
+            <>
+              <Spinner /> Creating your session summary...
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </>
   );
 }

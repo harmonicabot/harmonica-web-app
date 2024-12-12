@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import { HostSession, Message, UserSession } from '@/lib/schema_updated';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,9 +27,9 @@ export default function SessionResultsSection({
   userData: UserSession[];
   id: string;
 }) {
-  
   const hasMessages = userData.length > 0;
-  const {hasNewMessages, lastMessage, lastSummaryUpdate} = checkSummaryAndMessageTimes(hostData, userData)
+  const { hasNewMessages, lastMessage, lastSummaryUpdate } =
+    checkSummaryAndMessageTimes(hostData, userData);
 
   if (
     hasNewMessages &&
@@ -42,7 +42,7 @@ export default function SessionResultsSection({
     createSummary(hostData.id);
     mutate(`sessions/${id}`);
   }
-  
+
   const [exportInProgress, setExportInProgress] = useState(false);
   const exportSessionResults = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +60,6 @@ export default function SessionResultsSection({
     );
     const response = await formatForExport(chatMessages, exportInstructions);
 
-    
     const blob = new Blob([JSON.stringify(JSON.parse(response), null, 2)], {
       type: 'application/json',
     });
@@ -123,21 +122,13 @@ export default function SessionResultsSection({
         defaultValue={hostData.summary ? 'SUMMARY' : 'RESPONSES'}
       >
         <TabsList>
-          {hostData.summary ? (
-            <TabsTrigger className="ms-0" value="SUMMARY">
-              Summary
-            </TabsTrigger>
-          ) : (
-            <>
-              <TabsTrigger
-                className="ms-0"
-                value="SUMMARY"
-                onClick={() => createSummary(id)}
-              >
-                Create Summary
-              </TabsTrigger>
-            </>
-          )}
+          <TabsTrigger
+            className="ms-0"
+            value="SUMMARY"
+            onClick={() => (hostData.summary ? () => {} : createSummary(id))}
+          >
+            Summary
+          </TabsTrigger>
           <TabsTrigger className="ms-0" value="RESPONSES">
             Responses
           </TabsTrigger>
@@ -145,17 +136,11 @@ export default function SessionResultsSection({
         <div className="flex flex-col md:flex-row gap-4">
           <div className="w-full md:w-2/3">
             <TabsContent value="SUMMARY" className="mt-4">
-              {hostData.summary ? (
-                <SessionResultSummary
-                  summary={hostData.summary}
-                  hasNewMessages={hasNewMessages}
-                  onUpdateSummary={() => createSummary(id)}
-                />
-              ) : (
-                <>
-                  <Spinner /> Creating your session summary...
-                </>
-              )}
+              <SessionResultSummary
+                hostData={hostData}
+                hasNewMessages={hasNewMessages}
+                onUpdateSummary={() => createSummary(id)}
+              />
             </TabsContent>
             <TabsContent value="RESPONSES" className="mt-4">
               <SessionResultParticipants userData={userData} />
