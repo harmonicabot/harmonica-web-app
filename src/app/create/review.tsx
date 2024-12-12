@@ -10,6 +10,7 @@ import { Spinner } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import Markdown from 'react-markdown';
 import ChatPopupButton from '@/components/ChatPopupButton';
+import { HRMarkdown } from '@/components/HRMarkdown';
 
 export default function ReviewPrompt({
   prompts,
@@ -42,7 +43,7 @@ export default function ReviewPrompt({
   }, [streamingPrompt, prompts]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setEditValue(e.currentTarget.value);
   };
@@ -98,9 +99,9 @@ export default function ReviewPrompt({
                           v{prompts.length + 1}
                         </h2>
                       </div>
-                      <div
-                        dangerouslySetInnerHTML={sanitizeHtml(streamingPrompt)}
-                      />
+                      <div>
+                        <HRMarkdown content={streamingPrompt} />
+                      </div>
                     </>
                   ) : (
                     <div className="flex justify-between items-center mb-4">
@@ -150,7 +151,9 @@ export default function ReviewPrompt({
                     )}
                   </div>
                 </div>
-                <div dangerouslySetInnerHTML={sanitizeHtml(prompt.summary)} />
+                <div>
+                  <HRMarkdown content={prompt.summary} />
+                </div>
               </Card>
             ))}
           </div>

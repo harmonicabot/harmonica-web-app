@@ -408,31 +408,24 @@ export default function CreationFlow() {
         threadId: threadId,
         assistantId: assistantId,
         instructions: `
-            Summarize the template instructions which you just created in a concise manner and easy to read.
-  
-            Provide a very brief overview of the structure of this template, the key questions, and about the desired outcome.
-  
-            Format this in html.
-            Example Summary:
-  
-            <h2 class="text-xl font-bold mb-2">Structure</h2>
-            <ul class="list-disc pl-5 mb-4">
-              <li>3 short questions to find out xyz</li>
-              <li>Relevant follow ups that focus on finding key information</li>
-            </ul>
-  
-            <h2 class="text-xl font-bold mb-2">Questions</h2>
-            <ol class="list-decimal pl-5 mb-4">
-              <li>[Question1, possibly paraphrased]</li>
-              <li>[Question2, possibly paraphrased]</li>
-              <li>[QuestionN, possibly paraphrased]</li>
-            </ol>
-  
-            <h2 class="text-xl font-bold mb-2">Outcome</h2>
-            <p class="mb-4">
-              A list of each participant's <span class="font-semibold">ideas</span> will be collected and <span class="font-semibold">sorted by priority</span>.
-              Any <span class="font-semibold">concerns and downsides</span> will be highlighted. This should help to <span class="font-semibold">[achieve goal abc]</span>.
-            </p>
+Summarize the template instructions which you just created in a concise manner and easy to read.
+
+Provide a very brief overview of the structure of this template, the key questions, and about the desired outcome.
+
+Format this in Markdown.
+Example Summary:
+
+## Structure
+* 3 short questions to find out xyz
+* Relevant follow ups that focus on finding key information
+## Questions
+1. [Question1, possibly paraphrased]
+2. [Question2, possibly paraphrased]
+N. [QuestionN, possibly paraphrased]
+
+## Outcome
+A list of each participant's **ideas** will be collected and **sorted by priority**.
+Any **concerns and downsides** will be highlighted. This should help to **[achieve session_objective]**.
             `,
       },
     });
