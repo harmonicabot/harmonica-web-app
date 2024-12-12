@@ -31,8 +31,8 @@ export default async function SessionResult({
   try {
     const hostData = await db.getHostSessionById(decryptedId);
     const userData = await db.getUsersBySessionId(decryptedId);
-    const stats = await db.getNumUsersAndMessages([hostData])
-    const sessionsWithChat = userData.filter(user => stats[decryptedId][user.id].num_messages > 2);
+    const stats = await db.getNumUsersAndMessages([hostData.id])
+    const usersWithChat = userData.filter(user => stats[decryptedId][user.id].num_messages > 2);
     const {totalUsers, finishedUsers} = getUserStats(stats, decryptedId)
     
     if (!hostData)
@@ -62,7 +62,7 @@ export default async function SessionResult({
           />
           <SessionResultsSection
             hostData={hostData}
-            userData={sessionsWithChat}
+            userData={usersWithChat}
             id={hostData.id}
           />
         </div>

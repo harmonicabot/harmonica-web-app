@@ -47,7 +47,13 @@ interface GroupedChats {
 
 export async function createSummary(sessionId: string) {
   console.log(`Creating summary for ${sessionId}...`);
-  const chats = await db.getAllMessagesForSessionSorted(sessionId);
+  const messageStats = await db.getNumUsersAndMessages([sessionId]);
+  const allUsers = await db.getUsersBySessionId(sessionId, ['id', 'thread_id', 'include_in_summary']);
+  const onlyIncludedUsersWithAtLeast2Messages =
+    allUsers.filter(usr => usr.include_in_summary && messageStats[sessionId][usr.id].num_messages > 2)
+  console.log('Users with contributions to summary: ', onlyIncludedUsersWithAtLeast2Messages.length);
+
+  const chats = await db.getAllMessagesForUsersSorted(onlyIncludedUsersWithAtLeast2Messages);
   const prompt = await db.getFromHostSession(sessionId, 'prompt');
 
   // Flatten the chats and group by thread_id to distinguish participants
