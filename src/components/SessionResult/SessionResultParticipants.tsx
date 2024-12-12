@@ -32,16 +32,21 @@ export default function SessionResultParticipants({
     { label: 'Status', sortKey: 'sessionStatus' },
     { label: 'Created', sortKey: 'createdDate', sortBy: dateSorter },
     { label: 'Updated', sortKey: 'updatedDate', sortBy: dateSorter },
+    {
+      label: 'Include in summary',
+      sortKey: 'includeInSummary',
+      sortBy: (dir, a: boolean, b: boolean) =>
+        dir === 'asc' ? Number(b) - Number(a) : Number(a) - Number(b),
+    },
   ];
 
-  const sortableData: ParticipantsTableData[] = userData
-    .map((data) => ({
-      userName: data.user_name ?? 'anonymous',
-      sessionStatus: data.active ? 'Started' : 'Finished',
-      createdDate: new Date(data.start_time),
-      updatedDate: new Date(data.last_edit),
-      userData: data,
-    }));
+  const sortableData: ParticipantsTableData[] = userData.map((data) => ({
+    userName: data.user_name ?? 'anonymous',
+    sessionStatus: data.active ? 'Started' : 'Finished',
+    createdDate: new Date(data.start_time),
+    updatedDate: new Date(data.last_edit),
+    userData: data,
+  }));
 
   const getTableRow = (session: ParticipantsTableData, index: number) => {
     return <ParticipantSessionRow key={index} tableData={session} />;

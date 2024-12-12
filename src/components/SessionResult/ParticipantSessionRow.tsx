@@ -4,9 +4,10 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Message, UserSession } from '@/lib/schema_updated';
 import { useEffect, useState } from 'react';
 import { ChatMessage } from '../ChatMessage';
-import { getAllChatMessagesInOrder } from '@/lib/db';
+import { getAllChatMessagesInOrder, updateUserSession } from '@/lib/db';
 import { ParticipantsTableData } from './SessionResultParticipants';
 import { Spinner } from '../icons';
+import { Switch } from '../ui/switch';
 
 export default function ParicipantSessionRow({
   tableData,
@@ -16,6 +17,14 @@ export default function ParicipantSessionRow({
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const userData = tableData.userData;
+  const [includeInSummary, setIncludeInSummary] = useState(userData.include_in_summary);
+
+  const handleIncludeInSummaryUpdate = () => {
+    const newValue = !includeInSummary;
+    console.log('updating whether to include this in the summary:', newValue)
+    setIncludeInSummary(newValue);
+    updateUserSession(userData.id, { include_in_summary: newValue });
+  }
 
   const handleViewClick = async () => {
     setIsPopupVisible(true);
@@ -37,22 +46,6 @@ export default function ParicipantSessionRow({
     console.log('Close clicked');
     setIsPopupVisible(false);
   };
-
-  function parseMessages(input: string) {
-    try {
-      const regex =
-        /(Answer|Question)\s*:\s*([\s\S]*?)(?=(Answer|Question)\s*:|$)/g;
-      const matches = [...input.matchAll(regex)];
-
-      return matches.map((match) => ({
-        type: match[1] === 'Answer' ? 'AI' : 'USER',
-        text: match[2].trim(),
-      }));
-    } catch (error) {
-      console.error('Error parsing messages:', error);
-      return [];
-    }
-  }
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -93,9 +86,9 @@ export default function ParicipantSessionRow({
             timeStyle: 'short',
           }).format(tableData.updatedDate)}
         </TableCell>
-        {/* <TableCell>
-        <Switch></Switch>
-      </TableCell> */}
+        <TableCell>
+        <Switch checked={includeInSummary} onClick={handleIncludeInSummaryUpdate}></Switch>
+      </TableCell>
         {/* <TableCell className="hidden md:table-cell">
         2023-07-12 10:42 AM
       </TableCell>
