@@ -106,11 +106,6 @@ export default function CreationFlow() {
     goal: '',
     critical: '',
     context: '',
-    createSummary: false,
-    summaryFeedback: false,
-    requireContext: false,
-    contextDescription: '',
-    enableSkipSteps: false,
   });
 
   const onFormDataChange = (form: Partial<SessionBuilderData>) => {
@@ -174,7 +169,9 @@ export default function CreationFlow() {
   ) => {
     e.preventDefault();
     setIsLoading(true);
-    const prompt = prompts[currentVersion - 1].fullPrompt;
+    const currentPrompt = prompts[currentVersion - 1];
+    const prompt = currentPrompt.fullPrompt;
+    const promptSummary = currentPrompt.summary;
 
     const assistantResponse = await sendApiCall({
       action: ApiAction.CreateAssistant,
@@ -196,6 +193,10 @@ export default function CreationFlow() {
       active: mode === 'launch', // Set active based on mode
       final_report_sent: false,
       start_time: new Date(),
+      goal: formData.goal,
+      critical: formData.critical,
+      context: formData.context,
+      prompt_summary: promptSummary,
       questions: JSON.stringify(
         participantQuestions.map((q) => ({
           id: q.id,

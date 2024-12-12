@@ -22,12 +22,26 @@ const migrator = new Migrator({
   }),
 });
 
-migrateToLatest();
+const direction = process.argv[2];
+
+if (direction === 'down') {
+  migrateDown();
+} else {
+  migrateToLatest();
+}
 
 async function migrateToLatest() {
   const { error, results } = await migrator.migrateToLatest();
-  
-  results?.forEach((it) => {
+  handleResults(error, results);
+}
+
+async function migrateDown() {
+  const { error, results } = await migrator.migrateDown();
+  handleResults(error, results);
+}
+
+function handleResults(error: any, results: any) {
+  results?.forEach((it: any) => {
     if (it.status === 'Success') {
       console.log(`migration "${it.migrationName}" was executed successfully`);
     } else if (it.status === 'Error') {
