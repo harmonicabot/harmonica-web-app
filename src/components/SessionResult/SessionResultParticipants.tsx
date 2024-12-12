@@ -14,6 +14,7 @@ export type ParticipantsTableData = {
   sessionStatus: string;
   createdDate: Date;
   updatedDate: Date;
+  includeInSummary: boolean;
   userData: UserSession;
 };
 
@@ -35,8 +36,9 @@ export default function SessionResultParticipants({
     {
       label: 'Include in summary',
       sortKey: 'includeInSummary',
-      sortBy: (dir, a: boolean, b: boolean) =>
-        dir === 'asc' ? Number(b) - Number(a) : Number(a) - Number(b),
+      sortBy: (dir, a: boolean, b: boolean) => {
+        return dir === 'asc' ? Number(b) - Number(a) : Number(a) - Number(b)
+      }
     },
   ];
 
@@ -45,11 +47,12 @@ export default function SessionResultParticipants({
     sessionStatus: data.active ? 'Started' : 'Finished',
     createdDate: new Date(data.start_time),
     updatedDate: new Date(data.last_edit),
+    includeInSummary: data.include_in_summary,
     userData: data,
   }));
 
-  const getTableRow = (session: ParticipantsTableData, index: number) => {
-    return <ParticipantSessionRow key={index} tableData={session} />;
+  const getTableRow = (sortableData: ParticipantsTableData, index: number) => {
+    return <ParticipantSessionRow key={index} tableData={sortableData} />;
   };
 
   return (

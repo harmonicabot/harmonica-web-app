@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Message, UserSession } from '@/lib/schema_updated';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChatMessage } from '../ChatMessage';
 import { getAllChatMessagesInOrder, updateUserSession } from '@/lib/db';
 import { ParticipantsTableData } from './SessionResultParticipants';
@@ -14,17 +14,23 @@ export default function ParicipantSessionRow({
 }: {
   tableData: ParticipantsTableData;
 }) {
+  const userData = tableData.userData;
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const userData = tableData.userData;
-  const [includeInSummary, setIncludeInSummary] = useState(userData.include_in_summary);
+  const [includeInSummary, setIncludeInSummary] = useState(tableData.includeInSummary);
 
-  const handleIncludeInSummaryUpdate = () => {
-    const newValue = !includeInSummary;
-    console.log('updating whether to include this in the summary:', newValue)
-    setIncludeInSummary(newValue);
-    updateUserSession(userData.id, { include_in_summary: newValue });
-  }
+  useEffect(() => {
+    setIncludeInSummary(tableData.includeInSummary);
+  }, [tableData.includeInSummary]);
+
+  const handleIncludeInSummaryUpdate = async () => {
+    // State updates are NOT immediate, so need to assign this to a temp var
+    const updatedValue = !includeInSummary;
+    setIncludeInSummary(updatedValue);
+    await updateUserSession(userData.id, { 
+      include_in_summary: updatedValue
+    });
+  };
 
   const handleViewClick = async () => {
     setIsPopupVisible(true);
@@ -43,7 +49,6 @@ export default function ParicipantSessionRow({
   };
 
   const handleCloseClick = () => {
-    console.log('Close clicked');
     setIsPopupVisible(false);
   };
 
@@ -87,7 +92,7 @@ export default function ParicipantSessionRow({
           }).format(tableData.updatedDate)}
         </TableCell>
         <TableCell>
-        <Switch checked={includeInSummary} onClick={handleIncludeInSummaryUpdate}></Switch>
+        <Switch checked={includeInSummary} onCheckedChange={handleIncludeInSummaryUpdate}></Switch>
       </TableCell>
         {/* <TableCell className="hidden md:table-cell">
         2023-07-12 10:42 AM

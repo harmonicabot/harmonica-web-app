@@ -14,7 +14,6 @@ import { getUserStats } from '@/lib/utils';
 export const maxDuration = 60; // in seconds
 export const revalidate = 5 * 60; // check new data only every 5 minutes
 
-// Note: this metadata generation only works if the user is logged in.
 export async function generateMetadata(
   { params }: { params: { id: string } } ,
 ): Promise<Metadata> {
