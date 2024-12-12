@@ -14,13 +14,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
 import { deleteSession } from './actions';
-import { SessionData } from './sessions-table';
+import { SessionTableData } from './sessions-table';
 
 export function Session({
   session,
   onDelete,
 }: {
-  session: SessionData;
+  session: SessionTableData;
   onDelete: (sessionId: string) => void;
 }) {
   return (

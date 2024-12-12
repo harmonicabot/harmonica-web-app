@@ -158,14 +158,17 @@ export async function deleteHostSession(id: string): Promise<void> {
 }
 
 export async function getUsersBySessionId(
-  sessionId: string
+  sessionId: string,
+  columns: (keyof s.UserSessionsTable)[] = []
 ): Promise<s.UserSession[]> {
   try {
-    return await db
+    let query = db
       .selectFrom(userTableName)
-      .where('session_id', '=', sessionId)
-      .selectAll()
-      .execute();
+      .where('session_id', '=', sessionId);
+    if (columns.length > 0)
+      return await query.select(columns).execute()
+    else 
+      return await query.selectAll().execute();
   } catch (error) {
     console.error('Error getting user session by ID:', error);
     throw error;
@@ -265,8 +268,7 @@ export async function searchUserSessions(
   }
 }
 
-export async function getNumUsersAndMessages(sessions: s.HostSession[]) {
-  const sessionIds = sessions.map(session => session.id);
+export async function getNumUsersAndMessages(sessionIds: string[]) {
   if (sessionIds.length === 0) return {};
   
   const result = await db

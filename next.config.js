@@ -32,6 +32,13 @@ const nextConfig = {
       },
     ],
   },
+  experimental: {
+    // This is supposed to prevent route handler caching
+    serverActions: {
+      allowedOrigins: ['localhost:3000'],
+      bodySizeLimit: '2mb',
+    },
+  },
   env: {
     POSTGRES_URL: process.env.POSTGRES_URL,
     NEON_DATABASE_URL: process.env.NEON_DATABASE_URL,

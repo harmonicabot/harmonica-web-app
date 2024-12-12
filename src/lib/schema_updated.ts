@@ -38,6 +38,7 @@ export interface UserSessionsTable {
   user_id: string;
   thread_id: string;
   active: boolean;
+  include_in_summary: Generated<boolean>; // Default to 'true'
   user_name?: string;
   feedback?: string;
   summary?: string;

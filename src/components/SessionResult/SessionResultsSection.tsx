@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '../icons';
 import SessionResultChat from './SessionResultChat';
-import SessionResultParticipants from './SessionResultParticipants';
+import SessionParticipantsTable from './SessionParticipantsTable';
 import SessionResultSummary from './SessionResultSummary';
 import ShareSession from './ShareSession';
 import * as db from '@/lib/db';
@@ -143,7 +143,7 @@ export default function SessionResultsSection({
               />
             </TabsContent>
             <TabsContent value="RESPONSES" className="mt-4">
-              <SessionResultParticipants userData={userData} />
+              <SessionParticipantsTable userData={userData} />
             </TabsContent>
           </div>
           <div className="w-full md:w-1/3 mt-4 gap-4">

@@ -2,20 +2,35 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Message, UserSession } from '@/lib/schema_updated';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChatMessage } from '../ChatMessage';
-import { getAllChatMessagesInOrder } from '@/lib/db';
-import { ParticipantsTableData } from './SessionResultParticipants';
+import { getAllChatMessagesInOrder, updateUserSession } from '@/lib/db';
+import { ParticipantsTableData } from './SessionParticipantsTable';
 import { Spinner } from '../icons';
+import { Switch } from '../ui/switch';
 
 export default function ParicipantSessionRow({
   tableData,
 }: {
   tableData: ParticipantsTableData;
 }) {
+  const userData = tableData.userData;
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const userData = tableData.userData;
+  const [includeInSummary, setIncludeInSummary] = useState(tableData.includeInSummary);
+
+  useEffect(() => {
+    setIncludeInSummary(tableData.includeInSummary);
+  }, [tableData.includeInSummary]);
+
+  const handleIncludeInSummaryUpdate = async () => {
+    // State updates are NOT immediate, so need to assign this to a temp var
+    const updatedValue = !includeInSummary;
+    setIncludeInSummary(updatedValue);
+    await updateUserSession(userData.id, { 
+      include_in_summary: updatedValue
+    });
+  };
 
   const handleViewClick = async () => {
     setIsPopupVisible(true);
@@ -34,25 +49,8 @@ export default function ParicipantSessionRow({
   };
 
   const handleCloseClick = () => {
-    console.log('Close clicked');
     setIsPopupVisible(false);
   };
-
-  function parseMessages(input: string) {
-    try {
-      const regex =
-        /(Answer|Question)\s*:\s*([\s\S]*?)(?=(Answer|Question)\s*:|$)/g;
-      const matches = [...input.matchAll(regex)];
-
-      return matches.map((match) => ({
-        type: match[1] === 'Answer' ? 'AI' : 'USER',
-        text: match[2].trim(),
-      }));
-    } catch (error) {
-      console.error('Error parsing messages:', error);
-      return [];
-    }
-  }
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -71,7 +69,7 @@ export default function ParicipantSessionRow({
         <TableCell onClick={handleViewClick} className="font-medium">
           {tableData.userName}
         </TableCell>
-        <TableCell>
+        <TableCell className='hidden md:table-cell'>
           <Badge
             variant="outline"
             className={
@@ -81,7 +79,7 @@ export default function ParicipantSessionRow({
             {tableData.sessionStatus}
           </Badge>
         </TableCell>
-        <TableCell>
+        <TableCell className="hidden md:table-cell">
           {new Intl.DateTimeFormat(undefined, {
             dateStyle: 'medium',
             timeStyle: 'short',
@@ -93,9 +91,9 @@ export default function ParicipantSessionRow({
             timeStyle: 'short',
           }).format(tableData.updatedDate)}
         </TableCell>
-        {/* <TableCell>
-        <Switch></Switch>
-      </TableCell> */}
+        <TableCell className="hidden md:table-cell">
+        <Switch checked={includeInSummary} onCheckedChange={handleIncludeInSummaryUpdate}></Switch>
+      </TableCell>
         {/* <TableCell className="hidden md:table-cell">
         2023-07-12 10:42 AM
       </TableCell>
