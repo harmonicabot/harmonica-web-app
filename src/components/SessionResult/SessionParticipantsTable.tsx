@@ -18,7 +18,7 @@ export type ParticipantsTableData = {
   userData: UserSession;
 };
 
-export default function SessionResultParticipants({
+export default function SessionParticipantsTable({
   userData,
 }: {
   userData: UserSession[];
@@ -30,15 +30,16 @@ export default function SessionResultParticipants({
   };
   const tableHeaders: TableHeaderData[] = [
     { label: 'Name', sortKey: 'userName', className: '' },
-    { label: 'Status', sortKey: 'sessionStatus' },
-    { label: 'Created', sortKey: 'createdDate', sortBy: dateSorter },
+    { label: 'Status', sortKey: 'sessionStatus', className: 'hidden md:table-cell' },
+    { label: 'Created', sortKey: 'createdDate', sortBy: dateSorter, className: 'hidden md:table-cell' },
     { label: 'Updated', sortKey: 'updatedDate', sortBy: dateSorter },
     {
       label: 'Include in summary',
       sortKey: 'includeInSummary',
       sortBy: (dir, a: boolean, b: boolean) => {
         return dir === 'asc' ? Number(b) - Number(a) : Number(a) - Number(b)
-      }
+      }, 
+      className: 'hidden md:table-cell'
     },
   ];
 

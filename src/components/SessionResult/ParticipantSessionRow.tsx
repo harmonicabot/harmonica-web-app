@@ -5,7 +5,7 @@ import { Message, UserSession } from '@/lib/schema_updated';
 import { useEffect, useRef, useState } from 'react';
 import { ChatMessage } from '../ChatMessage';
 import { getAllChatMessagesInOrder, updateUserSession } from '@/lib/db';
-import { ParticipantsTableData } from './SessionResultParticipants';
+import { ParticipantsTableData } from './SessionParticipantsTable';
 import { Spinner } from '../icons';
 import { Switch } from '../ui/switch';
 
@@ -69,7 +69,7 @@ export default function ParicipantSessionRow({
         <TableCell onClick={handleViewClick} className="font-medium">
           {tableData.userName}
         </TableCell>
-        <TableCell>
+        <TableCell className='hidden md:table-cell'>
           <Badge
             variant="outline"
             className={
@@ -79,7 +79,7 @@ export default function ParicipantSessionRow({
             {tableData.sessionStatus}
           </Badge>
         </TableCell>
-        <TableCell>
+        <TableCell className="hidden md:table-cell">
           {new Intl.DateTimeFormat(undefined, {
             dateStyle: 'medium',
             timeStyle: 'short',
@@ -91,7 +91,7 @@ export default function ParicipantSessionRow({
             timeStyle: 'short',
           }).format(tableData.updatedDate)}
         </TableCell>
-        <TableCell>
+        <TableCell className="hidden md:table-cell">
         <Switch checked={includeInSummary} onCheckedChange={handleIncludeInSummaryUpdate}></Switch>
       </TableCell>
         {/* <TableCell className="hidden md:table-cell">
