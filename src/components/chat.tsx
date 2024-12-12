@@ -357,7 +357,7 @@ export default function Chat({
   // Focus the textarea when the component mounts
   useEffect(() => {
     const textarea = textareaRef.current;
-    if (entryMessage) {
+    if (entryMessage && messages.length === 0) {
       addMessage(entryMessage);
     }
     if (textarea) {
