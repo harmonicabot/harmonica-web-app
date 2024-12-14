@@ -3,7 +3,7 @@
 import { HostSession, Message, UserSession } from '@/lib/schema_updated';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { mutate } from 'swr';
 
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,11 @@ import ShareSession from './ShareSession';
 import * as db from '@/lib/db';
 import { formatForExport } from 'app/api/exportUtils';
 import { checkSummaryAndMessageTimes, createSummary } from '@/lib/utils';
+import { OpenAIMessage } from '@/lib/types';
+import { CirclePlusIcon } from 'lucide-react';
+import { Card, CardContent } from '../ui/card';
+import { HRMarkdown } from '../HRMarkdown';
+import { ChatMessage } from '../ChatMessage';
 
 export default function SessionResultsSection({
   hostData,
@@ -102,7 +107,7 @@ export default function SessionResultsSection({
     setIsExportPopupVisible(false);
   };
 
-  const [isPopupVisible, setIsExportPopupVisible] = useState(false);
+  const [isExportPopupVisible, setIsExportPopupVisible] = useState(false);
 
   const handleShowExportPopup = () => {
     setIsExportPopupVisible(true);
@@ -115,93 +120,179 @@ export default function SessionResultsSection({
 
   const [exportInstructions, setExportInstructions] = useState('');
 
+  const exportPopup = (
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+      <div className="bg-purple-100 border-purple-200 p-8 rounded-lg w-4/5 md:w-3/5 lg:w-1/2 flex flex-col">
+        <div className="flex justify-between mb-4">
+          <h2 className="text-2xl font-bold">JSON Export</h2>
+          <Button onClick={handleCloseExportPopup} variant="ghost">
+            X
+          </Button>
+        </div>
+
+        <div className="flex-1 overflow-auto rounded-lg">
+          <div className="space-y-2">
+            <form
+              className="bg-white mx-auto p-10 rounded-xl shadow space-y-4"
+              onSubmit={exportSessionResults}
+            >
+              <Label htmlFor="export" size="lg">
+                What would you like to export?
+              </Label>
+              <Textarea
+                name="export"
+                onChange={(e) => setExportInstructions(e.target.value)}
+                placeholder="Export 'names' of participants and their 'opinions'"
+                required
+              />
+              <p className="text-sm text-muted-foreground">
+                Enter some human-readable instructions, or a JSON scheme.
+              </p>
+              {exportInProgress ? (
+                <>
+                  <Spinner />
+                  Exporting...
+                </>
+              ) : (
+                <div className="flex justify-between items-center">
+                  <Button type="submit">Submit</Button>
+                  <Button onClick={exportAllData} variant="ghost">
+                    {' '}
+                    Export All{' '}
+                  </Button>
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const enhancedMessage = (message: OpenAIMessage, key: number) => {
+    if (message.role === 'assistant') {
+      return (
+        <>
+          <ChatMessage {...{ message, key }} />
+          <div
+            className="opacity-0 group-hover:opacity-100 flex flex-row 
+            justify-center items-center cursor-pointer rounded-md 
+            transition-all bg-yellow-100"
+            onClick={() => addToResultsSection(message)}
+          >
+            <CirclePlusIcon className="h-4 w-4 mr-4" />
+            Add to Results
+          </div>
+        </>
+      );
+    }
+    return <ChatMessage {...{ message, key }} />;
+  };
+
+  type ResultsTabs = Record<
+    string,
+    {
+      content: React.ReactNode;
+      tabsTrigger: React.ReactNode;
+    }
+  >;
+
+  const resultsTabs: ResultsTabs = {
+    SUMMARY: {
+      content: (
+        <TabsContent value="SUMMARY" className="mt-4">
+          <SessionResultSummary
+            hostData={hostData}
+            hasNewMessages={hasNewMessages}
+            onUpdateSummary={() => createSummary(id)}
+          />
+        </TabsContent>
+      ),
+      tabsTrigger: (
+        <TabsTrigger
+          className="ms-0"
+          value="SUMMARY"
+          onClick={() => (hostData.summary ? () => {} : createSummary(id))}
+        >
+          Summary
+        </TabsTrigger>
+      ),
+    },
+    RESPONSES: {
+      content: (
+        <TabsContent value="RESPONSES" className="mt-4">
+          <SessionParticipantsTable userData={userData} />
+        </TabsContent>
+      ),
+      tabsTrigger: (
+        <TabsTrigger className="ms-0" value="RESPONSES">
+          Responses
+        </TabsTrigger>
+      ),
+    },
+  };
+
+  const [activeTab, setActiveTab] = useState(
+    hostData.summary ? 'SUMMARY' : 'RESPONSES'
+  );
+  const [allResultsTabs, setAllResultsTabs] = useState(resultsTabs);
+  const [customAIresponses, setCustomAIresponses] = useState<OpenAIMessage[]>(
+    []
+  );
+
+  function addToResultsSection(message: OpenAIMessage) {
+    setCustomAIresponses((previousMessages) => [message, ...previousMessages]);
+    setActiveTab('CUSTOM'); // Switch to custom tab when adding content
+  }
+
+  useEffect(() => {
+    if (customAIresponses.length === 0) {
+      delete resultsTabs['CUSTOM'];
+    } else {
+      resultsTabs['CUSTOM'] = {
+        content: (
+          <TabsContent value="CUSTOM" className="mt-4">
+            {customAIresponses.map((message) => (
+              <Card className="mb-4">
+                <CardContent>
+                  <HRMarkdown content={message.content} />
+                </CardContent>
+              </Card>
+            ))}
+          </TabsContent>
+        ),
+        tabsTrigger: (
+          <TabsTrigger className="ms-0" value="CUSTOM">
+            Custom Ask AI responses
+          </TabsTrigger>
+        ),
+      };
+    }
+    setAllResultsTabs(resultsTabs);
+  }, [customAIresponses]);
+
   const showResultsSection = () => (
     <>
-      <Tabs
-        className="mb-4"
-        defaultValue={hostData.summary ? 'SUMMARY' : 'RESPONSES'}
-      >
+      <Tabs className="mb-4" value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger
-            className="ms-0"
-            value="SUMMARY"
-            onClick={() => (hostData.summary ? () => {} : createSummary(id))}
-          >
-            Summary
-          </TabsTrigger>
-          <TabsTrigger className="ms-0" value="RESPONSES">
-            Responses
-          </TabsTrigger>
+          {Object.values(allResultsTabs).map((results) => results.tabsTrigger)}
         </TabsList>
         <div className="flex flex-col md:flex-row gap-4">
           <div className="w-full md:w-2/3">
-            <TabsContent value="SUMMARY" className="mt-4">
-              <SessionResultSummary
-                hostData={hostData}
-                hasNewMessages={hasNewMessages}
-                onUpdateSummary={() => createSummary(id)}
-              />
-            </TabsContent>
-            <TabsContent value="RESPONSES" className="mt-4">
-              <SessionParticipantsTable userData={userData} />
-            </TabsContent>
+            {Object.values(allResultsTabs).map((results) => results.content)}
           </div>
           <div className="w-full md:w-1/3 mt-4 gap-4">
-            <SessionResultChat userData={userData} />
+            <SessionResultChat
+              userData={userData}
+              customMessageEnhancement={enhancedMessage}
+            />
           </div>
         </div>
       </Tabs>
 
       <Button onClick={handleShowExportPopup}>Export Session Details</Button>
 
-      {isPopupVisible && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-purple-100 border-purple-200 p-8 rounded-lg w-4/5 md:w-3/5 lg:w-1/2 flex flex-col">
-            <div className="flex justify-between mb-4">
-              <h2 className="text-2xl font-bold">JSON Export</h2>
-              <Button onClick={handleCloseExportPopup} variant="ghost">
-                X
-              </Button>
-            </div>
-
-            <div className="flex-1 overflow-auto rounded-lg">
-              <div className="space-y-2">
-                <form
-                  className="bg-white mx-auto p-10 rounded-xl shadow space-y-4"
-                  onSubmit={exportSessionResults}
-                >
-                  <Label htmlFor="export" size="lg">
-                    What would you like to export?
-                  </Label>
-                  <Textarea
-                    name="export"
-                    onChange={(e) => setExportInstructions(e.target.value)}
-                    placeholder="Export 'names' of participants and their 'opinions'"
-                    required
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Enter some human-readable instructions, or a JSON scheme.
-                  </p>
-                  {exportInProgress ? (
-                    <>
-                      <Spinner />
-                      Exporting...
-                    </>
-                  ) : (
-                    <div className="flex justify-between items-center">
-                      <Button type="submit">Submit</Button>
-                      <Button onClick={exportAllData} variant="ghost">
-                        {' '}
-                        Export All{' '}
-                      </Button>
-                    </div>
-                  )}
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {isExportPopupVisible && exportPopup}
     </>
   );
 
