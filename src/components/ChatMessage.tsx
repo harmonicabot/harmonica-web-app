@@ -1,4 +1,4 @@
-import { Message } from '@/lib/schema_updated';
+import { Message } from '@/lib/schema';
 import { HRMarkdown } from './HRMarkdown';
 
 export function ChatMessage({ message }: { message: Partial<Message> }) {

@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { Message, UserSession } from '@/lib/schema_updated';
+import { Message, UserSession } from '@/lib/schema';
 import { useEffect, useRef, useState } from 'react';
 import { ChatMessage } from '../ChatMessage';
 import { getAllChatMessagesInOrder, updateUserSession } from '@/lib/db';

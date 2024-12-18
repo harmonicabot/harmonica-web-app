@@ -1,3 +1,4 @@
+'use server';
 import { decryptId } from '@/lib/encryptionUtils';
 import { Metadata } from 'next';
 import * as db from '@/lib/db';
@@ -27,7 +28,7 @@ const defaultOpenGraph = {
   description: defaultMetadata.description || '',
 };
 
-export const routeMetadata: MetadataConfig = {
+const routeMetadata: MetadataConfig = {
   '/': {
     metadataBase: new URL(baseUrl),
     ...getWithTitleAndDescription('Dashboard')

@@ -39,13 +39,6 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  env: {
-    POSTGRES_URL: process.env.POSTGRES_URL,
-    NEON_DATABASE_URL: process.env.NEON_DATABASE_URL,
-    POSTGRESS_DATABASE: process.env.POSTGRESS_DATABASE,
-    POSTGRESS_HOST: process.env.POSTGRESS_HOST,
-    POSTGRESS_USER: process.env.POSTGRESS_USER,
-  },
 };
 
 module.exports = nextConfig;

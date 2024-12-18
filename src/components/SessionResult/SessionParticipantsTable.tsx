@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/card';
 import ParticipantSessionRow from './ParticipantSessionRow';
 import SortableTable, { TableHeaderData } from '../SortableTable';
-import { UserSession } from '@/lib/schema_updated';
+import { UserSession } from '@/lib/schema';
 
 export type ParticipantsTableData = {
   userName: string;

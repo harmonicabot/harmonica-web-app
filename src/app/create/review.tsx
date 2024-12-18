@@ -8,12 +8,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { VersionedPrompt } from './creationFlow';
 import { Spinner } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
-import Markdown from 'react-markdown';
 import ChatPopupButton from '@/components/ChatPopupButton';
 import { HRMarkdown } from '@/components/HRMarkdown';
+import { Eye } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { useUser } from '@auth0/nextjs-auth0/client';
+import { isAdmin } from '@/lib/serverUtils';
 
 export default function ReviewPrompt({
   prompts,
+  setPrompts,
   streamingPrompt,
   currentVersion,
   setCurrentVersion,
@@ -22,6 +26,7 @@ export default function ReviewPrompt({
   setTemporaryAssistantIds,
 }: {
   prompts: VersionedPrompt[];
+  setPrompts: (value: SetStateAction<VersionedPrompt[]>) => void;
   streamingPrompt: string;
   currentVersion: number;
   setCurrentVersion: (version: number) => void;
@@ -31,7 +36,20 @@ export default function ReviewPrompt({
 }) {
   const [editValue, setEditValue] = useState('');
   const [generating, setGenerating] = useState(false);
-  const [modalState, setModalState] = useState({ open: false, text: '' });
+  const [showModalState, setShowModalState] = useState(false);
+  const [fullPrompt, setFullPrompt] = useState('');
+  const [advancedMode, setAdvancedMode] = useState(false);
+
+  const user = useUser().user;
+
+  useEffect(() => {
+    
+    if (user) {
+      isAdmin(user).then(setAdvancedMode);
+    }
+  }, []);
+  console.log('Advanced mode: ', advancedMode);
+
 
   const handleSubmit = async () => {
     setGenerating(true);
@@ -57,29 +75,40 @@ export default function ReviewPrompt({
   }
 
   const showFullPrompt = (promptId: number) => {
-    setModalState({ open: true, text: prompts[promptId - 1].fullPrompt });
+    setShowModalState(true);
+    setFullPrompt(prompts[promptId - 1].fullPrompt);
   };
 
-  // console.log(
-  //   `#Prompts: ${prompts.length}, CurrentVersion: ${currentVersion}`,
-  //   prompts,
-  // );
+  const closeAndUpdateFullPrompt = (promptId: number) => {
+    const updatedPrompt = prompts[promptId - 1];
+    updatedPrompt.fullPrompt = fullPrompt;
+    updatedPrompt.summary = fullPrompt;
+    setPrompts((prev) => {
+      prev[promptId - 1] = updatedPrompt;
+      console.log('Updated prompts: ', prev);
+      return [...prev] 
+    });
+    setShowModalState(false);
+  };
 
   return (
     <>
-      {modalState.open && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-lg w-full h-full overflow-auto">
+      {showModalState && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg w-full h-svh overflow-auto flex flex-col">
             <div className="flex justify-between">
               <h2 className="text-2xl font-bold mb-4">Full Prompt</h2>
-              <Button onClick={() => setModalState({ open: false, text: '' })}>
+              <Button onClick={() => closeAndUpdateFullPrompt(1)}>
                 Close
               </Button>
             </div>
 
-            <>
-              <Markdown>{modalState.text}</Markdown>
-            </>
+            <Textarea
+              name="Full Prompt"
+              value={fullPrompt}
+              className="w-full flex-1"
+              onChange={(e) => setFullPrompt(e.target.value)}
+            />
           </div>
         </div>
       )}
@@ -122,32 +151,23 @@ export default function ReviewPrompt({
               >
                 <div className="flex justify-between items-center mb-4">
                   <Badge variant="outline">v{prompts.length - index}</Badge>
-                  <div>
-                    {/* <Button
-                    variant="secondary"
-                    className="ml-2"
-                    size='sm'
-                    onClick={() => {showFullPrompt(prompt.id)}}
-                    >
-                      <Eye/>
-                  </Button> */}
-                    {/* <Button
-                      variant="outline"
-                      onClick={() => showFullPrompt(prompt.id)}
-                      className="mr-2"
-                    >
-                      Full Prompt
-                    </Button> */}
+                  <div className='flex flex-row items-center'>
+                    {advancedMode && (
+                      <Eye 
+                        className="mr-2"
+                        onClick={() => showFullPrompt(prompt.id)}
+                      />
+                    )}
                     <ChatPopupButton
                       prompt={prompt}
                       handleSetTempAssistantIds={setTemporaryAssistantIds}
                     />
                     {prompt.id !== currentVersion ? (
-                      <Button onClick={() => setCurrentVersion(prompt.id)}>
+                      <Button className='border-[1px]' onClick={() => setCurrentVersion(prompt.id)}>
                         Select
                       </Button>
                     ) : (
-                      <Button disabled>Selected</Button>
+                      <Button className='border-[1px]' disabled>Selected</Button>
                     )}
                   </div>
                 </div>

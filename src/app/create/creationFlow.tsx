@@ -5,10 +5,10 @@ import CreateSession from './create';
 import ReviewPrompt from './review';
 import LoadingMessage from './loading';
 import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
-import { sendApiCall } from '@/lib/utils';
+import { sendApiCall } from '@/lib/clientUtils';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NewHostSession } from '@/lib/schema_updated';
+import { NewHostSession } from '@/lib/schema';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
 import { encryptId } from '@/lib/encryptionUtils';
@@ -266,6 +266,7 @@ export default function CreationFlow() {
     ) : (
       <ReviewPrompt
         prompts={prompts}
+        setPrompts = {setPrompts}
         streamingPrompt={streamingPromptRef.current}
         currentVersion={currentVersion}
         setCurrentVersion={setCurrentVersion}

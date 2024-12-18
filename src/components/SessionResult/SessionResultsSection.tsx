@@ -1,6 +1,6 @@
 'use client';
 
-import { HostSession, Message, UserSession } from '@/lib/schema_updated';
+import { HostSession, Message, UserSession } from '@/lib/schema';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
 import React, { useEffect, useState } from 'react';
@@ -16,7 +16,8 @@ import SessionResultSummary from './SessionResultSummary';
 import ShareSession from './ShareSession';
 import * as db from '@/lib/db';
 import { formatForExport } from 'app/api/exportUtils';
-import { checkSummaryAndMessageTimes, createSummary } from '@/lib/utils';
+import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
+import { createSummary } from '@/lib/serverUtils';
 import { OpenAIMessage } from '@/lib/types';
 import { CirclePlusIcon } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';

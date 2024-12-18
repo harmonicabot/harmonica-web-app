@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoaderCircle, Settings } from 'lucide-react';
 import * as db from '@/lib/db'
-import { createSummary } from '@/lib/utils'
+import { createSummary } from '@/lib/serverUtils'
 
 interface SessionResultControlsProps {
   id: string;
