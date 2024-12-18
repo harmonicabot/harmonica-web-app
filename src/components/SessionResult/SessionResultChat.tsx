@@ -1,8 +1,9 @@
-'use server'; // process.env can only be accessed on the server side
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Chat from '@/components/chat';
 import { UserSession } from '@/lib/schema';
 import { OpenAIMessage } from "@/lib/types";
+import { useEffect, useState } from "react";
+import { getAssistantId } from "@/lib/serverUtils";
 
 export default function SessionResultChat({
   userData,
@@ -10,7 +11,13 @@ export default function SessionResultChat({
 }: {
   userData: UserSession[];
   customMessageEnhancement?: (message: OpenAIMessage, index: number) => React.ReactNode;
-}) {
+  }) {
+    const [assistantId, setAssistantId] = useState('') 
+
+    useEffect(() => {
+      getAssistantId('RESULT_CHAT_ASSISTANT').then(setAssistantId)
+    }, [])
+  
   return (
     <Card className="h-auto border-yellow-400">
       <CardHeader className="bg-yellow-50 border-gray-200 rounded-md">
@@ -19,14 +26,14 @@ export default function SessionResultChat({
         </CardTitle>
       </CardHeader>
       <CardContent className="h-auto">
-        {userData && userData.length > 0 && (
+        {userData && userData.length > 0 && assistantId && (
           <Chat
             context={{
               role: 'assistant',
               content: `You will be asked questions based on the session data. Answer short.`,
               userData: userData,
             }}
-            assistantId={process.env.RESULT_CHAT_ASSISTANT ?? 'asst_LQospxVfX4vMTONASzSkSUwb'} 
+            assistantId={assistantId} 
             entryMessage={{
               role: 'assistant',
               content: `Hi there! Consider me your expert analyst, I can help you to better understand your session.

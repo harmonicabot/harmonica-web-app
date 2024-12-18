@@ -14,6 +14,13 @@ interface GroupedChats {
   [threadId: string]: Message[];
 }
 
+export async function getAssistantId(assistant: 'RESULT_CHAT_ASSISTANT' | 'EXPORT_ASSISTANT' | 'TEMPLATE_BUILDER_ID' | 'SUMMARY_ASSISTANT') {
+  const result = process.env[assistant];
+  if (result)
+    return result;
+  throw new Error(`Missing ${assistant}`);
+}
+
 export async function createSummary(sessionId: string) {
   console.log(`Creating summary for ${sessionId}...`);
   const messageStats = await db.getNumUsersAndMessages([sessionId]);
