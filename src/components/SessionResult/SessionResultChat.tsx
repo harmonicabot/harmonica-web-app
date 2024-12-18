@@ -31,7 +31,7 @@ export default function SessionResultChat({
             context={{
               role: 'assistant',
               content: `You will be asked questions based on the session data. Answer short.`,
-              userData: userData,
+              userData: userData.filter((user) => user.include_in_summary),
             }}
             assistantId={assistantId} 
             entryMessage={{
