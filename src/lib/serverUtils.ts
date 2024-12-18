@@ -1,7 +1,7 @@
 'use server';
 import * as db from './db';
 import * as gpt from 'app/api/gptUtils';
-import { Message } from './schema_updated';
+import { Message } from './schema';
 import { UserProfile } from '@auth0/nextjs-auth0/client';
 
 export async function isAdmin(user: UserProfile) {

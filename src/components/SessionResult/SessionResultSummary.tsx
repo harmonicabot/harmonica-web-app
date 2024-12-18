@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
 } from '../ui/tooltip';
 import { RefreshCw } from 'lucide-react';
-import { HostSession } from '@/lib/schema_updated';
+import { HostSession } from '@/lib/schema';
 import { Spinner } from '../icons';
 import ExpandableCard from '../ui/expandable-card';
 

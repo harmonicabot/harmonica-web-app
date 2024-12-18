@@ -2,7 +2,7 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { RequestData } from '@/lib/types';
 import { ADJECTIVES, ANIMALS, COLORS } from './nameGeneratorData';
-import { HostSession, UserSession } from './schema_updated';
+import { HostSession, UserSession } from './schema';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

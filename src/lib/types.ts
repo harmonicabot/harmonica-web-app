@@ -2,7 +2,7 @@
 //  There's just too much going on right now and the separation between
 //  UserData, SessionData & AccumulatedData isn't clear enough.
 
-import { UserSession, Message } from "./schema_updated";
+import { UserSession, Message } from "./schema";
 
 export enum ApiAction {
   CreatePrompt = 'createPrompt',

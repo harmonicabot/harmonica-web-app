@@ -1,6 +1,6 @@
 'use server';
 import { getSession as authGetSession } from '@auth0/nextjs-auth0';
-import * as s from './schema_updated';
+import * as s from './schema';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
 import { deleteAssistants } from 'app/api/gptUtils';

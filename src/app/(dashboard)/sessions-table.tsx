@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Session } from './session';
 import { Key, useEffect, useState } from 'react';
 import SortableTable from '@/components/SortableTable';
-import { HostSession } from '@/lib/schema_updated';
+import { HostSession } from '@/lib/schema';
 import * as db from '@/lib/db';
 import { getUserStats } from '@/lib/clientUtils';
 

@@ -2,7 +2,7 @@
 import { FileMigrationProvider, Migrator } from 'kysely';
 import * as path from 'path';
 import { promises as fs } from 'fs';
-import { createProdDbInstance } from '../lib/schema_updated';
+import { createProdDbInstance } from '../lib/schema';
 import * as dotenv from 'dotenv';
 
 // Load environment variables
