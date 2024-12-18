@@ -16,7 +16,7 @@ export default function SessionResultChat({ userData }: { userData: UserSession[
             context={{
               role: 'assistant',
               content: `You will be asked questions based on the session data. Answer short.`,
-              userData: userData,
+              userData: userData.filter((user) => user.include_in_summary),
             }}
             assistantId={process.env.RESULT_CHAT_ASSISTANT ?? 'asst_LQospxVfX4vMTONASzSkSUwb'} 
             entryMessage={{
