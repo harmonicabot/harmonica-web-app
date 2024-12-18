@@ -27,7 +27,7 @@ export default function SessionResultsSection({
   userData: UserSession[];
   id: string;
 }) {
-  const hasMessages = userData.length > 0;
+  const hasMessages = userData.filter((user) => user.include_in_summary).length > 0;
   const { hasNewMessages, lastMessage, lastSummaryUpdate } =
     checkSummaryAndMessageTimes(hostData, userData);
 
