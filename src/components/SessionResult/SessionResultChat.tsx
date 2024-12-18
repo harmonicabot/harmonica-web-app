@@ -1,3 +1,4 @@
+'use server'; // process.env can only be accessed on the server side
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Chat from '@/components/chat';
 import { UserSession } from '@/lib/schema_updated';

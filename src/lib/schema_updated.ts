@@ -1,3 +1,4 @@
+'use server';
 import { createKysely } from '@vercel/postgres-kysely';
 import {
   Generated,
@@ -68,7 +69,7 @@ export type NewMessage = Insertable<MessagesTable>;
 // Triggers & Setup helpers:
 
 // ***** TRIGGER running on pg to update the last_edit on summary changes: *****
-export function createTriggerOnHostUpdateLastEditSummary(
+export async function createTriggerOnHostUpdateLastEditSummary(
   databaseName: string = 'host_data',
 ) {
   sql`CREATE OR REPLACE FUNCTION update_last_edit_summary()
@@ -89,7 +90,7 @@ CREATE TRIGGER update_last_edit_on_summary_change
 }
 
 // ***** TRIGGER running on pg to update the last_edit on chat_text change: *****
-export function createTriggerOnUserUpdateLastEditChatText(
+export async function createTriggerOnUserUpdateLastEditChatText(
   databaseName: string = 'user_data',
 ) {
   sql`CREATE OR REPLACE FUNCTION update_last_edit()
@@ -199,7 +200,7 @@ export async function createMessagesTable(
     .execute();
 }
 
-export function createProdDbInstance<T extends Record<string, any>>() {
+export async function createProdDbInstance<T extends Record<string, any>>() {
   const hostDbName = 'host_db';
   const userDbName = 'user_db';
   const messageDbName = 'message_db';
@@ -210,7 +211,7 @@ export function createProdDbInstance<T extends Record<string, any>>() {
   };
 }
 
-export function createCustomDbInstance<T extends Record<string, any>>(
+export async function createCustomDbInstance<T extends Record<string, any>>(
   host = 'temp_host_db',
   user = 'temp_user_db',
   message = 'temp_message_db',
@@ -226,7 +227,7 @@ export function createCustomDbInstance<T extends Record<string, any>>(
   return { db, dbNames: { host, user, message } };
 }
 
-export function createProdDbInstanceWithDbNames<T extends Record<string, any>>(
+export async function createProdDbInstanceWithDbNames<T extends Record<string, any>>(
   host = 'prod_host_db',
   user = 'prod_user_db',
   message = 'prod_messages_db',

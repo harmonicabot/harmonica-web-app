@@ -1,3 +1,4 @@
+'use server';
 import { FileMigrationProvider, Migrator } from 'kysely';
 import * as path from 'path';
 import { promises as fs } from 'fs';
@@ -11,31 +12,36 @@ if (!process.env.POSTGRES_URL) {
   throw new Error('POSTGRES_URL environment variable is not set');
 }
 
-const { db } = createProdDbInstance();
+async function migrate() {
+  const { db } = await createProdDbInstance();
 
-const migrator = new Migrator({
-  db,
-  provider: new FileMigrationProvider({
-    fs,
-    path,
-    migrationFolder: path.join(__dirname, 'migrations'),
-  }),
-});
+  const migrator = new Migrator({
+    db,
+    provider: new FileMigrationProvider({
+      fs,
+      path,
+      migrationFolder: path.join(__dirname, 'migrations'),
+    }),
+  });
 
-const direction = process.argv[2];
+  const direction = process.argv[2];
 
-if (direction === 'down') {
-  migrateDown();
-} else {
-  migrateToLatest();
+  if (direction === 'down') {
+    console.log('Migrating down...');
+    migrateDown(migrator);
+  } else {
+    console.log('Migrating to latest...');
+    migrateToLatest(migrator);
+  }
+  console.log('Migration script finished!');
 }
 
-async function migrateToLatest() {
+async function migrateToLatest(migrator: Migrator) {
   const { error, results } = await migrator.migrateToLatest();
   handleResults(error, results);
 }
 
-async function migrateDown() {
+async function migrateDown(migrator: Migrator) {
   const { error, results } = await migrator.migrateDown();
   handleResults(error, results);
 }
@@ -55,3 +61,5 @@ function handleResults(error: any, results: any) {
     process.exit(1);
   }
 } 
+
+migrate();

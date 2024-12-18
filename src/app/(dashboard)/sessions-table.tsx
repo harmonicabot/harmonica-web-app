@@ -6,7 +6,7 @@ import { Key, useEffect, useState } from 'react';
 import SortableTable from '@/components/SortableTable';
 import { HostSession } from '@/lib/schema_updated';
 import * as db from '@/lib/db';
-import { getUserStats } from '@/lib/utils';
+import { getUserStats } from '@/lib/clientUtils';
 
 export type SessionTableData = {
   id: string;

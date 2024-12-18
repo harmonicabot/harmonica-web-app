@@ -8,7 +8,7 @@ import SessionResultsSection from '@/components/SessionResult/SessionResultsSect
 import { decryptId } from '@/lib/encryptionUtils';
 import ErrorPage from '@/components/Error';
 import SessionResultsOverview from '@/components/SessionResult/SessionResultsOverview';
-import { getUserStats } from '@/lib/utils';
+import { getUserStats } from '@/lib/clientUtils';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 60; // in seconds

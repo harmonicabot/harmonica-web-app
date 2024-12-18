@@ -11,7 +11,7 @@ import { Send } from './icons';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { Message } from '@/lib/schema_updated';
 import ErrorPage from './Error';
-import { getUserNameFromContext } from '@/lib/utils';
+import { getUserNameFromContext } from '@/lib/clientUtils';
 import { PlusIcon } from 'lucide-react';
 
 export default function Chat({
