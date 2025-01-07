@@ -66,12 +66,19 @@ export type UserSessionUpdate = Updateable<UserSessionsTable>;
 export type Message = Selectable<MessagesTable>;
 export type NewMessage = Insertable<MessagesTable>;
 
+const hostTableName = 'host_db';
+const userTableName = 'user_db';
+const messageTableName = 'messages_db';
+interface DatabasesTables {
+  [hostTableName]: HostSessionsTable;
+  [userTableName]: UserSessionsTable;
+  [messageTableName]: MessagesTable;
+}
+
 // Triggers & Setup helpers:
 
 // ***** TRIGGER running on pg to update the last_edit on summary changes: *****
-export async function createTriggerOnHostUpdateLastEditSummary(
-  databaseName: string = 'host_data',
-) {
+export async function createTriggerOnHostUpdateLastEditSummary() {
   sql`CREATE OR REPLACE FUNCTION update_last_edit_summary()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -83,16 +90,14 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_last_edit_on_summary_change
-    BEFORE UPDATE ON ${databaseName}
+    BEFORE UPDATE ON ${hostTableName}
     FOR EACH ROW
     EXECUTE FUNCTION update_last_edit_summary();
 `;
 }
 
 // ***** TRIGGER running on pg to update the last_edit on chat_text change: *****
-export async function createTriggerOnUserUpdateLastEditChatText(
-  databaseName: string = 'user_data',
-) {
+export async function createTriggerOnUserUpdateLastEditChatText() {
   sql`CREATE OR REPLACE FUNCTION update_last_edit()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -104,110 +109,17 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_last_edit_on_chat_change
-    BEFORE UPDATE ON ${databaseName}
+    BEFORE UPDATE ON ${userTableName}
     FOR EACH ROW
     EXECUTE FUNCTION update_last_edit();
 `;
 }
 
-export async function createHostTable(db: Kysely<any>, tableName: string) {
-  await db.schema
-    .createTable(tableName)
-    .ifNotExists()
-    .addColumn('id', 'text', (col) =>
-      col
-        .primaryKey()
-        .defaultTo(sql`'hst_' || substr(md5(random()::text), 1, 12)`),
-    )
-    .addColumn('active', 'boolean', (col) => col.notNull())
-    .addColumn('num_sessions', 'integer', (col) => col.notNull())
-    .addColumn('num_finished', 'integer', (col) => col.notNull())
-    .addColumn('prompt', 'text', (col) => col.notNull())
-    .addColumn('template', 'text', (col) => col.notNull())
-    .addColumn('topic', 'text', (col) => col.notNull())
-    .addColumn('context', 'text')
-    .addColumn('client', 'text')
-    .addColumn('summary', 'text')
-    .addColumn('final_report_sent', 'boolean', (col) => col.defaultTo(false))
-    .addColumn('start_time', 'timestamp')
-    .addColumn('last_edit', 'timestamp', (col) =>
-      col.defaultTo(sql`CURRENT_TIMESTAMP`),
-    )
-    .addColumn('questions', 'json')
-    .execute();
-}
-
-export async function updateUserTable(db: Kysely<any>, tableName: string) {
-  await db.schema
-    .alterTable(tableName)
-    .dropColumn('template')
-    .dropColumn('bot_id')
-    .dropColumn('host_chat_id')
-    .dropColumn('chat_text')
-    .addColumn('user_name', 'text')
-    .execute();
-
-  await db.schema
-    .alterTable(tableName)
-    .renameColumn('result_text', 'summary')
-    .execute();
-}
-
-export async function createUserTable(db: Kysely<any>, tableName: string) {
-  await db.schema
-    .createTable(tableName)
-    .ifNotExists()
-    .addColumn('id', 'text', (col) =>
-      col.primaryKey().defaultTo(sql`substr(md5(random()::text), 1, 12)`),
-    )
-    .addColumn('session_id', 'text', (col) => col.notNull())
-    .addColumn('user_id', 'text', (col) => col.notNull())
-    .addColumn('active', 'boolean', (col) => col.notNull())
-    .addColumn('thread_id', 'text', (col) => col.notNull().unique())
-    .addColumn('user_name', 'text')
-    .addColumn('feedback', 'text')
-    .addColumn('summary', 'text')
-    .addColumn('language', 'text')
-    .addColumn('start_time', 'timestamp')
-    .addColumn('step', 'numeric', (col) => col.defaultTo(0))
-    .addColumn('last_edit', 'timestamp', (col) =>
-      col.defaultTo(sql`CURRENT_TIMESTAMP`),
-    )
-    .execute();
-}
-
-export async function createMessagesTable(
-  db: Kysely<any>,
-  tableName: string,
-  userDbTableName: string,
-) {
-  await db.schema
-    .createTable(tableName)
-    .ifNotExists()
-    .addColumn('id', 'text', (col) =>
-      col
-        .primaryKey()
-        .defaultTo(sql`'msg_' || substr(md5(random()::text), 1, 12)`),
-    )
-    .addColumn('thread_id', 'text', (col) => col.notNull())
-    .addColumn('role', 'text', (col) =>
-      col.notNull().check(sql`role IN ('user', 'assistant')`),
-    )
-    .addColumn('content', 'text', (col) => col.notNull())
-    .addColumn('created_at', 'timestamp', (col) =>
-      col.defaultTo(sql`CURRENT_TIMESTAMP`),
-    )
-    .execute();
-}
-
 export async function createProdDbInstance<T extends Record<string, any>>() {
-  const hostDbName = 'host_db';
-  const userDbName = 'user_db';
-  const messageDbName = 'message_db';
   const db = createKysely<T>();
   return {
     db,
-    dbNames: { host: hostDbName, user: userDbName, message: messageDbName },
+    dbNames: { host: hostTableName, user: userTableName, message: messageTableName },  
   };
 }
 
@@ -224,14 +136,5 @@ export async function createCustomDbInstance<T extends Record<string, any>>(
     }),
   });
   const db = new Kysely<T>({ dialect });
-  return { db, dbNames: { host, user, message } };
-}
-
-export async function createProdDbInstanceWithDbNames<T extends Record<string, any>>(
-  host = 'prod_host_db',
-  user = 'prod_user_db',
-  message = 'prod_messages_db',
-) {
-  const db = createKysely<T>();
   return { db, dbNames: { host, user, message } };
 }

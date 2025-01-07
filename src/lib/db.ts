@@ -4,6 +4,7 @@ import * as s from './schema';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
 import { deleteAssistants } from 'app/api/gptUtils';
+import { createKysely } from '@vercel/postgres-kysely';
 // Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {
   neonConfig.webSocketConstructor = ws;
@@ -21,8 +22,7 @@ interface Databases {
 }
 
 const dbPromise = (async () => {
-  let dbConfig = await s.createProdDbInstanceWithDbNames<Databases>(hostTableName, userTableName, messageTableName);
-  const db = dbConfig.db;
+  const db = createKysely<Databases>(); 
   return db;
 })();
 
