@@ -49,8 +49,8 @@ export async function createSummary(sessionId: string) {
         .map((chat) => {
           return `${chat.role === 'user' ? 'User' : 'AI'}: ${chat.content}`;
         })
-        .join(`\n----END Participant ${participantId}----\n`); // Join messages for the same participant
-      return `\`\`\`\n----START Participant ${participantId}:----\n${participantMessages}\n\`\`\``; // Format for each participant
+        .join(`\n\n`); // Join messages for the same participant
+      return `\`\`\`\n----START Participant ${participantId}:----\n${participantMessages}\n\n----END Participant ${participantId}----\`\`\``; // Format for each participant
     },
   );
 
