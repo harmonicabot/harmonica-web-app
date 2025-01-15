@@ -37,17 +37,19 @@ export default function SessionResultsSection({
   const { hasNewMessages, lastMessage, lastSummaryUpdate } =
     checkSummaryAndMessageTimes(hostData, userData);
 
-  if (
-    hasNewMessages &&
-    lastMessage > lastSummaryUpdate &&
-    new Date().getTime() - lastSummaryUpdate > 1000 * 60 * 10
-  ) {
-    const minutesAgo = (new Date().getTime() - lastSummaryUpdate) / (1000 * 60);
-    console.log(`Last summary created ${minutesAgo} minutes ago, 
+  useEffect(() => {
+    if (
+      hasNewMessages &&
+      lastMessage > lastSummaryUpdate &&
+      new Date().getTime() - lastSummaryUpdate > 1000 * 60 * 10
+    ) {
+      const minutesAgo = (new Date().getTime() - lastSummaryUpdate) / (1000 * 60);
+      console.log(`Last summary created ${minutesAgo} minutes ago, 
         and new messages were received since then. Creating an updated one.`);
-    createSummary(hostData.id);
-    mutate(`sessions/${id}`);
-  }
+      createSummary(hostData.id);
+      mutate(`sessions/${id}`);
+    }
+  }, [hasNewMessages, lastMessage, lastSummaryUpdate, hostData.id, id]);
 
   const [exportInProgress, setExportInProgress] = useState(false);
   const exportSessionResults = async (e: React.FormEvent) => {
