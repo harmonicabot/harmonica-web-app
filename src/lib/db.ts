@@ -72,14 +72,14 @@ export async function getHostSessionById(id: string): Promise<s.HostSession> {
   }
 }
 
-export async function getFromHostSession(id: string, column: keyof s.HostSessionsTable) {
+export async function getFromHostSession(id: string, columns: (keyof s.HostSessionsTable)[]) {
   const db = await dbPromise;
   const result = await db
     .selectFrom(hostTableName)
-    .select(column)
+    .select(columns)
     .where('id', '=', id)
     .executeTakeFirst();
-  return result?.[column];
+  return result;
 }
 
 export async function insertHostSessions(
