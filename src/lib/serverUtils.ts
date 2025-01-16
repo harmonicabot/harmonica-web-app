@@ -30,7 +30,8 @@ export async function createSummary(sessionId: string) {
   console.log('Users with contributions to summary: ', onlyIncludedUsersWithAtLeast2Messages.length);
 
   const chats = await db.getAllMessagesForUsersSorted(onlyIncludedUsersWithAtLeast2Messages);
-  const prompt = await db.getFromHostSession(sessionId, 'prompt');
+  const contextData = await db.getFromHostSession(sessionId, ['context', 'critical', 'goal', 'topic']);
+  // const prompt = contextData?.prompt
 
   // Flatten the chats and group by thread_id to distinguish participants
   const groupedChats: GroupedChats = chats.reduce((acc, chat) => {
@@ -54,12 +55,12 @@ export async function createSummary(sessionId: string) {
     },
   );
 
-  const promptForObjective = `\`\`\`This is the original session prompt, it _contains_ the **OBJECTIVE** somewhere in its body.\n
-  Look for the objective, and format the report to address the objective found in this prompt.\n\n
-  ----START PROMPT----\n
-  ${prompt}
-  \n----END PROMPT----\n\`\`\``;
-  // console.log('Sending chat history to GPT-4: ', chatMessages);
+
+  const promptForObjective = `\`\`\`This is the original session input. Use this information to create an appropriate format for the report and to provide insights about the sessions goal.\n\n
+  ----START INPUT DATA----\n
+  ${JSON.stringify(contextData)}
+  \n----END INPUT DATA----\n\`\`\``;
+  // console.log('Sending prompt to GPT-4: ', promptForObjective);
   const threadId = await gpt.handleCreateThread(
     {
       role: 'assistant',
