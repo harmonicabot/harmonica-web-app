@@ -20,6 +20,7 @@ import { StepNavigation } from './StepNavigation';
 import { LaunchModal } from './LaunchModal';
 import { Step, STEPS } from './types';
 import { createPromptContent } from 'app/api/utils';
+import { error } from 'console';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -53,9 +54,7 @@ export default function CreationFlow() {
   const [activeStep, setActiveStep] = useState<Step>(STEPS[0]);
   const [threadId, setThreadId] = useState('');
   const [builderAssistantId, setBuilderAssistantId] = useState('');
-  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>(
-    [],
-  );
+  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>([]);
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
@@ -66,6 +65,7 @@ export default function CreationFlow() {
   const [participantQuestions, setParticipantQuestions] = useState<
     QuestionInfo[]
   >([]);
+  const [, setThrowError] = useState(); // This can be used to throw errors from async functions that react will handle in the
 
   const [
     createNewPromptBecauseCreationContentChanged,
@@ -130,12 +130,18 @@ export default function CreationFlow() {
     setIsLoading(true);
     enabledSteps[1] = true;
     setActiveStep('Refine');
-    if (prompts.length == 0) {
-      await getInitialPrompt();
-    } else if (createNewPromptBecauseCreationContentChanged) {
-      await handleCreatePrompt();
-    } else {
-      setIsLoading(false);
+    try {
+      if (prompts.length == 0) {
+        await getInitialPrompt();
+      } else if (createNewPromptBecauseCreationContentChanged) {
+        await handleCreatePrompt();
+      } else {
+        setIsLoading(false);
+      }
+    } catch (error) {
+      setThrowError(() => {
+        throw error;
+      });
     }
   };
 
@@ -154,18 +160,24 @@ export default function CreationFlow() {
       },
     };
 
-    const newPromptResponse = await sendApiCall(payload);
-    latestFullPromptRef.current = newPromptResponse.fullPrompt;
+    try {
+      const newPromptResponse = await sendApiCall(payload);
+      latestFullPromptRef.current = newPromptResponse.fullPrompt;
 
-    getStreamOfSummary({
-      threadId,
-      assistantId: builderAssistantId,
-    });
+      getStreamOfSummary({
+        threadId,
+        assistantId: builderAssistantId,
+      });
+    } catch (error) {
+      setThrowError(() => {
+        throw error;
+      });
+    }
   };
 
   const handleShareComplete = async (
     e: React.FormEvent,
-    mode: 'launch' | 'draft' = 'launch',
+    mode: 'launch' | 'draft' = 'launch'
   ) => {
     e.preventDefault();
     setIsLoading(true);
@@ -173,55 +185,61 @@ export default function CreationFlow() {
     const prompt = currentPrompt.fullPrompt;
     const promptSummary = currentPrompt.summary;
 
-    const assistantResponse = await sendApiCall({
-      action: ApiAction.CreateAssistant,
-      target: ApiTarget.Builder,
-      data: {
+    try {
+      const assistantResponse = await sendApiCall({
+        action: ApiAction.CreateAssistant,
+        target: ApiTarget.Builder,
+        data: {
+          prompt: prompt,
+          name: formData.sessionName,
+        },
+      });
+
+      deleteTemporaryAssistants(temporaryAssistantIds);
+
+      const data: NewHostSession = {
+        template: assistantResponse.assistantId,
+        topic: formData.sessionName,
         prompt: prompt,
-        name: formData.sessionName,
-      },
-    });
+        num_sessions: 0,
+        num_finished: 0,
+        active: mode === 'launch', // Set active based on mode
+        final_report_sent: false,
+        start_time: new Date(),
+        goal: formData.goal,
+        critical: formData.critical,
+        context: formData.context,
+        prompt_summary: promptSummary,
+        questions: JSON.stringify(
+          participantQuestions.map((q) => ({
+            id: q.id,
+            label: q.label,
+            type: q.type,
+            typeValue: q.typeValue,
+            required: q.required,
+            options: q.options,
+          }))
+        ) as unknown as JSON,
+      };
 
-    deleteTemporaryAssistants(temporaryAssistantIds);
+      const sessionIds = await db.insertHostSessions(data);
+      const session_id = sessionIds[0];
 
-    const data: NewHostSession = {
-      template: assistantResponse.assistantId,
-      topic: formData.sessionName,
-      prompt: prompt,
-      num_sessions: 0,
-      num_finished: 0,
-      active: mode === 'launch', // Set active based on mode
-      final_report_sent: false,
-      start_time: new Date(),
-      goal: formData.goal,
-      critical: formData.critical,
-      context: formData.context,
-      prompt_summary: promptSummary,
-      questions: JSON.stringify(
-        participantQuestions.map((q) => ({
-          id: q.id,
-          label: q.label,
-          type: q.type,
-          typeValue: q.typeValue,
-          required: q.required,
-          options: q.options,
-        })),
-      ) as unknown as JSON,
-    };
+      // Set cookie
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30);
+      document.cookie = `sessionId=${session_id}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
 
-    const sessionIds = await db.insertHostSessions(data);
-    const session_id = sessionIds[0];
-
-    // Set cookie
-    const expirationDate = new Date();
-    expirationDate.setDate(expirationDate.getDate() + 30);
-    document.cookie = `sessionId=${session_id}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
-
-    // Navigate based on mode
-    if (mode === 'launch') {
-      route.push(`/sessions/${encryptId(session_id)}`);
-    } else {
-      route.push('/');
+      // Navigate based on mode
+      if (mode === 'launch') {
+        route.push(`/sessions/${encryptId(session_id)}`);
+      } else {
+        route.push('/');
+      }
+    } catch (error) {
+      setThrowError(() => {
+        throw error;
+      });
     }
   };
 
@@ -266,7 +284,7 @@ export default function CreationFlow() {
     ) : (
       <ReviewPrompt
         prompts={prompts}
-        setPrompts = {setPrompts}
+        setPrompts={setPrompts}
         streamingPrompt={streamingPromptRef.current}
         currentVersion={currentVersion}
         setCurrentVersion={setCurrentVersion}
@@ -285,7 +303,9 @@ export default function CreationFlow() {
   return (
     <div className="min-h-screen pt-16 sm:px-14 pb-16 bg-gray-50 dark:bg-gray-900">
       <div
-        className={`mx-auto items-center align-middle ${isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'}`}
+        className={`mx-auto items-center align-middle ${
+          isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
+        }`}
       >
         <StepHeader />
 
@@ -327,11 +347,11 @@ export default function CreationFlow() {
             activeStep === 'Create'
               ? handleCreateComplete
               : activeStep === 'Share'
-                ? (e) => {
-                    e.preventDefault();
-                    setShowLaunchModal(true);
-                  }
-                : handleReviewComplete
+              ? (e) => {
+                  e.preventDefault();
+                  setShowLaunchModal(true);
+                }
+              : handleReviewComplete
           }
           nextLabel={activeStep === 'Share' ? 'Launch' : undefined}
         />
