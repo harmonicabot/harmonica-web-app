@@ -56,17 +56,18 @@ export async function createSummary(sessionId: string) {
   );
 
 
-  const promptForObjective = `\`\`\`This is the original session input. Use this information to create an appropriate format for the report and to provide insights about the sessions goal.\n\n
-  ----START INPUT DATA----\n
+  const objectiveData = `\`\`\`This is the context, including the **OBJECTIVE**, used to create the session.\n
+  Use this information to design an appropriate report structure:\n\n
+  ----START OBJECTIVE DATA----\n
   ${JSON.stringify(contextData)}
-  \n----END INPUT DATA----\n\`\`\``;
+  \n----END OBJECTIVE DATA----\n\`\`\``;
   // console.log('Sending prompt to GPT-4: ', promptForObjective);
   const threadId = await gpt.handleCreateThread(
     {
       role: 'assistant',
       content: 'Use the following messages as context for user input.',
     },
-    [...chatMessages, promptForObjective],
+    [...chatMessages, objectiveData],
   );
   const summaryReply = await gpt.handleGenerateAnswer({
     threadId: threadId,
