@@ -25,7 +25,7 @@ export default function SessionResultChat({
           <img src="/monica_chat_icon.svg" alt="" className="h-10 w-10 mr-2" />Ask AI
         </CardTitle>
       </CardHeader>
-      <CardContent className="h-auto">
+      <CardContent className="max-h-[80vh] overflow-auto pb-0">
         {userData && userData.length > 0 && assistantId && (
           <Chat
             context={{

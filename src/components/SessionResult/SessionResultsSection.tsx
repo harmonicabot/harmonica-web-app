@@ -23,6 +23,8 @@ import { CirclePlusIcon } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { HRMarkdown } from '../HRMarkdown';
 import { ChatMessage } from '../ChatMessage';
+import Split from 'react-split'
+
 
 export default function SessionResultsSection({
   hostData,
@@ -173,7 +175,7 @@ export default function SessionResultsSection({
   );
 
   const enhancedMessage = (message: OpenAIMessage, key: number) => {
-    if (message.role === 'assistant') {
+    if (message.role === 'assistant' && key > 0) {
       return (
         <>
           <ChatMessage {...{ message, key }} />
@@ -281,14 +283,42 @@ export default function SessionResultsSection({
           {Object.values(allResultsTabs).map((results) => results.tabsTrigger)}
         </TabsList>
         <div className="flex flex-col md:flex-row gap-4">
-          <div className="w-full md:w-2/3">
-            {Object.values(allResultsTabs).map((results) => results.content)}
+          <div className='hidden md:block w-full'>
+            <Split 
+              className="flex"
+              gutter={() => {
+                const gutter = document.createElement('div')
+                gutter.className = 'hover:bg-gray-300 cursor-col-resize'
+                return gutter
+              }}
+              sizes={[66, 34]} // Initial split ratio
+              minSize={200} // Minimum width for each pane
+              gutterSize={8} // Size of the draggable gutter
+              snapOffset={30} // Snap to edges
+            >
+              <div className="overflow-auto">
+                {Object.values(allResultsTabs).map((results) => results.content)}
+              </div>
+              <div className="overflow-auto md:w-1/3 mt-4 gap-4">
+                <SessionResultChat
+                  userData={userData}
+                  customMessageEnhancement={enhancedMessage}
+                />
+              </div>
+            </Split>
           </div>
-          <div className="w-full md:w-1/3 mt-4 gap-4">
-            <SessionResultChat
-              userData={userData}
-              customMessageEnhancement={enhancedMessage}
-            />
+
+          {/* On small screens show the same but in rows instead of split cols: */}
+          <div className="md:hidden w-full flex flex-col gap-4">
+            <div className="w-full">
+              {Object.values(allResultsTabs).map((results) => results.content)}
+            </div>
+            <div className="w-full mt-4 gap-4">
+              <SessionResultChat
+                  userData={userData}
+                  customMessageEnhancement={enhancedMessage}
+              />
+            </div>
           </div>
         </div>
       </Tabs>
