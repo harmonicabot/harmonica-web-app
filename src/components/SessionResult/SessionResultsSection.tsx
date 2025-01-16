@@ -173,7 +173,7 @@ export default function SessionResultsSection({
   );
 
   const enhancedMessage = (message: OpenAIMessage, key: number) => {
-    if (message.role === 'assistant') {
+    if (message.role === 'assistant' && key > 0) {
       return (
         <>
           <ChatMessage {...{ message, key }} />
