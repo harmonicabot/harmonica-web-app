@@ -9,9 +9,10 @@ import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
 import { ChatMessage } from './ChatMessage';
 import { Send } from './icons';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { Message } from '@/lib/schema_updated';
+import { Message } from '@/lib/schema';
 import ErrorPage from './Error';
-import { getUserNameFromContext } from '@/lib/utils';
+import { getUserNameFromContext } from '@/lib/clientUtils';
+import { PlusIcon } from 'lucide-react';
 
 export default function Chat({
   assistantId,
@@ -22,6 +23,7 @@ export default function Chat({
   context,
   placeholderText,
   userContext,
+  customMessageEnhancement,
 }: {
   assistantId: string;
   sessionId?: string;
@@ -31,6 +33,7 @@ export default function Chat({
   context?: OpenAIMessageWithContext;
   placeholderText?: string;
   userContext?: Record<string, string>;
+  customMessageEnhancement?: (message: OpenAIMessage, index: number) => React.ReactNode;
 }) {
   const [errorMessage, setErrorMessage] = useState<{
     title: string;
@@ -66,7 +69,7 @@ export default function Chat({
   }, [messages]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -82,7 +85,7 @@ export default function Chat({
         sessionId,
         user ? user : userName,
         userName,
-        userContext,
+        userContext
       );
     }
 
@@ -111,7 +114,7 @@ export default function Chat({
 
   function concatenateMessages(messagesFromOneUser: Message[]) {
     messagesFromOneUser.sort(
-      (a, b) => a.created_at.getTime() - b.created_at.getTime(),
+      (a, b) => a.created_at.getTime() - b.created_at.getTime()
     );
     return messagesFromOneUser
       .map((message) => `${message.role} : ${message.content}`)
@@ -123,26 +126,25 @@ export default function Chat({
     sessionId: string | undefined,
     user: any,
     userName?: string,
-    userContext?: Record<string, string>,
+    userContext?: Record<string, string>
   ) {
     const chatMessages = [];
     if (context?.userData) {
       const allUsersMessages = await db.getAllMessagesForUsersSorted(
-        context.userData,
+        context.userData
       );
-      const messagesByThread = allUsersMessages.reduce(
-        (acc, message) => {
-          acc[message.thread_id] = acc[message.thread_id] || []; // to make sure this array exists
-          acc[message.thread_id].push(message);
-          return acc;
-        },
-        {} as Record<string, Message[]>,
-      );
+      const messagesByThread = allUsersMessages.reduce((acc, message) => {
+        acc[message.thread_id] = acc[message.thread_id] || []; // to make sure this array exists
+        acc[message.thread_id].push(message);
+        return acc;
+      }, {} as Record<string, Message[]>);
       chatMessages.push('\n----START CHAT HISTORY for CONTEXT----\n');
       const concatenatedUserMessages = Object.entries(messagesByThread).map(
         ([threadId, messages]) => {
-          return `\n----START NEXT USER CHAT----\n${concatenateMessages(messages)}\n----END USER CHAT----\n`;
-        },
+          return `\n----START NEXT USER CHAT----\n${concatenateMessages(
+            messages
+          )}\n----END USER CHAT----\n`;
+        }
       );
       chatMessages.push(...concatenatedUserMessages);
       chatMessages.push('\n----END CHAT HISTORY for CONTEXT----\n');
@@ -151,11 +153,11 @@ export default function Chat({
 
     const userContextPrompt = userContext
       ? `IMPORTANT USER INFORMATION:\nPlease consider the following user details in your responses:\n${Object.entries(
-          userContext,
+          userContext
         )
           .map(([key, value]) => `- ${key}: ${value}`)
           .join(
-            '\n',
+            '\n'
           )}\n\nPlease tailor your responses appropriately based on this user information.`
       : '';
 
@@ -187,7 +189,7 @@ export default function Chat({
             thread_id: threadIdRef.current,
             role: 'user',
             content: `User shared the following context:\n${Object.entries(
-              userContext || {},
+              userContext || {}
             )
               .map(([key, value]) => `${key}: ${value}`)
               .join('; ')}`,
@@ -195,7 +197,7 @@ export default function Chat({
           }).catch((error) => {
             console.log('Error in insertChatMessage: ', error);
             showErrorToast(
-              'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can',
+              'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can'
             );
           });
           console.log('Inserting new session with initial data: ', data);
@@ -241,7 +243,7 @@ export default function Chat({
         sessionId,
         user ? user : userName,
         userName,
-        userContext,
+        userContext
       ).then((threadSessionId) => {
         handleSubmit(undefined, true, threadSessionId);
       });
@@ -251,7 +253,7 @@ export default function Chat({
   const handleSubmit = async (
     e?: React.FormEvent,
     isAutomatic?: boolean,
-    threadSessionId?: string,
+    threadSessionId?: string
   ) => {
     if (e) {
       e.preventDefault();
@@ -296,7 +298,7 @@ export default function Chat({
         }).catch((error) => {
           console.log('Error in insertChatMessage: ', error);
           showErrorToast(
-            'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can',
+            'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can'
           );
         });
       }
@@ -329,10 +331,10 @@ export default function Chat({
             ]).catch((error) => {
               console.log(
                 'Error storing answer or updating last edit: ',
-                error,
+                error
               );
               showErrorToast(
-                `Uhm; there should be an answer, but we couldn't store it. It won't show up in the summary, but everything else should be fine. Please continue.`,
+                `Uhm; there should be an answer, but we couldn't store it. It won't show up in the summary, but everything else should be fine. Please continue.`
               );
             });
           }
@@ -356,7 +358,7 @@ export default function Chat({
   // Focus the textarea when the component mounts
   useEffect(() => {
     const textarea = textareaRef.current;
-    if (entryMessage) {
+    if (entryMessage && messages.length === 0) {
       addMessage(entryMessage);
     }
     if (textarea) {
@@ -372,7 +374,12 @@ export default function Chat({
     <div className="h-full flex-grow flex flex-col">
       <div className="h-full flex-grow overflow-y-auto mb-100px">
         {messages.map((message, index) => (
-          <ChatMessage key={index} message={message} />
+          <div className="group">
+            {customMessageEnhancement
+              ? customMessageEnhancement(message, index)
+              : <ChatMessage key={index} message={message} />
+            }
+          </div>
         ))}
         {errorToastMessage && (
           <div className="fixed top-4 right-4 bg-red-500 text-white py-2 px-4 rounded shadow-lg">
@@ -396,7 +403,7 @@ export default function Chat({
         <div ref={messagesEndRef} />
       </div>
 
-      <form className="space-y-4 mt-4 -mx-6 mb-4" onSubmit={handleSubmit}>
+      <form className="space-y-4 mt-4 -mx-6" onSubmit={handleSubmit}>
         <div className="relative">
           <Textarea
             name="messageText"

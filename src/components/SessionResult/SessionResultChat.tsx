@@ -1,8 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Chat from '@/components/chat';
-import { UserSession } from '@/lib/schema_updated';
+import { UserSession } from '@/lib/schema';
+import { OpenAIMessage } from "@/lib/types";
+import { useEffect, useState } from "react";
+import { getAssistantId } from "@/lib/serverUtils";
 
-export default function SessionResultChat({ userData }: { userData: UserSession[] }) {
+export default function SessionResultChat({
+  userData,
+  customMessageEnhancement
+}: {
+  userData: UserSession[];
+  customMessageEnhancement?: (message: OpenAIMessage, index: number) => React.ReactNode;
+  }) {
+    const [assistantId, setAssistantId] = useState('') 
+
+    useEffect(() => {
+      getAssistantId('RESULT_CHAT_ASSISTANT').then(setAssistantId)
+    }, [])
+  
   return (
     <Card className="h-auto border-yellow-400">
       <CardHeader className="bg-yellow-50 border-gray-200 rounded-md">
@@ -10,15 +25,15 @@ export default function SessionResultChat({ userData }: { userData: UserSession[
           <img src="/monica_chat_icon.svg" alt="" className="h-10 w-10 mr-2" />Ask AI
         </CardTitle>
       </CardHeader>
-      <CardContent className="h-auto">
-        {userData && userData.length > 0 && (
+      <CardContent className="max-h-[80vh] overflow-auto pb-0">
+        {userData && userData.length > 0 && assistantId && (
           <Chat
             context={{
               role: 'assistant',
               content: `You will be asked questions based on the session data. Answer short.`,
-              userData: userData,
+              userData: userData.filter((user) => user.include_in_summary),
             }}
-            assistantId={process.env.RESULT_CHAT_ASSISTANT ?? 'asst_LQospxVfX4vMTONASzSkSUwb'} 
+            assistantId={assistantId} 
             entryMessage={{
               role: 'assistant',
               content: `Hi there! Consider me your expert analyst, I can help you to better understand your session.
@@ -29,7 +44,8 @@ Here are a few examples of what you can ask me:
   - Generate a report on the session
             `
           }}
-          placeholderText="What would you like to know?"
+            placeholderText="What would you like to know?"
+            customMessageEnhancement={customMessageEnhancement}
           />
         )}
       </CardContent>

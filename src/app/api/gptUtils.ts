@@ -1,12 +1,22 @@
 'use server';
-import { NewMessage } from '@/lib/schema_updated';
-import { AssistantMessageData, OpenAIMessage } from '@/lib/types';
+import { NewMessage } from '@/lib/schema';
+import { AssistantBuilderData, AssistantMessageData, OpenAIMessage } from '@/lib/types';
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+export async function handleCreateAssistant(data: AssistantBuilderData) {
+  // console.log('Creating assistant for data: ', data);
+  const assistant = await client.beta.assistants.create({
+    name: data.name,
+    instructions: data.prompt,
+    model: 'gpt-4o-mini',
+  });
+  return assistant.id;
+}
 
 export async function handleCreateThread(
   messageData?: OpenAIMessage,

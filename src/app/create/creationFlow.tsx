@@ -5,10 +5,10 @@ import CreateSession from './create';
 import ReviewPrompt from './review';
 import LoadingMessage from './loading';
 import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
-import { sendApiCall } from '@/lib/utils';
+import { sendApiCall } from '@/lib/clientUtils';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NewHostSession } from '@/lib/schema_updated';
+import { NewHostSession } from '@/lib/schema';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
 import { encryptId } from '@/lib/encryptionUtils';
@@ -20,6 +20,7 @@ import { StepNavigation } from './StepNavigation';
 import { LaunchModal } from './LaunchModal';
 import { Step, STEPS } from './types';
 import { createPromptContent } from 'app/api/utils';
+import { error } from 'console';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -53,9 +54,7 @@ export default function CreationFlow() {
   const [activeStep, setActiveStep] = useState<Step>(STEPS[0]);
   const [threadId, setThreadId] = useState('');
   const [builderAssistantId, setBuilderAssistantId] = useState('');
-  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>(
-    [],
-  );
+  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>([]);
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
@@ -66,6 +65,7 @@ export default function CreationFlow() {
   const [participantQuestions, setParticipantQuestions] = useState<
     QuestionInfo[]
   >([]);
+  const [, setThrowError] = useState(); // This can be used to throw errors from async functions that react will handle in the
 
   const [
     createNewPromptBecauseCreationContentChanged,
@@ -106,11 +106,6 @@ export default function CreationFlow() {
     goal: '',
     critical: '',
     context: '',
-    createSummary: false,
-    summaryFeedback: false,
-    requireContext: false,
-    contextDescription: '',
-    enableSkipSteps: false,
   });
 
   const onFormDataChange = (form: Partial<SessionBuilderData>) => {
@@ -135,12 +130,18 @@ export default function CreationFlow() {
     setIsLoading(true);
     enabledSteps[1] = true;
     setActiveStep('Refine');
-    if (prompts.length == 0) {
-      await getInitialPrompt();
-    } else if (createNewPromptBecauseCreationContentChanged) {
-      await handleCreatePrompt();
-    } else {
-      setIsLoading(false);
+    try {
+      if (prompts.length == 0) {
+        await getInitialPrompt();
+      } else if (createNewPromptBecauseCreationContentChanged) {
+        await handleCreatePrompt();
+      } else {
+        setIsLoading(false);
+      }
+    } catch (error) {
+      setThrowError(() => {
+        throw error;
+      });
     }
   };
 
@@ -159,68 +160,86 @@ export default function CreationFlow() {
       },
     };
 
-    const newPromptResponse = await sendApiCall(payload);
-    latestFullPromptRef.current = newPromptResponse.fullPrompt;
+    try {
+      const newPromptResponse = await sendApiCall(payload);
+      latestFullPromptRef.current = newPromptResponse.fullPrompt;
 
-    getStreamOfSummary({
-      threadId,
-      assistantId: builderAssistantId,
-    });
+      getStreamOfSummary({
+        threadId,
+        assistantId: builderAssistantId,
+      });
+    } catch (error) {
+      setThrowError(() => {
+        throw error;
+      });
+    }
   };
 
   const handleShareComplete = async (
     e: React.FormEvent,
-    mode: 'launch' | 'draft' = 'launch',
+    mode: 'launch' | 'draft' = 'launch'
   ) => {
     e.preventDefault();
     setIsLoading(true);
-    const prompt = prompts[currentVersion - 1].fullPrompt;
+    const currentPrompt = prompts[currentVersion - 1];
+    const prompt = currentPrompt.fullPrompt;
+    const promptSummary = currentPrompt.summary;
 
-    const assistantResponse = await sendApiCall({
-      action: ApiAction.CreateAssistant,
-      target: ApiTarget.Builder,
-      data: {
+    try {
+      const assistantResponse = await sendApiCall({
+        action: ApiAction.CreateAssistant,
+        target: ApiTarget.Builder,
+        data: {
+          prompt: prompt,
+          name: formData.sessionName,
+        },
+      });
+
+      deleteTemporaryAssistants(temporaryAssistantIds);
+
+      const data: NewHostSession = {
+        template: assistantResponse.assistantId,
+        topic: formData.sessionName,
         prompt: prompt,
-        name: formData.sessionName,
-      },
-    });
+        num_sessions: 0,
+        num_finished: 0,
+        active: mode === 'launch', // Set active based on mode
+        final_report_sent: false,
+        start_time: new Date(),
+        goal: formData.goal,
+        critical: formData.critical,
+        context: formData.context,
+        prompt_summary: promptSummary,
+        questions: JSON.stringify(
+          participantQuestions.map((q) => ({
+            id: q.id,
+            label: q.label,
+            type: q.type,
+            typeValue: q.typeValue,
+            required: q.required,
+            options: q.options,
+          }))
+        ) as unknown as JSON,
+      };
 
-    deleteTemporaryAssistants(temporaryAssistantIds);
+      const sessionIds = await db.insertHostSessions(data);
+      const session_id = sessionIds[0];
 
-    const data: NewHostSession = {
-      template: assistantResponse.assistantId,
-      topic: formData.sessionName,
-      prompt: prompt,
-      num_sessions: 0,
-      num_finished: 0,
-      active: mode === 'launch', // Set active based on mode
-      final_report_sent: false,
-      start_time: new Date(),
-      questions: JSON.stringify(
-        participantQuestions.map((q) => ({
-          id: q.id,
-          label: q.label,
-          type: q.type,
-          typeValue: q.typeValue,
-          required: q.required,
-          options: q.options,
-        })),
-      ) as unknown as JSON,
-    };
+      // Set cookie
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30);
+      document.cookie = `sessionId=${session_id}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
 
-    const sessionIds = await db.insertHostSessions(data);
-    const session_id = sessionIds[0];
-
-    // Set cookie
-    const expirationDate = new Date();
-    expirationDate.setDate(expirationDate.getDate() + 30);
-    document.cookie = `sessionId=${session_id}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
-
-    // Navigate based on mode
-    if (mode === 'launch') {
-      route.push(`/sessions/${encryptId(session_id)}`);
-    } else {
-      route.push('/');
+      // Navigate based on mode
+      if (mode === 'launch') {
+        route.push(`/sessions/${encryptId(session_id)}`);
+      } else {
+        route.push('/');
+      }
+    } catch (error) {
+      setThrowError(() => {
+        throw error;
+      });
     }
   };
 
@@ -265,6 +284,7 @@ export default function CreationFlow() {
     ) : (
       <ReviewPrompt
         prompts={prompts}
+        setPrompts={setPrompts}
         streamingPrompt={streamingPromptRef.current}
         currentVersion={currentVersion}
         setCurrentVersion={setCurrentVersion}
@@ -283,7 +303,9 @@ export default function CreationFlow() {
   return (
     <div className="min-h-screen pt-16 sm:px-14 pb-16 bg-gray-50 dark:bg-gray-900">
       <div
-        className={`mx-auto items-center align-middle ${isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'}`}
+        className={`mx-auto items-center align-middle ${
+          isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
+        }`}
       >
         <StepHeader />
 
@@ -325,11 +347,11 @@ export default function CreationFlow() {
             activeStep === 'Create'
               ? handleCreateComplete
               : activeStep === 'Share'
-                ? (e) => {
-                    e.preventDefault();
-                    setShowLaunchModal(true);
-                  }
-                : handleReviewComplete
+              ? (e) => {
+                  e.preventDefault();
+                  setShowLaunchModal(true);
+                }
+              : handleReviewComplete
           }
           nextLabel={activeStep === 'Share' ? 'Launch' : undefined}
         />
@@ -407,31 +429,24 @@ export default function CreationFlow() {
         threadId: threadId,
         assistantId: assistantId,
         instructions: `
-            Summarize the template instructions which you just created in a concise manner and easy to read.
-  
-            Provide a very brief overview of the structure of this template, the key questions, and about the desired outcome.
-  
-            Format this in html.
-            Example Summary:
-  
-            <h2 class="text-xl font-bold mb-2">Structure</h2>
-            <ul class="list-disc pl-5 mb-4">
-              <li>3 short questions to find out xyz</li>
-              <li>Relevant follow ups that focus on finding key information</li>
-            </ul>
-  
-            <h2 class="text-xl font-bold mb-2">Questions</h2>
-            <ol class="list-decimal pl-5 mb-4">
-              <li>[Question1, possibly paraphrased]</li>
-              <li>[Question2, possibly paraphrased]</li>
-              <li>[QuestionN, possibly paraphrased]</li>
-            </ol>
-  
-            <h2 class="text-xl font-bold mb-2">Outcome</h2>
-            <p class="mb-4">
-              A list of each participant's <span class="font-semibold">ideas</span> will be collected and <span class="font-semibold">sorted by priority</span>.
-              Any <span class="font-semibold">concerns and downsides</span> will be highlighted. This should help to <span class="font-semibold">[achieve goal abc]</span>.
-            </p>
+Summarize the template instructions which you just created in a concise manner and easy to read.
+
+Provide a very brief overview of the structure of this template, the key questions, and about the desired outcome.
+
+Format this in Markdown.
+Example Summary:
+
+## Structure
+* 3 short questions to find out xyz
+* Relevant follow ups that focus on finding key information
+## Questions
+1. [Question1, possibly paraphrased]
+2. [Question2, possibly paraphrased]
+N. [QuestionN, possibly paraphrased]
+
+## Outcome
+A list of each participant's **ideas** will be collected and **sorted by priority**.
+Any **concerns and downsides** will be highlighted. This should help to **[achieve session_objective]**.
             `,
       },
     });

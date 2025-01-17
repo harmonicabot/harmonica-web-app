@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { HostSession, Message, UserSession } from '@/lib/schema_updated';
+import { HostSession, Message, UserSession } from '@/lib/schema';
 
 interface SessionStore {
   hostData: Record<string, HostSession>

@@ -1,4 +1,4 @@
-import { HostSession, UserSession } from '@/lib/schema_updated';
+import { HostSession, UserSession } from '@/lib/schema';
 import SessionResultControls from './SessionResultControls';
 import SessionResultShare from './SessionResultShare';
 import SessionResultStatus from './SessionResultStatus';

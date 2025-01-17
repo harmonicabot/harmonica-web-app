@@ -8,13 +8,12 @@ import SessionResultsSection from '@/components/SessionResult/SessionResultsSect
 import { decryptId } from '@/lib/encryptionUtils';
 import ErrorPage from '@/components/Error';
 import SessionResultsOverview from '@/components/SessionResult/SessionResultsOverview';
-import { getUserStats } from '@/lib/utils';
+import { getUserStats } from '@/lib/clientUtils';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 60; // in seconds
 export const revalidate = 5 * 60; // check new data only every 5 minutes
 
-// Note: this metadata generation only works if the user is logged in.
 export async function generateMetadata(
   { params }: { params: { id: string } } ,
 ): Promise<Metadata> {
@@ -32,8 +31,8 @@ export default async function SessionResult({
   try {
     const hostData = await db.getHostSessionById(decryptedId);
     const userData = await db.getUsersBySessionId(decryptedId);
-    const stats = await db.getNumUsersAndMessages([hostData])
-    const sessionsWithChat = userData.filter(user => stats[decryptedId][user.id].num_messages > 2);
+    const stats = await db.getNumUsersAndMessages([hostData.id])
+    const usersWithChat = userData.filter(user => stats[decryptedId][user.id].num_messages > 2);
     const {totalUsers, finishedUsers} = getUserStats(stats, decryptedId)
     
     if (!hostData)
@@ -63,7 +62,7 @@ export default async function SessionResult({
           />
           <SessionResultsSection
             hostData={hostData}
-            userData={sessionsWithChat}
+            userData={usersWithChat}
             id={hostData.id}
           />
         </div>

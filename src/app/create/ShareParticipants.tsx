@@ -103,7 +103,7 @@ export default function ShareParticipants({
   }, [questions, onQuestionsUpdate]);
 
   return (
-    <div className="bg-white mx-auto p-10 rounded-xl shadow p-6">
+    <div className="bg-white mx-auto rounded-xl shadow p-6">
       <QuestionContainerHeader />
       <QuestionContainer
         questions={questions}

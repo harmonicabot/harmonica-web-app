@@ -4,11 +4,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Session } from './session';
 import { Key, useEffect, useState } from 'react';
 import SortableTable from '@/components/SortableTable';
-import { HostSession } from '@/lib/schema_updated';
+import { HostSession } from '@/lib/schema';
 import * as db from '@/lib/db';
-import { getUserStats } from '@/lib/utils';
+import { getUserStats } from '@/lib/clientUtils';
 
-export type SessionData = {
+export type SessionTableData = {
   id: string;
   topic: string;
   status: string;
@@ -52,15 +52,15 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
     },
   ];
 
-  const [tableSessions, setTableSessions] = useState<SessionData[]>([]);
+  const [tableSessions, setTableSessions] = useState<SessionTableData[]>([]);
 
   useEffect(() => {
-    setAsSessionData(sessions);
+    setAsSessionTableData(sessions);
   }, []);
 
-  async function setAsSessionData(sessions: HostSession[]) {
-    const sessionToUserStats = await db.getNumUsersAndMessages(sessions); 
-    const asSessionData = sessions
+  async function setAsSessionTableData(sessions: HostSession[]) {
+    const sessionToUserStats = await db.getNumUsersAndMessages(sessions.map(s => s.id)); 
+    const asSessionTableData = sessions
       .map((session) => {
         const {totalUsers, finishedUsers} = getUserStats(sessionToUserStats, session.id)
         if (!session || !session.topic) return;
@@ -85,8 +85,8 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
           created_on,
         };
       }).filter((session) => session !== undefined);
-    if (asSessionData !== undefined) {
-      setTableSessions(asSessionData);
+    if (asSessionTableData !== undefined) {
+      setTableSessions(asSessionTableData);
     }
   }
 
@@ -97,7 +97,7 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
     );
   };
 
-  const getTableRow = (session: SessionData, index: Number) => {
+  const getTableRow = (session: SessionTableData, index: Number) => {
     return (
       <Session key={index as Key} session={session} onDelete={handleOnDelete} />
     );
