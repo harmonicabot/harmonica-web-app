@@ -41,7 +41,10 @@ export const ChatInterface = ({
         Your Session
       </p>
       <div className="flex items-center md:items-start md:flex-col justify-between w-full">
-        <h1 className="text-xl font-semibold mb-0 overflow-hidden text-ellipsis whitespace-nowrap">
+        <h1
+          className="text-xl font-semibold mb-0 overflow-hidden text-ellipsis whitespace-nowrap md:whitespace-normal md:break-words md:mb-4"
+          title={hostData?.topic}
+        >
           {hostData?.topic ?? 'Test'}
         </h1>
         {isMounted && !isLoading && (
