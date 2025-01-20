@@ -19,12 +19,11 @@ import { formatForExport } from 'app/api/exportUtils';
 import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
 import { createSummary } from '@/lib/serverUtils';
 import { OpenAIMessage } from '@/lib/types';
-import { CirclePlusIcon } from 'lucide-react';
+import { CirclePlusIcon, TrashIcon } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { HRMarkdown } from '../HRMarkdown';
 import { ChatMessage } from '../ChatMessage';
-import Split from 'react-split'
-
+import Split from 'react-split';
 
 export default function SessionResultsSection({
   hostData,
@@ -35,7 +34,8 @@ export default function SessionResultsSection({
   userData: UserSession[];
   id: string;
 }) {
-  const hasMessages = userData.filter((user) => user.include_in_summary).length > 0;
+  const hasMessages =
+    userData.filter((user) => user.include_in_summary).length > 0;
   const { hasNewMessages, lastMessage, lastSummaryUpdate } =
     checkSummaryAndMessageTimes(hostData, userData);
 
@@ -45,7 +45,8 @@ export default function SessionResultsSection({
       lastMessage > lastSummaryUpdate &&
       new Date().getTime() - lastSummaryUpdate > 1000 * 60 * 10
     ) {
-      const minutesAgo = (new Date().getTime() - lastSummaryUpdate) / (1000 * 60);
+      const minutesAgo =
+        (new Date().getTime() - lastSummaryUpdate) / (1000 * 60);
       console.log(`Last summary created ${minutesAgo} minutes ago, 
         and new messages were received since then. Creating an updated one.`);
       createSummary(hostData.id);
@@ -237,17 +238,51 @@ export default function SessionResultsSection({
     },
   };
 
+  type CustomAIResponse = {
+      id?: string;
+      position: number;
+      session_id: string;
+      content: string;
+      created_at?: Date;
+  }
+
   const [activeTab, setActiveTab] = useState(
     hostData.summary ? 'SUMMARY' : 'RESPONSES'
   );
   const [allResultsTabs, setAllResultsTabs] = useState(resultsTabs);
-  const [customAIresponses, setCustomAIresponses] = useState<OpenAIMessage[]>(
+  const [customAIresponses, setCustomAIresponses] = useState<CustomAIResponse[]>(
     []
   );
 
+  useEffect(() => {
+    db.getCustomResponsesBySessionId(hostData.id)
+      .then(res => setCustomAIresponses(res))
+  }, [])
+
   function addToResultsSection(message: OpenAIMessage) {
-    setCustomAIresponses((previousMessages) => [message, ...previousMessages]);
     setActiveTab('CUSTOM'); // Switch to custom tab when adding content
+    const customResponse = {session_id: hostData.id, content: message.content, position: customAIresponses.length || 0}
+    storeInDatabase(customResponse);
+    setCustomAIresponses((previousMessages) => [...previousMessages, customResponse]);
+  }
+  
+  function storeInDatabase(customResponse: CustomAIResponse) {
+    db.createCustomResponse(customResponse).then(res => {
+      // Update the entry with the ID returned when adding it to the db
+      if (res) {
+        setCustomAIresponses(previous => {
+          return previous.map(entry => 
+            entry === customResponse 
+              ? { ...entry, id: res.id }
+              : entry
+          );
+        });
+      }
+    });
+  }
+
+  function removeFromDatabase(response_id: string) {
+    db.deleteCustomResponse(response_id)
   }
 
   useEffect(() => {
@@ -257,10 +292,16 @@ export default function SessionResultsSection({
       resultsTabs['CUSTOM'] = {
         content: (
           <TabsContent value="CUSTOM" className="mt-4">
-            {customAIresponses.map((message) => (
-              <Card className="mb-4">
+            {customAIresponses.map((response) => (
+              <Card className="mb-4 relative">
+                <button
+                  className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100"
+                  onClick={() => response.id && removeFromDatabase(response.id)}
+                >
+                  <TrashIcon className="h-5 w-5 text-gray-500 hover:text-red-500" />
+                </button>
                 <CardContent>
-                  <HRMarkdown content={message.content} />
+                  <HRMarkdown content={response.content} />
                 </CardContent>
               </Card>
             ))}
@@ -283,13 +324,13 @@ export default function SessionResultsSection({
           {Object.values(allResultsTabs).map((results) => results.tabsTrigger)}
         </TabsList>
         <div className="flex flex-col md:flex-row gap-4">
-          <div className='hidden md:block w-full'>
-            <Split 
+          <div className="hidden md:block w-full">
+            <Split
               className="flex"
               gutter={() => {
-                const gutter = document.createElement('div')
-                gutter.className = 'hover:bg-gray-300 cursor-col-resize'
-                return gutter
+                const gutter = document.createElement('div');
+                gutter.className = 'hover:bg-gray-300 cursor-col-resize';
+                return gutter;
               }}
               sizes={[66, 34]} // Initial split ratio
               minSize={200} // Minimum width for each pane
@@ -297,7 +338,9 @@ export default function SessionResultsSection({
               snapOffset={30} // Snap to edges
             >
               <div className="overflow-auto">
-                {Object.values(allResultsTabs).map((results) => results.content)}
+                {Object.values(allResultsTabs).map(
+                  (results) => results.content
+                )}
               </div>
               <div className="overflow-auto md:w-1/3 mt-4 gap-4">
                 <SessionResultChat
@@ -315,8 +358,8 @@ export default function SessionResultsSection({
             </div>
             <div className="w-full mt-4 gap-4">
               <SessionResultChat
-                  userData={userData}
-                  customMessageEnhancement={enhancedMessage}
+                userData={userData}
+                customMessageEnhancement={enhancedMessage}
               />
             </div>
           </div>

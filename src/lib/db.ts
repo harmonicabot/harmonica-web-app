@@ -15,10 +15,13 @@ if (typeof window === 'undefined') {
 const hostTableName = 'host_db';
 const userTableName = 'user_db';
 const messageTableName = 'messages_db';
+const customResponseTableName = 'custom_responses'
+
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
   [userTableName]: s.UserSessionsTable;
   [messageTableName]: s.MessagesTable;
+  [customResponseTableName]: s.CustomResponsesTable;
 }
 
 const dbPromise = (async () => {
@@ -407,3 +410,90 @@ export async function deactivateHostSession(
     return false;
   }
 }
+
+export async function createCustomResponse(
+  customResponse: s.NewCustomResponse
+): Promise<s.CustomResponse | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .insertInto(customResponseTableName)
+      .values(customResponse)
+      .returningAll()
+      .executeTakeFirst();
+    
+    return result || null;
+  } catch (error) {
+    console.error('Error creating custom response:', error);
+    return null;
+  }
+}
+
+export async function getCustomResponseById(id: string): Promise<s.CustomResponse | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom(customResponseTableName)
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
+    
+    return result || null;
+  } catch (error) {
+    console.error('Error getting custom response by ID:', error);
+    return null;
+  }
+}
+
+export async function getCustomResponsesBySessionId(sessionId: string): Promise<s.CustomResponse[]> {
+  try {
+    const db = await dbPromise;
+    const responses = await db
+      .selectFrom(customResponseTableName)
+      .selectAll()
+      .where('session_id', '=', sessionId)
+      .orderBy('position', 'asc')
+      .execute();
+    
+    return responses;
+  } catch (error) {
+    console.error('Error getting custom responses by session ID:', error);
+    return [];
+  }
+}
+
+export async function updateCustomResponse(
+  id: string,
+  update: s.CustomResponseUpdate
+): Promise<s.CustomResponse | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .updateTable(customResponseTableName)
+      .set(update)
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirst();
+    
+    return result || null;
+  } catch (error) {
+    console.error('Error updating custom response:', error);
+    return null;
+  }
+}
+
+export async function deleteCustomResponse(id: string): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .deleteFrom(customResponseTableName)
+      .where('id', '=', id)
+      .execute();
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting custom response:', error);
+    return false;
+  }
+}
+
