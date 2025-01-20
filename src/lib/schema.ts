@@ -57,6 +57,14 @@ export interface MessagesTable {
   created_at: Generated<Date>;
 }
 
+export interface CustomResponsesTable {
+  id: Generated<string>;
+  position: number;
+  session_id: string;
+  content: string;
+  created_at: Generated<Date>;
+}
+
 export type HostSession = Selectable<HostSessionsTable>;
 export type NewHostSession = Insertable<HostSessionsTable>;
 export type HostSessionUpdate = Updateable<HostSessionsTable>;
@@ -65,15 +73,14 @@ export type NewUserSession = Insertable<UserSessionsTable>;
 export type UserSessionUpdate = Updateable<UserSessionsTable>;
 export type Message = Selectable<MessagesTable>;
 export type NewMessage = Insertable<MessagesTable>;
+export type CustomResponse = Selectable<CustomResponsesTable>
+export type NewCustomResponse = Insertable<CustomResponsesTable>
+export type CustomResponseUpdate = Updateable<CustomResponsesTable>
 
 const hostTableName = 'host_db';
 const userTableName = 'user_db';
 const messageTableName = 'messages_db';
-interface DatabasesTables {
-  [hostTableName]: HostSessionsTable;
-  [userTableName]: UserSessionsTable;
-  [messageTableName]: MessagesTable;
-}
+const customResponsesTableName = 'custom_responses'
 
 // Triggers & Setup helpers:
 
@@ -115,12 +122,32 @@ CREATE TRIGGER update_last_edit_on_chat_change
 `;
 }
 
-export async function createProdDbInstance<T extends Record<string, any>>() {
-  const db = createKysely<T>();
-  return {
-    db,
-    dbNames: { host: hostTableName, user: userTableName, message: messageTableName },  
-  };
+export async function createDbInstance<T extends Record<string, any>>() {
+  try {
+    const url = process.env.POSTGRES_URL;
+    console.log('Creating DB instance with URL:', url);
+    let db;
+    if (url?.includes('localhost')) {
+      const dialect = new PostgresDialect({
+        pool: new pg.Pool({
+          connectionString: url
+        })
+      });
+      db = new Kysely<T>({ dialect });
+    } else {
+      db = createKysely<T>()
+    }
+    
+    console.log('Database connection successful');
+    return {
+      db,
+      dbNames: { host: hostTableName, user: userTableName, message: messageTableName, customResponses: customResponsesTableName},  
+    };
+  } catch (e) {
+    console.error(e)
+    console.log("POSTGRES_URL: ", process.env.POSTGRES_URL)
+    throw e
+  }
 }
 
 export async function createCustomDbInstance<T extends Record<string, any>>(
