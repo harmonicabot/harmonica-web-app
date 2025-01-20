@@ -207,11 +207,13 @@ export default function SessionResultsSection({
     SUMMARY: {
       content: (
         <TabsContent value="SUMMARY" className="mt-4">
-          <SessionResultSummary
-            hostData={hostData}
-            hasNewMessages={hasNewMessages}
-            onUpdateSummary={() => createSummary(id)}
-          />
+          {userData.filter(usr => usr.include_in_summary).length > 0 ? (
+            <SessionResultSummary
+              hostData={hostData}
+              hasNewMessages={hasNewMessages}
+              onUpdateSummary={() => createSummary(id)}
+            />
+          ) : <Card><CardContent>Not enough responses to show a summary</CardContent></Card>}
         </TabsContent>
       ),
       tabsTrigger: (
