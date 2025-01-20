@@ -282,7 +282,23 @@ export default function SessionResultsSection({
   }
 
   function removeFromDatabase(response_id: string) {
+    console.log("Removing", response_id)
     db.deleteCustomResponse(response_id)
+    setCustomAIresponses(previous => {
+      const filtered = previous.filter(response => response.id !== response_id)
+      const updatedResponses = filtered.map((response, index) => ({
+        ...response,
+        position: index
+      }))
+      // Update positions in database
+      updatedResponses.forEach(response => {
+        console.log("Pos: ", response.position)
+        if (response.id) {
+          db.updateCustomResponse(response.id, { position: response.position })
+        }
+      })
+      return updatedResponses
+    })
   }
 
   useEffect(() => {

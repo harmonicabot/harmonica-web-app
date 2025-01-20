@@ -27,7 +27,7 @@ async function migrate() {
   // Damn. At least when running locally on my machine, the .env variables are somehow cached; and not loaded reliably
   console.log(`Using connection `, process.env.POSTGRES_URL)
 
-  const { db } = await createDbInstance();
+  const db = await createDbInstance();
 
   const migrator = new Migrator({
     db,

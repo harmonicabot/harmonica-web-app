@@ -139,10 +139,7 @@ export async function createDbInstance<T extends Record<string, any>>() {
     }
     
     console.log('Database connection successful');
-    return {
-      db,
-      dbNames: { host: hostTableName, user: userTableName, message: messageTableName, customResponses: customResponsesTableName},  
-    };
+    return db;
   } catch (e) {
     console.error(e)
     console.log("POSTGRES_URL: ", process.env.POSTGRES_URL)
