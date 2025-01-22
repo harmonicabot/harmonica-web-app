@@ -1,0 +1,284 @@
+import { HostSession, UserSession } from '@/lib/schema';
+import { TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@radix-ui/react-tabs';
+import React, { useEffect, useMemo, useState } from 'react';
+
+import SessionResultChat from './SessionResultChat';
+import SessionParticipantsTable from './SessionParticipantsTable';
+import SessionResultSummary from './SessionResultSummary';
+import * as db from '@/lib/db';
+import { createSummary } from '@/lib/serverUtils';
+import { OpenAIMessage } from '@/lib/types';
+import { TrashIcon } from 'lucide-react';
+import { Card, CardContent } from '../ui/card';
+import { HRMarkdown } from '../HRMarkdown';
+import Split from 'react-split';
+
+import { CirclePlusIcon } from 'lucide-react';
+import { ChatMessage } from '../ChatMessage';
+
+
+type ResultsTabs = Record<
+    string,
+    {
+      content: React.ReactNode;
+      tabsTrigger: React.ReactNode;
+    }
+  >;
+
+export default function ResultTabs({
+  hostData,
+  userData,
+  id,
+  hasNewMessages
+}: {
+  hostData: HostSession;
+  userData: UserSession[];
+    id: string;
+    hasNewMessages:  boolean;
+}) {
+
+  const initialIncluded = userData.filter(user => user.include_in_summary).map(user => user.id);
+  // This will be updated with 'includeInSummary' toggles
+  const [updatedUserIds, setUpdatedUserIds] = useState<string[]>(
+    initialIncluded
+  );
+  // This is the base set used to figure out whether the summary should be updateable
+  const [initialUserIds, setInitialUserIds] = useState<string[]>(
+    initialIncluded
+  );
+
+  const [newSummaryContentAvailable, setNewSummaryContentAvailable] = useState(hasNewMessages);
+
+  // Helper function to compare arrays
+  const areArraysEqual = (a: string[], b: string[]) =>
+    a.length === b.length && a.every((val, idx) => b[idx] === val);
+
+  // Update the 'summary update' refresh button
+  useEffect(() => {
+    const usersChanged = !areArraysEqual(initialUserIds.sort(), updatedUserIds.sort());
+    
+    if (usersChanged) {
+      setNewSummaryContentAvailable(true);
+    }
+  }, [updatedUserIds]);
+  
+
+  const showSummary = () => {
+    console.log("UserIds to show a summary for: ", updatedUserIds)
+    return updatedUserIds.length > 0;
+  }
+
+  const enhancedMessage = (message: OpenAIMessage, key: number) => {
+    if (message.role === 'assistant' && key > 0) {
+      return (
+        <>
+          <ChatMessage {...{ message, key }} />
+          <div
+            className="opacity-0 group-hover:opacity-100 flex flex-row 
+            justify-center items-center cursor-pointer rounded-md 
+            transition-all bg-yellow-100"
+            onClick={() => addToResultsSection(message)}
+          >
+            <CirclePlusIcon className="h-4 w-4 mr-4" />
+            Add to Results
+          </div>
+        </>
+      );
+    }
+    return <ChatMessage {...{ message, key }} />;
+  };
+
+  const resultsTabs: ResultsTabs = useMemo(() => ({
+    SUMMARY: {
+      content: (
+        <TabsContent value="SUMMARY" className="mt-4">
+          {showSummary() ? (
+            <SessionResultSummary
+              hostData={hostData}
+              newSummaryContentAvailable={newSummaryContentAvailable}
+              onUpdateSummary={() => {
+                createSummary(id)
+                setInitialUserIds(updatedUserIds)
+              }}
+            />
+          ) : <Card><CardContent>Not enough responses to show a summary</CardContent></Card>}
+        </TabsContent>
+      ),
+      tabsTrigger: (
+        <TabsTrigger
+          className="ms-0"
+          value="SUMMARY"
+          onClick={() => hostData.summary ? () => { } : () => {
+            createSummary(id)
+            setInitialUserIds(updatedUserIds)
+          }}
+        >
+          Summary
+        </TabsTrigger>
+      ),
+    },
+    RESPONSES: {
+      content: (
+        <TabsContent value="RESPONSES" className="mt-4">
+          <SessionParticipantsTable
+            userData={userData}
+            onIncludeInSummaryChange={(ids) => setUpdatedUserIds(ids)}
+          />
+        </TabsContent>
+      ),
+      tabsTrigger: (
+        <TabsTrigger className="ms-0" value="RESPONSES">
+          Responses
+        </TabsTrigger>
+      ),
+    },
+  }), [updatedUserIds, hostData, newSummaryContentAvailable, id]);
+
+
+  type CustomAIResponse = {
+    id?: string;
+    position: number;
+    session_id: string;
+    content: string;
+    created_at?: Date;
+  }
+
+  const [activeTab, setActiveTab] = useState(
+    hostData.summary ? 'SUMMARY' : 'RESPONSES'
+  );
+  const [allResultsTabs, setAllResultsTabs] = useState(resultsTabs);
+  const [customAIresponses, setCustomAIresponses] = useState<CustomAIResponse[]>(
+    []
+  );
+
+  useEffect(() => {
+    db.getCustomResponsesBySessionId(hostData.id)
+      .then(res => setCustomAIresponses(res))
+  }, [])
+
+  function addToResultsSection(message: OpenAIMessage) {
+    setActiveTab('CUSTOM'); // Switch to custom tab when adding content
+    const customResponse = { session_id: hostData.id, content: message.content, position: customAIresponses.length || 0 }
+    storeInDatabase(customResponse);
+    setCustomAIresponses((previousMessages) => [...previousMessages, customResponse]);
+  }
+  
+  function storeInDatabase(customResponse: CustomAIResponse) {
+    db.createCustomResponse(customResponse).then(res => {
+      // Update the entry with the ID returned when adding it to the db
+      if (res) {
+        setCustomAIresponses(previous => {
+          return previous.map(entry =>
+            entry === customResponse
+              ? { ...entry, id: res.id }
+              : entry
+          );
+        });
+      }
+    });
+  }
+
+  function removeFromDatabase(response_id: string) {
+    console.log("Removing", response_id)
+    db.deleteCustomResponse(response_id)
+    setCustomAIresponses(previous => {
+      const filtered = previous.filter(response => response.id !== response_id)
+      const updatedResponses = filtered.map((response, index) => ({
+        ...response,
+        position: index
+      }))
+      // Update positions in database
+      updatedResponses.forEach(response => {
+        console.log("Pos: ", response.position)
+        if (response.id) {
+          db.updateCustomResponse(response.id, { position: response.position })
+        }
+      })
+      return updatedResponses
+    })
+  }
+
+  useEffect(() => {
+    if (customAIresponses.length === 0) {
+      delete resultsTabs['CUSTOM'];
+    } else {
+      resultsTabs['CUSTOM'] = {
+        content: (
+          <TabsContent value="CUSTOM" className="mt-4">
+            {customAIresponses.map((response) => (
+              <Card className="mb-4 relative">
+                <button
+                  className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100"
+                  onClick={() => response.id && removeFromDatabase(response.id)}
+                >
+                  <TrashIcon className="h-5 w-5 text-gray-500 hover:text-red-500" />
+                </button>
+                <CardContent>
+                  <HRMarkdown content={response.content} />
+                </CardContent>
+              </Card>
+            ))}
+          </TabsContent>
+        ),
+        tabsTrigger: (
+          <TabsTrigger className="ms-0" value="CUSTOM">
+            Custom Ask AI responses
+          </TabsTrigger>
+        ),
+      };
+    }
+    setAllResultsTabs(resultsTabs);
+  }, [customAIresponses]);
+
+  return (
+    <>
+      <Tabs className="mb-4" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          {Object.values(allResultsTabs).map((results) => results.tabsTrigger)}
+        </TabsList>
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="hidden md:block w-full">
+            <Split
+              className="flex"
+              gutter={() => {
+                const gutter = document.createElement('div');
+                gutter.className = 'hover:bg-gray-300 cursor-col-resize';
+                return gutter;
+              }}
+              sizes={[66, 34]} // Initial split ratio
+              minSize={200} // Minimum width for each pane
+              gutterSize={8} // Size of the draggable gutter
+              snapOffset={30} // Snap to edges
+            >
+              <div className="overflow-auto">
+                {Object.values(allResultsTabs).map(
+                  (results) => results.content
+                )}
+              </div>
+              <div className="overflow-auto md:w-1/3 mt-4 gap-4">
+                <SessionResultChat
+                  userData={userData}
+                  customMessageEnhancement={enhancedMessage}
+                />
+              </div>
+            </Split>
+          </div>
+
+          {/* On small screens show the same but in rows instead of split cols: */}
+          <div className="md:hidden w-full flex flex-col gap-4">
+            <div className="w-full">
+              {Object.values(allResultsTabs).map((results) => results.content)}
+            </div>
+            <div className="w-full mt-4 gap-4">
+              <SessionResultChat
+                userData={userData}
+                customMessageEnhancement={enhancedMessage}
+              />
+            </div>
+          </div>
+        </div>
+      </Tabs>
+    </>
+  );
+}
