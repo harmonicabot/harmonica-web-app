@@ -20,19 +20,10 @@ export default function ParicipantSessionRow({
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [includeInSummary, setIncludeInSummary] = useState(tableData.includeInSummary);
-  console.log("Initial includeInSummary: ", includeInSummary);
 
   const handleIncludeInSummaryUpdate = async (updatedIncluded: boolean) => {
-    console.log("Toggled. New state: ", updatedIncluded)
     onIncludeChange(userData.id, updatedIncluded);
-    
-    // State updates are NOT immediate, so need to assign this to a temp var
-    // const updatedValue = !includeInSummary;
     setIncludeInSummary(updatedIncluded);
-    // await updateUserSession(userData.id, { 
-    //   include_in_summary: updatedValue
-    // });
-    // onIncludeChange(userData.id, updatedValue);
   };
 
   const handleViewClick = async () => {

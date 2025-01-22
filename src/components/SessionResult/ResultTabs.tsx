@@ -1,70 +1,64 @@
+import React, { useEffect, useState } from 'react';
+import * as db from '@/lib/db';
 import { HostSession, UserSession } from '@/lib/schema';
-import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
-import React, { useEffect, useMemo, useState } from 'react';
+import { TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 
 import SessionResultChat from './SessionResultChat';
 import SessionParticipantsTable from './SessionParticipantsTable';
 import SessionResultSummary from './SessionResultSummary';
-import * as db from '@/lib/db';
+import { ChatMessage } from '../ChatMessage';
 import { createSummary } from '@/lib/serverUtils';
 import { OpenAIMessage } from '@/lib/types';
-import { TrashIcon } from 'lucide-react';
-import { Card, CardContent } from '../ui/card';
+import { TrashIcon, CirclePlusIcon } from 'lucide-react';
 import { HRMarkdown } from '../HRMarkdown';
 import Split from 'react-split';
-
-import { CirclePlusIcon } from 'lucide-react';
-import { ChatMessage } from '../ChatMessage';
-
-
-type ResultsTabs = Record<
-    string,
-    {
-      content: React.ReactNode;
-      tabsTrigger: React.ReactNode;
-    }
-  >;
 
 export default function ResultTabs({
   hostData,
   userData,
   id,
-  hasNewMessages
+  hasNewMessages,
 }: {
   hostData: HostSession;
   userData: UserSession[];
-    id: string;
-    hasNewMessages:  boolean;
-}) {
-
-  const initialIncluded = userData.filter(user => user.include_in_summary).map(user => user.id);
+  id: string;
+  hasNewMessages: boolean;
+  }) {
+  
+  // We need this to check if we should show the summary or not, and whether the summary should be updateable
+  const initialIncluded = userData
+    .filter((user) => user.include_in_summary)
+    .map((user) => user.id);
+  console.log("Initial included: ", initialIncluded);
   // This will be updated with 'includeInSummary' toggles
-  const [updatedUserIds, setUpdatedUserIds] = useState<string[]>(
-    initialIncluded
-  );
+  const [updatedUserIds, setUpdatedUserIds] =
+    useState<string[]>(initialIncluded);
   // This is the base set used to figure out whether the summary should be updateable
-  const [initialUserIds, setInitialUserIds] = useState<string[]>(
-    initialIncluded
-  );
+  const [initialUserIds, setInitialUserIds] =
+    useState<string[]>(initialIncluded);
 
   const updateIncludedInSummaryList = (userId: string, included: boolean) => {
     const includedIds = userData
-      .filter(user => user.include_in_summary)
-      .map(user => user.id);
+      .filter((user) => user.include_in_summary)
+      .map((user) => user.id);
     if (included) {
       includedIds.push(userId);
     } else {
       includedIds.splice(includedIds.indexOf(userId), 1);
     }
     setUpdatedUserIds(includedIds);
-    db.updateUserSession(userId, { 
-      include_in_summary: included
+    db.updateUserSession(userId, {
+      include_in_summary: included,
     });
-    userData.find(user => user.id === userId)!.include_in_summary = included;
+    userData.find((user) => user.id === userId)!.include_in_summary = included;
   };
 
-  const [newSummaryContentAvailable, setNewSummaryContentAvailable] = useState(hasNewMessages);
+  const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
+    useState(hasNewMessages);
+  console.log("New summary content available: ", newSummaryContentAvailable);
+  
 
   // Helper function to compare arrays
   const areArraysEqual = (a: string[], b: string[]) =>
@@ -72,18 +66,18 @@ export default function ResultTabs({
 
   // Update the 'summary update' refresh button
   useEffect(() => {
-    const usersChanged = !areArraysEqual(initialUserIds.sort(), updatedUserIds.sort());
-    
-    if (usersChanged) {
-      setNewSummaryContentAvailable(true);
-    }
+    const usersChanged = !areArraysEqual(
+      initialUserIds.sort(),
+      updatedUserIds.sort()
+    );
+
+    setNewSummaryContentAvailable(hasNewMessages || usersChanged);
   }, [updatedUserIds]);
-  
 
   const showSummary = () => {
-    console.log("UserIds to show a summary for: ", updatedUserIds)
+    console.log('UserIds to show a summary for: ', updatedUserIds);
     return updatedUserIds.length > 0;
-  }
+  };
 
   const enhancedMessage = (message: OpenAIMessage, key: number) => {
     if (message.role === 'assistant' && key > 0) {
@@ -111,35 +105,42 @@ export default function ResultTabs({
     session_id: string;
     content: string;
     created_at?: Date;
-  }
+  };
 
   const [activeTab, setActiveTab] = useState(
     hostData.summary ? 'SUMMARY' : 'RESPONSES'
   );
-  const [customAIresponses, setCustomAIresponses] =
-    useState<CustomAIResponse[]>([]);
+  const [customAIresponses, setCustomAIresponses] = useState<
+    CustomAIResponse[]
+  >([]);
 
   useEffect(() => {
-    db.getCustomResponsesBySessionId(hostData.id)
-      .then(res => setCustomAIresponses(res))
-  }, [])
+    db.getCustomResponsesBySessionId(hostData.id).then((res) =>
+      setCustomAIresponses(res)
+    );
+  }, []);
 
   function addCustomAiResponse(message: OpenAIMessage) {
     setActiveTab('CUSTOM'); // Switch to custom tab when adding content
-    const customResponse = { session_id: hostData.id, content: message.content, position: customAIresponses.length || 0 }
+    const customResponse = {
+      session_id: hostData.id,
+      content: message.content,
+      position: customAIresponses.length || 0,
+    };
     storeInDatabase(customResponse);
-    setCustomAIresponses((previousMessages) => [...previousMessages, customResponse]);
+    setCustomAIresponses((previousMessages) => [
+      ...previousMessages,
+      customResponse,
+    ]);
   }
-  
+
   function storeInDatabase(customResponse: CustomAIResponse) {
-    db.createCustomResponse(customResponse).then(res => {
+    db.createCustomResponse(customResponse).then((res) => {
       // Update the entry with the ID returned when adding it to the db
       if (res) {
-        setCustomAIresponses(previous => {
-          return previous.map(entry =>
-            entry === customResponse
-              ? { ...entry, id: res.id }
-              : entry
+        setCustomAIresponses((previous) => {
+          return previous.map((entry) =>
+            entry === customResponse ? { ...entry, id: res.id } : entry
           );
         });
       }
@@ -147,23 +148,25 @@ export default function ResultTabs({
   }
 
   function removeFromDatabase(response_id: string) {
-    console.log("Removing", response_id)
-    db.deleteCustomResponse(response_id)
-    setCustomAIresponses(previous => {
-      const filtered = previous.filter(response => response.id !== response_id)
+    console.log('Removing', response_id);
+    db.deleteCustomResponse(response_id);
+    setCustomAIresponses((previous) => {
+      const filtered = previous.filter(
+        (response) => response.id !== response_id
+      );
       const updatedResponses = filtered.map((response, index) => ({
         ...response,
-        position: index
-      }))
+        position: index,
+      }));
       // Update positions in database
-      updatedResponses.forEach(response => {
-        console.log("Pos: ", response.position)
+      updatedResponses.forEach((response) => {
+        console.log('Pos: ', response.position);
         if (response.id) {
-          db.updateCustomResponse(response.id, { position: response.position })
+          db.updateCustomResponse(response.id, { position: response.position });
         }
-      })
-      return updatedResponses
-    })
+      });
+      return updatedResponses;
+    });
   }
 
   return (
@@ -173,10 +176,14 @@ export default function ResultTabs({
           <TabsTrigger
             className="ms-0"
             value="SUMMARY"
-            onClick={() => hostData.summary ? () => { } : () => {
-              createSummary(id)
-              setInitialUserIds(updatedUserIds)
-            }}
+            onClick={() =>
+              hostData.summary
+                ? () => {}
+                : () => {
+                    createSummary(id);
+                    setInitialUserIds(updatedUserIds);
+                  }
+            }
           >
             Summary
           </TabsTrigger>
@@ -210,11 +217,16 @@ export default function ResultTabs({
                       hostData={hostData}
                       newSummaryContentAvailable={newSummaryContentAvailable}
                       onUpdateSummary={() => {
-                        createSummary(id)
-                        setInitialUserIds(updatedUserIds)
+                        setInitialUserIds(updatedUserIds);
                       }}
                     />
-                  ) : <Card><CardContent>Not enough responses to show a summary</CardContent></Card>}
+                  ) : (
+                    <Card>
+                      <CardContent>
+                        Not enough responses to show a summary
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
                 <TabsContent value="RESPONSES" className="mt-4">
                   <SessionParticipantsTable
@@ -227,7 +239,9 @@ export default function ResultTabs({
                     <Card className="mb-4 relative">
                       <button
                         className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100"
-                        onClick={() => response.id && removeFromDatabase(response.id)}
+                        onClick={() =>
+                          response.id && removeFromDatabase(response.id)
+                        }
                       >
                         <TrashIcon className="h-5 w-5 text-gray-500 hover:text-red-500" />
                       </button>
@@ -250,18 +264,24 @@ export default function ResultTabs({
           {/* On small screens show the same but in rows instead of split cols: */}
           <div className="md:hidden w-full flex flex-col gap-4">
             <div className="w-full">
-            <div className="overflow-auto">
+              <div className="overflow-auto">
                 <TabsContent value="SUMMARY" className="mt-4">
                   {showSummary() ? (
                     <SessionResultSummary
                       hostData={hostData}
                       newSummaryContentAvailable={newSummaryContentAvailable}
                       onUpdateSummary={() => {
-                        createSummary(id)
-                        setInitialUserIds(updatedUserIds)
+                        createSummary(id);
+                        setInitialUserIds(updatedUserIds);
                       }}
                     />
-                  ) : <Card><CardContent>Not enough responses to show a summary</CardContent></Card>}
+                  ) : (
+                    <Card>
+                      <CardContent>
+                        Not enough responses to show a summary
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
                 <TabsContent value="RESPONSES" className="mt-4">
                   <SessionParticipantsTable
@@ -274,7 +294,9 @@ export default function ResultTabs({
                     <Card className="mb-4 relative">
                       <button
                         className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100"
-                        onClick={() => response.id && removeFromDatabase(response.id)}
+                        onClick={() =>
+                          response.id && removeFromDatabase(response.id)
+                        }
                       >
                         <TrashIcon className="h-5 w-5 text-gray-500 hover:text-red-500" />
                       </button>
