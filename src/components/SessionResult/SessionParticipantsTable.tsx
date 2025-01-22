@@ -1,3 +1,4 @@
+'use client';
 import {
   Card,
   CardContent,
@@ -8,6 +9,7 @@ import {
 import ParticipantSessionRow from './ParticipantSessionRow';
 import SortableTable, { TableHeaderData } from '../SortableTable';
 import { UserSession } from '@/lib/schema';
+import { useEffect } from 'react';
 
 export type ParticipantsTableData = {
   userName: string;
@@ -20,8 +22,10 @@ export type ParticipantsTableData = {
 
 export default function SessionParticipantsTable({
   userData,
+  onIncludeInSummaryChange,
 }: {
-  userData: UserSession[];
+    userData: UserSession[];
+    onIncludeInSummaryChange: (includedIds: string[]) => void;
 }) {
   const dateSorter = (sortDirection: string, a: string, b: string) => {
     return sortDirection === 'asc'
@@ -52,8 +56,24 @@ export default function SessionParticipantsTable({
     userData: data,
   }));
 
+  const updateIncludedInSummaryList = (userId: string, included: boolean) => {
+    const includedIds = userData
+      .filter(user => user.include_in_summary)
+      .map(user => user.id);
+    if (included) {
+      includedIds.push(userId);
+    } else {
+      includedIds.splice(includedIds.indexOf(userId), 1);
+    }
+    onIncludeInSummaryChange(includedIds);
+  };
+
   const getTableRow = (sortableData: ParticipantsTableData, index: number) => {
-    return <ParticipantSessionRow key={index} tableData={sortableData} />;
+    return <ParticipantSessionRow
+      key={index}
+      tableData={sortableData}
+      onIncludeChange={updateIncludedInSummaryList}
+    />;
   };
 
   return (

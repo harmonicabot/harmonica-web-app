@@ -3,7 +3,7 @@
 import { HostSession, Message, UserSession } from '@/lib/schema';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tabs, TabsContent } from '@radix-ui/react-tabs';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { mutate } from 'swr';
 
 import { Button } from '@/components/ui/button';
@@ -34,11 +34,37 @@ export default function SessionResultsSection({
   userData: UserSession[];
   id: string;
 }) {
-  const hasMessages =
-    userData.filter((user) => user.include_in_summary).length > 0;
+  
+  const initialIncluded = userData.filter(user => user.include_in_summary).map(user => user.id);
+  // This will be updated with 'includeInSummary' toggles
+  const [updatedUserIds, setUpdatedUserIds] = useState<string[]>(
+    initialIncluded
+  );
+  // This is the base set used to figure out whether the summary should be updateable
+  const [initialUserIds, setInitialUserIds] = useState<string[]>(
+    initialIncluded
+  );
+  
+  const hasMessages = userData.length > 0;
   const { hasNewMessages, lastMessage, lastSummaryUpdate } =
     checkSummaryAndMessageTimes(hostData, userData);
 
+  const [newSummaryContentAvailable, setNewSummaryContentAvailable] = useState(hasNewMessages);
+
+  // Helper function to compare arrays
+  const areArraysEqual = (a: string[], b: string[]) =>
+    a.length === b.length && a.every((val, idx) => b[idx] === val);
+
+  // Update the 'summary update' refresh button
+  useEffect(() => {
+    const usersChanged = !areArraysEqual(initialUserIds.sort(), updatedUserIds.sort());
+    
+    if (usersChanged) {
+      setNewSummaryContentAvailable(true);
+    }
+  }, [updatedUserIds]);
+  
+  // Automatically update the summary if there's new content and the last update was more than 10 minutes ago
   useEffect(() => {
     if (
       hasNewMessages &&
@@ -203,15 +229,23 @@ export default function SessionResultsSection({
     }
   >;
 
-  const resultsTabs: ResultsTabs = {
+  const showSummary = () => {
+    console.log("UserIds to show a summary for: ", updatedUserIds)
+    return updatedUserIds.length > 0;
+  }
+
+  const resultsTabs: ResultsTabs = useMemo(() => ({
     SUMMARY: {
       content: (
         <TabsContent value="SUMMARY" className="mt-4">
-          {userData.filter(usr => usr.include_in_summary).length > 0 ? (
+          {showSummary() ? (
             <SessionResultSummary
               hostData={hostData}
-              hasNewMessages={hasNewMessages}
-              onUpdateSummary={() => createSummary(id)}
+              newSummaryContentAvailable={newSummaryContentAvailable}
+              onUpdateSummary={() => {
+                createSummary(id)
+                setInitialUserIds(updatedUserIds)
+              }}
             />
           ) : <Card><CardContent>Not enough responses to show a summary</CardContent></Card>}
         </TabsContent>
@@ -220,7 +254,10 @@ export default function SessionResultsSection({
         <TabsTrigger
           className="ms-0"
           value="SUMMARY"
-          onClick={() => (hostData.summary ? () => {} : createSummary(id))}
+          onClick={() => hostData.summary ? () => { } : () => {
+            createSummary(id)
+            setInitialUserIds(updatedUserIds)
+          }}
         >
           Summary
         </TabsTrigger>
@@ -229,7 +266,10 @@ export default function SessionResultsSection({
     RESPONSES: {
       content: (
         <TabsContent value="RESPONSES" className="mt-4">
-          <SessionParticipantsTable userData={userData} />
+          <SessionParticipantsTable
+            userData={userData}
+            onIncludeInSummaryChange={(ids) => setUpdatedUserIds(ids)}
+          />
         </TabsContent>
       ),
       tabsTrigger: (
@@ -238,7 +278,8 @@ export default function SessionResultsSection({
         </TabsTrigger>
       ),
     },
-  };
+  }), [updatedUserIds, hostData, newSummaryContentAvailable, id]);
+
 
   type CustomAIResponse = {
       id?: string;

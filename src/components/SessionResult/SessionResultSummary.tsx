@@ -13,13 +13,13 @@ import ExpandableCard from '../ui/expandable-card';
 
 interface SessionResultSummaryProps {
   hostData: HostSession;
-  hasNewMessages: boolean;
+  newSummaryContentAvailable: boolean;
   onUpdateSummary: () => void;
 }
 
 export default function SessionResultSummary({
   hostData,
-  hasNewMessages,
+  newSummaryContentAvailable,
   onUpdateSummary,
 }: SessionResultSummaryProps) {
   return (
@@ -32,7 +32,7 @@ export default function SessionResultSummary({
         </div>
       )}
       <Card className="h-full relative">
-        {hasNewMessages && (
+        {newSummaryContentAvailable && (
           <TooltipProvider>
             <Tooltip delayDuration={50}>
               <TooltipTrigger className="absolute top-4 right-4">

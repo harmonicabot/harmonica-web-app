@@ -11,8 +11,10 @@ import { Switch } from '../ui/switch';
 
 export default function ParicipantSessionRow({
   tableData,
+  onIncludeChange,
 }: {
-  tableData: ParticipantsTableData;
+    tableData: ParticipantsTableData;
+    onIncludeChange: (userId: string, included: boolean) => void;
 }) {
   const userData = tableData.userData;
   const [isPopupVisible, setIsPopupVisible] = useState(false);
@@ -30,6 +32,7 @@ export default function ParicipantSessionRow({
     await updateUserSession(userData.id, { 
       include_in_summary: updatedValue
     });
+    onIncludeChange(userData.id, updatedValue);
   };
 
   const handleViewClick = async () => {
