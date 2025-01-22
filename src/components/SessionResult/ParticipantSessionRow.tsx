@@ -1,10 +1,10 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { Message, UserSession } from '@/lib/schema';
-import { useEffect, useRef, useState } from 'react';
+import { Message } from '@/lib/schema';
+import { useEffect, useState } from 'react';
 import { ChatMessage } from '../ChatMessage';
-import { getAllChatMessagesInOrder, updateUserSession } from '@/lib/db';
+import { getAllChatMessagesInOrder } from '@/lib/db';
 import { ParticipantsTableData } from './SessionParticipantsTable';
 import { Spinner } from '../icons';
 import { Switch } from '../ui/switch';

@@ -1,4 +1,3 @@
-'use client';
 import {
   Card,
   CardContent,
@@ -9,7 +8,6 @@ import {
 import ParticipantSessionRow from './ParticipantSessionRow';
 import SortableTable, { TableHeaderData } from '../SortableTable';
 import { UserSession } from '@/lib/schema';
-import { useEffect } from 'react';
 
 export type ParticipantsTableData = {
   userName: string;
