@@ -25,7 +25,7 @@ export default function SessionParticipantsTable({
   onIncludeInSummaryChange,
 }: {
     userData: UserSession[];
-    onIncludeInSummaryChange: (includedIds: string[]) => void;
+    onIncludeInSummaryChange: (userId: string, included: boolean) => void;
 }) {
   const dateSorter = (sortDirection: string, a: string, b: string) => {
     return sortDirection === 'asc'
@@ -56,23 +56,11 @@ export default function SessionParticipantsTable({
     userData: data,
   }));
 
-  const updateIncludedInSummaryList = (userId: string, included: boolean) => {
-    const includedIds = userData
-      .filter(user => user.include_in_summary)
-      .map(user => user.id);
-    if (included) {
-      includedIds.push(userId);
-    } else {
-      includedIds.splice(includedIds.indexOf(userId), 1);
-    }
-    onIncludeInSummaryChange(includedIds);
-  };
-
   const getTableRow = (sortableData: ParticipantsTableData, index: number) => {
     return <ParticipantSessionRow
       key={index}
       tableData={sortableData}
-      onIncludeChange={updateIncludedInSummaryList}
+      onIncludeChange={onIncludeInSummaryChange}
     />;
   };
 

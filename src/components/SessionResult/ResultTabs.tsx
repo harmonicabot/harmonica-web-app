@@ -48,6 +48,22 @@ export default function ResultTabs({
     initialIncluded
   );
 
+  const updateIncludedInSummaryList = (userId: string, included: boolean) => {
+    const includedIds = userData
+      .filter(user => user.include_in_summary)
+      .map(user => user.id);
+    if (included) {
+      includedIds.push(userId);
+    } else {
+      includedIds.splice(includedIds.indexOf(userId), 1);
+    }
+    setUpdatedUserIds(includedIds);
+    db.updateUserSession(userId, { 
+      include_in_summary: included
+    });
+    userData.find(user => user.id === userId)!.include_in_summary = included;
+  };
+
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] = useState(hasNewMessages);
 
   // Helper function to compare arrays
@@ -78,7 +94,7 @@ export default function ResultTabs({
             className="opacity-0 group-hover:opacity-100 flex flex-row 
             justify-center items-center cursor-pointer rounded-md 
             transition-all bg-yellow-100"
-            onClick={() => addToResultsSection(message)}
+            onClick={() => addCustomAiResponse(message)}
           >
             <CirclePlusIcon className="h-4 w-4 mr-4" />
             Add to Results
@@ -88,53 +104,6 @@ export default function ResultTabs({
     }
     return <ChatMessage {...{ message, key }} />;
   };
-
-  const resultsTabs: ResultsTabs = useMemo(() => ({
-    SUMMARY: {
-      content: (
-        <TabsContent value="SUMMARY" className="mt-4">
-          {showSummary() ? (
-            <SessionResultSummary
-              hostData={hostData}
-              newSummaryContentAvailable={newSummaryContentAvailable}
-              onUpdateSummary={() => {
-                createSummary(id)
-                setInitialUserIds(updatedUserIds)
-              }}
-            />
-          ) : <Card><CardContent>Not enough responses to show a summary</CardContent></Card>}
-        </TabsContent>
-      ),
-      tabsTrigger: (
-        <TabsTrigger
-          className="ms-0"
-          value="SUMMARY"
-          onClick={() => hostData.summary ? () => { } : () => {
-            createSummary(id)
-            setInitialUserIds(updatedUserIds)
-          }}
-        >
-          Summary
-        </TabsTrigger>
-      ),
-    },
-    RESPONSES: {
-      content: (
-        <TabsContent value="RESPONSES" className="mt-4">
-          <SessionParticipantsTable
-            userData={userData}
-            onIncludeInSummaryChange={(ids) => setUpdatedUserIds(ids)}
-          />
-        </TabsContent>
-      ),
-      tabsTrigger: (
-        <TabsTrigger className="ms-0" value="RESPONSES">
-          Responses
-        </TabsTrigger>
-      ),
-    },
-  }), [updatedUserIds, hostData, newSummaryContentAvailable, id]);
-
 
   type CustomAIResponse = {
     id?: string;
@@ -147,17 +116,15 @@ export default function ResultTabs({
   const [activeTab, setActiveTab] = useState(
     hostData.summary ? 'SUMMARY' : 'RESPONSES'
   );
-  const [allResultsTabs, setAllResultsTabs] = useState(resultsTabs);
-  const [customAIresponses, setCustomAIresponses] = useState<CustomAIResponse[]>(
-    []
-  );
+  const [customAIresponses, setCustomAIresponses] =
+    useState<CustomAIResponse[]>([]);
 
   useEffect(() => {
     db.getCustomResponsesBySessionId(hostData.id)
       .then(res => setCustomAIresponses(res))
   }, [])
 
-  function addToResultsSection(message: OpenAIMessage) {
+  function addCustomAiResponse(message: OpenAIMessage) {
     setActiveTab('CUSTOM'); // Switch to custom tab when adding content
     const customResponse = { session_id: hostData.id, content: message.content, position: customAIresponses.length || 0 }
     storeInDatabase(customResponse);
@@ -199,43 +166,28 @@ export default function ResultTabs({
     })
   }
 
-  useEffect(() => {
-    if (customAIresponses.length === 0) {
-      delete resultsTabs['CUSTOM'];
-    } else {
-      resultsTabs['CUSTOM'] = {
-        content: (
-          <TabsContent value="CUSTOM" className="mt-4">
-            {customAIresponses.map((response) => (
-              <Card className="mb-4 relative">
-                <button
-                  className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100"
-                  onClick={() => response.id && removeFromDatabase(response.id)}
-                >
-                  <TrashIcon className="h-5 w-5 text-gray-500 hover:text-red-500" />
-                </button>
-                <CardContent>
-                  <HRMarkdown content={response.content} />
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-        ),
-        tabsTrigger: (
-          <TabsTrigger className="ms-0" value="CUSTOM">
-            Custom Ask AI responses
-          </TabsTrigger>
-        ),
-      };
-    }
-    setAllResultsTabs(resultsTabs);
-  }, [customAIresponses]);
-
   return (
     <>
       <Tabs className="mb-4" value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          {Object.values(allResultsTabs).map((results) => results.tabsTrigger)}
+          <TabsTrigger
+            className="ms-0"
+            value="SUMMARY"
+            onClick={() => hostData.summary ? () => { } : () => {
+              createSummary(id)
+              setInitialUserIds(updatedUserIds)
+            }}
+          >
+            Summary
+          </TabsTrigger>
+          <TabsTrigger className="ms-0" value="RESPONSES">
+            Responses
+          </TabsTrigger>
+          {customAIresponses.length > 0 && (
+            <TabsTrigger className="ms-0" value="CUSTOM">
+              Custom Ask AI responses
+            </TabsTrigger>
+          )}
         </TabsList>
         <div className="flex flex-col md:flex-row gap-4">
           <div className="hidden md:block w-full">
@@ -252,9 +204,39 @@ export default function ResultTabs({
               snapOffset={30} // Snap to edges
             >
               <div className="overflow-auto">
-                {Object.values(allResultsTabs).map(
-                  (results) => results.content
-                )}
+                <TabsContent value="SUMMARY" className="mt-4">
+                  {showSummary() ? (
+                    <SessionResultSummary
+                      hostData={hostData}
+                      newSummaryContentAvailable={newSummaryContentAvailable}
+                      onUpdateSummary={() => {
+                        createSummary(id)
+                        setInitialUserIds(updatedUserIds)
+                      }}
+                    />
+                  ) : <Card><CardContent>Not enough responses to show a summary</CardContent></Card>}
+                </TabsContent>
+                <TabsContent value="RESPONSES" className="mt-4">
+                  <SessionParticipantsTable
+                    userData={userData}
+                    onIncludeInSummaryChange={updateIncludedInSummaryList}
+                  />
+                </TabsContent>
+                <TabsContent value="CUSTOM" className="mt-4">
+                  {customAIresponses.map((response) => (
+                    <Card className="mb-4 relative">
+                      <button
+                        className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100"
+                        onClick={() => response.id && removeFromDatabase(response.id)}
+                      >
+                        <TrashIcon className="h-5 w-5 text-gray-500 hover:text-red-500" />
+                      </button>
+                      <CardContent>
+                        <HRMarkdown content={response.content} />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </TabsContent>
               </div>
               <div className="overflow-auto md:w-1/3 mt-4 gap-4">
                 <SessionResultChat
@@ -268,7 +250,41 @@ export default function ResultTabs({
           {/* On small screens show the same but in rows instead of split cols: */}
           <div className="md:hidden w-full flex flex-col gap-4">
             <div className="w-full">
-              {Object.values(allResultsTabs).map((results) => results.content)}
+            <div className="overflow-auto">
+                <TabsContent value="SUMMARY" className="mt-4">
+                  {showSummary() ? (
+                    <SessionResultSummary
+                      hostData={hostData}
+                      newSummaryContentAvailable={newSummaryContentAvailable}
+                      onUpdateSummary={() => {
+                        createSummary(id)
+                        setInitialUserIds(updatedUserIds)
+                      }}
+                    />
+                  ) : <Card><CardContent>Not enough responses to show a summary</CardContent></Card>}
+                </TabsContent>
+                <TabsContent value="RESPONSES" className="mt-4">
+                  <SessionParticipantsTable
+                    userData={userData}
+                    onIncludeInSummaryChange={updateIncludedInSummaryList}
+                  />
+                </TabsContent>
+                <TabsContent value="CUSTOM" className="mt-4">
+                  {customAIresponses.map((response) => (
+                    <Card className="mb-4 relative">
+                      <button
+                        className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100"
+                        onClick={() => response.id && removeFromDatabase(response.id)}
+                      >
+                        <TrashIcon className="h-5 w-5 text-gray-500 hover:text-red-500" />
+                      </button>
+                      <CardContent>
+                        <HRMarkdown content={response.content} />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </TabsContent>
+              </div>
             </div>
             <div className="w-full mt-4 gap-4">
               <SessionResultChat
