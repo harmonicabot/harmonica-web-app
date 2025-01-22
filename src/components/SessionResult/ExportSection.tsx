@@ -84,7 +84,6 @@ export default function ExportSection({
   };
 
   const handleCloseExportPopup = () => {
-    console.log('Close clicked');
     setIsExportPopupVisible(false);
   };
 

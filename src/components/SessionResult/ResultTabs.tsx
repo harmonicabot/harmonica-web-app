@@ -31,7 +31,6 @@ export default function ResultTabs({
   const initialIncluded = userData
     .filter((user) => user.include_in_summary)
     .map((user) => user.id);
-  console.log("Initial included: ", initialIncluded);
   // This will be updated with 'includeInSummary' toggles
   const [updatedUserIds, setUpdatedUserIds] =
     useState<string[]>(initialIncluded);
@@ -56,9 +55,7 @@ export default function ResultTabs({
   };
 
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
-    useState(hasNewMessages);
-  console.log("New summary content available: ", newSummaryContentAvailable);
-  
+    useState(hasNewMessages);  
 
   // Helper function to compare arrays
   const areArraysEqual = (a: string[], b: string[]) =>
@@ -75,7 +72,6 @@ export default function ResultTabs({
   }, [updatedUserIds]);
 
   const showSummary = () => {
-    console.log('UserIds to show a summary for: ', updatedUserIds);
     return updatedUserIds.length > 0;
   };
 
@@ -160,7 +156,6 @@ export default function ResultTabs({
       }));
       // Update positions in database
       updatedResponses.forEach((response) => {
-        console.log('Pos: ', response.position);
         if (response.id) {
           db.updateCustomResponse(response.id, { position: response.position });
         }
@@ -218,6 +213,7 @@ export default function ResultTabs({
                       newSummaryContentAvailable={newSummaryContentAvailable}
                       onUpdateSummary={() => {
                         setInitialUserIds(updatedUserIds);
+                        setNewSummaryContentAvailable(false);
                       }}
                     />
                   ) : (

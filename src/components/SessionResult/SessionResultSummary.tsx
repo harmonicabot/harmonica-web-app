@@ -28,8 +28,10 @@ export default function SessionResultSummary({
   
   const triggerSummaryUpdate = () => {
     setIsUpdating(true);
-    onUpdateSummary();
-    createSummary(hostData.id).then(() => setIsUpdating(false));
+    createSummary(hostData.id).then(() => {
+      setIsUpdating(false);
+      onUpdateSummary();
+    });
   };
 
   return (

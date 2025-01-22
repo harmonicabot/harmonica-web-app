@@ -24,7 +24,6 @@ export default function SessionResultsSection({
   const hasMessages = userData.length > 0;
   const { hasNewMessages, lastMessage, lastSummaryUpdate } =
     checkSummaryAndMessageTimes(hostData, userData);
-  console.log("Init state: ", hasNewMessages, lastMessage, lastSummaryUpdate);
   // Automatically update the summary if there's new content and the last update was more than 10 minutes ago
   useEffect(() => {
     if (
