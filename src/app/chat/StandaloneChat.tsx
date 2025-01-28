@@ -157,7 +157,7 @@ Please type your name or "anonymous" if you prefer
             hostData
               ? {
                   topic: hostData.topic,
-                  template: hostData.template,
+                  assistant_id: hostData.assistant_id,
                   id: hostData.id,
                 }
               : {}

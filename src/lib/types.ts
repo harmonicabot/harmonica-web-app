@@ -51,7 +51,7 @@ export interface OpenAIMessageWithContext extends OpenAIMessage {
 
 export type WebhookData = {
   session_id?: string;
-  template?: string;
+  assistant_id?: string;
   topic?: string;
   context?: string;
   bot_id?: string;

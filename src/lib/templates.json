@@ -62,6 +62,10 @@
         "requireContext": true,
         "contextDescription": "",
         "enableSkipSteps": false
+      },
+      "summary": {
+        "type": "assistant",
+        "assistant_id": "asst_FrxITWDYA1omVWZpRLjKTJad"
       }
     },
     {

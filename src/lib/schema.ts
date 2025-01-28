@@ -19,7 +19,8 @@ export interface HostSessionsTable {
   num_sessions: ColumnType<number, number, number | RawBuilder<unknown>>;
   num_finished: ColumnType<number, number, number | RawBuilder<unknown>>;
   prompt: string;
-  template: string;
+  assistant_id: string;
+  template_id?: string; // the id of the template from templates.json; 
   topic: string;
   final_report_sent: boolean;
   client?: string;
