@@ -20,8 +20,10 @@ export type ParticipantsTableData = {
 
 export default function SessionParticipantsTable({
   userData,
+  onIncludeInSummaryChange,
 }: {
-  userData: UserSession[];
+    userData: UserSession[];
+    onIncludeInSummaryChange: (userId: string, included: boolean) => void;
 }) {
   const dateSorter = (sortDirection: string, a: string, b: string) => {
     return sortDirection === 'asc'
@@ -53,7 +55,11 @@ export default function SessionParticipantsTable({
   }));
 
   const getTableRow = (sortableData: ParticipantsTableData, index: number) => {
-    return <ParticipantSessionRow key={index} tableData={sortableData} />;
+    return <ParticipantSessionRow
+      key={index}
+      tableData={sortableData}
+      onIncludeChange={onIncludeInSummaryChange}
+    />;
   };
 
   return (

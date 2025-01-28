@@ -80,10 +80,11 @@ export default function Chat({
     if (!threadIdRef.current && !createThreadInProgressRef.current) {
       createThreadInProgressRef.current = true;
       const userName = getUserNameFromContext(userContext);
+
       createThread(
         context,
         sessionId,
-        user ? user : userName,
+        user ? user : 'id',
         userName,
         userContext
       );
@@ -241,7 +242,7 @@ export default function Chat({
       createThread(
         context,
         sessionId,
-        user ? user : userName,
+        user ? user : 'id',
         userName,
         userContext
       ).then((threadSessionId) => {

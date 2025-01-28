@@ -1,35 +1,29 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { Message, UserSession } from '@/lib/schema';
-import { useEffect, useRef, useState } from 'react';
+import { Message } from '@/lib/schema';
+import { useEffect, useState } from 'react';
 import { ChatMessage } from '../ChatMessage';
-import { getAllChatMessagesInOrder, updateUserSession } from '@/lib/db';
+import { getAllChatMessagesInOrder } from '@/lib/db';
 import { ParticipantsTableData } from './SessionParticipantsTable';
 import { Spinner } from '../icons';
 import { Switch } from '../ui/switch';
 
 export default function ParicipantSessionRow({
   tableData,
+  onIncludeChange,
 }: {
-  tableData: ParticipantsTableData;
+    tableData: ParticipantsTableData;
+    onIncludeChange: (userId: string, included: boolean) => void;
 }) {
   const userData = tableData.userData;
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [includeInSummary, setIncludeInSummary] = useState(tableData.includeInSummary);
 
-  useEffect(() => {
-    setIncludeInSummary(tableData.includeInSummary);
-  }, [tableData.includeInSummary]);
-
-  const handleIncludeInSummaryUpdate = async () => {
-    // State updates are NOT immediate, so need to assign this to a temp var
-    const updatedValue = !includeInSummary;
-    setIncludeInSummary(updatedValue);
-    await updateUserSession(userData.id, { 
-      include_in_summary: updatedValue
-    });
+  const handleIncludeInSummaryUpdate = async (updatedIncluded: boolean) => {
+    onIncludeChange(userData.id, updatedIncluded);
+    setIncludeInSummary(updatedIncluded);
   };
 
   const handleViewClick = async () => {

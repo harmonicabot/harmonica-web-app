@@ -23,7 +23,6 @@ export default function ExpandableCard({
   children,
 }: ExpandableCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  console.log(children);
   return (
     <Card className="h-full relative">
       <CardHeader>
