@@ -108,6 +108,8 @@ export default function CreationFlow() {
     context: '',
   });
 
+  const [templateId, setTemplateId] = useState<string | undefined>();
+
   const onFormDataChange = (form: Partial<SessionBuilderData>) => {
     setFormData((prevData) => ({ ...prevData, ...form }));
     if (prompts.length > 0) {
@@ -198,7 +200,8 @@ export default function CreationFlow() {
       deleteTemporaryAssistants(temporaryAssistantIds);
 
       const data: NewHostSession = {
-        template: assistantResponse.assistantId,
+        assistant_id: assistantResponse.assistantId,
+        template_id: templateId,
         topic: formData.sessionName,
         prompt: prompt,
         num_sessions: 0,
@@ -262,8 +265,9 @@ export default function CreationFlow() {
     Template: (
       <div className="max-w-[1080px] mx-auto">
         <ChooseTemplate
-          onTemplateSelect={(defaults) => {
-            onFormDataChange(defaults);
+          onTemplateSelect={(formDataDefaults: Partial<SessionBuilderData>, templateId?: string) => {
+            onFormDataChange(formDataDefaults);
+            setTemplateId(templateId);
             enabledSteps[1] = true;
             setActiveStep('Create');
           }}

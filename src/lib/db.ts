@@ -65,13 +65,13 @@ export async function getHostSessions(
     .execute();
 }
 
-export async function getHostSessionById(id: string): Promise<s.HostSession> {
+export async function getHostSessionById(sessionId: string): Promise<s.HostSession> {
   const db = await dbPromise;
-  console.log("ID: ", id)
+  console.log("ID: ", sessionId)
   try {
     return await db
       .selectFrom(hostTableName)
-      .where(`id`, '=', id)
+      .where(`id`, '=', sessionId)
       .selectAll()
       .executeTakeFirstOrThrow();
   } catch (error) {
@@ -80,12 +80,12 @@ export async function getHostSessionById(id: string): Promise<s.HostSession> {
   }
 }
 
-export async function getFromHostSession(id: string, columns: (keyof s.HostSessionsTable)[]) {
+export async function getFromHostSession(sessionId: string, columns: (keyof s.HostSessionsTable)[]) {
   const db = await dbPromise;
   const result = await db
     .selectFrom(hostTableName)
     .select(columns)
-    .where('id', '=', id)
+    .where('id', '=', sessionId)
     .executeTakeFirst();
   return result;
 }
@@ -380,13 +380,13 @@ export async function deleteSessionById(id: string): Promise<boolean> {
   try {
     // before deleting, we need to get the assistant id so that we can delete that as well.
     const db = await dbPromise;
-    const assistantId = await db
+    const session = await db
       .selectFrom(hostTableName)
-      .select('template')
+      .select('assistant_id')
       .where('id', '=', id)
       .executeTakeFirst();
-    if (assistantId?.template) {
-      deleteAssistants([assistantId.template]);
+    if (session?.assistant_id) {
+      deleteAssistants([session.assistant_id]);
     }
     await db.deleteFrom(hostTableName).where('id', '=', id).execute();
     // TODO: not deleting user sessions for now, we might want to analyse things?

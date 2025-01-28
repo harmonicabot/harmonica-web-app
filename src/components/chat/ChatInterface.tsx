@@ -8,7 +8,7 @@ import { PoweredByHarmonica } from '@/components/icons';
 interface ChatInterfaceProps {
   hostData: {
     topic?: string;
-    template?: string;
+    assistant_id?: string;
     id?: string;
   };
   userSessionId: string | undefined;
@@ -75,9 +75,9 @@ export const ChatInterface = ({
     <hr className="md:hidden border-t border-white ms-4 me-4" />
     <div className="w-full md:w-3/4 h-full flex-grow flex flex-col px-6 pt-3 md:pb-6">
       <div className="h-full max-h-[calc(100%-150px)] md:max-h-[calc(100%-50px)] max-w-2xl flex m-4">
-        {((hostData?.template && hostData?.id) || assistantId) && (
+        {((hostData?.assistant_id && hostData?.id) || assistantId) && (
           <Chat
-            assistantId={hostData?.template ?? assistantId!}
+            assistantId={hostData?.assistant_id ?? assistantId!}
             sessionId={hostData?.id}
             userSessionId={userSessionId}
             setUserSessionId={setUserSessionId}
