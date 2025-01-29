@@ -51,6 +51,7 @@ Here are a few examples of what you can ask me:
             }}
             placeholderText="What would you like to know?"
             customMessageEnhancement={customMessageEnhancement}
+            isAskAi={true}
           />
         )}
       </CardContent>

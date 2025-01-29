@@ -24,6 +24,7 @@ export default function Chat({
   placeholderText,
   userContext,
   customMessageEnhancement,
+  isAskAi = false,
 }: {
   assistantId: string;
   sessionId?: string;
@@ -33,6 +34,7 @@ export default function Chat({
   context?: OpenAIMessageWithContext;
   placeholderText?: string;
   userContext?: Record<string, string>;
+  isAskAi?: boolean;
   customMessageEnhancement?: (
     message: OpenAIMessage,
     index: number,
@@ -316,65 +318,63 @@ export default function Chat({
         assistantId: assistantId,
       };
 
-      // setIsLoading(false);
-      // addMessage({ role: 'assistant', content: 'Hi there' });
+      if (isAskAi) {
+        const response = await fetch('/api/llama', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messageText,
+            threadId: threadIdRef.current,
+            sessionId: sessionId || '', // Add session ID
+          }),
+        });
 
-      const response = await fetch('/api/llama', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messageText,
-          threadId: threadIdRef.current,
-          sessionId: sessionId || '', // Add session ID
-        }),
-      });
+        const { answer, error } = await response.json();
+        if (error) {
+          throw new Error(error);
+        }
 
-      const { answer, error } = await response.json();
-      if (error) {
-        throw new Error(error);
-      }
+        setIsLoading(false);
+        addMessage({
+          role: 'assistant',
+          content: answer,
+        });
+      } else
+        gpt
+          .handleGenerateAnswer(messageData)
+          .then((answer) => {
+            setIsLoading(false);
+            const now = new Date();
+            addMessage(answer);
 
-      setIsLoading(false);
-      addMessage({
-        role: 'assistant',
-        content: 'Answer from llama index:' + answer,
-      });
-
-      // gpt
-      //   .handleGenerateAnswer(messageData)
-      //   .then((answer) => {
-      //     setIsLoading(false);
-      //     const now = new Date();
-      //     addMessage(answer);
-
-      //     if (userSessionId || threadSessionId) {
-      //       Promise.all([
-      //         db.insertChatMessage({
-      //           ...answer,
-      //           thread_id: threadIdRef.current,
-      //           created_at: now,
-      //         }),
-      //         userSessionId || threadSessionId
-      //           ? db.updateUserSession(userSessionId || threadSessionId!, {
-      //               last_edit: now,
-      //             })
-      //           : Promise.resolve(),
-      //       ]).catch((error) => {
-      //         console.log(
-      //           'Error storing answer or updating last edit: ',
-      //           error,
-      //         );
-      //         showErrorToast(
-      //           `Uhm; there should be an answer, but we couldn't store it. It won't show up in the summary, but everything else should be fine. Please continue.`,
-      //         );
-      //       });
-      //     }
-      //   })
-      //   .catch((error) => {
-      //     console.error(error);
-      //     showErrorToast(`Sorry, we failed to answer... Please try again.`);
-      //   })
-      //   .finally(() => setIsLoading(false));
+            if (userSessionId || threadSessionId) {
+              Promise.all([
+                db.insertChatMessage({
+                  ...answer,
+                  thread_id: threadIdRef.current,
+                  created_at: now,
+                }),
+                userSessionId || threadSessionId
+                  ? db.updateUserSession(userSessionId || threadSessionId!, {
+                      last_edit: now,
+                    })
+                  : Promise.resolve(),
+              ]).catch((error) => {
+                console.log(
+                  'Error storing answer or updating last edit: ',
+                  error,
+                );
+                showErrorToast(
+                  `Uhm; there should be an answer, but we couldn't store it. It won't show up in the summary, but everything else should be fine. Please continue.`,
+                );
+              });
+            }
+          })
+          .catch((error) => {
+            console.error(error);
+            showErrorToast(`Sorry, we failed to answer... Please try again.`);
+          })
+          .finally(() => setIsLoading(false));
     } catch (error) {
       console.error(error);
       showErrorToast(`Sorry, we failed to answer... Please try again.`);
