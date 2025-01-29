@@ -1,6 +1,10 @@
 'use server';
 import { NewMessage } from '@/lib/schema';
-import { AssistantBuilderData, AssistantMessageData, OpenAIMessage } from '@/lib/types';
+import {
+  AssistantBuilderData,
+  AssistantMessageData,
+  OpenAIMessage,
+} from '@/lib/types';
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
