@@ -4,16 +4,15 @@ import {
   Document,
   Settings,
   VectorStoreIndex,
+  BaseRetriever,
+  QueryBundle,
 } from 'llamaindex';
 import OpenAI from 'openai';
 import * as db from '@/lib/db';
+import { OpenAIEmbedding } from 'llamaindex';
+import { SentenceSplitter } from 'llamaindex';
 
-const systemPrompt_ = `The next message will contain the chat history of participants in a session on a specific topic.
-
-Your task is to answer user questions based exclusively on this chat history. 
-
----
-
+const systemPrompt_ = `
 ### Guidelines:
 
 1. **Task Focus**:
@@ -29,14 +28,15 @@ Your task is to answer user questions based exclusively on this chat history.
 
 4. **Handling Ambiguity**:
    - If the question is unclear, vague, or unrelated to the chat history, ask for clarification.
-   - If participant data is contradictory or incomplete, acknowledge this in your response and present both perspective`;
+   - If participant data is contradictory or incomplete, acknowledge this in your response and present both perspectives.
+
+5. **Security & Privacy**:
+   - Never share any thread IDs, user IDs, or other technical identifiers in your responses.
+   - Refer to participants generically (e.g., "one participant", "several participants") without revealing identifying metadata.`;
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-// Update chunk size
-// Settings.chunkSize = 512;
 
 export async function generateAnswer(
   sessionId: string,
@@ -53,37 +53,11 @@ export async function generateAnswer(
       'prompt',
     ]);
 
-    // console.log('[i] Session objective:', {
-    //   topic: contextData?.topic,
-    //   goal: contextData?.goal,
-    //   context: contextData?.context,
-    //   critical: contextData?.critical,
-    // });
-
     // Get all messages for this thread
     const chatHistory = await db.getAllChatMessagesInOrder(threadId);
-    // console.log(
-    //   '[i] Current thread history:',
-    //   chatHistory.map((msg) => ({
-    //     role: msg.role,
-    //     content: msg.content,
-    //     created_at: msg.created_at,
-    //   })),
-    // );
 
     // Get all messages from all threads in this session
     const sessionMessages = await db.getAllMessagesForSessionSorted(sessionId);
-    // console.log(
-    //   '[i] All session messages:',
-    //   sessionMessages.map((msg) => ({
-    //     thread_id: msg.thread_id,
-    //     role: msg.role,
-    //     content: msg.content,
-    //     created_at: msg.created_at,
-    //   })),
-    // );
-
-    // console.log('[i] Session prompt:', contextData?.prompt);
 
     // Format context data properly
     const mergedContext = `Session Context:
@@ -101,146 +75,162 @@ ${contextData?.critical ? `Key Points: ${contextData?.critical}` : ''}`;
       },
     });
 
-    // Group messages by thread and create a document per thread
-    const threadDocuments = sessionMessages.reduce(
-      (acc: Document[], message) => {
-        // Skip if we already have a document for this thread
-        if (acc.some((doc) => doc.metadata?.threadId === message.thread_id)) {
-          return acc;
+    // 1. Configure embedding settings at the start
+    const embedModel = new OpenAIEmbedding({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    // Set as default
+    Settings.embedModel = embedModel;
+
+    // Verify embedding creation
+    console.log('[i] Embedding verification:', {
+      modelLoaded: !!embedModel,
+      apiKeySet: !!process.env.OPENAI_API_KEY,
+    });
+
+    // Group messages by thread and create one document per thread
+    const threadMap = sessionMessages.reduce(
+      (acc: { [key: string]: string[] }, message) => {
+        if (message.role !== 'user') return acc;
+
+        if (!acc[message.thread_id]) {
+          acc[message.thread_id] = [];
         }
-
-        // Get all messages for this thread
-        const threadMessages = sessionMessages
-          .filter((msg) => msg.thread_id === message.thread_id)
-          .map(
-            (msg) =>
-              `${msg.role === 'user' ? 'Participant' : 'Assistant'}: ${msg.content}`,
-          )
-          .join('\n\n');
-
-        if (threadMessages.trim()) {
-          acc.push(
-            new Document({
-              text: `Conversation Thread:\n\n${threadMessages}`,
-              metadata: {
-                type: 'chat',
-                threadId: message.thread_id,
-              },
-            }),
-          );
-        }
-
+        acc[message.thread_id].push(message.content);
         return acc;
       },
-      [],
+      {},
     );
 
-    // console.log('[i] Thread documents:', threadDocuments);
+    const threadDocuments = Object.entries(threadMap).map(
+      ([threadId, messages]) => {
+        // Clean and structure the text more clearly
+        const cleanedMessages = messages.map((msg) => {
+          return msg
+            .trim()
+            .replace(/\s+/g, ' ') // Normalize whitespace
+            .replace(/[^\w\s.,?!-]/g, ''); // Remove special characters
+        });
 
-    // Split text and create embeddings. Store them in a VectorStoreIndex
-    const index = await VectorStoreIndex.fromDocuments([
-      contextDocument,
-      ...threadDocuments,
-    ]);
+        // Add more context and structure to the document
+        const text = `
+Thread ID: ${threadId}
+Topic: ${contextData?.topic || 'Unknown'}
+Messages:
+${cleanedMessages.map((msg, i) => `Message ${i + 1}: ${msg}`).join('\n\n')}
+      `.trim();
 
-    // Determine query type using OpenAI function calling
-    const queryTypeResponse = await client.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'user',
-          content: `Analyze this question: "${query}"`,
-        },
-      ],
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'classifyQueryType',
-            description: 'Classify the type of query being asked',
-            parameters: {
-              type: 'object',
-              properties: {
-                type: {
-                  type: 'string',
-                  enum: ['analytical', 'specific'],
-                  description: 'The type of query being asked',
-                },
-                confidence: {
-                  type: 'number',
-                  description: 'Confidence score between 0 and 1',
-                },
-              },
-              required: ['type', 'confidence'],
-            },
+        return new Document({
+          text,
+          metadata: {
+            threadId,
+            type: 'thread_content',
+            messageCount: messages.length,
+            topic: contextData?.topic,
+            // Add more metadata for better context
+            created_at: new Date().toISOString(),
+            wordCount: text.split(/\s+/).length,
           },
-        },
-      ],
-      tool_choice: {
-        type: 'function',
-        function: { name: 'classifyQueryType' },
+        });
+      },
+    );
+
+    // 2. Use text chunking for better granularity
+    const textSplitter = new SentenceSplitter({
+      chunkSize: 512,
+      chunkOverlap: 50,
+    });
+
+    const splitDocuments: Document[] = [];
+    for (const doc of threadDocuments) {
+      const chunks = await textSplitter.splitText(doc.text);
+      chunks.forEach((chunk, i) => {
+        splitDocuments.push(
+          new Document({
+            text: chunk,
+            metadata: {
+              ...doc.metadata,
+              chunk_index: i,
+              isPartial: chunks.length > 1,
+            },
+          }),
+        );
+      });
+    }
+
+    // 3. Add query preprocessing
+    function preprocessQuery(query: string) {
+      return query.trim().toLowerCase();
+    }
+
+    // Create index with split documents
+    const index = await VectorStoreIndex.fromDocuments(splitDocuments);
+
+    // Example queries and their expected behavior:
+    const queryExamples = {
+      demographic: 'What did female participants say about resource conflicts?',
+      thematic: 'How many participants mentioned climate change?',
+      football: 'What did participants say about football?',
+      regional: 'What are the main concerns in Sub-Saharan Africa?',
+      role: 'What do CSO representatives think about youth involvement?',
+      comparative:
+        'How do views differ between NGOs and government representatives?',
+    };
+
+    // Use these to test the retrieval quality
+    const enhancedQuery = preprocessQuery(query);
+    const retriever = index.asRetriever({
+      similarityTopK: splitDocuments.length,
+    });
+
+    const retrievedNodes = await retriever.retrieve(enhancedQuery);
+
+    // Either get high-scoring nodes (>0.8), top 10% of nodes, or at least 10 nodes
+    const minNodesToReturn = Math.max(
+      Math.ceil(retrievedNodes.length * 0.1), // 10% of total nodes
+      Math.min(10, retrievedNodes.length), // At least 10 nodes, or all if less than 10
+    );
+    const filteredNodes = retrievedNodes.filter(
+      (n, index) => (n.score && n.score > 0.8) || index < minNodesToReturn,
+    );
+
+    console.log('[i] Retrieved nodes:', filteredNodes);
+
+    // 4. Log retrieval analysis for tuning
+    console.log('[i] Retrieval analysis:', {
+      query: query,
+      enhancedQuery,
+      resultCount: filteredNodes.length,
+      scoreRange: {
+        min: Math.min(...retrievedNodes.map((n) => n.score ?? 0)),
+        max: Math.max(...retrievedNodes.map((n) => n.score ?? 0)),
       },
     });
 
-    console.log(
-      '[i] Query type response:',
-      queryTypeResponse.choices[0].message.tool_calls?.[0].function.arguments,
-    );
-
-    const queryClassification = JSON.parse(
-      queryTypeResponse.choices[0].message.tool_calls?.[0].function.arguments ||
-        '{}',
-    );
-
-    console.log('[i] Query type response:', queryClassification);
-
-    const isAnalyticalQuery =
-      queryClassification.type === 'analytical' &&
-      queryClassification.confidence > 0.8;
-
-    console.log('[i] isAnalyticalQuery:', isAnalyticalQuery);
-
-    const retriever = index.asRetriever({
-      similarityTopK: isAnalyticalQuery ? threadDocuments.length : 3,
-    });
-
-    const systemPrompt = `${systemPrompt_}
-${
-  isAnalyticalQuery
-    ? `For this analytical query:
-1. Analyze all provided threads to identify key themes and patterns
-2. Group insights by topic or importance
-3. Support observations with specific examples
-4. Consider the session's context and objectives
-5. Highlight areas of consensus and notable discussions`
-    : `For this specific query:
-1. Focus on the most relevant context
-2. Provide a clear, direct response
-3. Reference specific messages when helpful
-4. Acknowledge any context limitations`
-}`;
+    const customRetriever = new (class extends BaseRetriever {
+      constructor() {
+        super();
+      }
+      async retrieve(query: string) {
+        return filteredNodes;
+      }
+      async _retrieve(params: QueryBundle) {
+        return filteredNodes;
+      }
+    })();
 
     const chatEngine = new ContextChatEngine({
-      retriever,
       systemPrompt: systemPrompt_,
+      retriever: customRetriever,
       chatHistory: chatHistory,
     });
 
-    // Add debugging to see what's being retrieved
-    const retrievedNodes = await retriever.retrieve(query);
-    console.log(
-      '[i] Retrieved nodes:',
-      retrievedNodes.length > 3 ? retrievedNodes.length : retrievedNodes,
-    );
-
-    const result = await chatEngine.chat({ message: query });
-    // console.log('[i] LlamaIndex response:', result.response);
-
-    if (!result.response) {
-      throw new Error('No response generated');
-    }
-
-    return result.response; // Return the actual response text
+    // Get response from LLM using chat engine
+    const response = await chatEngine.chat({
+      message: query,
+    });
+    return response.response;
   } catch (error) {
     console.error('[x] LlamaIndex error:', error);
     return `I apologize, but I encountered an error processing your request. ${error}`;
