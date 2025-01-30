@@ -6,21 +6,36 @@ import { OpenAIMessage } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { getAssistantId } from '@/lib/serverUtils';
 
-export default function SessionResultChat({
-  userData,
-  customMessageEnhancement,
-}: {
+interface SessionResultChatProps {
   userData: UserSession[];
   customMessageEnhancement?: (
     message: OpenAIMessage,
     index: number,
   ) => React.ReactNode;
-}) {
+  entryMessage?: OpenAIMessage;
+}
+
+export default function SessionResultChat({
+  userData,
+  customMessageEnhancement,
+  entryMessage,
+}: SessionResultChatProps) {
   const [assistantId, setAssistantId] = useState('');
 
   useEffect(() => {
     getAssistantId('RESULT_CHAT_ASSISTANT').then(setAssistantId);
   }, []);
+
+  const defaultEntryMessage: OpenAIMessage = {
+    role: 'assistant',
+    content: `Hi there! Consider me your expert analyst, I can help you to better understand your session.
+
+Here are a few examples of what you can ask me:
+  - What was the most common response?
+  - What were the most interesting insights?
+  - Generate a report on the session
+    `,
+  };
 
   return (
     <Card className="h-auto border-yellow-400">
@@ -40,16 +55,7 @@ export default function SessionResultChat({
             }}
             sessionId={userData[0].session_id}
             assistantId={assistantId}
-            entryMessage={{
-              role: 'assistant',
-              content: `Hi there! Consider me your expert analyst, I can help you to better understand your session.
-
-Here are a few examples of what you can ask me:
-  - What was the most common response?
-  - What were the most interesting insights?
-  - Generate a report on the session
-            `,
-            }}
+            entryMessage={entryMessage || defaultEntryMessage}
             placeholderText="What would you like to know?"
             customMessageEnhancement={customMessageEnhancement}
             isAskAi={true}

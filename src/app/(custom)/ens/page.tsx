@@ -64,7 +64,8 @@ export default async function MultiSessionResults() {
               />
             </svg>
             <span>
-              Paris University, in collaboration with Mission Publique & Harmonica AI
+              Paris University, in collaboration with Mission Publique &
+              Harmonica AI
             </span>
           </div>
         </div>
@@ -76,6 +77,16 @@ export default async function MultiSessionResults() {
             hasNewMessages={false}
             showParticipants={false}
             showSessionRecap={false}
+            chatEntryMessage={{
+              role: 'assistant',
+              content: `Welcome to the ENS AI Summit! I'm here to help you understand the insights from past discussions.
+          
+Here are some questions you might want to ask:
+  - What were the key themes discussed across sessions?
+  - How did participants view AI's role in education?
+  - What were the main concerns about AI adoption?
+`,
+            }}
           />
         </div>
         <Card className="mt-4">

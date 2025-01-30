@@ -23,6 +23,7 @@ export default function ResultTabs({
   hasNewMessages,
   showParticipants = true,
   showSessionRecap = true,
+  chatEntryMessage,
 }: {
   hostData: HostSession;
   userData: UserSession[];
@@ -30,6 +31,7 @@ export default function ResultTabs({
   hasNewMessages: boolean;
   showParticipants: boolean;
   showSessionRecap?: boolean;
+  chatEntryMessage?: OpenAIMessage;
 }) {
   
   // We need this to check if we should show the summary or not, and whether the summary should be updateable
@@ -60,7 +62,7 @@ export default function ResultTabs({
   };
 
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
-    useState(hasNewMessages);  
+    useState(hasNewMessages);
 
   // Helper function to compare arrays
   const areArraysEqual = (a: string[], b: string[]) =>
@@ -262,6 +264,7 @@ export default function ResultTabs({
                 <SessionResultChat
                   userData={userData}
                   customMessageEnhancement={enhancedMessage}
+                  entryMessage={chatEntryMessage}
                 />
               </div>
             </Split>
@@ -319,6 +322,7 @@ export default function ResultTabs({
               <SessionResultChat
                 userData={userData}
                 customMessageEnhancement={enhancedMessage}
+                entryMessage={chatEntryMessage}
               />
             </div>
           </div>
