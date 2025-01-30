@@ -58,6 +58,7 @@ export default async function SimplifiedSessionResult({
           id={hostData.id}
           showParticipants={false} // Disable participants table
           showShare={false} // Disable share feature
+          showSessionRecap={false}
           chatEntryMessage={{
             role: 'assistant',
             content: `Welcome to the ENS AI Summit! I'm here to help you understand the insights from past discussions.

@@ -6,12 +6,10 @@ import { intlFormatDistance } from "date-fns"
 
 export default function SessionSummaryCard({
   hostData,
-  stats,
   userData,
   id
 }: {
   hostData: HostSession
-  stats: any
   userData: UserSession[]
   id: string
 }) {

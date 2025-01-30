@@ -13,12 +13,13 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/clientUtils';
 
 interface ExpandableCardProps {
-  title: string;
+  title: React.ReactNode;  // Changed to ReactNode
   description?: string;
   children: React.ReactNode;
   defaultExpanded?: boolean;
   className?: string;
   maxHeight?: string;
+  onExpandedChange?: (expanded: boolean) => void;  // Added callback
 }
 
 export default function ExpandableCard({
@@ -27,23 +28,34 @@ export default function ExpandableCard({
   children,
   defaultExpanded = false,
   className,
-  maxHeight = 'calc(100vh)'
+  maxHeight = 'calc(100vh)',
+  onExpandedChange
 }: ExpandableCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   
+  const handleExpand = () => {
+    const newState = !isExpanded;
+    setIsExpanded(newState);
+    onExpandedChange?.(newState);
+  };
+
   return (
     <Card className={cn("h-full relative", className)}>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className='text-2xl'>{title}</CardTitle>
+          <div className="flex-1">
+            {typeof title === 'string' ? (
+              <CardTitle className='text-2xl'>{title}</CardTitle>
+            ) : (
+              title
+            )}
             {description && <CardDescription>{description}</CardDescription>}
           </div>
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => setIsExpanded(!isExpanded)}
+            className="h-8 w-8 p-0 ml-2"
+            onClick={handleExpand}
             aria-label={isExpanded ? 'Collapse' : 'Expand'}
           >
             {isExpanded ? (

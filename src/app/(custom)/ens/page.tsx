@@ -22,10 +22,9 @@ export default async function MultiSessionResults() {
   const decryptedIds = sessionIds.map((id) => decryptId(id));
 
   try {
-    const [hostSessions, allUserData, stats] = await Promise.all([
+    const [hostSessions, allUserData] = await Promise.all([
       Promise.all(decryptedIds.map((id) => db.getHostSessionById(id))),
-      Promise.all(decryptedIds.map((id) => db.getUsersBySessionId(id))),
-      db.getNumUsersAndMessages(decryptedIds),
+      Promise.all(decryptedIds.map((id) => db.getUsersBySessionId(id)))
     ]);
 
     // Merge all user data into one flat array
@@ -101,7 +100,6 @@ Here are some questions you might want to ask:
                 <SessionSummaryCard
                   key={hostData.id}
                   hostData={hostData}
-                  stats={stats[decryptedIds[index]]}
                   userData={allUserData[index]}
                   id={sessionIds[index]}
                 />
