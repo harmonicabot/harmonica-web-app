@@ -15,10 +15,14 @@ export default function SessionResultsSection({
   hostData,
   userData, // Already filtered to only those users having messages
   id,
+  showParticipants = true,
+  showShare = true,
 }: {
   hostData: HostSession;
   userData: UserSession[];
   id: string;
+  showParticipants?: boolean;
+  showShare?: boolean;
 }) {
   
   const hasMessages = userData.length > 0;
@@ -44,8 +48,14 @@ export default function SessionResultsSection({
     <>
       <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
       {hasMessages
-        ? <ResultTabs hostData={hostData} userData={userData} id={id} hasNewMessages={ hasNewMessages } />
-        : <ShareSession makeSessionId={id} />}
+        ? <ResultTabs 
+            hostData={hostData} 
+            userData={userData} 
+            id={id} 
+            hasNewMessages={hasNewMessages}
+            showParticipants={showParticipants} 
+          />
+        : showShare && <ShareSession makeSessionId={id} />}
       <ExportSection hostData={hostData} userData={userData} id={id} />
     </>
   );

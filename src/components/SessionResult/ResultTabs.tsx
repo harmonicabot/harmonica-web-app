@@ -20,12 +20,14 @@ export default function ResultTabs({
   userData,
   id,
   hasNewMessages,
+  showParticipants = true,
 }: {
   hostData: HostSession;
   userData: UserSession[];
   id: string;
   hasNewMessages: boolean;
-  }) {
+  showParticipants: boolean;
+}) {
   
   // We need this to check if we should show the summary or not, and whether the summary should be updateable
   const initialIncluded = userData
@@ -182,9 +184,11 @@ export default function ResultTabs({
           >
             Summary
           </TabsTrigger>
-          <TabsTrigger className="ms-0" value="RESPONSES">
-            Responses
-          </TabsTrigger>
+          {showParticipants && (
+            <TabsTrigger className="ms-0" value="RESPONSES">
+              Responses
+            </TabsTrigger>
+          )}
           {customAIresponses.length > 0 && (
             <TabsTrigger className="ms-0" value="CUSTOM">
               Custom Ask AI responses
@@ -224,12 +228,14 @@ export default function ResultTabs({
                     </Card>
                   )}
                 </TabsContent>
-                <TabsContent value="RESPONSES" className="mt-4">
-                  <SessionParticipantsTable
-                    userData={userData}
-                    onIncludeInSummaryChange={updateIncludedInSummaryList}
-                  />
-                </TabsContent>
+                {showParticipants && (
+                  <TabsContent value="RESPONSES" className="mt-4">
+                    <SessionParticipantsTable
+                      userData={userData}
+                      onIncludeInSummaryChange={updateIncludedInSummaryList}
+                    />
+                  </TabsContent>
+                )}
                 <TabsContent value="CUSTOM" className="mt-4">
                   {customAIresponses.map((response) => (
                     <Card className="mb-4 relative">
