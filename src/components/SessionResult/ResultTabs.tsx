@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect, useState } from 'react';
 import * as db from '@/lib/db';
 import { HostSession, UserSession } from '@/lib/schema';
@@ -20,12 +21,16 @@ export default function ResultTabs({
   userData,
   id,
   hasNewMessages,
+  showParticipants = true,
+  showSessionRecap = true,
 }: {
   hostData: HostSession;
   userData: UserSession[];
   id: string;
   hasNewMessages: boolean;
-  }) {
+  showParticipants: boolean;
+  showSessionRecap?: boolean;
+}) {
   
   // We need this to check if we should show the summary or not, and whether the summary should be updateable
   const initialIncluded = userData
@@ -182,12 +187,14 @@ export default function ResultTabs({
           >
             Summary
           </TabsTrigger>
-          <TabsTrigger className="ms-0" value="RESPONSES">
-            Responses
-          </TabsTrigger>
+          {showParticipants && (
+            <TabsTrigger className="ms-0" value="RESPONSES">
+              Responses
+            </TabsTrigger>
+          )}
           {customAIresponses.length > 0 && (
             <TabsTrigger className="ms-0" value="CUSTOM">
-              Custom Ask AI responses
+              Custom Insights
             </TabsTrigger>
           )}
         </TabsList>
@@ -215,6 +222,7 @@ export default function ResultTabs({
                         setInitialUserIds(updatedUserIds);
                         setNewSummaryContentAvailable(false);
                       }}
+                      showSessionRecap={showSessionRecap}
                     />
                   ) : (
                     <Card>
@@ -224,12 +232,14 @@ export default function ResultTabs({
                     </Card>
                   )}
                 </TabsContent>
-                <TabsContent value="RESPONSES" className="mt-4">
-                  <SessionParticipantsTable
-                    userData={userData}
-                    onIncludeInSummaryChange={updateIncludedInSummaryList}
-                  />
-                </TabsContent>
+                {showParticipants && (
+                  <TabsContent value="RESPONSES" className="mt-4">
+                    <SessionParticipantsTable
+                      userData={userData}
+                      onIncludeInSummaryChange={updateIncludedInSummaryList}
+                    />
+                  </TabsContent>
+                )}
                 <TabsContent value="CUSTOM" className="mt-4">
                   {customAIresponses.map((response) => (
                     <Card className="mb-4 relative">
@@ -241,7 +251,7 @@ export default function ResultTabs({
                       >
                         <TrashIcon className="h-5 w-5 text-gray-500 hover:text-red-500" />
                       </button>
-                      <CardContent>
+                      <CardContent className="max-h-[80vh] overflow-auto pb-0">
                         <HRMarkdown content={response.content} />
                       </CardContent>
                     </Card>
@@ -270,6 +280,7 @@ export default function ResultTabs({
                         createSummary(id);
                         setInitialUserIds(updatedUserIds);
                       }}
+                      showSessionRecap={showSessionRecap}
                     />
                   ) : (
                     <Card>
@@ -296,7 +307,7 @@ export default function ResultTabs({
                       >
                         <TrashIcon className="h-5 w-5 text-gray-500 hover:text-red-500" />
                       </button>
-                      <CardContent>
+                      <CardContent className="max-h-[80vh] overflow-auto pb-0">
                         <HRMarkdown content={response.content} />
                       </CardContent>
                     </Card>

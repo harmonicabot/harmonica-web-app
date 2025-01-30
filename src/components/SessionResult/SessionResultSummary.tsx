@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card';
 import { HRMarkdown } from '@/components/HRMarkdown';
 import {
   Tooltip,
@@ -10,19 +10,21 @@ import { RefreshCw } from 'lucide-react';
 import { HostSession } from '@/lib/schema';
 import { Spinner } from '../icons';
 import ExpandableCard from '../ui/expandable-card';
-import { use, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { createSummary } from '@/lib/serverUtils';
 
 interface SessionResultSummaryProps {
   hostData: HostSession;
   newSummaryContentAvailable: boolean;
   onUpdateSummary: () => void;
+  showSessionRecap: boolean;
 }
 
 export default function SessionResultSummary({
   hostData,
   newSummaryContentAvailable,
   onUpdateSummary,
+  showSessionRecap = true,
 }: SessionResultSummaryProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   
@@ -36,14 +38,14 @@ export default function SessionResultSummary({
 
   return (
     <>
-      {hostData.prompt_summary && (
+      {hostData.prompt_summary && showSessionRecap&& (
         <div className="mb-4">
         <ExpandableCard title="Session Recap">
           <HRMarkdown content={hostData.prompt_summary}/>
         </ExpandableCard>
         </div>
       )}
-      <Card className="h-full relative">
+      <ExpandableCard title="Session Summary" defaultExpanded={true}>
         {newSummaryContentAvailable && (
           <TooltipProvider>
             <Tooltip delayDuration={50}>
@@ -66,7 +68,7 @@ export default function SessionResultSummary({
             </Tooltip>
           </TooltipProvider>
         )}
-        <CardContent>
+        <CardContent className="max-h-[80vh] overflow-auto pb-0">
           {hostData.summary ? (
             <HRMarkdown content={hostData.summary} />
           ) : (
@@ -75,7 +77,7 @@ export default function SessionResultSummary({
             </>
           )}
         </CardContent>
-      </Card>
+      </ExpandableCard>
     </>
   );
 }

@@ -3,13 +3,20 @@
 import Logo from '@/components/ui/logo';
 import User from '@/components/user';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import ENSNavigation from './(custom)/ens/ENSNavigation';
 
 export default function Navigation() {
+
+  const pathname = usePathname()
+  const isENS = pathname.startsWith('/ens');
+
   return <nav className="p-4">
     <div className="flex flex-row justify-between items-center px-2">
       <Link href="/">
         <Logo />
       </Link>
+      {isENS && (<ENSNavigation/>)}
       <div className="flex items-center space-x-4">
         <Link
           href="https://oldspeak.notion.site/Help-Center-fcf198f4683b4e3099beddf48971bd40"
