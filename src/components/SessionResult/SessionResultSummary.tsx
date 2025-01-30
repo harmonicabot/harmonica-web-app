@@ -68,7 +68,7 @@ export default function SessionResultSummary({
             </Tooltip>
           </TooltipProvider>
         )}
-        <CardContent>
+        <CardContent className="max-h-[80vh] overflow-auto pb-0">
           {hostData.summary ? (
             <HRMarkdown content={hostData.summary} />
           ) : (

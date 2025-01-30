@@ -29,7 +29,7 @@ export default function ResultTabs({
   id: string;
   hasNewMessages: boolean;
   showParticipants: boolean;
-  showSessionRecap: boolean;
+  showSessionRecap?: boolean;
 }) {
   
   // We need this to check if we should show the summary or not, and whether the summary should be updateable
@@ -251,7 +251,7 @@ export default function ResultTabs({
                       >
                         <TrashIcon className="h-5 w-5 text-gray-500 hover:text-red-500" />
                       </button>
-                      <CardContent>
+                      <CardContent className="max-h-[80vh] overflow-auto pb-0">
                         <HRMarkdown content={response.content} />
                       </CardContent>
                     </Card>
@@ -307,7 +307,7 @@ export default function ResultTabs({
                       >
                         <TrashIcon className="h-5 w-5 text-gray-500 hover:text-red-500" />
                       </button>
-                      <CardContent>
+                      <CardContent className="max-h-[80vh] overflow-auto pb-0">
                         <HRMarkdown content={response.content} />
                       </CardContent>
                     </Card>
