@@ -1,12 +1,6 @@
 import * as db from '@/lib/db';
-import SessionResultHeader, {
-  SessionStatus,
-} from '@/components/SessionResult/SessionResultHeader';
-import SessionResultsSection from '@/components/SessionResult/SessionResultsSection';
 import { decryptId } from '@/lib/encryptionUtils';
 import ErrorPage from '@/components/Error';
-import SessionResultsOverview from '@/components/SessionResult/SessionResultsOverview';
-import { getUserStats } from '@/lib/clientUtils';
 import SessionSummaryCard from '@/components/SessionResult/SessionSummaryCard';
 import ResultTabs from '@/components/SessionResult/ResultTabs';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -70,7 +64,7 @@ export default async function MultiSessionResults() {
               />
             </svg>
             <span>
-              Paris University, in collaboration with Mission Publique
+              Paris University, in collaboration with Mission Publique & Harmonica AI
             </span>
           </div>
         </div>

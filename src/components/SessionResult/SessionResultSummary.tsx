@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card';
 import { HRMarkdown } from '@/components/HRMarkdown';
 import {
   Tooltip,
@@ -10,7 +10,7 @@ import { RefreshCw } from 'lucide-react';
 import { HostSession } from '@/lib/schema';
 import { Spinner } from '../icons';
 import ExpandableCard from '../ui/expandable-card';
-import { use, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { createSummary } from '@/lib/serverUtils';
 
 interface SessionResultSummaryProps {
@@ -45,7 +45,7 @@ export default function SessionResultSummary({
         </ExpandableCard>
         </div>
       )}
-      <Card className="h-full relative">
+      <ExpandableCard title="Session Summary" defaultExpanded={true}>
         {newSummaryContentAvailable && (
           <TooltipProvider>
             <Tooltip delayDuration={50}>
@@ -77,7 +77,7 @@ export default function SessionResultSummary({
             </>
           )}
         </CardContent>
-      </Card>
+      </ExpandableCard>
     </>
   );
 }

@@ -27,7 +27,7 @@ export default function ExpandableCard({
   children,
   defaultExpanded = false,
   className,
-  maxHeight = 'calc(100vh - 16rem)'
+  maxHeight = 'calc(100vh)'
 }: ExpandableCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   
