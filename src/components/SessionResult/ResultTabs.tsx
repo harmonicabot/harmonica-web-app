@@ -22,12 +22,14 @@ export default function ResultTabs({
   id,
   hasNewMessages,
   showParticipants = true,
+  showSessionRecap = true,
 }: {
   hostData: HostSession;
   userData: UserSession[];
   id: string;
   hasNewMessages: boolean;
   showParticipants: boolean;
+  showSessionRecap: boolean;
 }) {
   
   // We need this to check if we should show the summary or not, and whether the summary should be updateable
@@ -220,6 +222,7 @@ export default function ResultTabs({
                         setInitialUserIds(updatedUserIds);
                         setNewSummaryContentAvailable(false);
                       }}
+                      showSessionRecap={showSessionRecap}
                     />
                   ) : (
                     <Card>
@@ -277,6 +280,7 @@ export default function ResultTabs({
                         createSummary(id);
                         setInitialUserIds(updatedUserIds);
                       }}
+                      showSessionRecap={showSessionRecap}
                     />
                   ) : (
                     <Card>

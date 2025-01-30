@@ -17,12 +17,14 @@ interface SessionResultSummaryProps {
   hostData: HostSession;
   newSummaryContentAvailable: boolean;
   onUpdateSummary: () => void;
+  showSessionRecap: boolean;
 }
 
 export default function SessionResultSummary({
   hostData,
   newSummaryContentAvailable,
   onUpdateSummary,
+  showSessionRecap = true,
 }: SessionResultSummaryProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   
@@ -36,7 +38,7 @@ export default function SessionResultSummary({
 
   return (
     <>
-      {hostData.prompt_summary && (
+      {hostData.prompt_summary && showSessionRecap&& (
         <div className="mb-4">
         <ExpandableCard title="Session Recap">
           <HRMarkdown content={hostData.prompt_summary}/>

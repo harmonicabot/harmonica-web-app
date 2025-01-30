@@ -61,6 +61,7 @@ export default async function MultiSessionResults() {
             id={decryptedIds[0]} 
             hasNewMessages={false}
             showParticipants={false} 
+            showSessionRecap={false}
           />
         </div>
         This is based on the following sessions: 
