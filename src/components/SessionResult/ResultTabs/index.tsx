@@ -17,6 +17,7 @@ import { TabContent } from './components/TabContent';
 import { useCustomResponses } from './hooks/useCustomResponses';
 import { cn } from '@/lib/clientUtils';
 import * as db from '@/lib/db';
+import { ExportButton } from '@/components/Export/ExportButton';
 
 export default function ResultTabs({
   hostData,
@@ -32,14 +33,18 @@ export default function ResultTabs({
   );
 
   // Custom hook for managing AI responses
-  const { responses, addResponse, removeResponse } = useCustomResponses(hostData.id);
+  const { responses, addResponse, removeResponse } = useCustomResponses(
+    hostData.id
+  );
 
   // User management state
   const initialIncluded = userData
     .filter((user) => user.include_in_summary)
     .map((user) => user.id);
-  const [updatedUserIds, setUpdatedUserIds] = useState<string[]>(initialIncluded);
-  const [initialUserIds, setInitialUserIds] = useState<string[]>(initialIncluded);
+  const [updatedUserIds, setUpdatedUserIds] =
+    useState<string[]>(initialIncluded);
+  const [initialUserIds, setInitialUserIds] =
+    useState<string[]>(initialIncluded);
 
   const updateIncludedInSummaryList = (userId: string, included: boolean) => {
     const includedIds = userData
@@ -55,13 +60,24 @@ export default function ResultTabs({
       include_in_summary: included,
     });
     userData.find((user) => user.id === userId)!.include_in_summary = included;
+    
+    // Compare arrays ignoring order
+    const haveIncludedUsersChanged = 
+      includedIds.length !== initialUserIds.length || 
+      !includedIds.every(id => initialUserIds.includes(id));
+    
+    setNewSummaryContentAvailable(hasNewMessages || haveIncludedUsersChanged);
   };
 
   // Memoized values
-  const showSummary = useMemo(() => updatedUserIds.length > 0, [updatedUserIds]);
-  
+  const showSummary = useMemo(
+    () => updatedUserIds.length > 0,
+    [updatedUserIds]
+  );
+
   // Add this state
-  const [newSummaryContentAvailable, setNewSummaryContentAvailable] = useState(hasNewMessages);
+  const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
+    useState(hasNewMessages);
 
   // Message enhancement for chat
   const enhancedMessage = (message: OpenAIMessage, key: number) => {
@@ -88,8 +104,8 @@ export default function ResultTabs({
   };
 
   // Shared content renderer
-  const renderContent = (isMobile = false) => (
-    <div className={cn("overflow-auto", isMobile ? "w-full" : "")}>
+  const renderLeftContent = (isMobile = false) => (
+    <div className={cn('overflow-auto', isMobile ? 'w-full' : '')}>
       <TabContent value="SUMMARY">
         {showSummary ? (
           <SessionResultSummary
@@ -127,6 +143,17 @@ export default function ResultTabs({
             />
           ))}
         </TabContent>
+      )}
+
+      {responses.length > 0 && activeTab === 'CUSTOM' && (
+        <div className="mt-4 flex justify-end">
+          <ExportButton
+            content={responses.map(r => r.content).join('\n\n---\n\n')}
+            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+          >
+            Export All Insights
+          </ExportButton>
+        </div>
       )}
     </div>
   );
@@ -175,7 +202,7 @@ export default function ResultTabs({
             gutterSize={8}
             snapOffset={30}
           >
-            {renderContent()}
+            {renderLeftContent()}
             <div className="overflow-auto md:w-1/3 mt-4 gap-4">
               <SessionResultChat
                 userData={userData}
@@ -188,7 +215,7 @@ export default function ResultTabs({
 
         {/* Mobile Layout */}
         <div className="md:hidden w-full flex flex-col gap-4">
-          {renderContent(true)}
+          {renderLeftContent(true)}
           <div className="w-full mt-4">
             <SessionResultChat
               userData={userData}

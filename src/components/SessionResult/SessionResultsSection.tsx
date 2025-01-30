@@ -9,7 +9,7 @@ import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
 import { createSummary } from '@/lib/serverUtils';
 
 import ResultTabs from './ResultTabs';
-import ExportSection from './ExportSection';
+import ExportSection from '../Export/ExportSection';
 import { OpenAIMessage } from '@/lib/types';
 
 export default function SessionResultsSection({
@@ -18,6 +18,7 @@ export default function SessionResultsSection({
   id,
   showParticipants = true,
   showShare = true,
+  showSessionRecap = true,
   chatEntryMessage,
 }: {
   hostData: HostSession;
@@ -25,6 +26,7 @@ export default function SessionResultsSection({
   id: string;
   showParticipants?: boolean;
   showShare?: boolean;
+  showSessionRecap?: boolean;
   chatEntryMessage?: OpenAIMessage;
 }) {
   const hasMessages = userData.length > 0;
@@ -56,6 +58,7 @@ export default function SessionResultsSection({
           id={id}
           hasNewMessages={hasNewMessages}
           showParticipants={showParticipants}
+          showSessionRecap={showSessionRecap}
           chatEntryMessage={chatEntryMessage}
         />
       ) : (
