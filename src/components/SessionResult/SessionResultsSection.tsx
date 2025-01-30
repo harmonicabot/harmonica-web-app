@@ -9,18 +9,26 @@ import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
 import { createSummary } from '@/lib/serverUtils';
 
 import ResultTabs from './ResultTabs';
-import ExportSection from './ExportSection';
+import ExportSection from '../Export/ExportSection';
+import { OpenAIMessage } from '@/lib/types';
 
 export default function SessionResultsSection({
   hostData,
   userData, // Already filtered to only those users having messages
   id,
+  showParticipants = true,
+  showShare = true,
+  showSessionRecap = true,
+  chatEntryMessage,
 }: {
   hostData: HostSession;
   userData: UserSession[];
   id: string;
+  showParticipants?: boolean;
+  showShare?: boolean;
+  showSessionRecap?: boolean;
+  chatEntryMessage?: OpenAIMessage;
 }) {
-  
   const hasMessages = userData.length > 0;
   const { hasNewMessages, lastMessage, lastSummaryUpdate } =
     checkSummaryAndMessageTimes(hostData, userData);
@@ -43,9 +51,19 @@ export default function SessionResultsSection({
   return (
     <>
       <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
-      {hasMessages
-        ? <ResultTabs hostData={hostData} userData={userData} id={id} hasNewMessages={ hasNewMessages } />
-        : <ShareSession makeSessionId={id} />}
+      {hasMessages ? (
+        <ResultTabs
+          hostData={hostData}
+          userData={userData}
+          id={id}
+          hasNewMessages={hasNewMessages}
+          showParticipants={showParticipants}
+          showSessionRecap={showSessionRecap}
+          chatEntryMessage={chatEntryMessage}
+        />
+      ) : (
+        showShare && <ShareSession makeSessionId={id} />
+      )}
       <ExportSection hostData={hostData} userData={userData} id={id} />
     </>
   );

@@ -9,12 +9,14 @@ export default function SessionResultsOverview({
   startTime,
   numSessions,
   completedSessions,
+  showShare = true
 }: {
   id: string;
   active: boolean;
   startTime: Date;
   numSessions: number;
   completedSessions: number;
+  showShare?: boolean
 }) {
   return (
     <div className="flex flex-col md:flex-row gap-4">
@@ -31,7 +33,7 @@ export default function SessionResultsOverview({
         numSessions={numSessions}
         completedSessions={completedSessions}
       />
-      {active && <SessionResultShare sessionId={id} />}
+      {active && showShare && <SessionResultShare sessionId={id} />}
     </div>
   );
 }
