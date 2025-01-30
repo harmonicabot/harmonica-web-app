@@ -10,21 +10,29 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/clientUtils';
 
 interface ExpandableCardProps {
   title: string;
   description?: string;
   children: React.ReactNode;
+  defaultExpanded?: boolean;
+  className?: string;
+  maxHeight?: string;
 }
 
 export default function ExpandableCard({
   title,
   description,
   children,
+  defaultExpanded = false,
+  className,
+  maxHeight = 'calc(100vh - 16rem)'
 }: ExpandableCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  
   return (
-    <Card className="h-full relative">
+    <Card className={cn("h-full relative", className)}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -47,9 +55,11 @@ export default function ExpandableCard({
         </div>
       </CardHeader>
       <CardContent
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          isExpanded ? 'opacity-100 pt-0' : 'max-h-0 opacity-0 p-0'
-        }`}
+        className={cn(
+          "overflow-hidden transition-all duration-300 ease-in-out",
+          isExpanded ? "opacity-100 pt-0" : "max-h-0 opacity-0 p-0"
+        )}
+        style={{ maxHeight: isExpanded ? maxHeight : 0 }}
       >
         {children}
       </CardContent>

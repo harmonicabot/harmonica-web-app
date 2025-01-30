@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect, useState } from 'react';
 import * as db from '@/lib/db';
 import { HostSession, UserSession } from '@/lib/schema';
@@ -191,7 +192,7 @@ export default function ResultTabs({
           )}
           {customAIresponses.length > 0 && (
             <TabsTrigger className="ms-0" value="CUSTOM">
-              Custom Ask AI responses
+              Custom Insights
             </TabsTrigger>
           )}
         </TabsList>

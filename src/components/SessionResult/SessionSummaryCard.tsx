@@ -2,6 +2,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { HostSession, UserSession } from "@/lib/schema"
+import { intlFormatDistance } from "date-fns"
 
 export default function SessionSummaryCard({
   hostData,
@@ -41,13 +42,15 @@ export default function SessionSummaryCard({
             <div>
               <dt className="text-sm text-gray-500">Started</dt>
               <dd className="text-sm">
-                {new Date(hostData.start_time).toLocaleDateString()}
+              {Date.now() - new Date(hostData.start_time).getTime() > 7 * 24 * 60 * 60 * 1000 
+                ? new Date(hostData.start_time).toLocaleDateString()
+                : intlFormatDistance(new Date(hostData.start_time), new Date())}
               </dd>
             </div>
-            {hostData.summary && (
+            {hostData.goal && (
               <div className="col-span-2">
-                <dt className="text-sm text-gray-500">Key Insights</dt>
-                <dd className="text-sm line-clamp-3">{hostData.summary}</dd>
+                <dt className="text-sm text-gray-500">Objective</dt>
+                <dd className="text-sm line-clamp-3">{hostData.goal}</dd>
               </div>
             )}
           </dl>
