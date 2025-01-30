@@ -15,9 +15,6 @@ export default function SessionSummaryCard({
   userData: UserSession[]
   id: string
 }) {
-  const totalMessages = Object.values(stats).reduce((acc: number, curr: any) => 
-    acc + curr.num_messages, 0)
-  
   return (
     <Link href={`/ens/${id}`}>
       <Card className="hover:shadow-lg transition-shadow">
@@ -28,6 +25,14 @@ export default function SessionSummaryCard({
               {hostData.active ? "Active" : "Completed"}
             </Badge>
           </CardTitle>
+          {hostData.goal && (
+            <div>
+              <dt className="text-sm text-gray-500">Objective</dt>
+              <p className="text-sm mt-2 line-clamp-2">
+                {hostData.goal}
+              </p>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-2 gap-4">
@@ -36,23 +41,13 @@ export default function SessionSummaryCard({
               <dd className="text-2xl font-semibold">{userData.length}</dd>
             </div>
             <div>
-              <dt className="text-sm text-gray-500">Messages</dt>
-              <dd className="text-2xl font-semibold">{totalMessages}</dd>
-            </div>
-            <div>
               <dt className="text-sm text-gray-500">Started</dt>
               <dd className="text-sm">
-              {Date.now() - new Date(hostData.start_time).getTime() > 7 * 24 * 60 * 60 * 1000 
-                ? new Date(hostData.start_time).toLocaleDateString()
-                : intlFormatDistance(new Date(hostData.start_time), new Date())}
+                {Date.now() - new Date(hostData.start_time).getTime() > 7 * 24 * 60 * 60 * 1000 
+                  ? new Date(hostData.start_time).toLocaleDateString()
+                  : intlFormatDistance(new Date(hostData.start_time), new Date())}
               </dd>
             </div>
-            {hostData.goal && (
-              <div className="col-span-2">
-                <dt className="text-sm text-gray-500">Objective</dt>
-                <dd className="text-sm line-clamp-3">{hostData.goal}</dd>
-              </div>
-            )}
           </dl>
         </CardContent>
       </Card>
