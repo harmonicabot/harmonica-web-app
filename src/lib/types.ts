@@ -2,7 +2,7 @@
 //  There's just too much going on right now and the separation between
 //  UserData, SessionData & AccumulatedData isn't clear enough.
 
-import { UserSession, Message } from "./schema";
+import { UserSession, Message, HostSession } from "./schema";
 
 export enum ApiAction {
   CreatePrompt = 'createPrompt',
@@ -91,3 +91,21 @@ export type Session = {
   status: string;
   createdAt: Date;
 };
+
+export interface ResultTabsProps {
+  hostData: HostSession;
+  userData: UserSession[];
+  id: string;
+  hasNewMessages: boolean;
+  showParticipants: boolean;
+  showSessionRecap?: boolean;
+  chatEntryMessage?: OpenAIMessage;
+}
+
+export interface CustomAIResponse {
+  id?: string;
+  position: number;
+  session_id: string;
+  content: string;
+  created_at?: Date;
+}
