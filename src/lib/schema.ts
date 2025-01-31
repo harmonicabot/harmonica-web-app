@@ -66,6 +66,27 @@ export interface CustomResponsesTable {
   created_at: Generated<Date>;
 }
 
+export interface WorkspacesTable {
+  id: Generated<string>;
+  title: string;
+  description?: string;
+  parent_id?: string;
+  created_at: ColumnType<Date, Date | undefined, never>;
+  last_modified: Generated<Date>;
+}
+
+// Mapping of which sessions belong to which workspaces
+export interface WorkspaceSessionsTable {
+  workspace_id: string;
+  session_id: string;
+}
+
+export interface PermissionsTable {
+  resource_id: string;
+  user_id: string;
+  role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none';
+}
+
 export type HostSession = Selectable<HostSessionsTable>;
 export type NewHostSession = Insertable<HostSessionsTable>;
 export type HostSessionUpdate = Updateable<HostSessionsTable>;
@@ -77,51 +98,20 @@ export type NewMessage = Insertable<MessagesTable>;
 export type CustomResponse = Selectable<CustomResponsesTable>
 export type NewCustomResponse = Insertable<CustomResponsesTable>
 export type CustomResponseUpdate = Updateable<CustomResponsesTable>
+export type Workspace = Selectable<WorkspacesTable>;
+export type NewWorkspace = Insertable<WorkspacesTable>;
+export type WorkspaceUpdate = Updateable<WorkspacesTable>;
+export type Permission = Selectable<PermissionsTable>;
+export type NewPermission = Insertable<PermissionsTable>;
+export type PermissionUpdate = Updateable<PermissionsTable>;
 
 const hostTableName = 'host_db';
 const userTableName = 'user_db';
 const messageTableName = 'messages_db';
 const customResponsesTableName = 'custom_responses'
-
-// Triggers & Setup helpers:
-
-// ***** TRIGGER running on pg to update the last_edit on summary changes: *****
-export async function createTriggerOnHostUpdateLastEditSummary() {
-  sql`CREATE OR REPLACE FUNCTION update_last_edit_summary()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.summary IS DISTINCT FROM OLD.summary THEN
-        NEW.last_edit = CURRENT_TIMESTAMP;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_last_edit_on_summary_change
-    BEFORE UPDATE ON ${hostTableName}
-    FOR EACH ROW
-    EXECUTE FUNCTION update_last_edit_summary();
-`;
-}
-
-// ***** TRIGGER running on pg to update the last_edit on chat_text change: *****
-export async function createTriggerOnUserUpdateLastEditChatText() {
-  sql`CREATE OR REPLACE FUNCTION update_last_edit()
-RETURNS TRIGGER AS $$
-BEGIN
-        NEW.last_edit = CURRENT_TIMESTAMP;
-        NEW.last_edit = CURRENT_TIMESTAMP;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_last_edit_on_chat_change
-    BEFORE UPDATE ON ${userTableName}
-    FOR EACH ROW
-    EXECUTE FUNCTION update_last_edit();
-`;
-}
+const workspaceTableName = 'workspaces';
+const workspaceSessionsTableName = 'workspace_sessions';
+const permissionsTableName = 'permissions';
 
 export async function createDbInstance<T extends Record<string, any>>() {
   try {
@@ -146,20 +136,4 @@ export async function createDbInstance<T extends Record<string, any>>() {
     console.log("POSTGRES_URL: ", process.env.POSTGRES_URL)
     throw e
   }
-}
-
-export async function createCustomDbInstance<T extends Record<string, any>>(
-  host = 'temp_host_db',
-  user = 'temp_user_db',
-  message = 'temp_message_db',
-  connectionUrl = process.env.CUSTOM_DATABASE,
-) {
-  const dialect = new PostgresDialect({
-    pool: new pg.Pool({
-      connectionString: connectionUrl,
-      max: 10,
-    }),
-  });
-  const db = new Kysely<T>({ dialect });
-  return { db, dbNames: { host, user, message } };
 }

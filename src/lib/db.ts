@@ -18,13 +18,19 @@ if (typeof window === 'undefined') {
 const hostTableName = 'host_db';
 const userTableName = 'user_db';
 const messageTableName = 'messages_db';
-const customResponseTableName = 'custom_responses'
+const customResponseTableName = 'custom_responses';
+const workspaceTableName = 'workspaces';
+const workspaceSessionsTableName = 'workspace_sessions';
+const permissionsTableName = 'permissions';
 
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
   [userTableName]: s.UserSessionsTable;
   [messageTableName]: s.MessagesTable;
   [customResponseTableName]: s.CustomResponsesTable;
+  [workspaceTableName]: s.WorkspacesTable;
+  [workspaceSessionsTableName]: s.WorkspaceSessionsTable;
+  [permissionsTableName]: s.PermissionsTable;
 }
 
 const dbPromise = (async () => {
@@ -502,3 +508,215 @@ export async function deleteCustomResponse(id: string): Promise<boolean> {
   }
 }
 
+// Workspace CRUD operations
+export async function createWorkspace(workspace: s.NewWorkspace): Promise<s.Workspace | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .insertInto('workspaces')
+      .values(workspace)
+      .returningAll()
+      .executeTakeFirst();
+    
+    return result || null;
+  } catch (error) {
+    console.error('Error creating workspace:', error);
+    return null;
+  }
+}
+
+export async function getWorkspaceById(id: string): Promise<s.Workspace | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom('workspaces')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
+    
+    return result || null;
+  } catch (error) {
+    console.error('Error getting workspace by ID:', error);
+    return null;
+  }
+}
+
+export async function updateWorkspace(
+  id: string,
+  update: s.WorkspaceUpdate
+): Promise<s.Workspace | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .updateTable('workspaces')
+      .set(update)
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirst();
+    
+    return result || null;
+  } catch (error) {
+    console.error('Error updating workspace:', error);
+    return null;
+  }
+}
+
+export async function deleteWorkspace(id: string): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .deleteFrom('workspaces')
+      .where('id', '=', id)
+      .execute();
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting workspace:', error);
+    return false;
+  }
+}
+
+// Workspace Sessions operations
+export async function addSessionToWorkspace(workspaceId: string, sessionId: string): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .insertInto('workspace_sessions')
+      .values({ workspace_id: workspaceId, session_id: sessionId })
+      .execute();
+    
+    return true;
+  } catch (error) {
+    console.error('Error adding session to workspace:', error);
+    return false;
+  }
+}
+
+export async function removeSessionFromWorkspace(workspaceId: string, sessionId: string): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .deleteFrom('workspace_sessions')
+      .where('workspace_id', '=', workspaceId)
+      .where('session_id', '=', sessionId)
+      .execute();
+    
+    return true;
+  } catch (error) {
+    console.error('Error removing session from workspace:', error);
+    return false;
+  }
+}
+
+export async function getWorkspaceSessions(workspaceId: string): Promise<string[]> {
+  try {
+    const db = await dbPromise;
+    const results = await db
+      .selectFrom('workspace_sessions')
+      .select('session_id')
+      .where('workspace_id', '=', workspaceId)
+      .execute();
+    
+    return results.map(r => r.session_id);
+  } catch (error) {
+    console.error('Error getting workspace sessions:', error);
+    return [];
+  }
+}
+
+// Permissions operations
+export async function setPermission(
+  resourceId: string,
+  userId: string,
+  role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none'
+): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .insertInto('permissions')
+      .values({ resource_id: resourceId, user_id: userId, role })
+      .onConflict((oc) => oc.columns(['resource_id', 'user_id']).doUpdateSet({ role }))
+      .execute();
+    
+    return true;
+  } catch (error) {
+    console.error('Error setting permission:', error);
+    return false;
+  }
+}
+
+export async function getPermission(
+  resourceId: string,
+  userId: string
+): Promise<{ role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none' } | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom('permissions')
+      .select('role')
+      .where('resource_id', '=', resourceId)
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+    
+    return result || null;
+  } catch (error) {
+    console.error('Error getting permission:', error);
+    return null;
+  }
+}
+
+export async function removePermission(resourceId: string, userId: string): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .deleteFrom('permissions')
+      .where('resource_id', '=', resourceId)
+      .where('user_id', '=', userId)
+      .execute();
+    
+    return true;
+  } catch (error) {
+    console.error('Error removing permission:', error);
+    return false;
+  }
+}
+
+export async function getUserPermissions(userId: string): Promise<Array<{ resourceId: string, role: string }>> {
+  try {
+    const db = await dbPromise;
+    const results = await db
+      .selectFrom('permissions')
+      .select(['resource_id', 'role'])
+      .where('user_id', '=', userId)
+      .execute();
+    
+    return results.map(r => ({ resourceId: r.resource_id, role: r.role }));
+  } catch (error) {
+    console.error('Error getting user permissions:', error);
+    return [];
+  }
+}
+
+export async function canEdit(userId: string, resourceId: string): Promise<boolean> {
+  const db = await dbPromise;
+  const permission = await db
+    .selectFrom('permissions')
+    .select('role')
+    .where('user_id', '=', userId)
+    .where('resource_id', '=', resourceId)
+    .executeTakeFirst();
+    
+  return permission?.role === 'owner' || permission?.role === 'editor' || permission?.role === 'admin';
+}
+
+export async function setDefaultPermissions(resourceId: string, ownerId: string): Promise<void> {
+  const db = await dbPromise;
+  await db
+    .insertInto('permissions')
+    .values({
+      resource_id: resourceId,
+      user_id: ownerId,
+      role: 'owner'
+    })
+    .execute();
+}

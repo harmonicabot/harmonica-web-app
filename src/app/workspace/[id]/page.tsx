@@ -10,7 +10,9 @@ export const maxDuration = 60; // in seconds
 export const revalidate = 5 * 60; // check new data only every 5 minutes
 
 export default async function MultiSessionResults() {
-  // Hardcoded array of session IDs
+  // While in development, we just take whichever six last sessions the user has access to.
+  // Once we created the ENS sessions, we will hardcode those. Or, identify them in some way.
+
   const sessionIds = [
     'aHN0XzU0ZTI3Y2Y4NzI0ZQ==',
     'aHN0XzZlOTc5OTY5NGMwMA==',
