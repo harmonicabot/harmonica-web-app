@@ -9,6 +9,7 @@ import ErrorPage from '@/components/Error';
 import { getGeneratedMetadata } from 'app/api/metadata';
 import Image from 'next/image';
 
+export const dynamic = 'force-dynamic'; // getHostSessions is using auth, which can only be done client side
 export const revalidate = 300; // Revalidate the data every 5 minutes (or on page reload)
 export const metadata = getGeneratedMetadata('/');
 

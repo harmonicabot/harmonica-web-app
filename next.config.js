@@ -39,9 +39,24 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  webpack: (config, { isServer }) => {
-    // Exclude onnxruntime-node from webpack bundling
-    config.externals = [...(config.externals || []), 'onnxruntime-node']
+  webpack: (config, { isServer, dev }) => {
+    // Exclude some of the large ML packages from webpack bundling
+    config.externals = [
+      ...(config.externals || []),
+      'onnxruntime-node',
+      'chromadb-default-embed',
+      'onnxruntime-web',
+      'llamaindex',
+      '@llamaindex/core',
+      '@llamaindex/env'
+    ]
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        sideEffects: true,
+        usedExports: true
+      }
+    }
     return config
   },
 };
