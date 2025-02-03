@@ -84,7 +84,7 @@ export default function ResultTabs({
     if (message.role === 'assistant' && key > 0) {
       return (
         <>
-          <ChatMessage {...{ message, key }} />
+          <ChatMessage key={key} message={message} />
           <div
             className="opacity-0 group-hover:opacity-100 flex flex-row 
             justify-center items-center cursor-pointer rounded-md 
@@ -100,7 +100,7 @@ export default function ResultTabs({
         </>
       );
     }
-    return <ChatMessage {...{ message, key }} />;
+    return <ChatMessage key={key} message={message}  />;
   };
 
   // Shared content renderer
