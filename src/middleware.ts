@@ -21,9 +21,15 @@ export async function middleware(req: NextRequest, ev: NextFetchEvent) {
   if (
     // Allow these without authentication:
     req.nextUrl.pathname.match(
-      /^\/(?:api|login|chat|favicon\.ico|h_chat_icon\.png|.*opengraph-image\.png|.*og_.*\.png|_next\/static|_next\/image)/
+      /^\/(?:api|login|chat|favicon\.ico|h_chat_icon\.png|monica_chat_icon\.svg|.*opengraph-image\.png|.*og_.*\.png|_next\/static|_next\/image)/
     )
   ) {
+    return NextResponse.next();
+  }
+
+  // Check public access parameter
+  const isPublicAccess = req.nextUrl.searchParams.get('access') === 'public';
+  if (isPublicAccess) {
     return NextResponse.next();
   }
 
