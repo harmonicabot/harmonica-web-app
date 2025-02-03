@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '../icons';
 import { Button } from '../ui/button';
+import { usePermissions } from '@/lib/permissions';
 
 // ExportSection.tsx
 export default function ExportSection({
@@ -111,6 +112,8 @@ export default function ExportSection({
     document.body.removeChild(link);
   }
 
+  const { hasMinimumRole, loading } = usePermissions(id);
+
   return (
     <>
       <Button onClick={handleShowExportPopup}>Export Session Details</Button>
@@ -150,10 +153,11 @@ export default function ExportSection({
                   ) : (
                     <div className="flex justify-between items-center">
                       <Button type="submit">Submit</Button>
-                      <Button onClick={exportAllData} variant="ghost">
-                        {' '}
-                        Export All{' '}
-                      </Button>
+                      {!loading && hasMinimumRole('owner') && <Button onClick={exportAllData} variant="ghost">
+                          {' '}
+                          Export All{' '}
+                        </Button>
+                      }
                     </div>
                   )}
                 </form>

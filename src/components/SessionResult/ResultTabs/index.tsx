@@ -18,6 +18,7 @@ import { useCustomResponses } from './hooks/useCustomResponses';
 import { cn } from '@/lib/clientUtils';
 import * as db from '@/lib/db';
 import { ExportButton } from '@/components/Export/ExportButton';
+import { usePermissions } from '@/lib/permissions';
 
 export default function ResultTabs({
   hostData,
@@ -31,6 +32,8 @@ export default function ResultTabs({
   const [activeTab, setActiveTab] = useState(
     hostData.summary ? 'SUMMARY' : 'RESPONSES'
   );
+
+  const { hasMinimumRole, loading: loadingUserInfo } = usePermissions(id);
 
   // Custom hook for managing AI responses
   const { responses, addResponse, removeResponse } = useCustomResponses(
@@ -81,7 +84,7 @@ export default function ResultTabs({
 
   // Message enhancement for chat
   const enhancedMessage = (message: OpenAIMessage, key: number) => {
-    if (message.role === 'assistant' && key > 0) {
+    if (message.role === 'assistant' && key > 0 && (!loadingUserInfo && hasMinimumRole('editor'))) {
       return (
         <>
           <ChatMessage key={key} message={message} />
@@ -139,7 +142,7 @@ export default function ResultTabs({
             <CustomResponseCard
               key={response.id}
               response={response}
-              onRemove={removeResponse}
+              onRemove={!loadingUserInfo && hasMinimumRole('editor') ? removeResponse : null}
             />
           ))}
         </TabContent>
