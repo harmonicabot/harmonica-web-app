@@ -169,54 +169,33 @@ ${cleanedMessages.map((msg, i) => `Message ${i + 1}: ${msg}`).join('\n\n')}
       });
     }
 
-    // Determine query type using OpenAI function calling
-    const queryTypeResponse = await client.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'user',
-          content: `Analyze this question: "${query}"`,
-        },
-      ],
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'classifyQueryType',
-            description: 'Classify the type of query being asked',
-            parameters: {
-              type: 'object',
-              properties: {
-                type: {
-                  type: 'string',
-                  enum: ['analytical', 'specific'],
-                  description: 'The type of query being asked',
-                },
-                confidence: {
-                  type: 'number',
-                  description: 'Confidence score between 0 and 1',
-                },
-              },
-              required: ['type', 'confidence'],
-            },
-          },
-        },
-      ],
-      tool_choice: {
-        type: 'function',
-        function: { name: 'classifyQueryType' },
-      },
+    // Determine query type using LlamaIndex chat model
+    const classificationModel = new LlamaOpenAI({
+      model: 'gpt-4o-mini',
+      apiKey: process.env.OPENAI_API_KEY,
     });
 
-    console.log(
-      '[i] Query type response:',
-      queryTypeResponse.choices[0].message.tool_calls?.[0].function.arguments,
-    );
+    const classificationPrompt = `Analyze this question: "${query}"
+    Respond with ONLY a JSON object (no markdown, no code blocks) with exactly these fields:
+    {
+      "type": "analytical" or "specific",
+      "confidence": number between 0 and 1
+    }
+    analytical: Questions that require analysis across multiple conversations or broad patterns
+    specific: Questions about specific details or single conversations`;
 
-    const queryClassification = JSON.parse(
-      queryTypeResponse.choices[0].message.tool_calls?.[0].function.arguments ||
-        '{}',
-    );
+    const classificationResponse = await classificationModel.complete({
+      prompt: classificationPrompt,
+    });
+
+    console.log('[i] Classification response:', classificationResponse);
+    let queryClassification;
+    try {
+      queryClassification = JSON.parse(classificationResponse.text as string);
+    } catch (error) {
+      console.error('[x] Failed to parse classification response:', error);
+      queryClassification = { type: 'analytical', confidence: 0.9 };
+    }
 
     console.log('[i] Query type response:', queryClassification);
 
