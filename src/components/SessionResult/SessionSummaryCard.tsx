@@ -3,18 +3,21 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { HostSession, UserSession } from "@/lib/schema"
 import { intlFormatDistance } from "date-fns"
+import { encryptId } from "@/lib/encryptionUtils"
 
 export default function SessionSummaryCard({
   hostData,
   userData,
+  workspace_id,
   id
 }: {
   hostData: HostSession
   userData: UserSession[]
+  workspace_id: string
   id: string
 }) {
   return (
-    <Link href={`/ens/${id}`}>
+    <Link href={`/workspace/${workspace_id}/${encryptId(id)}`}>
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader>
           <CardTitle className="flex justify-between items-center">

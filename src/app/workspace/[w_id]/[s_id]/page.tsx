@@ -22,10 +22,13 @@ import ErrorPage from '@/components/Error';
 export default async function SimplifiedSessionResult({
   params,
 }: {
-  params: { id: string };
+  params: { s_id: string };
 }) {
-  const { id } = params;
-  const decryptedId = decryptId(id);
+  const { s_id } = params;
+  console.log("Encrypted ID: ", s_id);
+  const decryptedId = decryptId(s_id);
+  console.log("Decrypted ID: ", decryptedId);
+
 
   try {
     const hostData = await db.getHostSessionById(decryptedId);

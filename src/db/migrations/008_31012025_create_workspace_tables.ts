@@ -7,10 +7,10 @@ export async function up(db: Kysely<any>) {
   // Main workspaces table - handles workspace hierarchy
   await db.schema
     .createTable('workspaces')
-    .addColumn('id', 'varchar', (col) => col.primaryKey().notNull())
-    .addColumn('title', 'varchar', (col) => col.notNull())
-    .addColumn('description', 'varchar')
-    .addColumn('parent_id', 'varchar', (col) => 
+    .addColumn('id', 'text', (col) =>  col.primaryKey().defaultTo(sql`'wsp_' || substr(md5(random()::text), 1, 12)`))
+    .addColumn('title', 'text', (col) => col.notNull())
+    .addColumn('description', 'text')
+    .addColumn('parent_id', 'text', (col) => 
       col.references('workspaces.id').onDelete('cascade')
     )
     .addColumn('created_at', 'timestamp', (col) => 
@@ -25,10 +25,10 @@ export async function up(db: Kysely<any>) {
   // Minimal structure as session data lives in host_db
   await db.schema
     .createTable('workspace_sessions')
-    .addColumn('workspace_id', 'varchar', (col) => 
+    .addColumn('workspace_id', 'text', (col) => 
       col.references('workspaces.id').onDelete('cascade').notNull()
     )
-    .addColumn('session_id', 'varchar', (col) => 
+    .addColumn('session_id', 'text', (col) => 
       col.references('host_db.id').onDelete('cascade').notNull()
     )
     // Primary key on both columns ensures no duplicate entries
@@ -38,10 +38,10 @@ export async function up(db: Kysely<any>) {
   // Unified permissions table for both workspaces and sessions
   await db.schema
     .createTable('permissions')
-    .addColumn('resource_id', 'varchar', (col) => col.notNull())
-    .addColumn('user_id', 'varchar', (col) => col.notNull())
+    .addColumn('resource_id', 'text', (col) => col.notNull())
+    .addColumn('user_id', 'text', (col) => col.notNull())
     .addColumn('role', sql`access_role`, (col) => 
-      col.notNull().defaultTo('read')
+      col.notNull().defaultTo('viewer')
     )
     // Primary key prevents duplicate permissions per user/resource
     .addPrimaryKeyConstraint('permissions_pkey', ['resource_id', 'user_id'])

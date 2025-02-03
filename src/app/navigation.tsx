@@ -4,7 +4,7 @@ import Logo from '@/components/ui/logo';
 import User from '@/components/user';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import ENSNavigation from './workspace/[id]/ENSNavigation';
+import ENSNavigation from './workspace/[w_id]/ENSNavigation';
 
 export default function Navigation() {
 

@@ -10,7 +10,7 @@ import { Analytics } from '@vercel/analytics/react';
 import Providers from 'app/(dashboard)/providers';
 
 
-export default function ENSLayout({
+export default function WorkspaceLayout({
   children,
 }: {
   children: React.ReactNode;

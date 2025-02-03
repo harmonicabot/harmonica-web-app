@@ -53,7 +53,9 @@ async function getAuthForClient() {
 }
 
 export async function getHostSessions(
-  columns: (keyof s.HostSessionsTable)[]
+  columns: (keyof s.HostSessionsTable)[],
+  page: number = 1,
+  pageSize: number = 100
 ): Promise<s.HostSession[]> {
   const db = await dbPromise;
   console.log('Database call to getHostSessions at:', new Date().toISOString());
@@ -68,6 +70,8 @@ export async function getHostSessions(
   }
   return query
     .orderBy('start_time', 'desc')
+    .limit(pageSize)
+    .offset(Math.max(0, page - 1) * pageSize)
     .execute();
 }
 
@@ -538,6 +542,21 @@ export async function getWorkspaceById(id: string): Promise<s.Workspace | null> 
   } catch (error) {
     console.error('Error getting workspace by ID:', error);
     return null;
+  }
+}
+
+export async function getAllWorkspaceIds(): Promise<{ id: string }[]> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom('workspaces')
+      .select('id')
+      .execute();
+    
+    return result;
+  } catch (error) {
+    console.error('Error getting all workspace IDs:', error);
+    return [];
   }
 }
 
