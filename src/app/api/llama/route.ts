@@ -13,7 +13,13 @@ export async function POST(req: Request) {
 
   try {
     const answer = await llamaIndexUtils.generateAnswer(
-      sessionId,
+      [
+        sessionId,
+        // 'hst_6e7cc76f5a98',
+        // 'hst_59e1491a3beb',
+        // 'hst_057e9678940c',
+        // 'hst_db7dd9603754',
+      ],
       threadId,
       messageText,
     );
