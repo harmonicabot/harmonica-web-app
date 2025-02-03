@@ -28,10 +28,11 @@ export interface HostSessionsTable {
   start_time: ColumnType<Date, Date | undefined, never>;
   last_edit: Generated<Date>;
   goal: string;
-  critical?: string,
+  critical?: string;
   context?: string;
-  prompt_summary: string,
+  prompt_summary: string;
   questions?: JSON;
+  is_public: boolean;
 }
 
 export interface UserSessionsTable {
@@ -71,6 +72,7 @@ export interface WorkspacesTable {
   title: string;
   description?: string;
   parent_id?: string;
+  is_public?: boolean;
   created_at: ColumnType<Date, Date | undefined, never>;
   last_modified: Generated<Date>;
 }
