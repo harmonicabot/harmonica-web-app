@@ -39,6 +39,11 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
+  webpack: (config, { isServer }) => {
+    // Exclude onnxruntime-node from webpack bundling
+    config.externals = [...(config.externals || []), 'onnxruntime-node']
+    return config
+  },
 };
 
 module.exports = nextConfig;
