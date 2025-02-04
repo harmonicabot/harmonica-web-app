@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import * as llamaIndexUtils from '../llamaIndexUtils';
 
-export const runtime = 'edge'
-
 export async function POST(req: Request) {
   const { messageText, threadId, sessionId } = await req.json();
 
