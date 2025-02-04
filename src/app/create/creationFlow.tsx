@@ -213,7 +213,6 @@ export default function CreationFlow() {
         critical: formData.critical,
         context: formData.context,
         prompt_summary: promptSummary,
-        is_public: false,
         questions: JSON.stringify(
           participantQuestions.map((q) => ({
             id: q.id,

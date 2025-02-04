@@ -17,85 +17,71 @@ const initialPrompt = `
 ### Guidelines:
 
 1. **Task Focus**:
-   - For analytical questions (patterns, frequencies, summaries):
-     * Analyze ALL provided messages and conversations
-     * Count occurrences and identify patterns
-     * Provide quantitative insights when possible
-     * Synthesize information across all available data
-   - For specific questions:
-     * Focus on relevant details from specific conversations
+   - Respond only using information provided in the chat history. Do not infer or fabricate information beyond the provided data.
 
 2. **Response Structure**:
-   - **Direct Answer**: Provide a concise response to the user's question
-   - **Contextual Reference**: Cite specific relevant details or patterns from the chat history
-   - **Insight/Recommendation** (if applicable): Offer additional analysis or actionable insights
+   - **Direct Answer**: Provide a concise response to the user's question.
+   - **Contextual Reference**: Cite specific relevant details or patterns from the chat history to support your answer.
+   - **Insight/Recommendation** (if applicable): Offer additional analysis or actionable insights when requested or beneficial.
 
-3. **Handling Frequencies and Patterns**:
-   - When asked about "most common" or patterns:
-     * Review all messages
-     * Count occurrences
-     * Identify recurring themes
-     * Provide specific examples
+3. **Thematic Analysis**:
+   - For broad questions or multiple participants, organize responses by themes or categories to ensure clarity.
 
-4. **Security & Privacy** (CRITICAL):
-   - NEVER include any identifiers in responses
-   - Use generic terms like "a participant" or "several participants"
-   - Remove or redact any identifiers from examples`;
+4. **Handling Ambiguity**:
+   - If the question is unclear, vague, or unrelated to the chat history, ask for clarification.
+   - If participant data is contradictory or incomplete, acknowledge this in your response and present both perspectives.
+
+5. **Security & Privacy** (CRITICAL):
+   - NEVER include any identifiers in responses, including but not limited to:
+     * Thread IDs
+     * User IDs
+     * Session IDs
+     * Message IDs
+     * Any numerical or alphanumeric identifiers
+   - Always use generic terms like:
+     * "a participant" or "one participant"
+     * "several participants" or "multiple participants"
+     * "in one discussion" or "in another conversation"
+   - Remove or redact any identifiers that appear in the source text before including in responses.`;
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function generateAnswer(
-  sessionIds: string[],
+  sessionId: string,
   threadId: string,
   query: string,
 ) {
   try {
-    // Get session context and objective data for all sessions
-    const sessionsData = await Promise.all(
-      sessionIds.map(async (sessionId) => {
-        const data = await db.getFromHostSession(sessionId, [
-          'context',
-          'critical',
-          'goal',
-          'topic',
-          'prompt',
-        ]);
-        return { sessionId, ...data };
-      }),
-    );
+    // Get session context and objective data
+    const contextData = await db.getFromHostSession(sessionId, [
+      'context',
+      'critical',
+      'goal',
+      'topic',
+      'prompt',
+    ]);
 
     // Get all messages for this thread
     const chatHistory = await db.getAllChatMessagesInOrder(threadId);
 
-    // Get all messages from all sessions
-    const sessionMessages = await Promise.all(
-      sessionIds.map(
-        async (sessionId) => await db.getAllMessagesForSessionSorted(sessionId),
-      ),
-    ).then((messages) => messages.flat());
+    // Get all messages from all threads in this session
+    const sessionMessages = await db.getAllMessagesForSessionSorted(sessionId);
 
-    // Format context data properly for all sessions
-    const mergedContext = sessionsData
-      .map(
-        (contextData) => `
-Session Context:
-Session ID: ${contextData.sessionId}
+    // Format context data properly
+    const mergedContext = `Session Context:
 Session Prompt: ${contextData?.prompt || 'No prompt specified'}
 Topic: ${contextData?.topic || 'No topic specified'}
 Goal: ${contextData?.goal || 'No goal specified'}
 ${contextData?.context ? `Background Context: ${contextData?.context}` : ''}
-${contextData?.critical ? `Key Points: ${contextData?.critical}` : ''}`,
-      )
-      .join('\n\n');
+${contextData?.critical ? `Key Points: ${contextData?.critical}` : ''}`;
 
     // Create Document object with context/objective
     const contextDocument = new Document({
       text: mergedContext,
       metadata: {
         type: 'objective',
-        sessionIds: sessionIds,
       },
     });
 
@@ -115,58 +101,46 @@ ${contextData?.critical ? `Key Points: ${contextData?.critical}` : ''}`,
 
     // Group messages by thread and create one document per thread
     const threadMap = sessionMessages.reduce(
-      (
-        acc: { [key: string]: { messages: string[]; sessionId: string } },
-        message,
-        _,
-        __,
-        currentSessionId = sessionIds[0],
-      ) => {
+      (acc: { [key: string]: string[] }, message) => {
         if (message.role !== 'user') return acc;
 
         if (!acc[message.thread_id]) {
-          acc[message.thread_id] = {
-            messages: [],
-            sessionId: currentSessionId,
-          };
+          acc[message.thread_id] = [];
         }
-        acc[message.thread_id].messages.push(message.content);
+        acc[message.thread_id].push(message.content);
         return acc;
       },
       {},
     );
 
     const threadDocuments = Object.entries(threadMap).map(
-      ([threadId, { messages, sessionId }]) => {
-        const sessionData = sessionsData.find((s) => s.sessionId === sessionId);
+      ([threadId, messages]) => {
+        // Clean and structure the text more clearly
         const cleanedMessages = messages.map((msg) => {
           return msg
             .trim()
-            .replace(/\s+/g, ' ')
-            .replace(/[^\w\s.,?!-]/g, '');
+            .replace(/\s+/g, ' ') // Normalize whitespace
+            .replace(/[^\w\s.,?!-]/g, ''); // Remove special characters
         });
 
-        // Format messages to be more analysis-friendly
+        // Add more context and structure to the document
         const text = `
 Thread ID: ${threadId}
-Session ID: ${sessionId}
-Topic: ${sessionData?.topic || 'Unknown'}
-Response Summary:
-${cleanedMessages.map((msg) => `- ${msg}`).join('\n')}
-Total Responses: ${messages.length}
-        `.trim();
+Topic: ${contextData?.topic || 'Unknown'}
+Messages:
+${cleanedMessages.map((msg, i) => `Message ${i + 1}: ${msg}`).join('\n\n')}
+      `.trim();
 
         return new Document({
           text,
           metadata: {
             threadId,
-            sessionId,
             type: 'thread_content',
             messageCount: messages.length,
-            topic: sessionData?.topic,
+            topic: contextData?.topic,
+            // Add more metadata for better context
             created_at: new Date().toISOString(),
-            // Remove responses from metadata to reduce size
-            responseCount: cleanedMessages.length,
+            wordCount: text.split(/\s+/).length,
           },
         });
       },
@@ -195,47 +169,54 @@ Total Responses: ${messages.length}
       });
     }
 
-    // Determine query type using LlamaIndex chat model
-    const classificationModel = new LlamaOpenAI({
-      model: 'gpt-4o-mini',
-      apiKey: process.env.OPENAI_API_KEY,
+    // Determine query type using OpenAI function calling
+    const queryTypeResponse = await client.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'user',
+          content: `Analyze this question: "${query}"`,
+        },
+      ],
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'classifyQueryType',
+            description: 'Classify the type of query being asked',
+            parameters: {
+              type: 'object',
+              properties: {
+                type: {
+                  type: 'string',
+                  enum: ['analytical', 'specific'],
+                  description: 'The type of query being asked',
+                },
+                confidence: {
+                  type: 'number',
+                  description: 'Confidence score between 0 and 1',
+                },
+              },
+              required: ['type', 'confidence'],
+            },
+          },
+        },
+      ],
+      tool_choice: {
+        type: 'function',
+        function: { name: 'classifyQueryType' },
+      },
     });
 
-    const classificationPrompt = `Analyze this question: "${query}"
+    console.log(
+      '[i] Query type response:',
+      queryTypeResponse.choices[0].message.tool_calls?.[0].function.arguments,
+    );
 
-    Think through this step by step:
-    1. Consider if the question:
-       - Requires counting frequencies or finding "most common" patterns (analytical)
-       - Needs statistical analysis across messages (analytical)
-       - Looks for topic-specific content or mentions (specific)
-       - Asks about specific details or events (specific)
-       - Searches for particular themes or keywords (specific)
-    
-    2. Examples:
-       - "What was the most common response?" -> analytical (needs to count ALL responses)
-       - "What did participant #123 say in thread ABC?" -> specific (single participant, specific thread)
-       - "What are people saying about X?" -> specific (find messages about X)
-       - "How many times was X mentioned?" -> analytical (needs to count across messages)
-       - "What do most people think?" -> analytical (needs majority analysis)
-    
-    3. IMPORTANT: Return ONLY a raw JSON object without any markdown, quotes, or code blocks.
-    Example of correct format:
-    {"type":"analytical","confidence":0.9}
-    
-    Analyze the question and respond with ONLY the JSON object:`;
-
-    const classificationResponse = await classificationModel.complete({
-      prompt: classificationPrompt,
-    });
-
-    console.log('[i] Classification response:', classificationResponse);
-    let queryClassification;
-    try {
-      queryClassification = JSON.parse(classificationResponse.text as string);
-    } catch (error) {
-      console.error('[x] Failed to parse classification response:', error);
-      queryClassification = { type: 'analytical', confidence: 0.9 };
-    }
+    const queryClassification = JSON.parse(
+      queryTypeResponse.choices[0].message.tool_calls?.[0].function.arguments ||
+        '{}',
+    );
 
     console.log('[i] Query type response:', queryClassification);
 
@@ -246,51 +227,22 @@ Total Responses: ${messages.length}
     // ------------------------
 
     if (isAnalyticalQuery) {
+      // For analytical queries, use all documents without RAG
       const analyticalRetriever = new (class extends BaseRetriever {
         constructor() {
           super();
         }
         async retrieve() {
-          // Get all messages from all threads
-          const allResponses = threadDocuments
-            .flatMap((doc) =>
-              doc.text
-                .split('\n')
-                .filter((line) => line.trim().startsWith('- '))
-                .map((line) => line.replace('- ', '').trim()),
-            )
-            .filter(Boolean);
-
-          // Count response frequencies
-          const responseCounts = allResponses.reduce(
-            (acc: { [key: string]: number }, response) => {
-              acc[response] = (acc[response] || 0) + 1;
-              return acc;
-            },
-            {},
-          );
-
-          const summaryDoc = new Document({
-            text: `HERE ARE THE ACTUAL RESPONSE FREQUENCIES:
-Total Responses Analyzed: ${allResponses.length}
-Unique Responses Found: ${Object.keys(responseCounts).length}
-
-FREQUENCY COUNT:
-${Object.entries(responseCounts)
-  .sort(([, a], [, b]) => b - a)
-  .map(([response, count]) => `"${response}": ${count} times`)
-  .join('\n')}`,
-            metadata: {
-              type: 'analysis_summary',
-              responseCount: allResponses.length,
-              uniqueResponses: Object.keys(responseCounts).length,
-            },
-          });
-
-          return [{ node: summaryDoc, score: 1 }];
+          return [
+            { node: contextDocument, score: 1 },
+            ...threadDocuments.map((doc) => ({ node: doc, score: 1 })),
+          ];
         }
         async _retrieve(params: QueryBundle) {
-          return this.retrieve();
+          return [
+            { node: contextDocument, score: 1 },
+            ...threadDocuments.map((doc) => ({ node: doc, score: 1 })),
+          ];
         }
       })();
 
@@ -298,33 +250,14 @@ ${Object.entries(responseCounts)
         chatModel: new LlamaOpenAI({
           model: 'gpt-4-turbo-preview',
           apiKey: process.env.OPENAI_API_KEY,
-          maxTokens: 1000,
-          temperature: 0.3,
         }),
         retriever: analyticalRetriever,
-        systemPrompt: `You are an analysis tool. The text above contains ACTUAL response frequencies.
-When asked about frequencies or patterns, report the exact numbers you see.
-Do not make up data or say you cannot access it.
-The frequency count is right in front of you - just read and report it.`,
+        systemPrompt: initialPrompt,
         chatHistory: chatHistory,
       });
 
       const response = await analyticalChatEngine.chat({
-        message: `Above is a frequency count of actual responses.
-        
-Question: ${query}
-
-Instructions:
-1. Look at the FREQUENCY COUNT section above
-2. Report the exact numbers you see
-3. For "most common" questions, list the top responses with their counts
-4. Do not say you cannot access the data - it's right there in the FREQUENCY COUNT
-
-Example response format:
-"Based on the frequency count provided:
-- Most common response was X with N occurrences
-- Second most common was Y with M occurrences
-etc."`,
+        message: query,
       });
       return response.response;
     } else {
