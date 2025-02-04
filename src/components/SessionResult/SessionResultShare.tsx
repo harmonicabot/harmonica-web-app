@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Share2, Clipboard } from "lucide-react";
 import QRCode from 'qrcode.react';
+import { usePathname } from 'next/navigation';
 
 interface SessionResultShareProps {
   sessionId: string;
@@ -30,17 +31,20 @@ export  default function SessionResultShare({ sessionId }: SessionResultSharePro
 
   const toggleModal = () => setIsModalOpen(!isModalOpen);
 
+  const path = usePathname()
+  const isWorkspacePath = path?.match(/^\/workspace\/[^/]+\/[^/]+$/);
+  
   return (
     <Card className="flex-grow bg-yellow-50">
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle className="text-md">Share</CardTitle>
+          <CardTitle className="text-md">{isWorkspacePath ? 'Join the action' : 'Share'}</CardTitle>
           <Share2 className="w-4 h-4 text-muted-foreground" />
         </div>
       </CardHeader>
       <CardContent>
         <h2 className="font-bold mb-2">
-          Share your session with participants
+        {isWorkspacePath ? 'To participate, follow this link:' : 'Share your session with participants'}
         </h2>
         <p className='text-sm mb-2'><a href={url} target='_blank'>
           {urlDomainOnly}
