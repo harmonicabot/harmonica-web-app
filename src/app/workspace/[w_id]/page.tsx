@@ -4,6 +4,7 @@ import ErrorPage from '@/components/Error';
 import SessionSummaryCard from '@/components/SessionResult/SessionSummaryCard';
 import ResultTabs from '@/components/SessionResult/ResultTabs';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { getSession } from '@auth0/nextjs-auth0';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 60; // in seconds
@@ -16,21 +17,73 @@ export default async function MultiSessionResults({
     params: { w_id: string };
     searchParams: { access?: string };
 }) {
-  // Hardcoded array of session IDs
-  const sessionIds = [
-    'aHN0XzU0ZTI3Y2Y4NzI0ZQ==',
-    'aHN0XzZlOTc5OTY5NGMwMA==',
-    'aHN0XzFkN2JmYzQxMDZmNg==',
-    'aHN0X2ViYzM0MjlmOWE0Nw==',
-    'aHN0X2FjZTllNWRiNDMyNg==',
-    'aHN0X2RiMjI4NzQzN2M1YQ==',
-  ];
-  const decryptedIds = sessionIds.map((id) => decryptId(id));
+  // While in development, we just take whichever six last sessions the user has access to.
+  // Once we created the ENS sessions, we will hardcode those. Or, identify them in some way.
 
+  async function setupENSWorkspace() {
+    // 1. Get latest 6 sessions from host_db
+    console.log('Create ENS workspace');
+    const latestSessions = await db.getHostSessions(['id'], 1, 6);
+    const sessionIds = latestSessions.map((session: any) => session.id);
+
+    // 2. Create new workspace
+    const workspace = await db.createWorkspace({
+      title: 'ENS Workspace',
+      description: 'AI Summit: Shaping the Future of AI in France',
+      created_at: new Date(),
+    });
+
+    if (!workspace) {
+      throw new Error('Failed to create workspace');
+    }
+
+    // 3. Add sessions to workspace
+    for (const sessionId of sessionIds) {
+      await db.addSessionToWorkspace(workspace.id, sessionId);
+    }
+
+    // 4. Get current user
+    const session = await getSession();
+    const userId = session?.user?.sub;
+
+    if (!userId) {
+      throw new Error('No user found');
+    }
+
+    // 5. Set admin permissions for user on workspace and all sessions
+    await db.setPermission(workspace.id, userId, 'admin');
+
+    for (const sessionId of sessionIds) {
+      await db.setPermission(sessionId, userId, 'admin');
+    }
+
+    console.log('ENS Workspace setup complete');
+    console.log('Workspace ID:', workspace.id);
+    console.log('Added sessions:', sessionIds);
+  }
+
+  // TODO: Development code only to set up an example workspace.
+  if ((await db.getAllWorkspaceIds()).length === 0) {
+    setupENSWorkspace();
+  }
+  
+  if (searchParams.access === 'public') {
+    const workspaceData = await db.getWorkspaceById(params.w_id);
+    if (!workspaceData || !workspaceData.is_public) {
+      return (
+        <ErrorPage
+          title="Access Denied"
+          message="This session is not publicly accessible."
+        />
+      );
+    }
+  }
+  
+  const sessionIds = await db.getWorkspaceSessions(params.w_id);
   try {
     const [hostSessions, allUserData] = await Promise.all([
-      Promise.all(decryptedIds.map((id) => db.getHostSessionById(id))),
-      Promise.all(decryptedIds.map((id) => db.getUsersBySessionId(id)))
+      Promise.all(sessionIds.map((id) => db.getHostSessionById(id))),
+      Promise.all(sessionIds.map((id) => db.getUsersBySessionId(id))),
     ]);
 
     // Merge all user data into one flat array
@@ -78,7 +131,7 @@ export default async function MultiSessionResults({
           <ResultTabs
             hostData={hostSessions[0]}
             userData={userData}
-            id={decryptedIds[0]}
+            id={sessionIds[0]}
             hasNewMessages={false}
             showParticipants={false}
             showSessionRecap={false}
