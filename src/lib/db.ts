@@ -18,7 +18,7 @@ if (typeof window === 'undefined') {
 const hostTableName = 'host_db';
 const userTableName = 'user_db';
 const messageTableName = 'messages_db';
-const customResponseTableName = 'custom_responses';
+const customResponsesTableName = 'custom_responses';
 const workspaceTableName = 'workspaces';
 const workspaceSessionsTableName = 'workspace_sessions';
 const permissionsTableName = 'permissions';
@@ -27,7 +27,7 @@ interface Databases {
   [hostTableName]: s.HostSessionsTable;
   [userTableName]: s.UserSessionsTable;
   [messageTableName]: s.MessagesTable;
-  [customResponseTableName]: s.CustomResponsesTable;
+  [customResponsesTableName]: s.CustomResponsesTable;
   [workspaceTableName]: s.WorkspacesTable;
   [workspaceSessionsTableName]: s.WorkspaceSessionsTable;
   [permissionsTableName]: s.PermissionsTable;
@@ -432,7 +432,7 @@ export async function createCustomResponse(
   try {
     const db = await dbPromise;
     const result = await db
-      .insertInto(customResponseTableName)
+      .insertInto(customResponsesTableName)
       .values(customResponse)
       .returningAll()
       .executeTakeFirst();
@@ -448,7 +448,7 @@ export async function getCustomResponseById(id: string): Promise<s.CustomRespons
   try {
     const db = await dbPromise;
     const result = await db
-      .selectFrom(customResponseTableName)
+      .selectFrom(customResponsesTableName)
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirst();
@@ -464,7 +464,7 @@ export async function getCustomResponsesBySessionId(sessionId: string): Promise<
   try {
     const db = await dbPromise;
     const responses = await db
-      .selectFrom(customResponseTableName)
+      .selectFrom(customResponsesTableName)
       .selectAll()
       .where('session_id', '=', sessionId)
       .orderBy('position', 'asc')
@@ -484,7 +484,7 @@ export async function updateCustomResponse(
   try {
     const db = await dbPromise;
     const result = await db
-      .updateTable(customResponseTableName)
+      .updateTable(customResponsesTableName)
       .set(update)
       .where('id', '=', id)
       .returningAll()
@@ -501,7 +501,7 @@ export async function deleteCustomResponse(id: string): Promise<boolean> {
   try {
     const db = await dbPromise;
     await db
-      .deleteFrom(customResponseTableName)
+      .deleteFrom(customResponsesTableName)
       .where('id', '=', id)
       .execute();
     

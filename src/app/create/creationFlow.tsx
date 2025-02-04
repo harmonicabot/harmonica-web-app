@@ -21,6 +21,7 @@ import { LaunchModal } from './LaunchModal';
 import { Step, STEPS } from './types';
 import { createPromptContent } from 'app/api/utils';
 import { error } from 'console';
+import { getSummaryAssistant, getSummaryAssistantFromTemplate } from '@/lib/utils';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -214,6 +215,7 @@ export default function CreationFlow() {
         context: formData.context,
         prompt_summary: promptSummary,
         is_public: false,
+        summary_assistant_id: await getSummaryAssistantFromTemplate(templateId),
         questions: JSON.stringify(
           participantQuestions.map((q) => ({
             id: q.id,

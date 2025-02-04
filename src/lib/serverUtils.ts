@@ -3,7 +3,6 @@ import * as db from './db';
 import * as gpt from 'app/api/gptUtils';
 import { Message } from './schema';
 import { UserProfile } from '@auth0/nextjs-auth0/client';
-import templates from '@/lib/templates.json';
 
 export async function isAdmin(user: UserProfile) {
   console.log('Admin IDs: ', process.env.ADMIN_ID);
@@ -14,18 +13,6 @@ export async function isAdmin(user: UserProfile) {
 interface GroupedChats {
   [threadId: string]: Message[];
 }
-
-type AssistantSummary = {
-  type: "assistant";
-  assistant_id: string;
-};
-
-type PromptSummary = {
-  type: "prompt";
-  prompt: string;
-};
-
-type TemplateSummary = AssistantSummary | PromptSummary;
 
 export async function getAssistantId(assistant: 'RESULT_CHAT_ASSISTANT' | 'EXPORT_ASSISTANT' | 'TEMPLATE_BUILDER_ID' | 'SUMMARY_ASSISTANT') {
   const result = process.env[assistant];
@@ -44,6 +31,7 @@ export async function createSummary(sessionId: string) {
 
   const chats = await db.getAllMessagesForUsersSorted(onlyIncludedUsersWithAtLeast2Messages);
   const contextData = await db.getFromHostSession(sessionId, ['context', 'critical', 'goal', 'topic']);
+  const summaryAssistantId = (await db.getFromHostSession(sessionId, ['summary_assistant_id']))?.summary_assistant_id || 'asst_QTmamFSqEIcbUX4ZwrjEqdm8';
   
   // Flatten the chats and group by thread_id to distinguish participants
   const groupedChats: GroupedChats = chats.reduce((acc, chat) => {
@@ -67,7 +55,6 @@ export async function createSummary(sessionId: string) {
     },
   );
 
-
   const objectiveData = `\`\`\`This is the context, including the **OBJECTIVE**, used to create the session.\n
   Use this information to design an appropriate report structure:\n\n
   ----START OBJECTIVE DATA----\n
@@ -82,7 +69,6 @@ export async function createSummary(sessionId: string) {
     [...chatMessages, objectiveData],
   );
 
-  const summaryAssistantId = await getSummaryAssistant(sessionId);
   const summaryReply = await gpt.handleGenerateAnswer({
     threadId: threadId,
     assistantId: summaryAssistantId,
@@ -96,35 +82,4 @@ export async function createSummary(sessionId: string) {
     summary: summary ?? undefined,
     last_edit: new Date(),
   });
-}
-
-function isAssistantSummary(summary: any): summary is AssistantSummary {
-  return summary.type === "assistant" && typeof summary.assistant_id === "string";
-}
-
-function isPromptSummary(summary: any): summary is PromptSummary {
-  return summary.type === "prompt" && typeof summary.prompt === "string";
-}
-
-async function getSummaryAssistant(sessionId: string) {
-  // Check if there is a predefined summary for the template and use it if available:
-  const session = await db.getFromHostSession(sessionId, ['template_id']);
-  if (session?.template_id) {
-    const template = templates.templates.find(tmplt => tmplt.id === session.template_id);
-    if (template?.summary) {
-      const summary = template.summary;
-      if (isAssistantSummary(summary)) {
-        return summary.assistant_id;
-      } else if (isPromptSummary(summary)) {
-        return await gpt.handleCreateAssistant({
-          prompt: summary.prompt,
-          name: `AutoGen: ${template.id} Summary for ${sessionId}`
-        });
-      } else {
-        console.warn(`Invalid summary type for template ${session.template_id}: 
-          Expected either 'type=assistant & assistant_id', or 'type=prompt & prompt', but got: \n${summary}`);
-      }
-    }
-  }
-  return process.env.SUMMARY_ASSISTANT ?? 'asst_QTmamFSqEIcbUX4ZwrjEqdm8';
 }
