@@ -8,9 +8,8 @@ import {
   Updateable,
   RawBuilder,
   PostgresDialect,
-  AlterColumnBuilder,
 } from 'kysely';
-import { sql, Kysely } from 'kysely';
+import { Kysely } from 'kysely';
 import pg from 'pg';
 
 export interface HostSessionsTable {
@@ -21,6 +20,7 @@ export interface HostSessionsTable {
   prompt: string;
   assistant_id: string;
   template_id?: string; // the id of the template from templates.json; 
+  summary_assistant_id: string;
   topic: string;
   final_report_sent: boolean;
   client?: string;
@@ -106,14 +106,6 @@ export type WorkspaceUpdate = Updateable<WorkspacesTable>;
 export type Permission = Selectable<PermissionsTable>;
 export type NewPermission = Insertable<PermissionsTable>;
 export type PermissionUpdate = Updateable<PermissionsTable>;
-
-const hostTableName = 'host_db';
-const userTableName = 'user_db';
-const messageTableName = 'messages_db';
-const customResponsesTableName = 'custom_responses'
-const workspaceTableName = 'workspaces';
-const workspaceSessionsTableName = 'workspace_sessions';
-const permissionsTableName = 'permissions';
 
 export async function createDbInstance<T extends Record<string, any>>() {
   try {
