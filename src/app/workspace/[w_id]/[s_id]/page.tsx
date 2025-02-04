@@ -67,7 +67,7 @@ export default async function SimplifiedSessionResult({
           startTime={hostData.start_time}
           numSessions={totalUsers}
           completedSessions={finishedUsers}
-          showShare={false} // Disable share feature
+          showShare={hostData.active}
         />
         <SessionResultsSection
           hostData={hostData}
