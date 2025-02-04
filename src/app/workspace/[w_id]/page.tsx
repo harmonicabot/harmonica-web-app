@@ -9,7 +9,13 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 export const maxDuration = 60; // in seconds
 export const revalidate = 5 * 60; // check new data only every 5 minutes
 
-export default async function MultiSessionResults() {
+export default async function MultiSessionResults({
+  params,
+  searchParams,
+}: {
+    params: { w_id: string };
+    searchParams: { access?: string };
+}) {
   // Hardcoded array of session IDs
   const sessionIds = [
     'aHN0XzU0ZTI3Y2Y4NzI0ZQ==',
@@ -99,6 +105,7 @@ Here are some questions you might want to ask:
               {hostSessions.map((hostData, index) => (
                 <SessionSummaryCard
                   key={hostData.id}
+                  workspace_id={params.w_id}
                   hostData={hostData}
                   userData={allUserData[index]}
                   id={sessionIds[index]}

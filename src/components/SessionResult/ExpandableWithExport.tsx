@@ -43,7 +43,7 @@ export const ExpandableWithExport = ({
           <CardTitle className="text-2xl">{title}</CardTitle>
           {isExpanded && content && (
             <ExportButton content={content}>
-              <button className="flex gap-2">
+              <div className="flex gap-2 cursor-pointer">
                 <TooltipProvider>
                   <Tooltip delayDuration={50}>
                     <TooltipTrigger>
@@ -77,7 +77,7 @@ export const ExpandableWithExport = ({
                     </Tooltip>
                   </TooltipProvider>
                 )}
-              </button>
+              </div>
             </ExportButton>
           )}
         </div>

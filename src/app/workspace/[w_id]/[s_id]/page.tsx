@@ -21,14 +21,31 @@ import ErrorPage from '@/components/Error';
  */
 export default async function SimplifiedSessionResult({
   params,
+  searchParams,
 }: {
-  params: { id: string };
+    params: { w_id: string, s_id: string };
+    searchParams: { access?: string };
 }) {
-  const { id } = params;
-  const decryptedId = decryptId(id);
+  const { s_id } = params;
+  console.log("Encrypted ID: ", s_id);
+  const decryptedId = decryptId(s_id);
+  console.log("Decrypted ID: ", decryptedId);
 
+  
   try {
     const hostData = await db.getHostSessionById(decryptedId);
+    if (searchParams.access === 'public' && !hostData.is_public) {
+      // Check whether the parent workspace is public; allow access if it is.
+      const workspaceData = await db.getWorkspaceById(params.w_id);
+      if (!workspaceData || !workspaceData.is_public) {
+        return (
+          <ErrorPage
+            title="Access Denied"
+            message="This session is not publicly accessible."
+          />
+        );
+      }
+    }
     const userData = await db.getUsersBySessionId(decryptedId);
     const stats = await db.getNumUsersAndMessages([hostData.id]);
     const usersWithChat = userData.filter(
