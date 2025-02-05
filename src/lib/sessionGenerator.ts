@@ -177,7 +177,11 @@ Additional response guidelines:
    - Emotional reactions
    - Personal opinions
    - Brief references to background
-5. Use natural language with occasional filler words or expressions`,
+5. Use natural language with occasional filler words or expressions
+6. IMPORTANT: Do not use or make up specific names - always refer to people by their roles or relationships instead
+   - Even if names are provided in the context, replace them with roles (e.g., "I" or "my colleague" instead of "Clara")
+   - Never create new names or pseudonyms
+   - Use professional roles, relationships, or first-person perspective instead`,
           },
           {
             role: 'user',
