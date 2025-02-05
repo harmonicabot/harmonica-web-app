@@ -13,7 +13,7 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isChatPage = pathname?.startsWith('/tes-chat');
+  const isChatPage = pathname?.startsWith('/chat');
   const isRootPage = pathname === '/';
   const [showBanner, setShowBanner] = useState(true);
 
