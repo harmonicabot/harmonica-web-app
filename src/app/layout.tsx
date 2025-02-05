@@ -4,6 +4,7 @@ import '../styles/global.css';
 import { Instrument_Sans } from 'next/font/google';
 import ClientLayout from './clientLayout';
 import { getGeneratedMetadata } from './api/metadata';
+import { Toaster } from '@/components/ui/toaster';
 
 const instrumentSans = Instrument_Sans({ subsets: ['latin'] });
 export const metadata = getGeneratedMetadata('/');
@@ -18,6 +19,7 @@ export default function RootLayout({
       <body>
         <Suspense fallback={<div>Loading...</div>}>
           <Providers>
+            <Toaster />
             <ClientLayout>{children}</ClientLayout>
           </Providers>
         </Suspense>

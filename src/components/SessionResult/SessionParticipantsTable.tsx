@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -8,6 +9,8 @@ import {
 import ParticipantSessionRow from './ParticipantSessionRow';
 import SortableTable, { TableHeaderData } from '../SortableTable';
 import { UserSession } from '@/lib/schema';
+import { Button } from '@/components/ui/button';
+import GenerateResponsesModal from './GenerateResponsesModal';
 
 export type ParticipantsTableData = {
   userName: string;
@@ -22,9 +25,11 @@ export default function SessionParticipantsTable({
   userData,
   onIncludeInSummaryChange,
 }: {
-    userData: UserSession[];
-    onIncludeInSummaryChange: (userId: string, included: boolean) => void;
+  userData: UserSession[];
+  onIncludeInSummaryChange: (userId: string, included: boolean) => void;
 }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const dateSorter = (sortDirection: string, a: string, b: string) => {
     return sortDirection === 'asc'
       ? new Date(a).getTime() - new Date(b).getTime()
@@ -32,16 +37,25 @@ export default function SessionParticipantsTable({
   };
   const tableHeaders: TableHeaderData[] = [
     { label: 'Name', sortKey: 'userName', className: '' },
-    { label: 'Status', sortKey: 'sessionStatus', className: 'hidden md:table-cell' },
-    { label: 'Created', sortKey: 'createdDate', sortBy: dateSorter, className: 'hidden md:table-cell' },
+    {
+      label: 'Status',
+      sortKey: 'sessionStatus',
+      className: 'hidden md:table-cell',
+    },
+    {
+      label: 'Created',
+      sortKey: 'createdDate',
+      sortBy: dateSorter,
+      className: 'hidden md:table-cell',
+    },
     { label: 'Updated', sortKey: 'updatedDate', sortBy: dateSorter },
     {
       label: 'Include in summary',
       sortKey: 'includeInSummary',
       sortBy: (dir, a: boolean, b: boolean) => {
-        return dir === 'asc' ? Number(b) - Number(a) : Number(a) - Number(b)
-      }, 
-      className: 'hidden md:table-cell'
+        return dir === 'asc' ? Number(b) - Number(a) : Number(a) - Number(b);
+      },
+      className: 'hidden md:table-cell',
     },
   ];
 
@@ -55,20 +69,27 @@ export default function SessionParticipantsTable({
   }));
 
   const getTableRow = (sortableData: ParticipantsTableData, index: number) => {
-    return <ParticipantSessionRow
-      key={index}
-      tableData={sortableData}
-      onIncludeChange={onIncludeInSummaryChange}
-    />;
+    return (
+      <ParticipantSessionRow
+        key={index}
+        tableData={sortableData}
+        onIncludeChange={onIncludeInSummaryChange}
+      />
+    );
   };
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-xl">Participants</CardTitle>
-        <CardDescription>
-          View participants progress and transcripts
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-xl">Participants</CardTitle>
+          <CardDescription>
+            View participants progress and transcripts
+          </CardDescription>
+        </div>
+        <Button variant="default" onClick={() => setIsModalOpen(true)}>
+          Generate Responses
+        </Button>
       </CardHeader>
       <CardContent>
         <SortableTable
@@ -78,6 +99,12 @@ export default function SessionParticipantsTable({
           defaultSort={{ column: 'updatedDate', direction: 'desc' }}
         />
       </CardContent>
+
+      <GenerateResponsesModal
+        isOpen={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        sessionId={userData[0].session_id}
+      />
     </Card>
   );
 }
