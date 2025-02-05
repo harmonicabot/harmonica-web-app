@@ -69,10 +69,19 @@ export default function ResultTabs({
   };
 
   // Memoized values
-  const showSummary = useMemo(
+  const hasAnyIncludedUserMessages = useMemo(
     () => userIdsIncludedInSummary.length > 0,
     [userIdsIncludedInSummary]
   );
+
+  console.log('UserIdsIncludedInSummary: ', userIdsIncludedInSummary)
+  if (!hasAnyIncludedUserMessages) {
+      return (
+        <Card className='w-full'>
+          <CardContent className='text-center'>No user replies available yet. Be one of the first by participating in the sessions below 👇️👇️👇️</CardContent>
+      </Card>
+    )
+  }
 
   const [activeTab, setActiveTab] = useState(
     hostData.summary || !showParticipants ? 'SUMMARY' : 'RESPONSES'
@@ -109,7 +118,7 @@ export default function ResultTabs({
   const renderLeftContent = (isMobile = false) => (
     <div className={cn('overflow-auto', isMobile ? 'w-full' : '')}>
       <TabContent value="SUMMARY">
-        {showSummary ? (
+        {hasAnyIncludedUserMessages ? (
           <SessionResultSummary
             hostData={hostData}
             newSummaryContentAvailable={newSummaryContentAvailable}
