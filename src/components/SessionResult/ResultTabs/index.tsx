@@ -49,20 +49,20 @@ export default function ResultTabs({
   const [initialUserIds, setInitialUserIds] =
     useState<string[]>(initialIncluded);
 
-  const updateIncludedInSummaryList = (userId: string, included: boolean) => {
+  const updateIncludedInSummaryList = (userSessionId: string, included: boolean) => {
     const includedIds = userData
       .filter((user) => user.include_in_summary)
       .map((user) => user.id);
     if (included) {
-      includedIds.push(userId);
+      includedIds.push(userSessionId);
     } else {
-      includedIds.splice(includedIds.indexOf(userId), 1);
+      includedIds.splice(includedIds.indexOf(userSessionId), 1);
     }
     setUpdatedUserIds(includedIds);
-    db.updateUserSession(userId, {
+    db.updateUserSession(userSessionId, {
       include_in_summary: included,
     });
-    userData.find((user) => user.id === userId)!.include_in_summary = included;
+    userData.find((user) => user.id === userSessionId)!.include_in_summary = included;
     
     // Compare arrays ignoring order
     const haveIncludedUsersChanged = 

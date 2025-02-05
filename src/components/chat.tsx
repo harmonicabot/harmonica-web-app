@@ -186,7 +186,7 @@ export default function Chat({
         if (sessionId) {
           const data = {
             session_id: sessionId,
-            user_id: user,
+            user_id: userName + "_" + crypto.randomUUID(),
             user_name: userName,
             thread_id: threadId,
             active: true,

@@ -106,11 +106,12 @@ export async function insertHostSessions(
   const db = await dbPromise;
   try {
     const session = await authGetSession();
-    const userSub = session?.user?.sub || '';
+    // Due to GDPR, we don't want to store identifiable user data...
+    // const userSub = session?.user?.sub || '';
     console.log('Inserting host session with data:', data);
     const result = await db
       .insertInto(hostTableName)
-      .values({ ...data, client: userSub })
+      .values({ ...data })
       .returningAll()
       .execute();
     return result.map((row) => row.id);
@@ -127,10 +128,11 @@ export async function upsertHostSession(
   const db = await dbPromise;
   try {
     const session = await authGetSession();
-    const userSub = session?.user?.sub || '';
+    // Due to GDPR we don't want to store identifiable user data
+    // const userSub = session?.user?.sub || '';
     await db
       .insertInto(hostTableName)
-      .values({ ...data, client: userSub })
+      .values({ ...data })
       .onConflict((oc) =>
         onConflict === 'skip'
           ? oc.column('id').doNothing()
@@ -201,25 +203,6 @@ export async function getUsersBySessionId(
   }
 }
 
-export async function insertUserSession(
-  data: s.NewUserSession
-): Promise<string> {
-  try {
-    const db = await dbPromise;
-    console.log('Inserting user session with data:', data);
-    const result = await db
-      .insertInto(userTableName)
-      .values(data)
-      .returning('id')
-      .executeTakeFirstOrThrow();
-    return result.id;
-  } catch (error) {
-    console.error('Error inserting user session:', error);
-    throw error;
-  }
-}
-
-
 export async function insertUserSessions(
   data: s.NewUserSession | s.NewUserSession[]
 ): Promise<string[]> {
@@ -234,27 +217,6 @@ export async function insertUserSessions(
     return result.map((row) => row.id);
   } catch (error) {
     console.error('Error inserting user sessions:', error);
-    throw error;
-  }
-}
-
-export async function upsertUserSession(
-  data: s.NewUserSession,
-  onConflict: 'skip' | 'update' = 'skip'
-): Promise<void> {
-  try {
-    const db = await dbPromise;
-    await db
-      .insertInto(userTableName)
-      .values(data)
-      .onConflict((oc) =>
-        onConflict === 'skip'
-          ? oc.column('id').doNothing()
-          : oc.column('id').doUpdateSet(data)
-      )
-      .execute();
-  } catch (error) {
-    console.error('Error upserting user session:', error);
     throw error;
   }
 }
