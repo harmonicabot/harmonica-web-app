@@ -134,6 +134,7 @@ export default function Chat({
     userName?: string,
     userContext?: Record<string, string>,
   ) {
+    // if (1===1) {return "xyz"}
     const chatMessages = [];
     if (context?.userData) {
       const allUsersMessages = await db.getAllMessagesForUsersSorted(
@@ -270,7 +271,10 @@ export default function Chat({
 
     if (isLoading) return;
     setIsLoading(true);
-
+    // if (1 === 1) {
+    //   addMessage({ role: messages.length % 2 === 0 ? 'user' : 'assistant', content: "Welcome to **ENSB01 | Instance B | AI and Me**! \n\nThe objective of this session is to capture your quick and top-of-mind thoughts about AI as we kick off our two-day workshop on the governance of AI. \n\nThis session will be structured in three short steps. You can share your thoughts openly as this is a safe space. \n\nLet's get started!\n\n---\n\n**Step 1 of 3** \n\n**What are your immediate thoughts when you think about AI?** \n\nPlease share your thoughts freely. " });      setIsLoading(false);
+    //   return;
+    // }
     try {
       const messageText = isAutomatic
         ? "Let's begin."
