@@ -1,6 +1,7 @@
 import { generateCharacters } from '@/lib/characterGenerator';
 import { NextRequest } from 'next/server';
 
+export const maxDuration = 200;
 export async function POST(
   request: NextRequest,
   { params }: { params: { sessionId: string } },

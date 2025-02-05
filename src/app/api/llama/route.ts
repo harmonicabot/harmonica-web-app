@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import * as llamaIndexUtils from '../llamaIndexUtils';
 
+export const maxDuration = 200;
+
 export async function POST(req: Request) {
   const { messageText, threadId, sessionIds } = await req.json();
 
