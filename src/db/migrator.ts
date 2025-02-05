@@ -6,26 +6,18 @@ import { createDbInstance } from '../lib/schema';
 import * as dotenv from 'dotenv';
 
 async function migrate() {
-  const environmentSuffix = process.argv[2] || '.local';
-  const direction = process.argv[3];
-
-  console.log(`Performing migration with .env${environmentSuffix}`)
-
-  if (!['.local', '.development.local', '.production.local'].includes(environmentSuffix)) {
-    console.error('Invalid environment. Please use the suffix for a valid .env file: .local, .development.local, or .production.local');
-    process.exit(1);
-  }
+  const direction = process.argv[2];
 
   // Load environment-specific variables
-  const envPath = path.resolve(process.cwd(), `./.env${environmentSuffix}`)
-  console.log(`Using ${envPath} to load env vars...`)  
-  dotenv.config({ path: envPath});
+  // dotenv.config({ path: envPath});
   if (!process.env.POSTGRES_URL) {
-    throw new Error(`POSTGRES_URL environment variable is not set in .env${environmentSuffix}`);
+    throw new Error(`POSTGRES_URL environment variable is not set in .env`);
   }
 
   // Damn. At least when running locally on my machine, the .env variables are somehow cached; and not loaded reliably
   console.log(`Using connection `, process.env.POSTGRES_URL)
+
+  await askToProceed();
 
   const db = await createDbInstance();
 
@@ -39,10 +31,10 @@ async function migrate() {
   });
 
   if (direction === 'down') {
-    console.log(`Migrating down for ${environmentSuffix} environment...`);
+    console.log(`Migrating down`);
     await migrateDown(migrator);
   } else {
-    console.log(`Migrating to latest for ${environmentSuffix} environment... `);
+    console.log(`Migrating to latest`);
     await migrateToLatest(migrator);
   }
   console.log('Migration script finished!');
@@ -73,5 +65,25 @@ function handleResults(error: any, results: any) {
     process.exit(1);
   }
 } 
+
+async function askToProceed() {
+  const readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  const proceed = await new Promise<boolean>((resolve) => {
+    readline.question('Do you want to proceed with the migration? (y/n) ', (answer: string) => {
+      readline.close();
+      resolve(answer.toLowerCase() === 'y');
+    });
+  });
+
+  if (!proceed) {
+    console.log('Migration cancelled by user');
+    process.exit(0);
+  }
+}
+
 
 migrate();

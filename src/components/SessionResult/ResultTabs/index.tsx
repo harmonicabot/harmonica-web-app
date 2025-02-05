@@ -29,10 +29,6 @@ export default function ResultTabs({
   showSessionRecap = true,
   chatEntryMessage,
 }: ResultTabsProps) {
-  const [activeTab, setActiveTab] = useState(
-    hostData.summary ? 'SUMMARY' : 'RESPONSES'
-  );
-
   const { hasMinimumRole, loading: loadingUserInfo } = usePermissions(id);
 
   // Custom hook for managing AI responses
@@ -44,7 +40,7 @@ export default function ResultTabs({
   const initialIncluded = userData
     .filter((user) => user.include_in_summary)
     .map((user) => user.id);
-  const [updatedUserIds, setUpdatedUserIds] =
+  const [userIdsIncludedInSummary, setUpdatedUserIds] =
     useState<string[]>(initialIncluded);
   const [initialUserIds, setInitialUserIds] =
     useState<string[]>(initialIncluded);
@@ -73,12 +69,24 @@ export default function ResultTabs({
   };
 
   // Memoized values
-  const showSummary = useMemo(
-    () => updatedUserIds.length > 0,
-    [updatedUserIds]
+  const hasAnyIncludedUserMessages = useMemo(
+    () => userIdsIncludedInSummary.length > 0,
+    [userIdsIncludedInSummary]
   );
 
-  // Add this state
+  console.log('UserIdsIncludedInSummary: ', userIdsIncludedInSummary)
+  if (!hasAnyIncludedUserMessages) {
+      return (
+        <Card className='w-full'>
+          <CardContent className='text-center'>No user replies available yet. Be one of the first by participating in the sessions below 👇️👇️👇️</CardContent>
+      </Card>
+    )
+  }
+
+  const [activeTab, setActiveTab] = useState(
+    hostData.summary || !showParticipants ? 'SUMMARY' : 'RESPONSES'
+  );
+
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
     useState(hasNewMessages);
 
@@ -110,12 +118,12 @@ export default function ResultTabs({
   const renderLeftContent = (isMobile = false) => (
     <div className={cn('overflow-auto', isMobile ? 'w-full' : '')}>
       <TabContent value="SUMMARY">
-        {showSummary ? (
+        {hasAnyIncludedUserMessages ? (
           <SessionResultSummary
             hostData={hostData}
             newSummaryContentAvailable={newSummaryContentAvailable}
             onUpdateSummary={() => {
-              setInitialUserIds(updatedUserIds);
+              setInitialUserIds(userIdsIncludedInSummary);
               setNewSummaryContentAvailable(false);
             }}
             showSessionRecap={showSessionRecap}
@@ -172,7 +180,7 @@ export default function ResultTabs({
               ? undefined
               : () => {
                   createSummary(id);
-                  setInitialUserIds(updatedUserIds);
+                  setInitialUserIds(userIdsIncludedInSummary);
                 }
           }
         >
