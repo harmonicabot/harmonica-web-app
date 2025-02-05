@@ -78,7 +78,6 @@ export default function ResultTabs({
     [updatedUserIds]
   );
 
-  // Add this state
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
     useState(hasNewMessages);
 

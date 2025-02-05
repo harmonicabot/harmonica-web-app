@@ -31,6 +31,7 @@ export async function createSummary(sessionId: string) {
 
   const chats = await db.getAllMessagesForUsersSorted(onlyIncludedUsersWithAtLeast2Messages);
   const contextData = await db.getFromHostSession(sessionId, ['context', 'critical', 'goal', 'topic']);
+  // Todo: createSummary could also be called from a workspace, in which case the workspace might have its own summary_assistant, and there would also be multiple sessions to summarize.
   const summaryAssistantId = (await db.getFromHostSession(sessionId, ['summary_assistant_id']))?.summary_assistant_id || 'asst_QTmamFSqEIcbUX4ZwrjEqdm8';
   
   // Flatten the chats and group by thread_id to distinguish participants

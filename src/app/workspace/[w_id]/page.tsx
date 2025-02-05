@@ -86,8 +86,13 @@ export default async function MultiSessionResults({
       Promise.all(sessionIds.map((id) => db.getUsersBySessionId(id))),
     ]);
 
-    // Merge all user data into one flat array
-    const userData = allUserData.flat();
+    const stats = await db.getNumUsersAndMessages(hostSessions.map(session => session.id));
+    const usersWithChat = allUserData.map((sessionUsers, index) => 
+      sessionUsers.filter(user => stats[hostSessions[index].id][user.id].num_messages > 2 && user.include_in_summary)
+    );
+  
+    // Merge all filtered user data into one flat array
+    const userData = usersWithChat.flat();
 
     return (
       <div className="p-4 md:p-8">
@@ -160,7 +165,7 @@ Here are some questions you might want to ask:
                   key={hostData.id}
                   workspace_id={params.w_id}
                   hostData={hostData}
-                  userData={allUserData[index]}
+                  userData={userData.filter(user => user.session_id === hostData.id)}
                   id={sessionIds[index]}
                 />
               ))}
