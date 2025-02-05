@@ -16,7 +16,7 @@ import { PlusIcon } from 'lucide-react';
 
 export default function Chat({
   assistantId,
-  sessionId,
+  sessionIds,
   setUserSessionId,
   userSessionId,
   entryMessage,
@@ -27,7 +27,7 @@ export default function Chat({
   isAskAi = false,
 }: {
   assistantId: string;
-  sessionId?: string;
+  sessionIds?: string[];
   setUserSessionId?: (id: string) => void;
   userSessionId?: string;
   entryMessage?: OpenAIMessage;
@@ -88,7 +88,7 @@ export default function Chat({
 
       createThread(
         context,
-        sessionId,
+        sessionIds && sessionIds.length ? sessionIds[0] : undefined,
         user ? user : 'id',
         userName,
         userContext,
@@ -187,7 +187,7 @@ export default function Chat({
         if (sessionId) {
           const data = {
             session_id: sessionId,
-            user_id: userName + "_" + crypto.randomUUID(),
+            user_id: userName + '_' + crypto.randomUUID(),
             user_name: userName,
             thread_id: threadId,
             active: true,
@@ -250,7 +250,7 @@ export default function Chat({
       createThreadInProgressRef.current = true;
       createThread(
         context,
-        sessionId,
+        sessionIds && sessionIds.length ? sessionIds[0] : undefined,
         user ? user : 'id',
         userName,
         userContext,
@@ -329,7 +329,7 @@ export default function Chat({
           body: JSON.stringify({
             messageText,
             threadId: threadIdRef.current,
-            sessionId: sessionId || '', // Add session ID
+            sessionIds: sessionIds || [], // Add session ID
           }),
         });
 

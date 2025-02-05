@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Chat from '@/components/chat';
 import { UserSession } from '@/lib/schema';
@@ -13,12 +13,14 @@ interface SessionResultChatProps {
     index: number,
   ) => React.ReactNode;
   entryMessage?: OpenAIMessage;
+  sessionIds?: string[];
 }
 
 export default function SessionResultChat({
   userData,
   customMessageEnhancement,
   entryMessage,
+  sessionIds,
 }: SessionResultChatProps) {
   const [assistantId, setAssistantId] = useState('');
 
@@ -53,7 +55,11 @@ Here are a few examples of what you can ask me:
               content: `You will be asked questions based on the session data. Answer short.`,
               userData: userData.filter((user) => user.include_in_summary),
             }}
-            sessionId={userData[0].session_id}
+            sessionIds={
+              sessionIds && sessionIds.length
+                ? sessionIds
+                : [userData[0].session_id]
+            }
             assistantId={assistantId}
             entryMessage={entryMessage || defaultEntryMessage}
             placeholderText="What would you like to know?"

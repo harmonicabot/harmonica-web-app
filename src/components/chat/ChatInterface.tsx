@@ -77,8 +77,8 @@ export const ChatInterface = ({
       <div className="h-full max-h-[calc(100svh-150px)] md:max-h-[calc(100svh-50px)] flex m-4">
         {((hostData?.assistant_id && hostData?.id) || assistantId) && (
           <Chat
-            assistantId={hostData?.assistant_id ?? assistantId!}
-            sessionId={hostData?.id}
+            assistantId={hostData?.assistant_id || assistantId || ''}
+            sessionIds={[hostData?.id || '']}
             userSessionId={userSessionId}
             setUserSessionId={setUserSessionId}
             userContext={userContext}
