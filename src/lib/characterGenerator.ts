@@ -8,6 +8,7 @@ export async function generateCharacters(sessionId: string): Promise<string> {
     'goal',
     'topic',
     'critical',
+    'questions',
   ]);
 
   if (!sessionData) {
@@ -27,6 +28,7 @@ Topic: ${sessionData.topic}
 Goal: ${sessionData.goal}
 Context: ${sessionData.context}
 Key Question: ${sessionData.critical}
+Questions at the beginning od the session: ${sessionData.questions}
 
 Generate 5 diverse personas who might participate in this workshop. Each character should:
 1. Have backgrounds and experiences that could contribute to the discussion

@@ -24,6 +24,40 @@ const DEFAULT_RESPONSE_PROMPT = `You are simulating user responses. Follow these
 3. Use natural, conversational language
 4. Maintain the perspective and knowledge level indicated in the context`;
 
+async function isSessionComplete(
+  lastQuestion: string,
+  sessionData: any,
+): Promise<boolean> {
+  const llm = new LlamaOpenAI({
+    model: 'gpt-4o-mini',
+    apiKey: process.env.OPENAI_API_KEY,
+    maxTokens: 100,
+    temperature: 0.1, // Low temperature for more consistent results
+  });
+
+  const prompt = `Given this workshop context:
+Topic: ${sessionData.topic}
+Goal: ${sessionData.goal}
+
+And this last generated question: "${lastQuestion}"
+
+Determine if this appears to be a concluding question that would end the session. Consider:
+1. Does it ask for final thoughts or reflections?
+2. Does it summarize or wrap up the discussion?
+3. Does it contain closing language or farewell phrases?
+4. Does it request feedback about the session?
+
+Reply with ONLY "true" if the session should end, or "false" if it should continue.`;
+
+  const response = await llm.chat({
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  return (
+    response.message.content?.toString().toLowerCase().includes('true') || false
+  );
+}
+
 export async function generateSession(config: SessionConfig) {
   try {
     const {
@@ -73,8 +107,6 @@ export async function generateSession(config: SessionConfig) {
       );
     }
 
-    console.log('[i] userContextPrompt', userContextPrompt);
-
     // Set up LlamaIndex chat model
     const llm = new LlamaOpenAI({
       model: modelProvider,
@@ -102,10 +134,6 @@ export async function generateSession(config: SessionConfig) {
         messageText: lastUserMessage,
       });
 
-      if (isConversationComplete(questionResponse.content)) {
-        break;
-      }
-
       // Store AI question
       await db.insertChatMessage({
         thread_id: threadId,
@@ -113,6 +141,25 @@ export async function generateSession(config: SessionConfig) {
         content: questionResponse.content,
         created_at: new Date(),
       });
+
+      // Add new session completion check
+      const shouldEndSession = await isSessionComplete(
+        questionResponse.content,
+        sessionData,
+      );
+
+      console.log(
+        '[i] shouldEndSession',
+        shouldEndSession,
+        questionResponse.content,
+      );
+
+      if (shouldEndSession) {
+        console.log(
+          '[i] Session naturally concluded based on question content',
+        );
+        break;
+      }
 
       // Generate response using LlamaIndex OpenAI
       const userResponse = await llm.chat({
