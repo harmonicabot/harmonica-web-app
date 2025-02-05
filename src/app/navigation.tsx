@@ -9,7 +9,7 @@ import ENSNavigation from './workspace/[w_id]/ENSNavigation';
 export default function Navigation() {
 
   const pathname = usePathname()
-  const isENS = pathname.startsWith('/ens');
+  const isENS = pathname.toLowerCase().startsWith('/workspace/ens');
 
   return <nav className="p-4">
     <div className="flex flex-row justify-between items-center px-2">

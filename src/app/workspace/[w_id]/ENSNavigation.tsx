@@ -6,7 +6,7 @@ export default function ENSNavigation() {
   return (
     <div className="mx-8 flex items-baseline gap-4">
       <h1 className="text-xl font-bold text-purple-900">
-        ENS Research Sessions
+        ENS-PSL AI Summit
       </h1>
     </div>
   );

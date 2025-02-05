@@ -17,55 +17,6 @@ export default async function MultiSessionResults({
     params: { w_id: string };
     searchParams: { access?: string };
 }) {
-  // While in development, we just take whichever six last sessions the user has access to.
-  // Once we created the ENS sessions, we will hardcode those. Or, identify them in some way.
-
-  async function setupENSWorkspace() {
-    // 1. Get latest 6 sessions from host_db
-    console.log('Create ENS workspace');
-    const latestSessions = await db.getHostSessions(['id'], 1, 6);
-    const sessionIds = latestSessions.map((session: any) => session.id);
-
-    // 2. Create new workspace
-    const workspace = await db.createWorkspace({
-      title: 'ENS Workspace',
-      description: 'AI Summit: Shaping the Future of AI in France',
-      created_at: new Date(),
-    });
-
-    if (!workspace) {
-      throw new Error('Failed to create workspace');
-    }
-
-    // 3. Add sessions to workspace
-    for (const sessionId of sessionIds) {
-      await db.addSessionToWorkspace(workspace.id, sessionId);
-    }
-
-    // 4. Get current user
-    const session = await getSession();
-    const userId = session?.user?.sub;
-
-    if (!userId) {
-      throw new Error('No user found');
-    }
-
-    // 5. Set admin permissions for user on workspace and all sessions
-    await db.setPermission(workspace.id, userId, 'admin');
-
-    for (const sessionId of sessionIds) {
-      await db.setPermission(sessionId, userId, 'admin');
-    }
-
-    console.log('ENS Workspace setup complete');
-    console.log('Workspace ID:', workspace.id);
-    console.log('Added sessions:', sessionIds);
-  }
-
-  // TODO: Development code only to set up an example workspace.
-  if ((await db.getAllWorkspaceIds()).length === 0) {
-    setupENSWorkspace();
-  }
   
   if (searchParams.access === 'public') {
     const workspaceData = await db.getWorkspaceById(params.w_id);
@@ -97,7 +48,7 @@ export default async function MultiSessionResults({
     return (
       <div className="p-4 md:p-8">
         {/* Hero Section */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-lg p-8 mb-8">
+        <div className="bg-gradient-to-r from-purple-900 to-purple-50 text-white rounded-lg p-8 mb-8">
           <h1 className="text-4xl font-bold mb-4">
             AI Summit: Shaping the Future of AI in France
           </h1>
@@ -142,7 +93,7 @@ export default async function MultiSessionResults({
             showSessionRecap={false}
             chatEntryMessage={{
               role: 'assistant',
-              content: `Welcome to the ENS AI Summit! I'm here to help you understand the insights from past discussions.
+              content: `Welcome to the ENS-PSL AI Summit! I'm here to help you understand the insights from past discussions.
           
 Here are some questions you might want to ask:
   - What were the key themes discussed across sessions?
