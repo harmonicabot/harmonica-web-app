@@ -2,9 +2,10 @@ import { OpenAI as LlamaOpenAI } from 'llamaindex';
 import * as db from '@/lib/db';
 import * as gpt from '../app/api/gptUtils';
 import { getUserNameFromContext } from '@/lib/clientUtils';
+import { generateFormAnswers } from './formAnswerGenerator';
 
 enum ModelProvider {
-  GPT4 = 'gpt-4-turbo-preview',
+  GPT4 = 'gpt-4o-mini',
   GPT3 = 'gpt-3.5-turbo',
   CLAUDE = 'claude-3-sonnet',
 }
@@ -31,7 +32,6 @@ export async function generateSession(config: SessionConfig) {
       modelProvider = ModelProvider.GPT4,
     } = config;
 
-    console.log('[i] Generating session with config:', config.sessionId);
     // Get session data from DB
     const sessionData = await db.getFromHostSession(config.sessionId, [
       'context',
@@ -40,7 +40,10 @@ export async function generateSession(config: SessionConfig) {
       'topic',
       'prompt',
       'assistant_id',
+      'questions',
     ]);
+
+    console.log('[i] questions', sessionData?.questions);
 
     if (!sessionData) {
       throw new Error('Session data not found');
@@ -50,20 +53,27 @@ export async function generateSession(config: SessionConfig) {
       throw new Error('No assistant ID found for session');
     }
 
-    // Format context from session data
-    const sessionContext: Record<string, string> = Object.entries({
-      topic: sessionData.topic,
-      goal: sessionData.goal,
-      context: sessionData.context,
-      critical: sessionData.critical,
-      prompt: sessionData.prompt,
-    }).reduce(
-      (acc, [key, value]) => {
-        if (value !== undefined) acc[key] = value;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
+    // Generate form answers if questions exist
+    let userContextPrompt = '';
+    if (sessionData.questions) {
+      const questions =
+        typeof sessionData.questions === 'string'
+          ? JSON.parse(sessionData.questions)
+          : sessionData.questions;
+
+      userContextPrompt = await generateFormAnswers(
+        questions,
+        {
+          topic: sessionData.topic || '',
+          goal: sessionData.goal || '',
+          context: sessionData.context || '',
+          critical: sessionData.critical || '',
+        },
+        responsePrompt,
+      );
+    }
+
+    console.log('[i] userContextPrompt', userContextPrompt);
 
     // Set up LlamaIndex chat model
     const llm = new LlamaOpenAI({
@@ -73,18 +83,23 @@ export async function generateSession(config: SessionConfig) {
       temperature: temperature,
     });
 
-    const threadId = await createThreadWithContext(config, sessionContext);
+    const threadId = await createThreadWithContext(config, userContextPrompt);
     let turnCount = 0;
-    let lastUserMessage = '';
+    let lastUserMessage = userContextPrompt;
+
+    await db.insertChatMessage({
+      thread_id: threadId,
+      role: 'user',
+      content: userContextPrompt,
+      created_at: new Date(),
+    });
 
     while (turnCount < config.maxTurns) {
       // Generate question using GPT utils with last user message
       const questionResponse = await gpt.handleGenerateAnswer({
         threadId,
         assistantId: sessionData.assistant_id,
-        messageText: lastUserMessage
-          ? `Previous response: "${lastUserMessage}". Generate the next question for turn ${turnCount + 1}. Include ending signal if appropriate.`
-          : `Generate the next question for turn ${turnCount + 1}. Include ending signal if appropriate.`,
+        messageText: lastUserMessage,
       });
 
       if (isConversationComplete(questionResponse.content)) {
@@ -104,7 +119,18 @@ export async function generateSession(config: SessionConfig) {
         messages: [
           {
             role: 'system',
-            content: `${responsePrompt} Session context: ${JSON.stringify(sessionContext)}`,
+            content: `${responsePrompt} Session context: ${userContextPrompt}
+
+Additional response guidelines:
+1. If multiple characters/personas are described, feel free to randomly choose one for variety
+2. Show personality and emotion while staying consistent
+3. Keep responses concise (2-3 sentences maximum)
+4. Add character through:
+   - Unique speech patterns or expressions
+   - Emotional reactions
+   - Personal opinions
+   - Brief references to background
+5. Use natural language with occasional filler words or expressions`,
           },
           {
             role: 'user',
@@ -171,26 +197,23 @@ async function generateUserResponse(
   return response.message.content?.toString() || ''; // Convert to string
 }
 
-async function createThreadWithContext(
-  config: SessionConfig,
-  context: Record<string, string>,
-) {
+async function createThreadWithContext(config: SessionConfig, context: string) {
   // Format user context as entry message
   const userContextPrompt = context
-    ? `IMPORTANT USER INFORMATION:\n${Object.entries(context)
-        .map(([key, value]) => `- ${key}: ${value}`)
-        .join('\n')}`
+    ? `IMPORTANT USER INFORMATION:\n${context}`
     : '';
 
-  const threadEntryMessage = userContextPrompt
-    ? { role: 'user' as const, content: userContextPrompt }
-    : undefined;
-
-  // Create OpenAI thread
-  const threadId = await gpt.handleCreateThread(threadEntryMessage);
+  // Create OpenAI thread with context as first message
+  const threadId = await gpt.handleCreateThread(
+    userContextPrompt
+      ? { role: 'user', content: userContextPrompt }
+      : undefined,
+  );
 
   // Store session data
-  const simulatedUserName = '[AI] ' + getUserNameFromContext(context);
+  const simulatedUserName =
+    '[AI] ' +
+    getUserNameFromContext(typeof context === 'string' ? { context } : context);
 
   await db.insertUserSessions({
     session_id: config.sessionId,
@@ -200,28 +223,6 @@ async function createThreadWithContext(
     active: true,
     start_time: new Date(),
     last_edit: new Date(),
-  });
-
-  // Store initial context message
-  if (userContextPrompt) {
-    await db.insertChatMessage({
-      thread_id: threadId,
-      role: 'user',
-      content: `User shared the following context:\n${Object.entries(
-        context || {},
-      )
-        .map(([key, value]) => `${key}: ${value}`)
-        .join('; ')}`,
-      created_at: new Date(),
-    });
-  }
-
-  // Add ready-to-start message
-  await db.insertChatMessage({
-    thread_id: threadId,
-    role: 'user',
-    content: `${simulatedUserName} is ready to start the conversation.`,
-    created_at: new Date(),
   });
 
   return threadId;

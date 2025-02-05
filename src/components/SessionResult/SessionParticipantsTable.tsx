@@ -29,7 +29,7 @@ export default function SessionParticipantsTable({
   onIncludeInSummaryChange: (userId: string, included: boolean) => void;
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  console.log('[i] userData', userData);
+
   const dateSorter = (sortDirection: string, a: string, b: string) => {
     return sortDirection === 'asc'
       ? new Date(a).getTime() - new Date(b).getTime()

@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, UserPlus } from 'lucide-react';
+import { toast, useToast } from '@/hooks/use-toast';
 
 interface GenerateResponsesModalProps {
   isOpen: boolean;
@@ -24,12 +25,14 @@ export default function GenerateResponsesModal({
   sessionId,
 }: GenerateResponsesModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingCharacters, setIsGeneratingCharacters] = useState(false);
   const [formData, setFormData] = useState({
     prompt: '',
     numSessions: 1,
     temperature: 0.7,
     maxAnswers: 10,
   });
+
   const handleGenerate = async () => {
     setIsLoading(true);
     try {
@@ -50,11 +53,54 @@ export default function GenerateResponsesModal({
       }
 
       onOpenChange(false);
+
+      toast({
+        title: 'Success',
+        description: `Generated ${formData.numSessions} new session${formData.numSessions > 1 ? 's' : ''}.`,
+      });
     } catch (error) {
       console.error('Failed to generate sessions:', error);
-      // TODO: Add error toast notification
+      toast({
+        title: 'Error',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Failed to generate sessions',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGenerateCharacters = async () => {
+    setIsGeneratingCharacters(true);
+    try {
+      const response = await fetch(
+        `/api/sessions/${sessionId}/generate-characters`,
+        {
+          method: 'POST',
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to generate characters');
+      }
+
+      const data = await response.json();
+      setFormData((prev) => ({
+        ...prev,
+        prompt: data.characters,
+      }));
+    } catch (error) {
+      console.error('Failed to generate characters:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate characters',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGeneratingCharacters(false);
     }
   };
 
@@ -70,7 +116,27 @@ export default function GenerateResponsesModal({
 
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="prompt">Character Prompt</Label>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="prompt">Character Prompt</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateCharacters}
+                disabled={isGeneratingCharacters}
+              >
+                {isGeneratingCharacters ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Add Characters
+                  </>
+                )}
+              </Button>
+            </div>
             <Textarea
               id="prompt"
               value={formData.prompt}
