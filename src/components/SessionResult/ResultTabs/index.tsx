@@ -29,10 +29,6 @@ export default function ResultTabs({
   showSessionRecap = true,
   chatEntryMessage,
 }: ResultTabsProps) {
-  const [activeTab, setActiveTab] = useState(
-    hostData.summary ? 'SUMMARY' : 'RESPONSES'
-  );
-
   const { hasMinimumRole, loading: loadingUserInfo } = usePermissions(id);
 
   // Custom hook for managing AI responses
@@ -44,7 +40,7 @@ export default function ResultTabs({
   const initialIncluded = userData
     .filter((user) => user.include_in_summary)
     .map((user) => user.id);
-  const [updatedUserIds, setUpdatedUserIds] =
+  const [userIdsIncludedInSummary, setUpdatedUserIds] =
     useState<string[]>(initialIncluded);
   const [initialUserIds, setInitialUserIds] =
     useState<string[]>(initialIncluded);
@@ -74,8 +70,12 @@ export default function ResultTabs({
 
   // Memoized values
   const showSummary = useMemo(
-    () => updatedUserIds.length > 0,
-    [updatedUserIds]
+    () => userIdsIncludedInSummary.length > 0,
+    [userIdsIncludedInSummary]
+  );
+
+  const [activeTab, setActiveTab] = useState(
+    hostData.summary || !showParticipants ? 'SUMMARY' : 'RESPONSES'
   );
 
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
@@ -114,7 +114,7 @@ export default function ResultTabs({
             hostData={hostData}
             newSummaryContentAvailable={newSummaryContentAvailable}
             onUpdateSummary={() => {
-              setInitialUserIds(updatedUserIds);
+              setInitialUserIds(userIdsIncludedInSummary);
               setNewSummaryContentAvailable(false);
             }}
             showSessionRecap={showSessionRecap}
@@ -171,7 +171,7 @@ export default function ResultTabs({
               ? undefined
               : () => {
                   createSummary(id);
-                  setInitialUserIds(updatedUserIds);
+                  setInitialUserIds(userIdsIncludedInSummary);
                 }
           }
         >
