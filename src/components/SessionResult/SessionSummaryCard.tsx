@@ -9,15 +9,17 @@ export default function SessionSummaryCard({
   hostData,
   userData,
   workspace_id,
-  id
+  id,
+  usePublicAccess
 }: {
   hostData: HostSession
   userData: UserSession[]
   workspace_id: string
   id: string
+  usePublicAccess: boolean
 }) {
   return (
-    <Link href={`/workspace/${workspace_id}/${encryptId(id)}`}>
+    <Link href={`/workspace/${workspace_id}/${encryptId(id)}${usePublicAccess ? '?access=public' : ''}`}>
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader>
           <CardTitle className="flex justify-between items-center">

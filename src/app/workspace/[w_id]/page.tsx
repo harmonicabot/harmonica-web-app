@@ -5,19 +5,28 @@ import SessionSummaryCard from '@/components/SessionResult/SessionSummaryCard';
 import ResultTabs from '@/components/SessionResult/ResultTabs';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { getSession } from '@auth0/nextjs-auth0';
+import { Metadata } from 'next';
+import { getGeneratedMetadata } from 'app/api/metadata';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 60; // in seconds
 export const revalidate = 5 * 60; // check new data only every 5 minutes
 
+export async function generateMetadata({
+  params,
+}: {
+  params: { w_id: string };
+}): Promise<Metadata> {
+  return getGeneratedMetadata(`/workspace/${params.w_id}`);
+}
+
 export default async function MultiSessionResults({
   params,
   searchParams,
 }: {
-    params: { w_id: string };
-    searchParams: { access?: string };
+  params: { w_id: string };
+  searchParams: { access?: string };
 }) {
-  
   if (searchParams.access === 'public') {
     const workspaceData = await db.getWorkspaceById(params.w_id);
     if (!workspaceData || !workspaceData.is_public) {
@@ -29,32 +38,41 @@ export default async function MultiSessionResults({
       );
     }
   }
-  
-  const sessionIds = await db.getWorkspaceSessions(params.w_id);
+
+  let sessionIds = await db.getWorkspaceSessions(params.w_id);
+
   try {
     const [hostSessions, allUserData] = await Promise.all([
       Promise.all(sessionIds.map((id) => db.getHostSessionById(id))),
       Promise.all(sessionIds.map((id) => db.getUsersBySessionId(id))),
     ]);
 
-    const stats = await db.getNumUsersAndMessages(hostSessions.map(session => session.id));
-    const usersWithChat = allUserData.map((sessionUsers, index) => 
-      sessionUsers.filter(user => stats[hostSessions[index].id][user.id].num_messages > 2 && user.include_in_summary)
+    hostSessions.sort((a, b) => a.topic.localeCompare(b.topic));
+
+    const stats = await db.getNumUsersAndMessages(
+      hostSessions.map((session) => session.id),
     );
-  
+    const usersWithChat = allUserData.map((sessionUsers) =>
+      sessionUsers.filter(
+        (user) =>
+          stats[user.session_id][user.id].num_messages > 2 &&
+          user.include_in_summary,
+      ),
+    );
+
     // Merge all filtered user data into one flat array
     const userData = usersWithChat.flat();
 
     return (
       <div className="p-4 md:p-8">
         {/* Hero Section */}
-        <div className="bg-gradient-to-r from-purple-900 to-purple-50 text-white rounded-lg p-8 mb-8">
+        <div className="bg-gradient-to-r from-purple-900 to-purple-400 text-white rounded-lg p-8 mb-8">
           <h1 className="text-4xl font-bold mb-4">
-            AI Summit: Shaping the Future of AI in France
+            Assemblée étudiante sur l’IA
           </h1>
           <p className="text-xl mb-4">
-            Join us for an engaging discussion on artificial intelligence and
-            its impact on French society
+            Explorer ensemble les enjeux liés à l’IA et faire des propositions
+            d’actions pour un développement de l’IA au service du bien commun.
           </p>
           <div className="flex items-center gap-2 text-blue-100">
             <svg
@@ -78,8 +96,8 @@ export default async function MultiSessionResults({
               />
             </svg>
             <span>
-              Paris University, in collaboration with Mission Publique &
-              Harmonica AI
+              Projet initié par l’Ecole Normale Supérieure, l’université de Yale
+              et Missions Publiques
             </span>
           </div>
         </div>
@@ -111,13 +129,16 @@ Here are some questions you might want to ask:
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {hostSessions.map((hostData, index) => (
+              {hostSessions.map((hostData) => (
                 <SessionSummaryCard
                   key={hostData.id}
                   workspace_id={params.w_id}
                   hostData={hostData}
-                  userData={userData.filter(user => user.session_id === hostData.id)}
-                  id={sessionIds[index]}
+                  userData={userData.filter(
+                    (user) => user.session_id === hostData.id,
+                  )}
+                  id={hostData.id}
+                  usePublicAccess={searchParams.access === 'public'}
                 />
               ))}
             </div>
