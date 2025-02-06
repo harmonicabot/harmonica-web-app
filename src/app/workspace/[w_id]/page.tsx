@@ -118,6 +118,7 @@ Here are some questions you might want to ask:
                   hostData={hostData}
                   userData={userData.filter(user => user.session_id === hostData.id)}
                   id={sessionIds[index]}
+                  usePublicAccess={searchParams.access === 'public'}
                 />
               ))}
             </div>
