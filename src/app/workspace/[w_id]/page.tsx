@@ -5,10 +5,19 @@ import SessionSummaryCard from '@/components/SessionResult/SessionSummaryCard';
 import ResultTabs from '@/components/SessionResult/ResultTabs';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { getSession } from '@auth0/nextjs-auth0';
+import { Metadata } from 'next';
+import { getGeneratedMetadata } from 'app/api/metadata';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 60; // in seconds
 export const revalidate = 5 * 60; // check new data only every 5 minutes
+
+export async function generateMetadata(
+  { params }: { params: { w_id: string } } ,
+): Promise<Metadata> {
+  return getGeneratedMetadata(`/workspace/${params.w_id}`);
+}
+
 
 export default async function MultiSessionResults({
   params,
@@ -37,11 +46,13 @@ export default async function MultiSessionResults({
       Promise.all(sessionIds.map((id) => db.getUsersBySessionId(id))),
     ]);
 
+    hostSessions.sort((a, b) => a.topic.localeCompare(b.topic));
+
     const stats = await db.getNumUsersAndMessages(hostSessions.map(session => session.id));
-    const usersWithChat = allUserData.map((sessionUsers, index) => 
-      sessionUsers.filter(user => stats[hostSessions[index].id][user.id].num_messages > 2 && user.include_in_summary)
-    );
-  
+    const usersWithChat = allUserData.map((sessionUsers) => 
+      sessionUsers.filter(user => stats[user.session_id][user.id].num_messages > 2 && user.include_in_summary)
+    );  
+
     // Merge all filtered user data into one flat array
     const userData = usersWithChat.flat();
 

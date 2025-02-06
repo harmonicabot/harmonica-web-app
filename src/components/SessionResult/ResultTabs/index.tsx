@@ -78,7 +78,6 @@ export default function ResultTabs({
     [userIdsIncludedInSummary],
   );
 
-  console.log('UserIdsIncludedInSummary: ', userIdsIncludedInSummary);
   if (!hasAnyIncludedUserMessages) {
     return (
       <Card className="w-full">
