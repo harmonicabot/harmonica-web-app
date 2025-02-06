@@ -124,7 +124,7 @@ Please type your name or "anonymous" if you prefer
 
   return (
     <div
-      className="flex flex-col md:flex-row h-[calc(100vh - 100px)] bg-purple-50"
+      className="flex flex-col md:flex-row h-svh bg-purple-50"
     >
       <div className="hidden">
         <div data-tf-live="01JB9CRNXPX488VHX879VNF3E6"></div>
