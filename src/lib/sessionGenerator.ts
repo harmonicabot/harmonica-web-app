@@ -77,8 +77,6 @@ export async function generateSession(config: SessionConfig) {
       'questions',
     ]);
 
-    console.log('[i] questions', sessionData?.questions);
-
     if (!sessionData) {
       throw new Error('Session data not found');
     }
@@ -148,16 +146,7 @@ export async function generateSession(config: SessionConfig) {
         sessionData,
       );
 
-      console.log(
-        '[i] shouldEndSession',
-        shouldEndSession,
-        questionResponse.content,
-      );
-
       if (shouldEndSession) {
-        console.log(
-          '[i] Session naturally concluded based on question content',
-        );
         break;
       }
 
@@ -177,7 +166,22 @@ Additional response guidelines:
    - Emotional reactions
    - Personal opinions
    - Brief references to background
-5. Use natural language with occasional filler words or expressions`,
+5. Use natural language with occasional filler words or expressions
+6. IMPORTANT: Do not use or make up specific names - always refer to people by their roles or relationships instead
+   - Even if names are provided in the context, replace them with roles (e.g., "I" or "my colleague" instead of "Clara")
+   - Never create new names or pseudonyms
+   - Use professional roles, relationships, or first-person perspective instead
+7. Include a mix of response types:
+   - Sometimes disagree or express skepticism
+   - Occasionally share negative experiences or concerns
+   - Don't always be agreeable - include constructive criticism
+   - Feel free to challenge assumptions when appropriate
+8. Show realistic human behaviors:
+   - Sometimes give lazy or minimal effort responses
+   - Occasionally admit to not knowing or not caring about certain topics
+   - Don't always provide politically correct or socially desirable answers
+   - Be willing to express unpopular or contrarian viewpoints
+   - Show realistic imperfections like being tired, distracted, or unmotivated`,
           },
           {
             role: 'user',
