@@ -4,7 +4,7 @@ export const footerConfigs: Record<string, FooterConfig> = {
   'default': {
     institutions: [
       {
-        name: 'Harmonica AI',
+        name: 'Harmonica',
         logo: '/harmonica.png',
         url: 'https://harmonica.ai'
       }
@@ -24,7 +24,7 @@ export const footerConfigs: Record<string, FooterConfig> = {
       text: '© 2025 Harmonica AI. All rights reserved.',
     }
   },
-  'wsp_2ef1f6f94b97': {
+  'ENS-PSL': {
     institutions: [
       {
         name: 'École Normale Supérieure Paris',
@@ -32,14 +32,14 @@ export const footerConfigs: Record<string, FooterConfig> = {
         url: 'https://www.ens.psl.eu'
       },
       {
-        name: 'Mission Publiques',
+        name: 'Missions Publiques',
         logo: 'https://media.licdn.com/dms/image/v2/C560BAQGxBQjr_-LZQg/company-logo_200_200/company-logo_200_200/0/1630596722266/missions_publiques_logo?e=1746662400&v=beta&t=58Wj4r1gzd5LUaXitos-MTVKeEA1-RzmzXWBntWUpac',
         url: 'https://missionspubliques.org'
       },
       {
-        name: 'Harmonica AI',
+        name: 'Harmonica',
         logo: '/harmonica.png',
-        url: 'https://harmonica.ai'
+        url: 'https://harmonica.chat'
       }
     ],
     quickLinks: [
