@@ -62,7 +62,7 @@ export default function SessionResultsSection({
             showSessionRecap={showSessionRecap}
             chatEntryMessage={chatEntryMessage}
           />
-          <ExportSection hostData={hostData} userData={userData} id={id} />
+          {showParticipants && <ExportSection hostData={hostData} userData={userData} id={id} />}
         </>
       ) : (
         showShare && <ShareSession makeSessionId={id} />

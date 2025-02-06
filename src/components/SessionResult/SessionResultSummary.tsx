@@ -38,7 +38,6 @@ export default function SessionResultSummary({
             content={hostData.prompt_summary}
             isExpanded={isExpandedPrompt}
             onExpandedChange={setIsExpandedPrompt}
-            exportTooltip="Export Recap"
           />
         </div>
       )}
@@ -47,7 +46,6 @@ export default function SessionResultSummary({
         content={hostData.summary}
         isExpanded={isExpandedSummary}
         onExpandedChange={setIsExpandedSummary}
-        exportTooltip="Export Summary"
         showRefreshButton={newSummaryContentAvailable}
         onRefresh={triggerSummaryUpdate}
         isUpdating={isUpdating}
