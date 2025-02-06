@@ -33,7 +33,7 @@ export default function ResultTabs({
 
   // Custom hook for managing AI responses
   const { responses, addResponse, removeResponse } = useCustomResponses(
-    hostData.id
+    hostData.id,
   );
 
   // User management state
@@ -45,7 +45,10 @@ export default function ResultTabs({
   const [initialUserIds, setInitialUserIds] =
     useState<string[]>(initialIncluded);
 
-  const updateIncludedInSummaryList = (userSessionId: string, included: boolean) => {
+  const updateIncludedInSummaryList = (
+    userSessionId: string,
+    included: boolean,
+  ) => {
     const includedIds = userData
       .filter((user) => user.include_in_summary)
       .map((user) => user.id);
@@ -58,33 +61,37 @@ export default function ResultTabs({
     db.updateUserSession(userSessionId, {
       include_in_summary: included,
     });
-    userData.find((user) => user.id === userSessionId)!.include_in_summary = included;
-    
+    userData.find((user) => user.id === userSessionId)!.include_in_summary =
+      included;
+
     // Compare arrays ignoring order
-    const haveIncludedUsersChanged = 
-      includedIds.length !== initialUserIds.length || 
-      !includedIds.every(id => initialUserIds.includes(id));
-    
+    const haveIncludedUsersChanged =
+      includedIds.length !== initialUserIds.length ||
+      !includedIds.every((id) => initialUserIds.includes(id));
+
     setNewSummaryContentAvailable(hasNewMessages || haveIncludedUsersChanged);
   };
 
   // Memoized values
   const hasAnyIncludedUserMessages = useMemo(
     () => userIdsIncludedInSummary.length > 0,
-    [userIdsIncludedInSummary]
+    [userIdsIncludedInSummary],
   );
 
-  console.log('UserIdsIncludedInSummary: ', userIdsIncludedInSummary)
+  console.log('UserIdsIncludedInSummary: ', userIdsIncludedInSummary);
   if (!hasAnyIncludedUserMessages) {
-      return (
-        <Card className='w-full'>
-          <CardContent className='text-center'>No user replies available yet. Be one of the first by participating in the sessions below 👇️👇️👇️</CardContent>
+    return (
+      <Card className="w-full">
+        <CardContent className="text-center">
+          No user replies available yet. Be one of the first by participating in
+          the sessions below 👇️👇️👇️
+        </CardContent>
       </Card>
-    )
+    );
   }
 
   const [activeTab, setActiveTab] = useState(
-    hostData.summary || !showParticipants ? 'SUMMARY' : 'RESPONSES'
+    hostData.summary || !showParticipants ? 'SUMMARY' : 'RESPONSES',
   );
 
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
@@ -92,7 +99,12 @@ export default function ResultTabs({
 
   // Message enhancement for chat
   const enhancedMessage = (message: OpenAIMessage, key: number) => {
-    if (message.role === 'assistant' && key > 0 && (!loadingUserInfo && hasMinimumRole('editor'))) {
+    if (
+      message.role === 'assistant' &&
+      key > 0 &&
+      !loadingUserInfo &&
+      hasMinimumRole('editor')
+    ) {
       return (
         <>
           <ChatMessage key={key} message={message} />
@@ -111,7 +123,7 @@ export default function ResultTabs({
         </>
       );
     }
-    return <ChatMessage key={key} message={message}  />;
+    return <ChatMessage key={key} message={message} />;
   };
 
   // Shared content renderer
@@ -150,7 +162,11 @@ export default function ResultTabs({
             <CustomResponseCard
               key={response.id}
               response={response}
-              onRemove={!loadingUserInfo && hasMinimumRole('editor') ? removeResponse : null}
+              onRemove={
+                !loadingUserInfo && hasMinimumRole('editor')
+                  ? removeResponse
+                  : null
+              }
             />
           ))}
         </TabContent>
@@ -159,7 +175,7 @@ export default function ResultTabs({
       {responses.length > 0 && activeTab === 'CUSTOM' && (
         <div className="mt-4 flex justify-end">
           <ExportButton
-            content={responses.map(r => r.content).join('\n\n---\n\n')}
+            content={responses.map((r) => r.content).join('\n\n---\n\n')}
             className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
           >
             Export All Insights

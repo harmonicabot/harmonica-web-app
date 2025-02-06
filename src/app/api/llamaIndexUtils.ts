@@ -1,5 +1,4 @@
 import {
-  ChatMessage,
   ContextChatEngine,
   Document,
   Settings,
@@ -7,7 +6,7 @@ import {
   BaseRetriever,
   QueryBundle,
 } from 'llamaindex';
-import OpenAI from 'openai';
+
 import * as db from '@/lib/db';
 import { OpenAIEmbedding } from 'llamaindex';
 import { SentenceSplitter } from 'llamaindex';
@@ -41,10 +40,6 @@ const initialPrompt = `
    - NEVER include any identifiers in responses
    - Use generic terms like "a participant" or "several participants"
    - Remove or redact any identifiers from examples`;
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function generateAnswer(
   sessionIds: string[],

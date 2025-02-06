@@ -5,7 +5,7 @@ export const footerConfigs: Record<string, FooterConfig> = {
     institutions: [
       {
         name: 'Harmonica AI',
-        logo: '/harmonica-logo.png',
+        logo: '/harmonica.png',
         url: 'https://harmonica.ai'
       }
     ],
