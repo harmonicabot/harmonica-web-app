@@ -12,21 +12,21 @@ import { getGeneratedMetadata } from 'app/api/metadata';
 export const maxDuration = 60; // in seconds
 export const revalidate = 5 * 60; // check new data only every 5 minutes
 
-export async function generateMetadata(
-  { params }: { params: { w_id: string } } ,
-): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: { w_id: string };
+}): Promise<Metadata> {
   return getGeneratedMetadata(`/workspace/${params.w_id}`);
 }
-
 
 export default async function MultiSessionResults({
   params,
   searchParams,
 }: {
-    params: { w_id: string };
-    searchParams: { access?: string };
+  params: { w_id: string };
+  searchParams: { access?: string };
 }) {
-  
   if (searchParams.access === 'public') {
     const workspaceData = await db.getWorkspaceById(params.w_id);
     if (!workspaceData || !workspaceData.is_public) {
@@ -38,8 +38,9 @@ export default async function MultiSessionResults({
       );
     }
   }
-  
-  const sessionIds = await db.getWorkspaceSessions(params.w_id);
+
+  let sessionIds = await db.getWorkspaceSessions(params.w_id);
+
   try {
     const [hostSessions, allUserData] = await Promise.all([
       Promise.all(sessionIds.map((id) => db.getHostSessionById(id))),
@@ -48,10 +49,16 @@ export default async function MultiSessionResults({
 
     hostSessions.sort((a, b) => a.topic.localeCompare(b.topic));
 
-    const stats = await db.getNumUsersAndMessages(hostSessions.map(session => session.id));
-    const usersWithChat = allUserData.map((sessionUsers) => 
-      sessionUsers.filter(user => stats[user.session_id][user.id].num_messages > 2 && user.include_in_summary)
-    );  
+    const stats = await db.getNumUsersAndMessages(
+      hostSessions.map((session) => session.id),
+    );
+    const usersWithChat = allUserData.map((sessionUsers) =>
+      sessionUsers.filter(
+        (user) =>
+          stats[user.session_id][user.id].num_messages > 2 &&
+          user.include_in_summary,
+      ),
+    );
 
     // Merge all filtered user data into one flat array
     const userData = usersWithChat.flat();
@@ -122,13 +129,15 @@ Here are some questions you might want to ask:
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {hostSessions.map((hostData, index) => (
+              {hostSessions.map((hostData) => (
                 <SessionSummaryCard
                   key={hostData.id}
                   workspace_id={params.w_id}
                   hostData={hostData}
-                  userData={userData.filter(user => user.session_id === hostData.id)}
-                  id={sessionIds[index]}
+                  userData={userData.filter(
+                    (user) => user.session_id === hostData.id,
+                  )}
+                  id={hostData.id}
                   usePublicAccess={searchParams.access === 'public'}
                 />
               ))}
