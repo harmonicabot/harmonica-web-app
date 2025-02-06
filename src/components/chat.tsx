@@ -439,7 +439,8 @@ export default function Chat({
         <div ref={messagesEndRef} />
       </div>
 
-      <form className="space-y-4 mt-4 " onSubmit={handleSubmit}>
+      <form className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''}`}
+        onSubmit={handleSubmit}> 
         <div className="relative">
           <Textarea
             name="messageText"
