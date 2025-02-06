@@ -66,13 +66,13 @@ export default async function MultiSessionResults({
     return (
       <div className="p-4 md:p-8">
         {/* Hero Section */}
-        <div className="bg-gradient-to-r from-purple-900 to-purple-50 text-white rounded-lg p-8 mb-8">
+        <div className="bg-gradient-to-r from-purple-900 to-purple-400 text-white rounded-lg p-8 mb-8">
           <h1 className="text-4xl font-bold mb-4">
-            AI Summit: Shaping the Future of AI in France
+            Assemblée étudiante sur l’IA
           </h1>
           <p className="text-xl mb-4">
-            Join us for an engaging discussion on artificial intelligence and
-            its impact on French society
+            Explorer ensemble les enjeux liés à l’IA et faire des propositions
+            d’actions pour un développement de l’IA au service du bien commun.
           </p>
           <div className="flex items-center gap-2 text-blue-100">
             <svg
@@ -96,8 +96,8 @@ export default async function MultiSessionResults({
               />
             </svg>
             <span>
-              Paris University, in collaboration with Mission Publique &
-              Harmonica AI
+              Projet initié par l’Ecole Normale Supérieure, l’université de Yale
+              et Missions Publiques
             </span>
           </div>
         </div>
