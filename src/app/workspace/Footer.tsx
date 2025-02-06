@@ -66,8 +66,7 @@ export function Footer({ config }: { config: FooterConfig }) {
               <div className="mt-4">
                 <h4 className="font-medium mb-2">Contact</h4>
                 <p className="text-sm text-gray-600">
-                  Email: {config.contact.email}
-                  <br />
+                  Email: <a href={`mailto:${config.contact.email}`}>{config.contact.email}</a>                  <br />
                   {config.contact.phone && (
                     <>Phone: {config.contact.phone}</>
                   )}
@@ -76,10 +75,10 @@ export function Footer({ config }: { config: FooterConfig }) {
             </div>
           </div>
         </div>
-
         <div className="border-t border-gray-200 mt-12 pt-8 text-center text-sm text-gray-600">
           <p>{config.copyright.text}</p>
           <p className="mt-2">{config.copyright.subtext}</p>
+          {/* <p className="mt-2"><a href={``} >GDPR, Terms & Conditions</a></p> */}
         </div>
       </div>
     </footer>
