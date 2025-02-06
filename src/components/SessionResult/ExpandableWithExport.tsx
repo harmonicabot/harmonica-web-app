@@ -16,7 +16,6 @@ interface CardProps {
   content?: string;
   isExpanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
-  exportTooltip: string;
   showRefreshButton?: boolean;
   onRefresh?: () => void;
   isUpdating?: boolean;
@@ -29,7 +28,6 @@ export const ExpandableWithExport = ({
   content,
   isExpanded,
   onExpandedChange,
-  exportTooltip,
   showRefreshButton,
   onRefresh,
   isUpdating,
@@ -42,43 +40,34 @@ export const ExpandableWithExport = ({
         <div className="w-full flex justify-between items-center">
           <CardTitle className="text-2xl">{title}</CardTitle>
           {isExpanded && content && (
-            <ExportButton content={content}>
-              <div className="flex gap-2 cursor-pointer">
+            <div className="flex gap-2 cursor-pointer">
+              <ExportButton content={content}>
+                <Download className="h-5 w-5 text-gray-500 hover:text-blue-500" />
+              </ExportButton>
+              {showRefreshButton && (
                 <TooltipProvider>
                   <Tooltip delayDuration={50}>
                     <TooltipTrigger>
-                      <Download className="h-5 w-5 text-gray-500 hover:text-blue-500" />
+                      <RefreshCw
+                        onClick={!isUpdating ? onRefresh : undefined}
+                        className={`h-5 w-5 text-gray-500 cursor-pointer hover:text-primary ${
+                          isUpdating
+                            ? 'animate-spin cursor-not-allowed opacity-50'
+                            : ''
+                        }`}
+                      />
                     </TooltipTrigger>
                     <TooltipContent side="top" align="end">
-                      {exportTooltip}
+                      {isUpdating ? (
+                        <p>Please wait while a {title} is generated</p>
+                      ) : (
+                        <p>New responses available. Update {title}!</p>
+                      )}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                {showRefreshButton && (
-                  <TooltipProvider>
-                    <Tooltip delayDuration={50}>
-                      <TooltipTrigger>
-                        <RefreshCw
-                          onClick={!isUpdating ? onRefresh : undefined}
-                          className={`h-5 w-5 text-gray-500 cursor-pointer hover:text-primary ${
-                            isUpdating
-                              ? 'animate-spin cursor-not-allowed opacity-50'
-                              : ''
-                          }`}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" align="end">
-                        {isUpdating ? (
-                          <p>Please wait while a {title} is generated</p>
-                        ) : (
-                          <p>New responses available. Update {title}!</p>
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </div>
-            </ExportButton>
+              )}
+            </div>
           )}
         </div>
       }

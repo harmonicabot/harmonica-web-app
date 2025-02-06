@@ -18,11 +18,9 @@ export function CustomResponseCard({
           content={response.content}
           className="p-2 rounded-full hover:bg-gray-100"
         >
-          <button>
-            <Download className="h-5 w-5 text-gray-500 hover:text-blue-500" />
-          </button>
+          <Download className="h-5 w-5 text-gray-500 hover:text-blue-500" />
         </ExportButton>
-        {onRemove && (  // Only show remove button if there's a remove function
+        {onRemove && ( // Only show remove button if there's a remove function
           <button
             className="p-2 rounded-full hover:bg-gray-100"
             onClick={() => response.id && onRemove(response.id)}
