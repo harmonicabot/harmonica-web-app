@@ -78,7 +78,7 @@ export default async function SimplifiedSessionResult({
           showSessionRecap={false}
           chatEntryMessage={{
             role: 'assistant',
-            content: `Welcome to the ENS AI Summit! I'm here to help you understand the insights from past discussions.
+            content: `Welcome to the ENS-PSL AI Summit! I'm here to help you understand the insights from past discussions.
           
 Here are some questions you might want to ask:
   - What were the key themes discussed across sessions?
