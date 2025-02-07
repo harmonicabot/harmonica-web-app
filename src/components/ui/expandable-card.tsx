@@ -13,13 +13,13 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/clientUtils';
 
 interface ExpandableCardProps {
-  title: React.ReactNode;  // Changed to ReactNode
+  title: React.ReactNode;
   description?: string;
   children: React.ReactNode;
   defaultExpanded?: boolean;
   className?: string;
   maxHeight?: string;
-  onExpandedChange?: (expanded: boolean) => void;  // Added callback
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 export default function ExpandableCard({
