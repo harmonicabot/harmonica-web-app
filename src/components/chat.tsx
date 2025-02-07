@@ -40,7 +40,7 @@ export default function Chat({
     index: number,
   ) => React.ReactNode;
   }) {
-  const isTesting = true;
+  const isTesting = false;
   const [errorMessage, setErrorMessage] = useState<{
     title: string;
     message: string;
