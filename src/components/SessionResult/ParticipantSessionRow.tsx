@@ -13,13 +13,15 @@ export default function ParicipantSessionRow({
   tableData,
   onIncludeChange,
 }: {
-    tableData: ParticipantsTableData;
-    onIncludeChange: (userId: string, included: boolean) => void;
+  tableData: ParticipantsTableData;
+  onIncludeChange: (userId: string, included: boolean) => void;
 }) {
   const userData = tableData.userData;
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [includeInSummary, setIncludeInSummary] = useState(tableData.includeInSummary);
+  const [includeInSummary, setIncludeInSummary] = useState(
+    tableData.includeInSummary
+  );
 
   const handleIncludeInSummaryUpdate = async (updatedIncluded: boolean) => {
     onIncludeChange(userData.id, updatedIncluded);
@@ -34,7 +36,7 @@ export default function ParicipantSessionRow({
       console.error(
         'No messages found for ',
         userData.thread_id,
-        ' but it should be there!',
+        ' but it should be there!'
       );
       return;
     }
@@ -86,33 +88,16 @@ export default function ParicipantSessionRow({
           }).format(tableData.updatedDate)}
         </TableCell>
         <TableCell className="hidden md:table-cell">
-        <Switch checked={includeInSummary} onCheckedChange={handleIncludeInSummaryUpdate}></Switch>
-      </TableCell>
-        {/* <TableCell className="hidden md:table-cell">
-        2023-07-12 10:42 AM
-      </TableCell>
-      <TableCell className="hidden md:table-cell">
-        2023-07-12 12:42 AM
-      </TableCell> */}
+          <Switch
+            checked={includeInSummary}
+            onCheckedChange={handleIncludeInSummaryUpdate}
+          ></Switch>
+        </TableCell>
         <TableCell className="hidden md:table-cell">
           <Button variant="secondary" onClick={handleViewClick}>
             View
           </Button>
         </TableCell>
-        {/* <TableCell>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button aria-haspopup="true" size="icon" variant="ghost">
-              <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">Toggle menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem>Edit</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell> */}
       </TableRow>
       {isPopupVisible && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">

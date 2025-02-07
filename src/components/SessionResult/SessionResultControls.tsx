@@ -45,7 +45,7 @@ export default function SessionResultControls({
         ) : (
           <div>
             <Button
-              className="me-4"
+              className="me-4 mb-2"
               onClick={finishSession}
               disabled={loadSummary}
             >
