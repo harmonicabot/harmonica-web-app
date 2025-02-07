@@ -19,6 +19,7 @@ import { cn } from '@/lib/clientUtils';
 import * as db from '@/lib/db';
 import { ExportButton } from '@/components/Export/ExportButton';
 import { usePermissions } from '@/lib/permissions';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 
 export default function ResultTabs({
   hostData,
@@ -216,27 +217,19 @@ export default function ResultTabs({
       <div className="flex flex-col md:flex-row gap-4">
         {/* Desktop Layout */}
         <div className="hidden md:block w-full">
-          <Split
-            className="flex"
-            gutter={() => {
-              const gutter = document.createElement('div');
-              gutter.className = 'hover:bg-gray-300 cursor-col-resize';
-              return gutter;
-            }}
-            sizes={[66, 34]}
-            minSize={200}
-            gutterSize={8}
-            snapOffset={30}
-          >
-            {renderLeftContent()}
-            <div className="overflow-auto md:w-1/3 mt-4 gap-4">
+          <ResizablePanelGroup direction='horizontal' className='flex h-full'>
+            <ResizablePanel defaultSize={66}>
+              {renderLeftContent()}
+            </ResizablePanel>
+            <ResizableHandle withHandle className='mx-2 mt-4' />
+            <ResizablePanel className="overflow-auto mt-4 gap-4">
               <SessionResultChat
                 userData={userData}
                 customMessageEnhancement={enhancedMessage}
                 entryMessage={chatEntryMessage}
               />
-            </div>
-          </Split>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </div>
 
         {/* Mobile Layout */}
