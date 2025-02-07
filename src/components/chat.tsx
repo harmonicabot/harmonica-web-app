@@ -39,7 +39,8 @@ export default function Chat({
     message: OpenAIMessage,
     index: number,
   ) => React.ReactNode;
-}) {
+  }) {
+  const isTesting = true;
   const [errorMessage, setErrorMessage] = useState<{
     title: string;
     message: string;
@@ -134,7 +135,7 @@ export default function Chat({
     userName?: string,
     userContext?: Record<string, string>,
   ) {
-    // if (1===1) {return "xyz"}
+    if (isTesting) {return "xyz"}
     const chatMessages = [];
     if (context?.userData) {
       const allUsersMessages = await db.getAllMessagesForUsersSorted(
@@ -271,10 +272,10 @@ export default function Chat({
 
     if (isLoading) return;
     setIsLoading(true);
-    // if (1 === 1) {
-    //   addMessage({ role: messages.length % 2 === 0 ? 'user' : 'assistant', content: "Welcome to **ENSB01 | Instance B | AI and Me**! \n\nThe objective of this session is to capture your quick and top-of-mind thoughts about AI as we kick off our two-day workshop on the governance of AI. \n\nThis session will be structured in three short steps. You can share your thoughts openly as this is a safe space. \n\nLet's get started!\n\n---\n\n**Step 1 of 3** \n\n**What are your immediate thoughts when you think about AI?** \n\nPlease share your thoughts freely. " });      setIsLoading(false);
-    //   return;
-    // }
+    if (isTesting) {
+      addMessage({ role: messages.length % 2 === 0 ? 'user' : 'assistant', content: "Welcome to **ENSB01 | Instance B | AI and Me**! \n\nThe objective of this session is to capture your quick and top-of-mind thoughts about AI as we kick off our two-day workshop on the governance of AI. \n\nThis session will be structured in three short steps. You can share your thoughts openly as this is a safe space. \n\nLet's get started!\n\n---\n\n**Step 1 of 3** \n\n**What are your immediate thoughts when you think about AI?** \n\nPlease share your thoughts freely. " });      setIsLoading(false);
+      return;
+    }
     try {
       const messageText = isAutomatic
         ? "Let's begin."
@@ -407,7 +408,7 @@ export default function Chat({
 
   return (
     <div className="h-full flex-grow flex flex-col">
-      <div className="h-full flex-grow overflow-y-auto mb-100px">
+      <div className="h-full flex-grow">
         {messages.map((message, index) => (
           <div key={index} className="group">
             {customMessageEnhancement ? (
@@ -439,7 +440,7 @@ export default function Chat({
         <div ref={messagesEndRef} />
       </div>
 
-      <form className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''}`}
+      <form className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''} sticky bottom-0`}
         onSubmit={handleSubmit}> 
         <div className="relative">
           <Textarea
