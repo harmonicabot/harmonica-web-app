@@ -40,14 +40,14 @@ Here are a few examples of what you can ask me:
   };
 
   return (
-    <Card className="h-auto border-yellow-400">
+    <Card className="max-h-[90dvh] h-full flex flex-col border-yellow-400">
       <CardHeader className="bg-yellow-50 border-gray-200 rounded-md">
         <CardTitle className="text-md flex justify-normal items-center">
           <img src="/monica_chat_icon.svg" alt="" className="h-10 w-10 mr-2" />
           Ask AI
         </CardTitle>
       </CardHeader>
-      <CardContent className="max-h-[80vh] overflow-auto pb-0">
+      <CardContent className="h-full flex flex-col overflow-y-auto pb-0">
         {userData && userData.length > 0 && assistantId && (
           <Chat
             context={{
