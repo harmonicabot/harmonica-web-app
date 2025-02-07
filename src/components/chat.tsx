@@ -408,7 +408,7 @@ export default function Chat({
 
   return (
     <div className="h-full flex-grow flex flex-col">
-      <div className="h-full flex-grow">
+      <div className="h-full flex-grow overflow-y-auto">
         {messages.map((message, index) => (
           <div key={index} className="group">
             {customMessageEnhancement ? (
