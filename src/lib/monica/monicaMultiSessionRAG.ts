@@ -5,12 +5,14 @@ import {
   VectorStoreIndex,
   BaseRetriever,
   QueryBundle,
+  GEMINI_MODEL,
 } from 'llamaindex';
 
 import * as db from '@/lib/db';
 import { OpenAIEmbedding } from 'llamaindex';
 import { SentenceSplitter } from 'llamaindex';
 import { OpenAI as LlamaOpenAI } from 'llamaindex';
+import { Gemini } from 'llamaindex';
 
 const initialPrompt = `
 ### Guidelines:
@@ -234,169 +236,171 @@ Total Responses: ${messages.length}
 
     console.log('[i] Query type response:', queryClassification);
 
-    const isAnalyticalQuery =
-      queryClassification.type === 'analytical' &&
-      queryClassification.confidence > 0.8;
+    const isAnalyticalQuery = queryClassification.type === 'analytical';
 
     // ------------------------
 
-    if (isAnalyticalQuery) {
-      const analyticalRetriever = new (class extends BaseRetriever {
-        constructor() {
-          super();
-        }
-        async retrieve() {
-          // Get all messages from all threads
-          const allResponses = threadDocuments
-            .flatMap((doc) =>
-              doc.text
-                .split('\n')
-                .filter((line) => line.trim().startsWith('- '))
-                .map((line) => line.replace('- ', '').trim()),
-            )
-            .filter(Boolean);
+    //     if (isAnalyticalQuery) {
+    //       const analyticalRetriever = new (class extends BaseRetriever {
+    //         constructor() {
+    //           super();
+    //         }
+    //         async retrieve() {
+    //           // Get all messages from all threads
+    //           const allResponses = threadDocuments
+    //             .flatMap((doc) =>
+    //               doc.text
+    //                 .split('\n')
+    //                 .filter((line) => line.trim().startsWith('- '))
+    //                 .map((line) => line.replace('- ', '').trim()),
+    //             )
+    //             .filter(Boolean);
 
-          // Count response frequencies
-          const responseCounts = allResponses.reduce(
-            (acc: { [key: string]: number }, response) => {
-              acc[response] = (acc[response] || 0) + 1;
-              return acc;
-            },
-            {},
-          );
+    //           // Count response frequencies
+    //           const responseCounts = allResponses.reduce(
+    //             (acc: { [key: string]: number }, response) => {
+    //               acc[response] = (acc[response] || 0) + 1;
+    //               return acc;
+    //             },
+    //             {},
+    //           );
 
-          const summaryDoc = new Document({
-            text: `HERE ARE THE ACTUAL RESPONSE FREQUENCIES:
-Total Responses Analyzed: ${allResponses.length}
-Unique Responses Found: ${Object.keys(responseCounts).length}
+    //           const summaryDoc = new Document({
+    //             text: `HERE ARE THE ACTUAL RESPONSE FREQUENCIES:
+    // Total Responses Analyzed: ${allResponses.length}
+    // Unique Responses Found: ${Object.keys(responseCounts).length}
 
-FREQUENCY COUNT:
-${Object.entries(responseCounts)
-  .sort(([, a], [, b]) => b - a)
-  .map(([response, count]) => `"${response}": ${count} times`)
-  .join('\n')}`,
-            metadata: {
-              type: 'analysis_summary',
-              responseCount: allResponses.length,
-              uniqueResponses: Object.keys(responseCounts).length,
-            },
-          });
+    // FREQUENCY COUNT:
+    // ${Object.entries(responseCounts)
+    //   .sort(([, a], [, b]) => b - a)
+    //   .map(([response, count]) => `"${response}": ${count} times`)
+    //   .join('\n')}`,
+    //             metadata: {
+    //               type: 'analysis_summary',
+    //               responseCount: allResponses.length,
+    //               uniqueResponses: Object.keys(responseCounts).length,
+    //             },
+    //           });
 
-          return [{ node: summaryDoc, score: 1 }];
-        }
-        async _retrieve(params: QueryBundle) {
-          return this.retrieve();
-        }
-      })();
+    //           return [{ node: summaryDoc, score: 1 }];
+    //         }
+    //         async _retrieve(params: QueryBundle) {
+    //           return this.retrieve();
+    //         }
+    //       })();
 
-      const analyticalChatEngine = new ContextChatEngine({
-        chatModel: new LlamaOpenAI({
-          model: 'gpt-4-turbo-preview',
-          apiKey: process.env.OPENAI_API_KEY,
-          maxTokens: 1000,
-          temperature: 0.3,
-        }),
-        retriever: analyticalRetriever,
-        systemPrompt: `You are an analysis tool. The text above contains ACTUAL response frequencies.
-When asked about frequencies or patterns, report the exact numbers you see.
-Do not make up data or say you cannot access it.
-The frequency count is right in front of you - just read and report it.`,
-        chatHistory: chatHistory,
-      });
+    //       const analyticalChatEngine = new ContextChatEngine({
+    //         chatModel: new LlamaOpenAI({
+    //           model: 'gpt-4-turbo-preview',
+    //           apiKey: process.env.OPENAI_API_KEY,
+    //           maxTokens: 1000,
+    //           temperature: 0.3,
+    //         }),
+    //         retriever: analyticalRetriever,
+    //         systemPrompt: `You are an analysis tool. The text above contains ACTUAL response frequencies.
+    // When asked about frequencies or patterns, report the exact numbers you see.
+    // Do not make up data or say you cannot access it.
+    // The frequency count is right in front of you - just read and report it.`,
+    //         chatHistory: chatHistory,
+    //       });
 
-      const response = await analyticalChatEngine.chat({
-        message: `Above is a frequency count of actual responses.
-        
-Question: ${query}
+    //       const response = await analyticalChatEngine.chat({
+    //         message: `Above is a frequency count of actual responses.
 
-Instructions:
-1. Look at the FREQUENCY COUNT section above
-2. Report the exact numbers you see
-3. For "most common" questions, list the top responses with their counts
-4. Do not say you cannot access the data - it's right there in the FREQUENCY COUNT
+    // Question: ${query}
 
-Example response format:
-"Based on the frequency count provided:
-- Most common response was X with N occurrences
-- Second most common was Y with M occurrences
-etc."`,
-      });
-      return response.response;
-    } else {
-      // 3. Add query preprocessing
-      function preprocessQuery(query: string) {
-        return query.trim().toLowerCase();
-      }
+    // Instructions:
+    // 1. Look at the FREQUENCY COUNT section above
+    // 2. Report the exact numbers you see
+    // 3. For "most common" questions, list the top responses with their counts
+    // 4. Do not say you cannot access the data - it's right there in the FREQUENCY COUNT
 
-      // Create index with split documents
-      const index = await VectorStoreIndex.fromDocuments(splitDocuments);
-
-      // Example queries and their expected behavior:
-      const queryExamples = {
-        demographic:
-          'What did female participants say about resource conflicts?',
-        thematic: 'How many participants mentioned climate change?',
-        football: 'What did participants say about football?',
-        regional: 'What are the main concerns in Sub-Saharan Africa?',
-        role: 'What do CSO representatives think about youth involvement?',
-        comparative:
-          'How do views differ between NGOs and government representatives?',
-      };
-
-      // Use these to test the retrieval quality
-      const enhancedQuery = preprocessQuery(query);
-      const retriever = index.asRetriever({
-        similarityTopK: splitDocuments.length,
-      });
-
-      const retrievedNodes = await retriever.retrieve(enhancedQuery);
-
-      // Either get high-scoring nodes (>0.8), top 10% of nodes, or at least 10 nodes
-      const minNodesToReturn = Math.max(
-        Math.ceil(retrievedNodes.length * 0.1), // 10% of total nodes
-        Math.min(10, retrievedNodes.length), // At least 10 nodes, or all if less than 10
-      );
-      const filteredNodes = retrievedNodes.filter(
-        (n, index) => (n.score && n.score > 0.8) || index < minNodesToReturn,
-      );
-
-      console.log('[i] Retrieved nodes:', filteredNodes);
-
-      // 4. Log retrieval analysis for tuning
-      console.log('[i] Retrieval analysis:', {
-        query: query,
-        enhancedQuery,
-        resultCount: filteredNodes.length,
-        scoreRange: {
-          min: Math.min(...retrievedNodes.map((n) => n.score ?? 0)),
-          max: Math.max(...retrievedNodes.map((n) => n.score ?? 0)),
-        },
-      });
-
-      const customRetriever = new (class extends BaseRetriever {
-        constructor() {
-          super();
-        }
-        async retrieve(query: string) {
-          return filteredNodes;
-        }
-        async _retrieve(params: QueryBundle) {
-          return filteredNodes;
-        }
-      })();
-
-      const chatEngine = new ContextChatEngine({
-        systemPrompt: initialPrompt,
-        retriever: customRetriever,
-        chatHistory: chatHistory,
-      });
-
-      // Get response from LLM using chat engine
-      const response = await chatEngine.chat({
-        message: query,
-      });
-      return response.response;
+    // Example response format:
+    // "Based on the frequency count provided:
+    // - Most common response was X with N occurrences
+    // - Second most common was Y with M occurrences
+    // etc."`,
+    //       });
+    //       return response.response;
+    //     } else {
+    // 3. Add query preprocessing
+    function preprocessQuery(query: string) {
+      return query.trim().toLowerCase();
     }
+
+    // Create index with split documents
+    const index = await VectorStoreIndex.fromDocuments(splitDocuments);
+
+    // Example queries and their expected behavior:
+    const queryExamples = {
+      demographic: 'What did female participants say about resource conflicts?',
+      thematic: 'How many participants mentioned climate change?',
+      football: 'What did participants say about football?',
+      regional: 'What are the main concerns in Sub-Saharan Africa?',
+      role: 'What do CSO representatives think about youth involvement?',
+      comparative:
+        'How do views differ between NGOs and government representatives?',
+    };
+
+    // Use these to test the retrieval quality
+    const enhancedQuery = preprocessQuery(query);
+    const retriever = index.asRetriever({
+      similarityTopK: splitDocuments.length,
+    });
+
+    const retrievedNodes = await retriever.retrieve(enhancedQuery);
+
+    // Either get high-scoring nodes (>0.8), top 10% of nodes, or at least 10 nodes
+    const minNodesToReturn = Math.max(
+      Math.ceil(retrievedNodes.length * 0.1), // 10% of total nodes
+      Math.min(10, retrievedNodes.length), // At least 10 nodes, or all if less than 10
+    );
+    const filteredNodes = retrievedNodes.filter(
+      (n, index) => (n.score && n.score > 0.8) || index < minNodesToReturn,
+    );
+
+    console.log('[i] Retrieved nodes:', filteredNodes);
+
+    // 4. Log retrieval analysis for tuning
+    console.log('[i] Retrieval analysis:', {
+      query: query,
+      enhancedQuery,
+      resultCount: filteredNodes.length,
+      scoreRange: {
+        min: Math.min(...retrievedNodes.map((n) => n.score ?? 0)),
+        max: Math.max(...retrievedNodes.map((n) => n.score ?? 0)),
+      },
+    });
+
+    // Combine all relevant context into a single string
+    const contextString = filteredNodes.map((node) => node.node).join('\n\n');
+
+    const chatEngine = new Gemini({
+      model: GEMINI_MODEL.GEMINI_PRO_LATEST,
+      temperature: 0.3,
+    });
+
+    // Construct the full prompt with context
+    const response = await chatEngine.chat({
+      messages: [
+        { role: 'system', content: initialPrompt },
+        {
+          role: 'user',
+          content: `
+### User Transcripts: 
+${threadDocuments.map((doc) => doc.text).join('\n')}
+
+### Question: ${query}
+
+Please analyze the above context to answer the question.`,
+        },
+        ...chatHistory.map((msg) => ({ role: msg.role, content: msg.content })),
+      ],
+    });
+
+    console.log('[i] Chat engine response:', response);
+    return response.message.content;
+    // }
   } catch (error) {
     console.error('[x] LlamaIndex error:', error);
     return `I apologize, but I encountered an error processing your request. ${error}`;

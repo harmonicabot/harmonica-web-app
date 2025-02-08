@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import * as llamaIndexUtils from '../llamaIndexUtils';
+import { generateMonicaAnswer } from '@/lib/monica/monicaAnswer';
 
 export const maxDuration = 200;
 
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const answer = await llamaIndexUtils.generateAnswer(
+    const answer = await generateMonicaAnswer(
       sessionIds,
       threadId,
       messageText,

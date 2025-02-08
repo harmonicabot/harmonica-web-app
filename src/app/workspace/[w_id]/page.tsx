@@ -109,6 +109,7 @@ export default async function MultiSessionResults({
             hasNewMessages={false}
             showParticipants={false}
             showSessionRecap={false}
+            sessionIds={sessionIds}
             chatEntryMessage={{
               role: 'assistant',
               content: `Welcome to the ENS-PSL AI Summit! I'm here to help you understand the insights from past discussions.

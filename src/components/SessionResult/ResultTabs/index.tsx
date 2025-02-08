@@ -19,7 +19,11 @@ import { cn } from '@/lib/clientUtils';
 import * as db from '@/lib/db';
 import { ExportButton } from '@/components/Export/ExportButton';
 import { usePermissions } from '@/lib/permissions';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@/components/ui/resizable';
 
 export default function ResultTabs({
   hostData,
@@ -29,6 +33,7 @@ export default function ResultTabs({
   showParticipants = true,
   showSessionRecap = true,
   chatEntryMessage,
+  sessionIds = [],
 }: ResultTabsProps) {
   const { hasMinimumRole, loading: loadingUserInfo } = usePermissions(id);
 
@@ -217,16 +222,17 @@ export default function ResultTabs({
       <div className="flex flex-col md:flex-row gap-4">
         {/* Desktop Layout */}
         <div className="hidden md:block w-full">
-          <ResizablePanelGroup direction='horizontal' className='flex h-full'>
+          <ResizablePanelGroup direction="horizontal" className="flex h-full">
             <ResizablePanel defaultSize={66}>
               {renderLeftContent()}
             </ResizablePanel>
-            <ResizableHandle withHandle className='mx-2 mt-4' />
+            <ResizableHandle withHandle className="mx-2 mt-4" />
             <ResizablePanel className="overflow-auto mt-4 gap-4">
               <SessionResultChat
                 userData={userData}
                 customMessageEnhancement={enhancedMessage}
                 entryMessage={chatEntryMessage}
+                sessionIds={sessionIds}
               />
             </ResizablePanel>
           </ResizablePanelGroup>
@@ -240,6 +246,7 @@ export default function ResultTabs({
               userData={userData}
               customMessageEnhancement={enhancedMessage}
               entryMessage={chatEntryMessage}
+              sessionIds={sessionIds}
             />
           </div>
         </div>
