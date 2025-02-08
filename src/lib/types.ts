@@ -2,7 +2,7 @@
 //  There's just too much going on right now and the separation between
 //  UserData, SessionData & AccumulatedData isn't clear enough.
 
-import { UserSession, Message, HostSession } from "./schema";
+import { UserSession, Message, HostSession } from './schema';
 
 export enum ApiAction {
   CreatePrompt = 'createPrompt',
@@ -35,19 +35,19 @@ export type RequestData = {
     | UserSession
     | OpenAIMessage[]
     | string
-    | { assistantIds: string[]; }
-    | { chatMessages: string[]; exportDataQuery: string; };
+    | { assistantIds: string[] }
+    | { chatMessages: string[]; exportDataQuery: string };
 };
 
 // use this insteads of Message
 export interface OpenAIMessage {
   role: 'assistant' | 'user';
-  content: string
-};
+  content: string;
+}
 
 export interface OpenAIMessageWithContext extends OpenAIMessage {
   userData?: UserSession[];
-};
+}
 
 export type WebhookData = {
   session_id?: string;
@@ -99,6 +99,7 @@ export interface ResultTabsProps {
   hasNewMessages: boolean;
   showParticipants: boolean;
   showSessionRecap?: boolean;
+  sessionIds?: string[];
   chatEntryMessage?: OpenAIMessage;
 }
 
