@@ -31,7 +31,7 @@ export const footerConfigs: Record<string, FooterConfig> = {
     institutions: [
       {
         name: 'École Normale Supérieure Paris',
-        logo: 'https://scontent.fakl1-3.fna.fbcdn.net/v/t39.30808-6/335250506_752376889611569_2312153368402715028_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=1fiaZETX4FQQ7kNvgGjvAv6&_nc_zt=23&_nc_ht=scontent.fakl1-3.fna&_nc_gid=Avf7vU40BvJEuAaWCSW_vOy&oh=00_AYBRM8yCdrexqyg3WzhQjYzHb_YjKyft1-c8vdTd49Ba1w&oe=67A5EEAA',
+        logo: '/ens-psl.png',
         url: 'https://www.ens.psl.eu',
       },
       {
