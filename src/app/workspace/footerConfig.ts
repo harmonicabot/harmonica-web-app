@@ -6,7 +6,7 @@ export const footerConfigs: Record<string, FooterConfig> = {
       {
         name: 'Harmonica',
         logo: '/harmonica.png',
-        url: 'https://harmonica.ai',
+        url: 'https://harmonica.chat',
       },
     ],
     quickLinks: [
