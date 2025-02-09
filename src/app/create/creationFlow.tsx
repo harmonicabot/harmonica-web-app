@@ -21,6 +21,7 @@ import { LaunchModal } from './LaunchModal';
 import { Step, STEPS } from './types';
 import { createPromptContent } from 'app/api/utils';
 import { error } from 'console';
+import { getSummaryAssistant, getSummaryAssistantFromTemplate } from '@/lib/utils';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -107,6 +108,8 @@ export default function CreationFlow() {
     critical: '',
     context: '',
   });
+
+  const [templateId, setTemplateId] = useState<string | undefined>();
 
   const onFormDataChange = (form: Partial<SessionBuilderData>) => {
     setFormData((prevData) => ({ ...prevData, ...form }));
@@ -198,7 +201,8 @@ export default function CreationFlow() {
       deleteTemporaryAssistants(temporaryAssistantIds);
 
       const data: NewHostSession = {
-        template: assistantResponse.assistantId,
+        assistant_id: assistantResponse.assistantId,
+        template_id: templateId,
         topic: formData.sessionName,
         prompt: prompt,
         num_sessions: 0,
@@ -210,6 +214,8 @@ export default function CreationFlow() {
         critical: formData.critical,
         context: formData.context,
         prompt_summary: promptSummary,
+        is_public: false,
+        summary_assistant_id: await getSummaryAssistantFromTemplate(templateId),
         questions: JSON.stringify(
           participantQuestions.map((q) => ({
             id: q.id,
@@ -262,8 +268,9 @@ export default function CreationFlow() {
     Template: (
       <div className="max-w-[1080px] mx-auto">
         <ChooseTemplate
-          onTemplateSelect={(defaults) => {
-            onFormDataChange(defaults);
+          onTemplateSelect={(formDataDefaults: Partial<SessionBuilderData>, templateId?: string) => {
+            onFormDataChange(formDataDefaults);
+            setTemplateId(templateId);
             enabledSteps[1] = true;
             setActiveStep('Create');
           }}

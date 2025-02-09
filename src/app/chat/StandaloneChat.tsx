@@ -124,8 +124,7 @@ Please type your name or "anonymous" if you prefer
 
   return (
     <div
-      className="flex flex-col md:flex-row bg-purple-50"
-      style={{ height: 'calc(100vh - 100px)' }}
+      className="flex flex-col md:flex-row h-svh bg-purple-50"
     >
       <div className="hidden">
         <div data-tf-live="01JB9CRNXPX488VHX879VNF3E6"></div>
@@ -157,7 +156,7 @@ Please type your name or "anonymous" if you prefer
             hostData
               ? {
                   topic: hostData.topic,
-                  template: hostData.template,
+                  assistant_id: hostData.assistant_id,
                   id: hostData.id,
                 }
               : {}

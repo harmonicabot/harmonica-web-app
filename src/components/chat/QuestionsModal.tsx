@@ -102,7 +102,7 @@ export const QuestionsModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-[calc(100%-2rem)] max-w-lg bg-white">
+      <Card className="w-[calc(100%-2rem)] max-w-lg bg-white h-5/6 overflow-auto">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-gray-900">
             A bit about you

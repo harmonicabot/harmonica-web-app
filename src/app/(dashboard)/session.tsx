@@ -28,7 +28,7 @@ export function Session({
       <TableCell className="font-medium text-base">
         <Link href={`/sessions/${encryptId(session.id)}`}>{session.topic}</Link>
       </TableCell>
-      <TableCell>
+      <TableCell className="hidden sm:table-cell">
         <Badge
           variant="outline"
           className={`capitalize ${

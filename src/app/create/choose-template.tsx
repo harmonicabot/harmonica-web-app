@@ -39,7 +39,7 @@ const iconMap = {
 } as const;
 
 interface ChooseTemplateProps {
-  onTemplateSelect: (templateDefaults: Partial<SessionBuilderData>) => void;
+  onTemplateSelect: (templateDefaults: Partial<SessionBuilderData>, templateId?: string) => void;
   onNext: () => void;
 }
 
@@ -142,7 +142,7 @@ export default function ChooseTemplate({
                 <Button
                   variant="outline"
                   onClick={() => {
-                    onTemplateSelect(template.defaults);
+                    onTemplateSelect(template.defaults, template.id);
                     onNext();
                   }}
                   className="flex items-center gap-2"

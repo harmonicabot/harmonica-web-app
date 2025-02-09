@@ -18,22 +18,27 @@ if (typeof window === 'undefined') {
 const hostTableName = 'host_db';
 const userTableName = 'user_db';
 const messageTableName = 'messages_db';
-const customResponseTableName = 'custom_responses'
+const customResponsesTableName = 'custom_responses';
+const workspaceTableName = 'workspaces';
+const workspaceSessionsTableName = 'workspace_sessions';
+const permissionsTableName = 'permissions';
 
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
   [userTableName]: s.UserSessionsTable;
   [messageTableName]: s.MessagesTable;
-  [customResponseTableName]: s.CustomResponsesTable;
+  [customResponsesTableName]: s.CustomResponsesTable;
+  [workspaceTableName]: s.WorkspacesTable;
+  [workspaceSessionsTableName]: s.WorkspaceSessionsTable;
+  [permissionsTableName]: s.PermissionsTable;
 }
 
 const dbPromise = (async () => {
   const url = process.env.POSTGRES_URL;
-  console.log('Using database url: ', url)
-  const db = (await s.createDbInstance<Databases>())
+  console.log('Using database url: ', url);
+  const db = await s.createDbInstance<Databases>();
   return db;
 })();
-
 
 async function getAuthForClient() {
   const authSession = await authGetSession();
@@ -47,31 +52,35 @@ async function getAuthForClient() {
 }
 
 export async function getHostSessions(
-  columns: (keyof s.HostSessionsTable)[]
+  columns: (keyof s.HostSessionsTable)[],
+  page: number = 1,
+  pageSize: number = 100,
 ): Promise<s.HostSession[]> {
   const db = await dbPromise;
   console.log('Database call to getHostSessions at:', new Date().toISOString());
   const client = await getAuthForClient();
 
-  let query = db
-    .selectFrom(hostTableName)
-    .select(columns);
-  
+  let query = db.selectFrom(hostTableName).select(columns);
+
   if (client) {
     query = query.where('client', '=', client);
   }
   return query
     .orderBy('start_time', 'desc')
+    .limit(pageSize)
+    .offset(Math.max(0, page - 1) * pageSize)
     .execute();
 }
 
-export async function getHostSessionById(id: string): Promise<s.HostSession> {
+export async function getHostSessionById(
+  sessionId: string,
+): Promise<s.HostSession> {
   const db = await dbPromise;
-  console.log("ID: ", id)
+  console.log('ID: ', sessionId);
   try {
     return await db
       .selectFrom(hostTableName)
-      .where(`id`, '=', id)
+      .where(`id`, '=', sessionId)
       .selectAll()
       .executeTakeFirstOrThrow();
   } catch (error) {
@@ -80,27 +89,31 @@ export async function getHostSessionById(id: string): Promise<s.HostSession> {
   }
 }
 
-export async function getFromHostSession(id: string, columns: (keyof s.HostSessionsTable)[]) {
+export async function getFromHostSession(
+  sessionId: string,
+  columns: (keyof s.HostSessionsTable)[],
+) {
   const db = await dbPromise;
   const result = await db
     .selectFrom(hostTableName)
     .select(columns)
-    .where('id', '=', id)
+    .where('id', '=', sessionId)
     .executeTakeFirst();
   return result;
 }
 
 export async function insertHostSessions(
-  data: s.NewHostSession | s.NewHostSession[]
+  data: s.NewHostSession | s.NewHostSession[],
 ): Promise<string[]> {
   const db = await dbPromise;
   try {
     const session = await authGetSession();
-    const userSub = session?.user?.sub || '';
+    // Due to GDPR, we don't want to store identifiable user data...
+    // const userSub = session?.user?.sub || '';
     console.log('Inserting host session with data:', data);
     const result = await db
       .insertInto(hostTableName)
-      .values({ ...data, client: userSub })
+      .values({ ...data })
       .returningAll()
       .execute();
     return result.map((row) => row.id);
@@ -112,19 +125,20 @@ export async function insertHostSessions(
 
 export async function upsertHostSession(
   data: s.NewHostSession,
-  onConflict: 'skip' | 'update' = 'skip'
+  onConflict: 'skip' | 'update' = 'skip',
 ): Promise<void> {
   const db = await dbPromise;
   try {
     const session = await authGetSession();
-    const userSub = session?.user?.sub || '';
+    // Due to GDPR we don't want to store identifiable user data
+    // const userSub = session?.user?.sub || '';
     await db
       .insertInto(hostTableName)
-      .values({ ...data, client: userSub })
+      .values({ ...data })
       .onConflict((oc) =>
         onConflict === 'skip'
           ? oc.column('id').doNothing()
-          : oc.column('id').doUpdateSet(data)
+          : oc.column('id').doUpdateSet(data),
       )
       .execute();
   } catch (error) {
@@ -135,7 +149,7 @@ export async function upsertHostSession(
 
 export async function updateHostSession(
   id: string,
-  data: s.HostSessionUpdate
+  data: s.HostSessionUpdate,
 ): Promise<void> {
   const db = await dbPromise;
   try {
@@ -151,15 +165,20 @@ export async function updateHostSession(
   }
 }
 
-export async function increaseSessionsCount(id: string, toIncrease: 'num_sessions' | 'num_finished') {
+export async function increaseSessionsCount(
+  id: string,
+  toIncrease: 'num_sessions' | 'num_finished',
+) {
   // This is a bit clumsy, but I couldn't find a way with kysely to do it in one go. Submitting sql`...` breaks it :-(
-    const db = await dbPromise;
-    const previousNum = (await db
-    .selectFrom(hostTableName)
-    .where('id', '=', id)
-    .select(toIncrease)
-    .executeTakeFirstOrThrow())[toIncrease];
-  updateHostSession(id, {[toIncrease]: previousNum+1})
+  const db = await dbPromise;
+  const previousNum = (
+    await db
+      .selectFrom(hostTableName)
+      .where('id', '=', id)
+      .select(toIncrease)
+      .executeTakeFirstOrThrow()
+  )[toIncrease];
+  updateHostSession(id, { [toIncrease]: previousNum + 1 });
 }
 
 export async function deleteHostSession(id: string): Promise<void> {
@@ -174,44 +193,23 @@ export async function deleteHostSession(id: string): Promise<void> {
 
 export async function getUsersBySessionId(
   sessionId: string,
-  columns: (keyof s.UserSessionsTable)[] = []
+  columns: (keyof s.UserSessionsTable)[] = [],
 ): Promise<s.UserSession[]> {
   try {
     const db = await dbPromise;
     let query = db
       .selectFrom(userTableName)
       .where('session_id', '=', sessionId);
-    if (columns.length > 0)
-      return await query.select(columns).execute()
-    else 
-      return await query.selectAll().execute();
+    if (columns.length > 0) return await query.select(columns).execute();
+    else return await query.selectAll().execute();
   } catch (error) {
     console.error('Error getting user session by ID:', error);
     throw error;
   }
 }
 
-export async function insertUserSession(
-  data: s.NewUserSession
-): Promise<string> {
-  try {
-    const db = await dbPromise;
-    console.log('Inserting user session with data:', data);
-    const result = await db
-      .insertInto(userTableName)
-      .values(data)
-      .returning('id')
-      .executeTakeFirstOrThrow();
-    return result.id;
-  } catch (error) {
-    console.error('Error inserting user session:', error);
-    throw error;
-  }
-}
-
-
 export async function insertUserSessions(
-  data: s.NewUserSession | s.NewUserSession[]
+  data: s.NewUserSession | s.NewUserSession[],
 ): Promise<string[]> {
   try {
     const db = await dbPromise;
@@ -228,35 +226,18 @@ export async function insertUserSessions(
   }
 }
 
-export async function upsertUserSession(
-  data: s.NewUserSession,
-  onConflict: 'skip' | 'update' = 'skip'
-): Promise<void> {
-  try {
-    const db = await dbPromise;
-    await db
-      .insertInto(userTableName)
-      .values(data)
-      .onConflict((oc) =>
-        onConflict === 'skip'
-          ? oc.column('id').doNothing()
-          : oc.column('id').doUpdateSet(data)
-      )
-      .execute();
-  } catch (error) {
-    console.error('Error upserting user session:', error);
-    throw error;
-  }
-}
-
 export async function updateUserSession(
   id: string,
-  data: s.UserSessionUpdate
+  data: s.UserSessionUpdate,
 ): Promise<void> {
   try {
     const db = await dbPromise;
     console.log('Updating user session with id:', id, ' with data:', data);
-    await db.updateTable(userTableName).set(data).where('id', '=', id).execute();
+    await db
+      .updateTable(userTableName)
+      .set(data)
+      .where('id', '=', id)
+      .execute();
   } catch (error) {
     console.error('Error updating user session:', error);
     throw error;
@@ -275,7 +256,7 @@ export async function deleteUserSession(id: string): Promise<void> {
 
 export async function searchUserSessions(
   columnName: keyof s.UserSessionsTable,
-  searchTerm: string
+  searchTerm: string,
 ): Promise<s.UserSession[]> {
   try {
     const db = await dbPromise;
@@ -292,28 +273,39 @@ export async function searchUserSessions(
 
 export async function getNumUsersAndMessages(sessionIds: string[]) {
   if (sessionIds.length === 0) return {};
-  
+
   const db = await dbPromise;
   const result = await db
     .selectFrom(hostTableName)
-    .leftJoin(userTableName, `${userTableName}.session_id`, `${hostTableName}.id`)
-    .leftJoin(messageTableName, `${messageTableName}.thread_id`, `${userTableName}.thread_id`)
+    .leftJoin(
+      userTableName,
+      `${userTableName}.session_id`,
+      `${hostTableName}.id`,
+    )
+    .leftJoin(
+      messageTableName,
+      `${messageTableName}.thread_id`,
+      `${userTableName}.thread_id`,
+    )
     .where(`${hostTableName}.id`, 'in', sessionIds)
     .select(({ fn }) => [
       `${hostTableName}.id as sessionId`,
       `${userTableName}.id as userId`,
       `${userTableName}.active`,
-      fn.count(`${messageTableName}.id`).as('message_count')
+      fn.count(`${messageTableName}.id`).as('message_count'),
     ])
     .groupBy([
       `${hostTableName}.id`,
       `${userTableName}.id`,
-      `${userTableName}.active`
+      `${userTableName}.active`,
     ])
     .execute();
 
-  const stats: Record<string, Record<string, { num_messages: number, finished: boolean }>> = {};
-  
+  const stats: Record<
+    string,
+    Record<string, { num_messages: number; finished: boolean }>
+  > = {};
+
   for (const row of result) {
     if (!stats[row.sessionId]) {
       stats[row.sessionId] = {};
@@ -321,7 +313,7 @@ export async function getNumUsersAndMessages(sessionIds: string[]) {
     if (row.userId) {
       stats[row.sessionId][row.userId] = {
         num_messages: Number(row.message_count),
-        finished: !row.active
+        finished: !row.active,
       };
     }
   }
@@ -330,49 +322,66 @@ export async function getNumUsersAndMessages(sessionIds: string[]) {
 }
 
 export async function insertChatMessage(message: s.NewMessage) {
-  console.log("Inserting chat message: ", JSON.stringify(message));
+  console.log('Inserting chat message: ', JSON.stringify(message));
   try {
     const db = await dbPromise;
     await db.insertInto(messageTableName).values(message).execute();
   } catch (error) {
-    console.error('Error inserting chat message: ', error)
+    console.error('Error inserting chat message: ', error);
   }
 }
 
 export async function getAllChatMessagesInOrder(threadId: string) {
   const db = await dbPromise;
-  return await db.selectFrom(messageTableName)
+  return await db
+    .selectFrom(messageTableName)
     .where('thread_id', '=', threadId)
     .selectAll()
     .orderBy('created_at', 'asc')
     .execute();
 }
 
-export async function getAllMessagesForUsersSorted(users: s.UserSession[]): Promise<s.Message[]> {
+export async function getAllMessagesForUsersSorted(
+  users: s.UserSession[],
+): Promise<s.Message[]> {
   if (users.length === 0) return [];
   const db = await dbPromise;
   const messages = await db
     .selectFrom(messageTableName)
-    .where('thread_id', 'in', users.map(user => user.thread_id))
+    .where(
+      'thread_id',
+      'in',
+      users.map((user) => user.thread_id),
+    )
     .selectAll()
     .orderBy('created_at', 'asc')
     .execute();
   return messages;
 }
 
-export async function getAllMessagesForSessionSorted(sessionId: string): Promise<s.Message[]> {
+export async function getAllMessagesForSessionSorted(
+  sessionId: string,
+): Promise<s.Message[]> {
   if (!sessionId) return [];
 
   const db = await dbPromise;
   const messages = await db
     .selectFrom(hostTableName)
-    .innerJoin(userTableName, `${userTableName}.session_id`, `${hostTableName}.id`)
-    .innerJoin(messageTableName, `${messageTableName}.thread_id`, `${userTableName}.thread_id`)
+    .innerJoin(
+      userTableName,
+      `${userTableName}.session_id`,
+      `${hostTableName}.id`,
+    )
+    .innerJoin(
+      messageTableName,
+      `${messageTableName}.thread_id`,
+      `${userTableName}.thread_id`,
+    )
     .where(`${hostTableName}.id`, '=', sessionId)
     .selectAll(`${messageTableName}`)
     .orderBy(`${messageTableName}.created_at`, 'asc')
     .execute();
-    
+
   return messages;
 }
 
@@ -380,13 +389,13 @@ export async function deleteSessionById(id: string): Promise<boolean> {
   try {
     // before deleting, we need to get the assistant id so that we can delete that as well.
     const db = await dbPromise;
-    const assistantId = await db
+    const session = await db
       .selectFrom(hostTableName)
-      .select('template')
+      .select('assistant_id')
       .where('id', '=', id)
       .executeTakeFirst();
-    if (assistantId?.template) {
-      deleteAssistants([assistantId.template]);
+    if (session?.assistant_id) {
+      deleteAssistants([session.assistant_id]);
     }
     await db.deleteFrom(hostTableName).where('id', '=', id).execute();
     // TODO: not deleting user sessions for now, we might want to analyse things?
@@ -399,7 +408,7 @@ export async function deleteSessionById(id: string): Promise<boolean> {
 }
 
 export async function deactivateHostSession(
-  sessionId: string
+  sessionId: string,
 ): Promise<boolean> {
   try {
     const db = await dbPromise;
@@ -417,16 +426,16 @@ export async function deactivateHostSession(
 }
 
 export async function createCustomResponse(
-  customResponse: s.NewCustomResponse
+  customResponse: s.NewCustomResponse,
 ): Promise<s.CustomResponse | null> {
   try {
     const db = await dbPromise;
     const result = await db
-      .insertInto(customResponseTableName)
+      .insertInto(customResponsesTableName)
       .values(customResponse)
       .returningAll()
       .executeTakeFirst();
-    
+
     return result || null;
   } catch (error) {
     console.error('Error creating custom response:', error);
@@ -434,15 +443,17 @@ export async function createCustomResponse(
   }
 }
 
-export async function getCustomResponseById(id: string): Promise<s.CustomResponse | null> {
+export async function getCustomResponseById(
+  id: string,
+): Promise<s.CustomResponse | null> {
   try {
     const db = await dbPromise;
     const result = await db
-      .selectFrom(customResponseTableName)
+      .selectFrom(customResponsesTableName)
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirst();
-    
+
     return result || null;
   } catch (error) {
     console.error('Error getting custom response by ID:', error);
@@ -450,16 +461,18 @@ export async function getCustomResponseById(id: string): Promise<s.CustomRespons
   }
 }
 
-export async function getCustomResponsesBySessionId(sessionId: string): Promise<s.CustomResponse[]> {
+export async function getCustomResponsesBySessionId(
+  sessionId: string,
+): Promise<s.CustomResponse[]> {
   try {
     const db = await dbPromise;
     const responses = await db
-      .selectFrom(customResponseTableName)
+      .selectFrom(customResponsesTableName)
       .selectAll()
       .where('session_id', '=', sessionId)
       .orderBy('position', 'asc')
       .execute();
-    
+
     return responses;
   } catch (error) {
     console.error('Error getting custom responses by session ID:', error);
@@ -469,17 +482,17 @@ export async function getCustomResponsesBySessionId(sessionId: string): Promise<
 
 export async function updateCustomResponse(
   id: string,
-  update: s.CustomResponseUpdate
+  update: s.CustomResponseUpdate,
 ): Promise<s.CustomResponse | null> {
   try {
     const db = await dbPromise;
     const result = await db
-      .updateTable(customResponseTableName)
+      .updateTable(customResponsesTableName)
       .set(update)
       .where('id', '=', id)
       .returningAll()
       .executeTakeFirst();
-    
+
     return result || null;
   } catch (error) {
     console.error('Error updating custom response:', error);
@@ -491,10 +504,10 @@ export async function deleteCustomResponse(id: string): Promise<boolean> {
   try {
     const db = await dbPromise;
     await db
-      .deleteFrom(customResponseTableName)
+      .deleteFrom(customResponsesTableName)
       .where('id', '=', id)
       .execute();
-    
+
     return true;
   } catch (error) {
     console.error('Error deleting custom response:', error);
@@ -502,3 +515,253 @@ export async function deleteCustomResponse(id: string): Promise<boolean> {
   }
 }
 
+// Workspace CRUD operations
+export async function createWorkspace(
+  workspace: s.NewWorkspace,
+): Promise<s.Workspace | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .insertInto('workspaces')
+      .values(workspace)
+      .returningAll()
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error creating workspace:', error);
+    return null;
+  }
+}
+
+export async function getWorkspaceById(
+  id: string,
+): Promise<s.Workspace | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom('workspaces')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error getting workspace by ID:', error);
+    return null;
+  }
+}
+
+export async function getAllWorkspaceIds(): Promise<{ id: string }[]> {
+  try {
+    const db = await dbPromise;
+    const result = await db.selectFrom('workspaces').select('id').execute();
+
+    return result;
+  } catch (error) {
+    console.error('Error getting all workspace IDs:', error);
+    return [];
+  }
+}
+
+export async function updateWorkspace(
+  id: string,
+  update: s.WorkspaceUpdate,
+): Promise<s.Workspace | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .updateTable('workspaces')
+      .set(update)
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error updating workspace:', error);
+    return null;
+  }
+}
+
+export async function deleteWorkspace(id: string): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db.deleteFrom('workspaces').where('id', '=', id).execute();
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting workspace:', error);
+    return false;
+  }
+}
+
+// Workspace Sessions operations
+export async function addSessionToWorkspace(
+  workspaceId: string,
+  sessionId: string,
+): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .insertInto('workspace_sessions')
+      .values({ workspace_id: workspaceId, session_id: sessionId })
+      .execute();
+
+    return true;
+  } catch (error) {
+    console.error('Error adding session to workspace:', error);
+    return false;
+  }
+}
+
+export async function removeSessionFromWorkspace(
+  workspaceId: string,
+  sessionId: string,
+): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .deleteFrom('workspace_sessions')
+      .where('workspace_id', '=', workspaceId)
+      .where('session_id', '=', sessionId)
+      .execute();
+
+    return true;
+  } catch (error) {
+    console.error('Error removing session from workspace:', error);
+    return false;
+  }
+}
+
+export async function getWorkspaceSessions(
+  workspaceId: string,
+): Promise<string[]> {
+  try {
+    const db = await dbPromise;
+    const results = await db
+      .selectFrom('workspace_sessions')
+      .select('session_id')
+      .where('workspace_id', '=', workspaceId)
+      .execute();
+
+    return results.map((r) => r.session_id);
+  } catch (error) {
+    console.error('Error getting workspace sessions:', error);
+    return [];
+  }
+}
+
+// Permissions operations
+export async function setPermission(
+  resourceId: string,
+  userId: string,
+  role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none',
+): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .insertInto('permissions')
+      .values({ resource_id: resourceId, user_id: userId, role })
+      .onConflict((oc) =>
+        oc.columns(['resource_id', 'user_id']).doUpdateSet({ role }),
+      )
+      .execute();
+
+    return true;
+  } catch (error) {
+    console.error('Error setting permission:', error);
+    return false;
+  }
+}
+
+export async function getPermission(
+  resourceId: string,
+  userId: string,
+): Promise<{ role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none' } | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom('permissions')
+      .select('role')
+      .where('resource_id', '=', resourceId)
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error getting permission:', error);
+    return null;
+  }
+}
+
+export async function removePermission(
+  resourceId: string,
+  userId: string,
+): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .deleteFrom('permissions')
+      .where('resource_id', '=', resourceId)
+      .where('user_id', '=', userId)
+      .execute();
+
+    return true;
+  } catch (error) {
+    console.error('Error removing permission:', error);
+    return false;
+  }
+}
+
+export async function getUserPermissions(
+  userId: string,
+): Promise<Array<{ resourceId: string; role: string }>> {
+  try {
+    const db = await dbPromise;
+    const results = await db
+      .selectFrom('permissions')
+      .select(['resource_id', 'role'])
+      .where('user_id', '=', userId)
+      .execute();
+
+    return results.map((r) => ({ resourceId: r.resource_id, role: r.role }));
+  } catch (error) {
+    console.error('Error getting user permissions:', error);
+    return [];
+  }
+}
+
+export async function canEdit(
+  userId: string,
+  resourceId: string,
+): Promise<boolean> {
+  const db = await dbPromise;
+  const permission = await db
+    .selectFrom('permissions')
+    .select('role')
+    .where('user_id', '=', userId)
+    .where('resource_id', '=', resourceId)
+    .executeTakeFirst();
+
+  return (
+    permission?.role === 'owner' ||
+    permission?.role === 'editor' ||
+    permission?.role === 'admin'
+  );
+}
+
+export async function setDefaultPermissions(
+  resourceId: string,
+  ownerId: string,
+): Promise<void> {
+  const db = await dbPromise;
+  await db
+    .insertInto('permissions')
+    .values({
+      resource_id: resourceId,
+      user_id: ownerId,
+      role: 'owner',
+    })
+    .execute();
+}

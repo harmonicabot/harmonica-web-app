@@ -31,8 +31,9 @@ export async function createSummary(sessionId: string) {
 
   const chats = await db.getAllMessagesForUsersSorted(onlyIncludedUsersWithAtLeast2Messages);
   const contextData = await db.getFromHostSession(sessionId, ['context', 'critical', 'goal', 'topic']);
-  // const prompt = contextData?.prompt
-
+  // Todo: createSummary could also be called from a workspace, in which case the workspace might have its own summary_assistant, and there would also be multiple sessions to summarize.
+  const summaryAssistantId = (await db.getFromHostSession(sessionId, ['summary_assistant_id']))?.summary_assistant_id || 'asst_QTmamFSqEIcbUX4ZwrjEqdm8';
+  
   // Flatten the chats and group by thread_id to distinguish participants
   const groupedChats: GroupedChats = chats.reduce((acc, chat) => {
     const participant = chat.thread_id; // Use thread_id to identify the participant
@@ -55,7 +56,6 @@ export async function createSummary(sessionId: string) {
     },
   );
 
-
   const objectiveData = `\`\`\`This is the context, including the **OBJECTIVE**, used to create the session.\n
   Use this information to design an appropriate report structure:\n\n
   ----START OBJECTIVE DATA----\n
@@ -69,10 +69,10 @@ export async function createSummary(sessionId: string) {
     },
     [...chatMessages, objectiveData],
   );
+
   const summaryReply = await gpt.handleGenerateAnswer({
     threadId: threadId,
-    assistantId:
-      process.env.SUMMARY_ASSISTANT ?? 'asst_QTmamFSqEIcbUX4ZwrjEqdm8',
+    assistantId: summaryAssistantId,
     messageText:
       'Generate the report based on the participant data provided addressing the objective.',
   });

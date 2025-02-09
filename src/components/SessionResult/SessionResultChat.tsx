@@ -1,31 +1,53 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+'use client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Chat from '@/components/chat';
 import { UserSession } from '@/lib/schema';
-import { OpenAIMessage } from "@/lib/types";
-import { useEffect, useState } from "react";
-import { getAssistantId } from "@/lib/serverUtils";
+import { OpenAIMessage } from '@/lib/types';
+import { useEffect, useState } from 'react';
+import { getAssistantId } from '@/lib/serverUtils';
+
+interface SessionResultChatProps {
+  userData: UserSession[];
+  customMessageEnhancement?: (
+    message: OpenAIMessage,
+    index: number,
+  ) => React.ReactNode;
+  entryMessage?: OpenAIMessage;
+  sessionIds?: string[];
+}
 
 export default function SessionResultChat({
   userData,
-  customMessageEnhancement
-}: {
-  userData: UserSession[];
-  customMessageEnhancement?: (message: OpenAIMessage, index: number) => React.ReactNode;
-  }) {
-    const [assistantId, setAssistantId] = useState('') 
+  customMessageEnhancement,
+  entryMessage,
+  sessionIds,
+}: SessionResultChatProps) {
+  const [assistantId, setAssistantId] = useState('');
 
-    useEffect(() => {
-      getAssistantId('RESULT_CHAT_ASSISTANT').then(setAssistantId)
-    }, [])
-  
+  useEffect(() => {
+    getAssistantId('RESULT_CHAT_ASSISTANT').then(setAssistantId);
+  }, []);
+
+  const defaultEntryMessage: OpenAIMessage = {
+    role: 'assistant',
+    content: `Hi there! Consider me your expert analyst, I can help you to better understand your session.
+
+Here are a few examples of what you can ask me:
+  - What was the most common response?
+  - What were the most interesting insights?
+  - Generate a report on the session
+    `,
+  };
+
   return (
-    <Card className="h-auto border-yellow-400">
+    <Card className="max-h-[90dvh] h-full flex flex-col border-yellow-400">
       <CardHeader className="bg-yellow-50 border-gray-200 rounded-md">
         <CardTitle className="text-md flex justify-normal items-center">
-          <img src="/monica_chat_icon.svg" alt="" className="h-10 w-10 mr-2" />Ask AI
+          <img src="/monica_chat_icon.svg" alt="" className="h-10 w-10 mr-2" />
+          Ask AI
         </CardTitle>
       </CardHeader>
-      <CardContent className="max-h-[80vh] overflow-auto pb-0">
+      <CardContent className="h-full flex flex-col overflow-y-auto pb-0">
         {userData && userData.length > 0 && assistantId && (
           <Chat
             context={{
@@ -33,19 +55,16 @@ export default function SessionResultChat({
               content: `You will be asked questions based on the session data. Answer short.`,
               userData: userData.filter((user) => user.include_in_summary),
             }}
-            assistantId={assistantId} 
-            entryMessage={{
-              role: 'assistant',
-              content: `Hi there! Consider me your expert analyst, I can help you to better understand your session.
-
-Here are a few examples of what you can ask me:
-  - What was the most common response?
-  - What were the most interesting insights?
-  - Generate a report on the session
-            `
-          }}
+            sessionIds={
+              sessionIds && sessionIds.length
+                ? sessionIds
+                : [userData[0].session_id]
+            }
+            assistantId={assistantId}
+            entryMessage={entryMessage || defaultEntryMessage}
             placeholderText="What would you like to know?"
             customMessageEnhancement={customMessageEnhancement}
+            isAskAi={true}
           />
         )}
       </CardContent>

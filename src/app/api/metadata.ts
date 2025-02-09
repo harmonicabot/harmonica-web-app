@@ -69,6 +69,11 @@ export async function getGeneratedMetadata(path: string) {
     const hostData = await db.getHostSessionById(sessionId);
     return getWithTitleAndDescription(hostData.topic)
   }
+  else if (path.startsWith('/workspace/')) {
+    const wspaceId = path.split('/')[2];
+    const wspaceData = await db.getWorkspaceById(wspaceId);
+    return getWithTitleAndDescription(wspaceData?.title || "Workspace", wspaceData?.description || "Analyse multiple sessions with Harmonicas AI powered workspaces")
+  }
   else if (path.startsWith('/chat?s=')) {
     sessionId = path.split('?s=')[1];
     const hostData = await db.getHostSessionById(sessionId);
