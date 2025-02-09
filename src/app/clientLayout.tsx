@@ -14,12 +14,13 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname();
   const isChatPage = pathname?.startsWith('/chat');
+  const isWorkSpacePage = pathname?.startsWith('/workspace');
   const isRootPage = pathname === '/';
   const [showBanner, setShowBanner] = useState(true);
 
   return (
     <div>
-      {showBanner && !isRootPage && !isChatPage && (
+      {showBanner && !isRootPage && !isChatPage && !isWorkSpacePage && (
         <div className="w-full bg-amber-50 border-b border-amber-100">
           <div className="container mx-auto py-4 px-4 flex items-center justify-center relative">
             <div className="flex items-center gap-4">
