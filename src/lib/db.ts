@@ -534,6 +534,18 @@ export async function createWorkspace(
   }
 }
 
+export async function getWorkspaceSummary(
+  workspaceId: string,
+): Promise<string> {
+  const db = await dbPromise;
+  const result = await db
+    .selectFrom('workspaces')
+    .select('summary')
+    .where('id', '=', workspaceId)
+    .executeTakeFirst();
+  return result?.summary || '';
+}
+
 export async function getWorkspaceById(
   id: string,
 ): Promise<s.Workspace | null> {
