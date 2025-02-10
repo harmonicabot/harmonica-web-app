@@ -3,6 +3,7 @@ import * as db from './db';
 import * as gpt from 'app/api/gptUtils';
 import { Message } from './schema';
 import { UserProfile } from '@auth0/nextjs-auth0/client';
+import { generateMultiSessionSummary } from './summaryMultiSession';
 
 export async function isAdmin(user: UserProfile) {
   console.log('Admin IDs: ', process.env.ADMIN_ID);
@@ -14,26 +15,50 @@ interface GroupedChats {
   [threadId: string]: Message[];
 }
 
-export async function getAssistantId(assistant: 'RESULT_CHAT_ASSISTANT' | 'EXPORT_ASSISTANT' | 'TEMPLATE_BUILDER_ID' | 'SUMMARY_ASSISTANT') {
+export async function getAssistantId(
+  assistant:
+    | 'RESULT_CHAT_ASSISTANT'
+    | 'EXPORT_ASSISTANT'
+    | 'TEMPLATE_BUILDER_ID'
+    | 'SUMMARY_ASSISTANT',
+) {
   const result = process.env[assistant];
-  if (result)
-    return result;
+  if (result) return result;
   throw new Error(`Missing ${assistant}`);
 }
 
 export async function createSummary(sessionId: string) {
   console.log(`Creating summary for ${sessionId}...`);
   const messageStats = await db.getNumUsersAndMessages([sessionId]);
-  const allUsers = await db.getUsersBySessionId(sessionId, ['id', 'thread_id', 'include_in_summary']);
-  const onlyIncludedUsersWithAtLeast2Messages =
-    allUsers.filter(usr => usr.include_in_summary && messageStats[sessionId][usr.id].num_messages > 2)
-  console.log('Users with contributions to summary: ', onlyIncludedUsersWithAtLeast2Messages.length);
+  const allUsers = await db.getUsersBySessionId(sessionId, [
+    'id',
+    'thread_id',
+    'include_in_summary',
+  ]);
+  const onlyIncludedUsersWithAtLeast2Messages = allUsers.filter(
+    (usr) =>
+      usr.include_in_summary &&
+      messageStats[sessionId][usr.id].num_messages > 2,
+  );
+  console.log(
+    'Users with contributions to summary: ',
+    onlyIncludedUsersWithAtLeast2Messages.length,
+  );
 
-  const chats = await db.getAllMessagesForUsersSorted(onlyIncludedUsersWithAtLeast2Messages);
-  const contextData = await db.getFromHostSession(sessionId, ['context', 'critical', 'goal', 'topic']);
+  const chats = await db.getAllMessagesForUsersSorted(
+    onlyIncludedUsersWithAtLeast2Messages,
+  );
+  const contextData = await db.getFromHostSession(sessionId, [
+    'context',
+    'critical',
+    'goal',
+    'topic',
+  ]);
   // Todo: createSummary could also be called from a workspace, in which case the workspace might have its own summary_assistant, and there would also be multiple sessions to summarize.
-  const summaryAssistantId = (await db.getFromHostSession(sessionId, ['summary_assistant_id']))?.summary_assistant_id || 'asst_QTmamFSqEIcbUX4ZwrjEqdm8';
-  
+  const summaryAssistantId =
+    (await db.getFromHostSession(sessionId, ['summary_assistant_id']))
+      ?.summary_assistant_id || 'asst_QTmamFSqEIcbUX4ZwrjEqdm8';
+
   // Flatten the chats and group by thread_id to distinguish participants
   const groupedChats: GroupedChats = chats.reduce((acc, chat) => {
     const participant = chat.thread_id; // Use thread_id to identify the participant
@@ -83,4 +108,18 @@ export async function createSummary(sessionId: string) {
     summary: summary ?? undefined,
     last_edit: new Date(),
   });
+  return summary;
+}
+
+export async function createMultiSessionSummary(
+  sessionIds: string[],
+  workspaceId: string,
+) {
+  const summary = await generateMultiSessionSummary(sessionIds);
+
+  await db.updateWorkspace(workspaceId, {
+    summary: summary.toString(),
+    last_modified: new Date(),
+  });
+  return summary;
 }

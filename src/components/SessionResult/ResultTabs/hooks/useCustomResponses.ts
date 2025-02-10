@@ -2,16 +2,16 @@ import { CustomAIResponse, OpenAIMessage } from "@/lib/types";
 import { useState, useEffect, useCallback } from "react";
 import * as db from "@/lib/db";
 
-export function useCustomResponses(sessionId: string) {
+export function useCustomResponses(id: string) {
   const [responses, setResponses] = useState<CustomAIResponse[]>([]);
 
   useEffect(() => {
-    db.getCustomResponsesBySessionId(sessionId).then(setResponses);
-  }, [sessionId]);
+    db.getCustomResponsesBySessionOrWorkspaceId(id).then(setResponses);
+  }, [id]);
 
   const addResponse = useCallback((message: OpenAIMessage) => {
     const customResponse = {
-      session_id: sessionId,
+      session_id: id, // This can be a workspace_id as well
       content: message.content,
       position: responses.length || 0,
     };
@@ -20,7 +20,7 @@ export function useCustomResponses(sessionId: string) {
         setResponses(prev => [...prev, { ...customResponse, id: res.id }]);
       }
     });
-  }, [responses.length, sessionId]);
+  }, [responses.length, id]);
 
   const removeResponse = useCallback((responseId: string) => {
     db.deleteCustomResponse(responseId);

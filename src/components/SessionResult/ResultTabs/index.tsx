@@ -3,13 +3,12 @@ import React, { useMemo, useState } from 'react';
 import { Tabs } from '@radix-ui/react-tabs';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import Split from 'react-split';
 
 import SessionResultChat from '../SessionResultChat';
 import SessionParticipantsTable from '../SessionParticipantsTable';
 import SessionResultSummary from '../SessionResultSummary';
 import { ChatMessage } from '../../ChatMessage';
-import { createSummary } from '@/lib/serverUtils';
+import { createMultiSessionSummary, createSummary } from '@/lib/serverUtils';
 import { OpenAIMessage, ResultTabsProps } from '@/lib/types';
 import { CirclePlusIcon } from 'lucide-react';
 import { CustomResponseCard } from './components/CustomResponseCard';
@@ -26,21 +25,22 @@ import {
 } from '@/components/ui/resizable';
 
 export default function ResultTabs({
-  hostData,
-  userData,
-  id,
+  hostData, // one or more (e.g. if workspace)
+  userData, // all user data related to all hostData
+  id: sessionOrWorkspaceId,
+  isWorkspace = false,
   hasNewMessages,
   showParticipants = true,
   showSessionRecap = true,
   chatEntryMessage,
   sessionIds = [],
 }: ResultTabsProps) {
-  const { hasMinimumRole, loading: loadingUserInfo } = usePermissions(id);
+  const { hasMinimumRole, loading: loadingUserInfo } =
+    usePermissions(sessionOrWorkspaceId);
 
   // Custom hook for managing AI responses
-  const { responses, addResponse, removeResponse } = useCustomResponses(
-    hostData.id,
-  );
+  const { responses, addResponse, removeResponse } =
+    useCustomResponses(sessionOrWorkspaceId);
 
   // User management state
   const initialIncluded = userData
@@ -96,7 +96,9 @@ export default function ResultTabs({
   }
 
   const [activeTab, setActiveTab] = useState(
-    hostData.summary || !showParticipants ? 'SUMMARY' : 'RESPONSES',
+    hostData.some((data) => data.summary) || !showParticipants
+      ? 'SUMMARY'
+      : 'RESPONSES',
   );
 
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
@@ -138,7 +140,9 @@ export default function ResultTabs({
         {hasAnyIncludedUserMessages ? (
           <SessionResultSummary
             hostData={hostData}
-            newSummaryContentAvailable={newSummaryContentAvailable}
+            isWorkspace={isWorkspace}
+            workspaceId={isWorkspace ? sessionOrWorkspaceId : undefined}
+            newSummaryContentAvailable={newSummaryContentAvailable || (isWorkspace && hasMinimumRole('editor'))}
             onUpdateSummary={() => {
               setInitialUserIds(userIdsIncludedInSummary);
               setNewSummaryContentAvailable(false);
@@ -152,7 +156,7 @@ export default function ResultTabs({
         )}
       </TabContent>
 
-      {showParticipants && (
+      {showParticipants && hasMinimumRole('editor') &&(
         <TabContent value="RESPONSES">
           <SessionParticipantsTable
             userData={userData}
@@ -197,10 +201,17 @@ export default function ResultTabs({
           className="ms-0"
           value="SUMMARY"
           onClick={() =>
-            hostData.summary
+            hostData.some((data) => data.summary)
               ? undefined
               : () => {
-                  createSummary(id);
+                  if (isWorkspace) {
+                    createMultiSessionSummary(
+                      hostData.map((data) => data.id),
+                      sessionOrWorkspaceId,
+                    );
+                  } else {
+                    createSummary(sessionOrWorkspaceId);
+                  }
                   setInitialUserIds(userIdsIncludedInSummary);
                 }
           }

@@ -461,7 +461,7 @@ export async function getCustomResponseById(
   }
 }
 
-export async function getCustomResponsesBySessionId(
+export async function getCustomResponsesBySessionOrWorkspaceId(
   sessionId: string,
 ): Promise<s.CustomResponse[]> {
   try {
@@ -532,6 +532,18 @@ export async function createWorkspace(
     console.error('Error creating workspace:', error);
     return null;
   }
+}
+
+export async function getWorkspaceSummary(
+  workspaceId: string,
+): Promise<string> {
+  const db = await dbPromise;
+  const result = await db
+    .selectFrom('workspaces')
+    .select('summary')
+    .where('id', '=', workspaceId)
+    .executeTakeFirst();
+  return result?.summary || '';
 }
 
 export async function getWorkspaceById(

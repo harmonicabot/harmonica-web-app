@@ -9,13 +9,13 @@ async function migrate() {
   const direction = process.argv[2];
 
   // Load environment-specific variables
-  // dotenv.config({ path: envPath});
+  dotenv.config();
   if (!process.env.POSTGRES_URL) {
     throw new Error(`POSTGRES_URL environment variable is not set in .env`);
   }
 
   // Damn. At least when running locally on my machine, the .env variables are somehow cached; and not loaded reliably
-  console.log(`Using connection `, process.env.POSTGRES_URL)
+  console.log(`Using connection `, process.env.POSTGRES_URL);
 
   await askToProceed();
 
@@ -64,19 +64,22 @@ function handleResults(error: any, results: any) {
     console.error(error);
     process.exit(1);
   }
-} 
+}
 
 async function askToProceed() {
   const readline = require('readline').createInterface({
     input: process.stdin,
-    output: process.stdout
+    output: process.stdout,
   });
 
   const proceed = await new Promise<boolean>((resolve) => {
-    readline.question('Do you want to proceed with the migration? (y/n) ', (answer: string) => {
-      readline.close();
-      resolve(answer.toLowerCase() === 'y');
-    });
+    readline.question(
+      'Do you want to proceed with the migration? (y/n) ',
+      (answer: string) => {
+        readline.close();
+        resolve(answer.toLowerCase() === 'y');
+      },
+    );
   });
 
   if (!proceed) {
@@ -84,6 +87,5 @@ async function askToProceed() {
     process.exit(0);
   }
 }
-
 
 migrate();
