@@ -3,6 +3,7 @@ import * as db from './db';
 import * as gpt from 'app/api/gptUtils';
 import { Message } from './schema';
 import { UserProfile } from '@auth0/nextjs-auth0/client';
+import { generateMultiSessionSummary } from './summaryMultiSession';
 
 export async function isAdmin(user: UserProfile) {
   console.log('Admin IDs: ', process.env.ADMIN_ID);
@@ -83,4 +84,10 @@ export async function createSummary(sessionId: string) {
     summary: summary ?? undefined,
     last_edit: new Date(),
   });
+}
+
+export async function createMultiSessionSummary(sessionIds: string[]) {
+  const summary = await generateMultiSessionSummary(sessionIds);
+  // TODO: update the summary for the workspace in the database
+  return summary;
 }
