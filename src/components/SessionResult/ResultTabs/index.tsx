@@ -106,12 +106,7 @@ export default function ResultTabs({
 
   // Message enhancement for chat
   const enhancedMessage = (message: OpenAIMessage, key: number) => {
-    if (
-      message.role === 'assistant' &&
-      key > 0 &&
-      !loadingUserInfo &&
-      hasMinimumRole('editor')
-    ) {
+    if (message.role === 'assistant' && key > 0 && !loadingUserInfo) {
       return (
         <>
           <ChatMessage key={key} message={message} />
@@ -142,7 +137,9 @@ export default function ResultTabs({
             hostData={hostData}
             isWorkspace={isWorkspace}
             workspaceId={isWorkspace ? sessionOrWorkspaceId : undefined}
-            newSummaryContentAvailable={newSummaryContentAvailable || (isWorkspace && hasMinimumRole('editor'))}
+            newSummaryContentAvailable={
+              newSummaryContentAvailable || isWorkspace
+            }
             onUpdateSummary={() => {
               setInitialUserIds(userIdsIncludedInSummary);
               setNewSummaryContentAvailable(false);
@@ -156,7 +153,7 @@ export default function ResultTabs({
         )}
       </TabContent>
 
-      {showParticipants && hasMinimumRole('editor') &&(
+      {showParticipants && (
         <TabContent value="RESPONSES">
           <SessionParticipantsTable
             userData={userData}
@@ -171,11 +168,7 @@ export default function ResultTabs({
             <CustomResponseCard
               key={response.id}
               response={response}
-              onRemove={
-                !loadingUserInfo && hasMinimumRole('editor')
-                  ? removeResponse
-                  : null
-              }
+              onRemove={!loadingUserInfo ? removeResponse : null}
             />
           ))}
         </TabContent>
