@@ -461,7 +461,7 @@ export async function getCustomResponseById(
   }
 }
 
-export async function getCustomResponsesBySessionId(
+export async function getCustomResponsesBySessionOrWorkspaceId(
   sessionId: string,
 ): Promise<s.CustomResponse[]> {
   try {

@@ -1,18 +1,22 @@
 import { HostSession } from '@/lib/schema';
 import { useState } from 'react';
-import { createSummary } from '@/lib/serverUtils';
-import { exportService } from '@/lib/export/exportService';
+import { createMultiSessionSummary, createSummary } from '@/lib/serverUtils';
 import { ExpandableWithExport } from './ExpandableWithExport';
+import * as db from '@/lib/db';
 
 interface SessionResultSummaryProps {
-  hostData: HostSession;
+  hostData: HostSession[];
+  isWorkspace: boolean;
+  workspaceId?: string;
   newSummaryContentAvailable: boolean;
   onUpdateSummary: () => void;
   showSessionRecap: boolean;
 }
 
 export default function SessionResultSummary({
-  hostData,
+  hostData, // one or more (e.g. if workspace)
+  isWorkspace = false,
+  workspaceId,
   newSummaryContentAvailable,
   onUpdateSummary,
   showSessionRecap = true,
@@ -20,22 +24,35 @@ export default function SessionResultSummary({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExpandedPrompt, setIsExpandedPrompt] = useState(false);
   const [isExpandedSummary, setIsExpandedSummary] = useState(true);
+  const [summary, setSummary] = useState(isWorkspace ? ''/*TODO: db.getWorkspaceSummary(workspaceId)*/ : hostData[0].summary);
 
   const triggerSummaryUpdate = () => {
     setIsUpdating(true);
-    createSummary(hostData.id).then(() => {
-      setIsUpdating(false);
-      onUpdateSummary();
-    });
+    if (isWorkspace) {
+      createMultiSessionSummary(hostData.map(data => data.id), workspaceId!)
+        .then((summary) => {
+          setIsUpdating(false);
+          onUpdateSummary();
+          setSummary("Summary from MessageContent");  // TODO: use the actual summary
+        });
+    } else {
+      createSummary(hostData[0].id)
+        .then((summary) => {
+          setIsUpdating(false);
+          onUpdateSummary();
+          setSummary(summary);
+        });
+    }
   };
 
   return (
     <>
-      {showSessionRecap && hostData.prompt_summary && (
+      {showSessionRecap && !isWorkspace && hostData[0].prompt_summary && (
+        // We don't show this for workspaces (for now); but we might change that in the future
         <div className="mb-4 relative">
           <ExpandableWithExport
             title="Session Recap"
-            content={hostData.prompt_summary}
+            content={hostData[0].prompt_summary}
             isExpanded={isExpandedPrompt}
             onExpandedChange={setIsExpandedPrompt}
           />
@@ -43,13 +60,13 @@ export default function SessionResultSummary({
       )}
       <ExpandableWithExport
         title="Session Summary"
-        content={hostData.summary}
+        content={summary}
         isExpanded={isExpandedSummary}
         onExpandedChange={setIsExpandedSummary}
         showRefreshButton={newSummaryContentAvailable}
         onRefresh={triggerSummaryUpdate}
         isUpdating={isUpdating}
-        loading={!hostData.summary}
+        loading={!summary}
       />
     </>
   );

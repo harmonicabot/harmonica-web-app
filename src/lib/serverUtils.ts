@@ -108,6 +108,7 @@ export async function createSummary(sessionId: string) {
     summary: summary ?? undefined,
     last_edit: new Date(),
   });
+  return summary;
 }
 
 export async function createMultiSessionSummary(

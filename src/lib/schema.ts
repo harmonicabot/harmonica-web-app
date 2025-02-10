@@ -62,7 +62,7 @@ export interface MessagesTable {
 export interface CustomResponsesTable {
   id: Generated<string>;
   position: number;
-  session_id: string;
+  session_id: string; // Could also be workspace_id!
   content: string;
   created_at: Generated<Date>;
 }
