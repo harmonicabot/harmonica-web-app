@@ -39,7 +39,7 @@ export default function Chat({
     message: OpenAIMessage,
     index: number,
   ) => React.ReactNode;
-  }) {
+}) {
   const isTesting = false;
   const [errorMessage, setErrorMessage] = useState<{
     title: string;
@@ -135,7 +135,9 @@ export default function Chat({
     userName?: string,
     userContext?: Record<string, string>,
   ) {
-    if (isTesting) {return "xyz"}
+    if (isTesting) {
+      return 'xyz';
+    }
     const chatMessages = [];
     if (context?.userData) {
       const allUsersMessages = await db.getAllMessagesForUsersSorted(
@@ -273,7 +275,12 @@ export default function Chat({
     if (isLoading) return;
     setIsLoading(true);
     if (isTesting) {
-      addMessage({ role: messages.length % 2 === 0 ? 'user' : 'assistant', content: "Welcome to **ENSB01 | Instance B | AI and Me**! \n\nThe objective of this session is to capture your quick and top-of-mind thoughts about AI as we kick off our two-day workshop on the governance of AI. \n\nThis session will be structured in three short steps. You can share your thoughts openly as this is a safe space. \n\nLet's get started!\n\n---\n\n**Step 1 of 3** \n\n**What are your immediate thoughts when you think about AI?** \n\nPlease share your thoughts freely. " });      setIsLoading(false);
+      addMessage({
+        role: messages.length % 2 === 0 ? 'user' : 'assistant',
+        content:
+          "Welcome to **ENSB01 | Instance B | AI and Me**! \n\nThe objective of this session is to capture your quick and top-of-mind thoughts about AI as we kick off our two-day workshop on the governance of AI. \n\nThis session will be structured in three short steps. You can share your thoughts openly as this is a safe space. \n\nLet's get started!\n\n---\n\n**Step 1 of 3** \n\n**What are your immediate thoughts when you think about AI?** \n\nPlease share your thoughts freely. ",
+      });
+      setIsLoading(false);
       return;
     }
     try {
@@ -292,7 +299,7 @@ export default function Chat({
       const now = new Date();
       let waitedCycles = 0;
       while (!threadIdRef.current) {
-        if (waitedCycles > 20) {
+        if (waitedCycles > 360) {
           setErrorMessage({
             title: 'The chat seems to be stuck.',
             message: 'Please reload the page and try again.',
@@ -440,8 +447,10 @@ export default function Chat({
         <div ref={messagesEndRef} />
       </div>
 
-      <form className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''} sticky bottom-0`}
-        onSubmit={handleSubmit}> 
+      <form
+        className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''} sticky bottom-0`}
+        onSubmit={handleSubmit}
+      >
         <div className="relative">
           <Textarea
             name="messageText"
