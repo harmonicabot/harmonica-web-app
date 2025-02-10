@@ -1,5 +1,5 @@
 import { HostSession } from '@/lib/schema';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createMultiSessionSummary, createSummary } from '@/lib/serverUtils';
 import { ExpandableWithExport } from './ExpandableWithExport';
 import * as db from '@/lib/db';
@@ -24,26 +24,37 @@ export default function SessionResultSummary({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExpandedPrompt, setIsExpandedPrompt] = useState(false);
   const [isExpandedSummary, setIsExpandedSummary] = useState(true);
-  const [summary, setSummary] = useState(isWorkspace ? ''/*TODO: db.getWorkspaceSummary(workspaceId)*/ : hostData[0].summary);
+  const [summary, setSummary] = useState(
+    isWorkspace ? '' : hostData[0].summary,
+  );
 
   const triggerSummaryUpdate = () => {
     setIsUpdating(true);
     if (isWorkspace) {
-      createMultiSessionSummary(hostData.map(data => data.id), workspaceId!)
-        .then((summary) => {
-          setIsUpdating(false);
-          onUpdateSummary();
-          setSummary("Summary from MessageContent");  // TODO: use the actual summary
-        });
+      createMultiSessionSummary(
+        hostData.map((data) => data.id),
+        workspaceId!,
+      ).then((summary) => {
+        setIsUpdating(false);
+        onUpdateSummary();
+        setSummary(summary.toString());
+      });
     } else {
-      createSummary(hostData[0].id)
-        .then((summary) => {
-          setIsUpdating(false);
-          onUpdateSummary();
-          setSummary(summary);
-        });
+      createSummary(hostData[0].id).then((summary) => {
+        setIsUpdating(false);
+        onUpdateSummary();
+        setSummary(summary);
+      });
     }
   };
+
+  useEffect(() => {
+    if (isWorkspace && workspaceId) {
+      db.getWorkspaceSummary(workspaceId!).then((summary) => {
+        setSummary(summary);
+      });
+    }
+  }, []);
 
   return (
     <>

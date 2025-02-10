@@ -46,8 +46,8 @@ Generate a structured **REPORT** based on all participant session transcripts (p
 ---`;
 
 export async function generateMultiSessionSummary(sessionIds: string[]) {
+  // console.log('[i] Generating multi-session summary for sessions:', sessionIds);
   try {
-    console.log('[i] Generating multi-session answer for query:', sessionIds);
     // Get session context and objective data for all sessions
     const sessionsData = await Promise.all(
       sessionIds.map(async (sessionId) => {
@@ -176,7 +176,7 @@ ${mergedContext}
 ${messagesContent}
 `;
 
-    console.log('[i] User prompt:', userPrompt);
+    // console.log('[i] User prompt:', userPrompt);
 
     // Update the prompt structure
     const response = await chatEngine.chat({
