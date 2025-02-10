@@ -35,10 +35,12 @@ export default function ResultTabs({
   chatEntryMessage,
   sessionIds = [],
 }: ResultTabsProps) {
-  const { hasMinimumRole, loading: loadingUserInfo } = usePermissions(sessionOrWorkspaceId);
-    
+  const { hasMinimumRole, loading: loadingUserInfo } =
+    usePermissions(sessionOrWorkspaceId);
+
   // Custom hook for managing AI responses
-  const { responses, addResponse, removeResponse } = useCustomResponses(sessionOrWorkspaceId);
+  const { responses, addResponse, removeResponse } =
+    useCustomResponses(sessionOrWorkspaceId);
 
   // User management state
   const initialIncluded = userData
@@ -94,7 +96,9 @@ export default function ResultTabs({
   }
 
   const [activeTab, setActiveTab] = useState(
-    hostData.some(data => data.summary) || !showParticipants ? 'SUMMARY' : 'RESPONSES',
+    hostData.some((data) => data.summary) || !showParticipants
+      ? 'SUMMARY'
+      : 'RESPONSES',
   );
 
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
@@ -197,16 +201,19 @@ export default function ResultTabs({
           className="ms-0"
           value="SUMMARY"
           onClick={() =>
-            hostData.some(data => data.summary)
+            hostData.some((data) => data.summary)
               ? undefined
               : () => {
-                if (isWorkspace) {
-                  createMultiSessionSummary(hostData.map(data => data.id), sessionOrWorkspaceId);
-                } else {
-                  createSummary(sessionOrWorkspaceId);
+                  if (isWorkspace) {
+                    createMultiSessionSummary(
+                      hostData.map((data) => data.id),
+                      sessionOrWorkspaceId,
+                    );
+                  } else {
+                    createSummary(sessionOrWorkspaceId);
+                  }
+                  setInitialUserIds(userIdsIncludedInSummary);
                 }
-                setInitialUserIds(userIdsIncludedInSummary);
-              }
           }
         >
           Summary

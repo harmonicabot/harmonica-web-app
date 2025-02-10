@@ -4,46 +4,7 @@ import * as db from '@/lib/db';
 import { Gemini } from 'llamaindex';
 
 const initialPrompt = `
-Generate a structured **REPORT** based on all participant session transcripts (provided in a separate message). The report must address the stated **OBJECTIVE** (provided in a separate message) of the session and follow the formatting and style guidance below.
-
----
-### Report Structure:
-
-1. **Introduction**:
-   - Briefly restate the session objective and purpose.
-   - Provide context or background if necessary.
-
-2. **Key Themes**:
-   - Summarize the most common and important points raised by participants.
-   - Organize responses into clear themes or categories.
-
-3. **Divergent Opinions**:
-   - Highlight significant areas of disagreement or unique insights that deviate from the common themes.
-    
-4. **Actionable Insights**:
-   - Derive clear, actionable recommendations based on participant inputs.
-   - Where possible, link these recommendations directly to the sessions objective.
-
-5. **Conclusion**:
-   - Summarize the key takeaways and outline any next steps.
-
----
-
-### Style and Tone:
-
-- **Professional and Clear**: Use concise and precise language.
-- **Accessible**: Avoid jargon; ensure readability for a general audience.
-- **Well-Formatted**: 
-   - Use headers, bullet points, and bold/italic text for clarity and emphasis.
-   - Include logical breaks between sections for easy navigation.
-
-### Additional Notes:
-
-- Prioritize recurring themes or insights if participant data is extensive.
-- Flag any incomplete or conflicting responses for host review.
-- Ensure that the report ties all findings back to the stated **OBJECTIVE** (next message).
-
----`;
+Rédigez un résumé en français pour toutes les sessions de l'ENS-PSL. Assurez-vous d'inclure des sections spécifiques résumant respectivement les risques et les opportunités.`;
 
 export async function generateMultiSessionSummary(sessionIds: string[]) {
   // console.log('[i] Generating multi-session summary for sessions:', sessionIds);
@@ -151,27 +112,12 @@ ${sessionsData[sessionIndex]?.critical ? `Key Points: ${sessionsData[sessionInde
         .replace(/\b(we|our|ours)\b/gi, `Group${sessionNum}`);
     }
 
-    // Format context data properly for all sessions
-    const mergedContext = sessionsData
-      .map(
-        (contextData) => `
-Session Context:
-Topic: ${contextData?.topic || 'No topic specified'}
-Goal: ${contextData?.goal || 'No goal specified'}
-${contextData?.context ? `Background Context: ${contextData?.context}` : ''}
-${contextData?.critical ? `Key Points: ${contextData?.critical}` : ''}`,
-      )
-      .join('\n\n');
-
     const chatEngine = new Gemini({
       model: GEMINI_MODEL.GEMINI_PRO_LATEST,
       temperature: 0.3,
     });
 
     const userPrompt = `
-### Sessions Context:
-${mergedContext}
-
 ### Historical Messages by Session:
 ${messagesContent}
 `;

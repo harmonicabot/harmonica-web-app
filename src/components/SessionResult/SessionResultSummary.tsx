@@ -25,7 +25,7 @@ export default function SessionResultSummary({
   const [isExpandedPrompt, setIsExpandedPrompt] = useState(false);
   const [isExpandedSummary, setIsExpandedSummary] = useState(true);
   const [summary, setSummary] = useState(
-    isWorkspace ? '' : hostData[0].summary,
+    isWorkspace ? '' : hostData[0]?.summary || '',
   );
 
   const triggerSummaryUpdate = () => {
@@ -49,6 +49,7 @@ export default function SessionResultSummary({
   };
 
   useEffect(() => {
+    if (isWorkspace) triggerSummaryUpdate();
     if (isWorkspace && workspaceId) {
       db.getWorkspaceSummary(workspaceId!).then((summary) => {
         setSummary(summary);
