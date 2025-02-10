@@ -138,7 +138,7 @@ export default function ResultTabs({
             hostData={hostData}
             isWorkspace={isWorkspace}
             workspaceId={isWorkspace ? sessionOrWorkspaceId : undefined}
-            newSummaryContentAvailable={newSummaryContentAvailable}
+            newSummaryContentAvailable={newSummaryContentAvailable || (isWorkspace && hasMinimumRole('editor'))}
             onUpdateSummary={() => {
               setInitialUserIds(userIdsIncludedInSummary);
               setNewSummaryContentAvailable(false);
@@ -152,7 +152,7 @@ export default function ResultTabs({
         )}
       </TabContent>
 
-      {showParticipants && (
+      {showParticipants && hasMinimumRole('editor') &&(
         <TabContent value="RESPONSES">
           <SessionParticipantsTable
             userData={userData}
