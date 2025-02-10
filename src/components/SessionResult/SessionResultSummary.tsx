@@ -49,7 +49,7 @@ export default function SessionResultSummary({
   };
 
   useEffect(() => {
-    if (isWorkspace) triggerSummaryUpdate();
+    // if (isWorkspace) triggerSummaryUpdate();
     if (isWorkspace && workspaceId) {
       db.getWorkspaceSummary(workspaceId!).then((summary) => {
         setSummary(summary);
