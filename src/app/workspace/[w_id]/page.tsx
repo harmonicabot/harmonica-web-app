@@ -113,13 +113,14 @@ export default async function MultiSessionResults({
             sessionIds={sessionIds}
             chatEntryMessage={{
               role: 'assistant',
-              content: `Welcome to the ENS-PSL AI Summit! I'm here to help you understand the insights from past discussions.
-          
-Here are some questions you might want to ask:
-  - What were the key themes discussed across sessions?
-  - How did participants view AI's role in education?
-  - What were the main concerns about AI adoption?
-`,
+              content: `Bienvenue au Sommet IA de l'ENS-PSL! Je suis là pour vous aider à comprendre les enseignements des discussions précédentes.
+
+Voici quelques questions que vous pourriez poser :
+  - Quels ont été les thèmes principaux abordés lors des sessions ?
+  - Comment les participants ont-ils perçu le rôle de l'IA dans l'éducation ?
+  - Quelles étaient les principales préoccupations concernant l'adoption de l'IA ?
+  
+You can also ask me in any other language, and I will try my best to reply in your language. (However, I might not always get that right 😅)`,
             }}
           />
         </div>
