@@ -93,9 +93,10 @@ export type Session = {
 };
 
 export interface ResultTabsProps {
-  hostData: HostSession;
+  hostData: HostSession[];
   userData: UserSession[];
   id: string;
+  isWorkspace?: boolean;
   hasNewMessages: boolean;
   showParticipants: boolean;
   showSessionRecap?: boolean;

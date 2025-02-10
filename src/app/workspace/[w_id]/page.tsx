@@ -103,9 +103,10 @@ export default async function MultiSessionResults({
         </div>
         <div className="mt-8 flex flex-col lg:flex-row gap-4">
           <ResultTabs
-            hostData={hostSessions[0]}
+            hostData={hostSessions}
             userData={userData}
-            id={sessionIds[0]}
+            id={params.w_id}
+            isWorkspace={true}
             hasNewMessages={false}
             showParticipants={false}
             showSessionRecap={false}

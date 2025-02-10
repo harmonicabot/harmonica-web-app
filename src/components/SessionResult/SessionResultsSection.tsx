@@ -54,7 +54,7 @@ export default function SessionResultsSection({
       {hasMessages ? (
         <>
           <ResultTabs
-            hostData={hostData}
+            hostData={[hostData]}
             userData={userData}
             id={id}
             hasNewMessages={hasNewMessages}
@@ -62,7 +62,9 @@ export default function SessionResultsSection({
             showSessionRecap={showSessionRecap}
             chatEntryMessage={chatEntryMessage}
           />
-          {showParticipants && <ExportSection hostData={hostData} userData={userData} id={id} />}
+          {showParticipants && (
+            <ExportSection hostData={hostData} userData={userData} id={id} />
+          )}
         </>
       ) : (
         showShare && <ShareSession makeSessionId={id} />
