@@ -16,6 +16,7 @@ const initialPrompt = `
    - **Direct Answer**: Provide a concise response to the user's question
    - **Contextual Reference**: Cite specific relevant details or patterns from the chat history
    - **Insight/Recommendation** (if applicable): Offer additional analysis or actionable insights
+   - **Language**: Reply in the same language as the users _last question_
 
 3. **Handling Frequencies and Patterns**:
    - When asked about "most common" or patterns:
