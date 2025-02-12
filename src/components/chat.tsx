@@ -37,9 +37,9 @@ export default function Chat({
   isAskAi?: boolean;
   customMessageEnhancement?: (
     message: OpenAIMessage,
-    index: number,
+    index: number
   ) => React.ReactNode;
-  }) {
+}) {
   const isTesting = false;
   const [errorMessage, setErrorMessage] = useState<{
     title: string;
@@ -75,7 +75,7 @@ export default function Chat({
   }, [messages]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -92,7 +92,7 @@ export default function Chat({
         sessionIds && sessionIds.length ? sessionIds[0] : undefined,
         user ? user : 'id',
         userName,
-        userContext,
+        userContext
       );
     }
 
@@ -121,7 +121,7 @@ export default function Chat({
 
   function concatenateMessages(messagesFromOneUser: Message[]) {
     messagesFromOneUser.sort(
-      (a, b) => a.created_at.getTime() - b.created_at.getTime(),
+      (a, b) => a.created_at.getTime() - b.created_at.getTime()
     );
     return messagesFromOneUser
       .map((message) => `${message.role} : ${message.content}`)
@@ -133,29 +133,28 @@ export default function Chat({
     sessionId: string | undefined,
     user: any,
     userName?: string,
-    userContext?: Record<string, string>,
+    userContext?: Record<string, string>
   ) {
-    if (isTesting) {return "xyz"}
+    if (isTesting) {
+      return 'xyz';
+    }
     const chatMessages = [];
     if (context?.userData) {
       const allUsersMessages = await db.getAllMessagesForUsersSorted(
-        context.userData,
+        context.userData
       );
-      const messagesByThread = allUsersMessages.reduce(
-        (acc, message) => {
-          acc[message.thread_id] = acc[message.thread_id] || []; // to make sure this array exists
-          acc[message.thread_id].push(message);
-          return acc;
-        },
-        {} as Record<string, Message[]>,
-      );
+      const messagesByThread = allUsersMessages.reduce((acc, message) => {
+        acc[message.thread_id] = acc[message.thread_id] || []; // to make sure this array exists
+        acc[message.thread_id].push(message);
+        return acc;
+      }, {} as Record<string, Message[]>);
       chatMessages.push('\n----START CHAT HISTORY for CONTEXT----\n');
       const concatenatedUserMessages = Object.entries(messagesByThread).map(
         ([threadId, messages]) => {
           return `\n----START NEXT USER CHAT----\n${concatenateMessages(
-            messages,
+            messages
           )}\n----END USER CHAT----\n`;
-        },
+        }
       );
       chatMessages.push(...concatenatedUserMessages);
       chatMessages.push('\n----END CHAT HISTORY for CONTEXT----\n');
@@ -164,11 +163,11 @@ export default function Chat({
 
     const userContextPrompt = userContext
       ? `IMPORTANT USER INFORMATION:\nPlease consider the following user details in your responses:\n${Object.entries(
-          userContext,
+          userContext
         )
           .map(([key, value]) => `- ${key}: ${value}`)
           .join(
-            '\n',
+            '\n'
           )}\n\nPlease tailor your responses appropriately based on this user information.`
       : '';
 
@@ -200,7 +199,7 @@ export default function Chat({
             thread_id: threadIdRef.current,
             role: 'user',
             content: `User shared the following context:\n${Object.entries(
-              userContext || {},
+              userContext || {}
             )
               .map(([key, value]) => `${key}: ${value}`)
               .join('; ')}`,
@@ -208,7 +207,7 @@ export default function Chat({
           }).catch((error) => {
             console.log('Error in insertChatMessage: ', error);
             showErrorToast(
-              'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can',
+              'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can'
             );
           });
           console.log('Inserting new session with initial data: ', data);
@@ -254,7 +253,7 @@ export default function Chat({
         sessionIds && sessionIds.length ? sessionIds[0] : undefined,
         user ? user : 'id',
         userName,
-        userContext,
+        userContext
       ).then((threadSessionId) => {
         handleSubmit(undefined, true, threadSessionId);
       });
@@ -264,7 +263,7 @@ export default function Chat({
   const handleSubmit = async (
     e?: React.FormEvent,
     isAutomatic?: boolean,
-    threadSessionId?: string,
+    threadSessionId?: string
   ) => {
     if (e) {
       e.preventDefault();
@@ -273,7 +272,12 @@ export default function Chat({
     if (isLoading) return;
     setIsLoading(true);
     if (isTesting) {
-      addMessage({ role: messages.length % 2 === 0 ? 'user' : 'assistant', content: "Welcome to **ENSB01 | Instance B | AI and Me**! \n\nThe objective of this session is to capture your quick and top-of-mind thoughts about AI as we kick off our two-day workshop on the governance of AI. \n\nThis session will be structured in three short steps. You can share your thoughts openly as this is a safe space. \n\nLet's get started!\n\n---\n\n**Step 1 of 3** \n\n**What are your immediate thoughts when you think about AI?** \n\nPlease share your thoughts freely. " });      setIsLoading(false);
+      addMessage({
+        role: messages.length % 2 === 0 ? 'user' : 'assistant',
+        content:
+          "Welcome to **ENSB01 | Instance B | AI and Me**! \n\nThe objective of this session is to capture your quick and top-of-mind thoughts about AI as we kick off our two-day workshop on the governance of AI. \n\nThis session will be structured in three short steps. You can share your thoughts openly as this is a safe space. \n\nLet's get started!\n\n---\n\n**Step 1 of 3** \n\n**What are your immediate thoughts when you think about AI?** \n\nPlease share your thoughts freely. ",
+      });
+      setIsLoading(false);
       return;
     }
     try {
@@ -290,18 +294,7 @@ export default function Chat({
       }
 
       const now = new Date();
-      let waitedCycles = 0;
-      while (!threadIdRef.current) {
-        if (waitedCycles > 20) {
-          setErrorMessage({
-            title: 'The chat seems to be stuck.',
-            message: 'Please reload the page and try again.',
-          });
-        }
-        await new Promise((resolve) => setTimeout(resolve, 10000));
-        waitedCycles++;
-        console.log(`Waiting ${waitedCycles}s for thread to be created...`);
-      }
+      await waitForThreadCreation(threadIdRef, setErrorMessage);
 
       if (userSessionId && !isAutomatic) {
         db.insertChatMessage({
@@ -312,7 +305,7 @@ export default function Chat({
         }).catch((error) => {
           console.log('Error in insertChatMessage: ', error);
           showErrorToast(
-            'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can',
+            'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can'
           );
         });
       }
@@ -367,10 +360,10 @@ export default function Chat({
               ]).catch((error) => {
                 console.log(
                   'Error storing answer or updating last edit: ',
-                  error,
+                  error
                 );
                 showErrorToast(
-                  `Uhm; there should be an answer, but we couldn't store it. It won't show up in the summary, but everything else should be fine. Please continue.`,
+                  `Uhm; there should be an answer, but we couldn't store it. It won't show up in the summary, but everything else should be fine. Please continue.`
                 );
               });
             }
@@ -440,8 +433,10 @@ export default function Chat({
         <div ref={messagesEndRef} />
       </div>
 
-      <form className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''} sticky bottom-0`}
-        onSubmit={handleSubmit}> 
+      <form
+        className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''} sticky bottom-0`}
+        onSubmit={handleSubmit}
+      >
         <div className="relative">
           <Textarea
             name="messageText"
@@ -463,4 +458,20 @@ export default function Chat({
       </form>
     </div>
   );
+}
+
+async function waitForThreadCreation(threadIdRef: any, setErrorMessage: any) {
+  let waitedCycles = 0;
+  while (!threadIdRef.current) {
+    if (waitedCycles > 720) {
+      setErrorMessage({
+        title: 'The chat seems to be stuck.',
+        message: 'Please reload the page and try again.',
+      });
+      throw new Error('Creating the thread took too long.');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    waitedCycles++;
+    console.log(`Waiting ${waitedCycles}s for thread to be created...`);
+  }
 }

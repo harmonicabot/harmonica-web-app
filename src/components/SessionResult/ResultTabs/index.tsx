@@ -110,7 +110,8 @@ export default function ResultTabs({
       message.role === 'assistant' &&
       key > 0 &&
       !loadingUserInfo &&
-      hasMinimumRole('editor')
+      hasMinimumRole('editor') &&
+      !isWorkspace
     ) {
       return (
         <>
