@@ -9,7 +9,7 @@ import { Metadata } from 'next';
 import { getGeneratedMetadata } from 'app/api/metadata';
 
 // Increase the maximum execution time for this function on vercel
-export const maxDuration = 360; // in seconds
+export const maxDuration = 300; // in seconds
 export const revalidate = 5 * 60; // check new data only every 5 minutes
 
 export async function generateMetadata({
