@@ -8,6 +8,8 @@ import { decryptId } from '@/lib/encryptionUtils';
 import * as db from '@/lib/db';
 import ErrorPage from '@/components/Error';
 
+export const maxDuration = 300; // in seconds
+
 // Similar to original page.tsx but with simplified props
 /**
  * Renders the simplified session result page for a specific session identified by the provided `id` parameter.
