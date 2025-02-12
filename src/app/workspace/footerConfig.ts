@@ -1,4 +1,4 @@
-import { FooterConfig } from './footer';
+import { FooterConfig } from './footerModels';
 
 export const footerConfigs: Record<string, FooterConfig> = {
   default: {

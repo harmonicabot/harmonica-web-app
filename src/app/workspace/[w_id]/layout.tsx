@@ -7,20 +7,19 @@ import {
   BreadcrumbList,
 } from '@/components/ui/breadcrumb';
 import { Analytics } from '@vercel/analytics/react';
-import Providers from 'app/(dashboard)/providers';
-import { Footer } from '../Footer';
+import Providers from '@/app/(dashboard)/providers';
+import { Footer } from '@/app/workspace/Footer';
 import { footerConfigs } from '../footerConfig';
-
 
 export default function WorkspaceLayout({
   children,
-  params
+  params,
 }: {
-    children: React.ReactNode;
-    params: { w_id: string }
-  }) {
+  children: React.ReactNode;
+  params: { w_id: string };
+}) {
   const workspaceId = params.w_id;
-  const footerConfig = footerConfigs[workspaceId] || footerConfigs.default; 
+  const footerConfig = footerConfigs[workspaceId] || footerConfigs.default;
 
   return (
     <Providers>
@@ -46,7 +45,7 @@ function DashboardBreadcrumb({ workspaceId }: { workspaceId: string }) {
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link href={`/workspace/${workspaceId}`}>{'Workspace'}</Link> 
+            <Link href={`/workspace/${workspaceId}`}>{'Workspace'}</Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
       </BreadcrumbList>

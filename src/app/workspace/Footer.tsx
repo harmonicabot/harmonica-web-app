@@ -1,5 +1,5 @@
 import React from 'react';
-import { FooterConfig } from './footer';
+import { FooterConfig } from './footerModels';
 
 export function Footer({ config }: { config: FooterConfig }) {
   return (
