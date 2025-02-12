@@ -61,7 +61,7 @@ export const ExpandableWithExport = ({
                       {isUpdating ? (
                         <p>Please wait while a {title} is generated</p>
                       ) : (
-                        <p>New responses available. Update {title}!</p>
+                        <p>Create an updated {title}</p>
                       )}
                     </TooltipContent>
                   </Tooltip>
