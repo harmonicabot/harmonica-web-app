@@ -51,6 +51,7 @@ const nextConfig = {
     config.resolve.fallback = {
       ...config.resolve.fallback,
       'onnxruntime-node': false,
+      fs: false,
     };
 
     // Add a rule to handle .node files
@@ -60,8 +61,16 @@ const nextConfig = {
       type: 'javascript/auto',
     });
 
+    // Add this to handle path issues on Windows
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname, './src'),
+    };
+
     return config;
   },
+  // Add this to handle potential Windows path issues
+  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
 };
 
 module.exports = nextConfig;

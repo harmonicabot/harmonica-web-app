@@ -4,11 +4,12 @@
     "baseUrl": "src",
     "paths": {
       "@/*": ["../*"],
+      "@/app/*": ["app/*"],
       "@/components/*": ["components/*"],
       "@/pages/*": ["pages/*"],
       "@/context/*": ["context/*"],
       "@/stores/*": ["stores/*"],
-      "@/lib/*": ["lib/*"],
+      "@/lib/*": ["lib/*"]
     },
     "allowJs": true,
     "skipLibCheck": true,
