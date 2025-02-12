@@ -463,7 +463,7 @@ export default function Chat({
 async function waitForThreadCreation(threadIdRef: any, setErrorMessage: any) {
   let waitedCycles = 0;
   while (!threadIdRef.current) {
-    if (waitedCycles > 360) { // 360 * 0.5s = 180s = 3m
+    if (waitedCycles > 720) {
       setErrorMessage({
         title: 'The chat seems to be stuck.',
         message: 'Please reload the page and try again.',
