@@ -1,6 +1,6 @@
-import { Gemini, GEMINI_MODEL } from '@llamaindex/google';
-
+import { GEMINI_MODEL } from 'llamaindex';
 import * as db from '@/lib/db';
+import { Gemini } from 'llamaindex';
 import { OpenAIMessage } from '../types';
 
 const initialPrompt = `
