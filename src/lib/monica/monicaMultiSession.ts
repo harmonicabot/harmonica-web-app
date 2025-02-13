@@ -36,7 +36,7 @@ export async function generateMultiSessionAnswer(
   query: string,
 ) {
   try {
-    console.log('[i] Generating multi-session answer for query:', sessionIds);
+    console.log('[i] Generating multi-session answer for session(s):', sessionIds);
     // Get session context and objective data for all sessions
     const sessionsData = await Promise.all(
       sessionIds.map(async (sessionId) => {
@@ -63,7 +63,7 @@ export async function generateMultiSessionAnswer(
     ).then((messages) => messages.flat());
 
     console.log(
-      '[i] First 10 raw messages:',
+      `[i] First 10 raw messages (out of ${sessionMessages.length}):`,
       sessionMessages.slice(0, 10).map((msg) => ({
         role: msg.role,
         thread_id: msg.thread_id,
@@ -94,6 +94,7 @@ export async function generateMultiSessionAnswer(
           return groups;
         }, new Map());
 
+        console.log(`Grouped messages into ${Object.entries(threadGroups).length} distinct threads (#participants)`)
         // Format context data for this session
         const sessionTopic =
           sessionsData[sessionIndex]?.topic || 'Unnamed Session';
@@ -185,7 +186,7 @@ ${messagesContent}
 `;
 
     console.log('[i] User prompt:', userPrompt);
-
+    console.log('[i] Sending query to AI...');
     // Update the prompt structure
     const response = await chatEngine.chat({
       messages: [
@@ -201,6 +202,7 @@ ${messagesContent}
       ],
     });
 
+    console.log('[i] Received response: ', response.message.content)
     return response.message.content;
     // }
   } catch (error) {

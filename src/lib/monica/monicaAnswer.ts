@@ -8,6 +8,7 @@ export async function generateMonicaAnswer(
 ) {
   try {
     // Analyze query type
+    console.log(`[i] Analyzing query type...`)
     const queryClassification = await analyzeQueryType(query);
     console.log('[i] Query classification:', queryClassification);
 
