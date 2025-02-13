@@ -16,7 +16,7 @@ const initialPrompt = `
    - **Direct Answer**: Provide a concise response to the user's question
    - **Contextual Reference**: Cite specific relevant details or patterns from the chat history
    - **Insight/Recommendation** (if applicable): Offer additional analysis or actionable insights
-   - **Language**: Reply in the same language as the users _last question_
+   - **Language**: Reply in the same language as the _latest question_
 
 3. **Handling Frequencies and Patterns**:
    - When asked about "most common" or patterns:
@@ -84,7 +84,8 @@ export async function generateMultiSessionAnswer(
           const group = groups.get(msg.thread_id) || [];
           group.push({
             timestamp: msg.created_at,
-            content: anonymizeContent(msg.content.trim(), sessionIndex + 1),
+            content: msg.content.trim(),
+            // content: anonymizeContent(msg.content.trim(), sessionIndex + 1),
           });
           groups.set(msg.thread_id, group);
           return groups;
@@ -147,12 +148,12 @@ ${sessionsData[sessionIndex]?.critical ? `Key Points: ${sessionsData[sessionInde
     }
 
     // Helper function to anonymize content
-    function anonymizeContent(content: string, sessionNum: number) {
-      return content
-        .replace(/\b(I|me|my|mine)\b/gi, `Participant${sessionNum}`)
-        .replace(/\b(you|your|yours)\b/gi, 'Coach')
-        .replace(/\b(we|our|ours)\b/gi, `Group${sessionNum}`);
-    }
+    // function anonymizeContent(content: string, sessionNum: number) {
+    //   return content
+    //     .replace(/\b(I|me|my|mine)\b/gi, `Participant${sessionNum}`)
+    //     .replace(/\b(you|your|yours)\b/gi, 'Coach')
+    //     .replace(/\b(we|our|ours)\b/gi, `Group${sessionNum}`);
+    // }
 
     // Format context data properly for all sessions
     const mergedContext = sessionsData
@@ -173,7 +174,7 @@ ${contextData?.critical ? `Key Points: ${contextData?.critical}` : ''}`,
 
     const chatHistoryWithoutInitialWelcoming = chatHistory.slice(1)
     const chatHistoryForPrompt = chatHistoryWithoutInitialWelcoming.length > 0
-      ? `### Previous Questions & Answers for further context:\n${chatHistoryWithoutInitialWelcoming.map(msg => 
+      ? `### Previous Questions & Answers for immediate chat context:\n${chatHistoryWithoutInitialWelcoming.map(msg => 
           `${msg.role === 'user' ? 'Question' : 'Answer'}: ${msg.content}`
         ).join('\n\n')}`
       : ''
@@ -189,9 +190,10 @@ ${chatHistoryForPrompt}
 
 ### Question: ${query}
 `;
-
-    console.log('[i] User prompt:', userPrompt);
-    console.log('[i] Chat History: ', chatHistory)
+    console.log('[i] User prompt:', userPrompt.length > 1000 
+      ? `${userPrompt.slice(0, 500)}...${userPrompt.slice(-500)}`
+      : userPrompt
+    );
     console.log('[i] Sending query to AI...');
     
     // Send the whole prompt to the AI:
