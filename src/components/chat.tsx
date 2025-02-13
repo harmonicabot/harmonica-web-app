@@ -12,7 +12,6 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import { Message } from '@/lib/schema';
 import ErrorPage from './Error';
 import { getUserNameFromContext } from '@/lib/clientUtils';
-import { PlusIcon } from 'lucide-react';
 
 export default function Chat({
   assistantId,
@@ -83,7 +82,8 @@ export default function Chat({
   const createThreadInProgressRef = useRef(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!threadIdRef.current && !createThreadInProgressRef.current) {
+    // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
+    if (!threadIdRef.current && !createThreadInProgressRef.current && !isAskAi) {
       createThreadInProgressRef.current = true;
       const userName = getUserNameFromContext(userContext);
 
@@ -128,16 +128,26 @@ export default function Chat({
       .join('\n\n');
   }
 
+  /**
+   * Creates a new thread that will be used for the chat.
+   * @param context Initial message and context for the thread
+   * @param sessionId Current session identifier
+   * @param user User object
+   * @param userName Optional display name
+   * @param userContext Additional user context data, i.e. questions asked at the start of a chat
+   * @returns {Promise<string>} The unique identifier for this **user** session
+   */
   async function createThread(
     context: OpenAIMessageWithContext | undefined,
     sessionId: string | undefined,
     user: any,
     userName?: string,
     userContext?: Record<string, string>
-  ) {
+  ): Promise<string | undefined> {
     if (isTesting) {
-      return 'xyz';
+      return undefined;
     }
+    console.log(`[i] Start creating thread`);
     const chatMessages = [];
     if (context?.userData) {
       const allUsersMessages = await db.getAllMessagesForUsersSorted(
@@ -181,9 +191,9 @@ export default function Chat({
     return gpt
       .handleCreateThread(threadEntryMessage, chatMessages)
       .then((threadId) => {
-        // console.log('[i] Created threadId ', threadId, sessionId);
+        console.log(`[i] Created threadId ${threadId} for session ${sessionId}`);
         threadIdRef.current = threadId;
-
+        
         if (sessionId) {
           const data = {
             session_id: sessionId,
@@ -213,9 +223,9 @@ export default function Chat({
           console.log('Inserting new session with initial data: ', data);
           return db
             .insertUserSessions(data)
-            .then((ids) => {
-              if (ids[0] && setUserSessionId) setUserSessionId(ids[0]);
-              return ids[0]; // Return the sessionId
+            .then((userIds) => {
+              if (userIds[0] && setUserSessionId) setUserSessionId(userIds[0]);
+              return userIds[0]; // Return the userId, just in case setUserSessionId is not fast enough
             })
             .catch((error) => {
               console.error('[!] error creating user session -> ', error);
@@ -243,7 +253,9 @@ export default function Chat({
     if (
       userContext &&
       !threadIdRef.current &&
-      !createThreadInProgressRef.current
+      !createThreadInProgressRef.current &&
+      !isAskAi  // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
+                // Also, AskAI doesn't use the userContext, so this should never be triggered (unless maybe on page load?), but just for clarity we put it here anyway.
     ) {
       const userName = getUserNameFromContext(userContext);
 
@@ -263,7 +275,7 @@ export default function Chat({
   const handleSubmit = async (
     e?: React.FormEvent,
     isAutomatic?: boolean,
-    threadSessionId?: string
+    userSessionIdFromThread?: string
   ) => {
     if (e) {
       e.preventDefault();
@@ -275,7 +287,7 @@ export default function Chat({
       addMessage({
         role: messages.length % 2 === 0 ? 'user' : 'assistant',
         content:
-          "Welcome to **ENSB01 | Instance B | AI and Me**! \n\nThe objective of this session is to capture your quick and top-of-mind thoughts about AI as we kick off our two-day workshop on the governance of AI. \n\nThis session will be structured in three short steps. You can share your thoughts openly as this is a safe space. \n\nLet's get started!\n\n---\n\n**Step 1 of 3** \n\n**What are your immediate thoughts when you think about AI?** \n\nPlease share your thoughts freely. ",
+          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
       });
       setIsLoading(false);
       return;
@@ -287,16 +299,21 @@ export default function Chat({
 
       if (!messageText && !isAutomatic) return;
 
-      if (!isAutomatic) {
+      const chatHistoryWithoutQuery = messages
+
+      if (!isAutomatic || isAskAi) {
         addMessage({ role: 'user', content: messageText });
         setFormData({ messageText: '' });
         textareaRef.current?.focus();
       }
 
       const now = new Date();
-      await waitForThreadCreation(threadIdRef, setErrorMessage);
+      if (!isAskAi) {
+        await waitForThreadCreation(threadIdRef, setErrorMessage);
+      }
 
-      if (userSessionId && !isAutomatic) {
+      if (userSessionId && !isAutomatic && !isAskAi) {
+        console.log(`[i] Inserting chat message for user session ${userSessionId}`);
         db.insertChatMessage({
           thread_id: threadIdRef.current,
           role: 'user',
@@ -310,19 +327,14 @@ export default function Chat({
         });
       }
 
-      const messageData = {
-        threadId: threadIdRef.current,
-        messageText,
-        assistantId: assistantId,
-      };
-
       if (isAskAi) {
+        console.log(`[i] Asking AI for response`);
         const response = await fetch('/api/llama', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            messageText,
-            threadId: threadIdRef.current,
+            chatHistory: chatHistoryWithoutQuery, // We need to use this separate variable, because relying on `messages` ain't gonna work because it's not updated immediately.
+            query: messageText,
             sessionIds: sessionIds || [], // Add session ID
           }),
         });
@@ -337,25 +349,31 @@ export default function Chat({
           role: 'assistant',
           content: answer,
         });
-      } else
-        gpt
-          .handleGenerateAnswer(messageData)
+      } else {
+        
+        const messageData = {
+          threadId: threadIdRef.current,
+          messageText,
+          assistantId: assistantId,
+        };
+        
+        gpt.handleGenerateAnswer(messageData)
           .then((answer) => {
             setIsLoading(false);
             const now = new Date();
             addMessage(answer);
 
-            if (userSessionId || threadSessionId) {
+            if (userSessionId || userSessionIdFromThread) {
               Promise.all([
                 db.insertChatMessage({
                   ...answer,
                   thread_id: threadIdRef.current,
                   created_at: now,
                 }),
-                userSessionId || threadSessionId
-                  ? db.updateUserSession(userSessionId || threadSessionId!, {
-                      last_edit: now,
-                    })
+                userSessionId || userSessionIdFromThread
+                  ? db.updateUserSession(userSessionId || userSessionIdFromThread!, {
+                    last_edit: now,
+                  })
                   : Promise.resolve(),
               ]).catch((error) => {
                 console.log(
@@ -373,6 +391,7 @@ export default function Chat({
             showErrorToast(`Sorry, we failed to answer... Please try again.`);
           })
           .finally(() => setIsLoading(false));
+      }
     } catch (error) {
       console.error(error);
       showErrorToast(`Sorry, we failed to answer... Please try again.`);
@@ -472,6 +491,6 @@ async function waitForThreadCreation(threadIdRef: any, setErrorMessage: any) {
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
     waitedCycles++;
-    console.log(`Waiting ${waitedCycles}s for thread to be created...`);
+    console.log(`Waiting ${waitedCycles} cycles for thread to be created...`);
   }
 }

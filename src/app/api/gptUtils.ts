@@ -13,7 +13,7 @@ const client = new OpenAI({
 });
 
 export async function handleCreateAssistant(data: AssistantBuilderData) {
-  // console.log('Creating assistant for data: ', data);
+  console.log('[i] Creating assistant for data: ', data);
   const assistant = await client.beta.assistants.create({
     name: data.name,
     instructions: data.prompt,
@@ -27,6 +27,7 @@ export async function handleCreateThread(
   additionalContext?: string[],
 ) {
   if (messageData) {
+    console.log(`[i] Creating thread with messageData: `, messageData)
     const thread = await client.beta.threads.create({
       messages: [
         {
@@ -37,6 +38,7 @@ export async function handleCreateThread(
     });
 
     for (const context of additionalContext ?? []) {
+      console.log(`[i] Submitting additional context to thread: `, context.slice(0, 100))
       await sendMessage(thread.id, 'assistant', context);
     }
     return thread.id;
@@ -51,6 +53,7 @@ export async function handleCreateThread(
     });
 
     for (const context of additionalContext ?? []) {
+      console.log(`[i] Submitting additional context to thread: `, context.slice(0, 100))
       await sendMessage(thread.id, 'assistant', context);
     }
 
@@ -61,6 +64,7 @@ export async function handleCreateThread(
 export async function handleGenerateAnswer(
   messageData: AssistantMessageData,
 ): Promise<NewMessage> {
+  console.log(`[i] Generating answer for message: `, messageData.messageText)
   await sendMessage(messageData.threadId, 'user', messageData.messageText);
 
   try {
@@ -104,10 +108,14 @@ export async function sendMessage(
   role: 'user' | 'assistant',
   content: string,
 ) {
-  return await client.beta.threads.messages.create(threadId, {
+  console.time("gptUtils-sendMessage-openAi")
+  const response = await client.beta.threads.messages.create(threadId, {
     role: role,
     content: content,
   });
+  console.timeEnd("gptUtils-sendMessage-openAi")
+
+  return response
 }
 
 async function getAllMessages(threadId: string) {

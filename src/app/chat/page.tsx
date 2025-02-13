@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import StandaloneChat from "./StandaloneChat";
 import { getGeneratedMetadata } from "app/api/metadata";
 
-export const maxDuration = 120; // 2 mins, this should prevent timeouts
+export const maxDuration = 300; // 2 mins, this should prevent timeouts
 
 export async function generateMetadata(
   { searchParams }: { searchParams: { s: string } } ,

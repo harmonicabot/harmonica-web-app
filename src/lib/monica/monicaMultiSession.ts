@@ -1,7 +1,7 @@
 import { GEMINI_MODEL } from 'llamaindex';
-
 import * as db from '@/lib/db';
 import { Gemini } from 'llamaindex';
+import { OpenAIMessage } from '../types';
 
 const initialPrompt = `
 ### Guidelines:
@@ -16,7 +16,7 @@ const initialPrompt = `
    - **Direct Answer**: Provide a concise response to the user's question
    - **Contextual Reference**: Cite specific relevant details or patterns from the chat history
    - **Insight/Recommendation** (if applicable): Offer additional analysis or actionable insights
-   - **Language**: Reply in the same language as the users _last question_
+   - **Language**: Reply in the same language as the _latest question_
 
 3. **Handling Frequencies and Patterns**:
    - When asked about "most common" or patterns:
@@ -32,11 +32,11 @@ const initialPrompt = `
 
 export async function generateMultiSessionAnswer(
   sessionIds: string[],
-  threadId: string,
+  chatHistory: OpenAIMessage[],
   query: string,
 ) {
   try {
-    console.log('[i] Generating multi-session answer for query:', sessionIds);
+    console.log('[i] Generating multi-session answer for session(s):', sessionIds);
     // Get session context and objective data for all sessions
     const sessionsData = await Promise.all(
       sessionIds.map(async (sessionId) => {
@@ -50,9 +50,6 @@ export async function generateMultiSessionAnswer(
       }),
     );
 
-    // Get all messages for this thread
-    const chatHistory = await db.getAllChatMessagesInOrder(threadId);
-
     // Get all messages from all sessions
     const sessionMessages = await Promise.all(
       sessionIds.map(async (sessionId) => {
@@ -63,7 +60,7 @@ export async function generateMultiSessionAnswer(
     ).then((messages) => messages.flat());
 
     console.log(
-      '[i] First 10 raw messages:',
+      `[i] First 10 raw messages (out of ${sessionMessages.length}):`,
       sessionMessages.slice(0, 10).map((msg) => ({
         role: msg.role,
         thread_id: msg.thread_id,
@@ -84,16 +81,17 @@ export async function generateMultiSessionAnswer(
 
         // Group messages by thread and sort chronologically
         const threadGroups = sessionMsgs.reduce((groups, msg) => {
-          const threadNum = groups.get(msg.thread_id)?.length || 0;
           const group = groups.get(msg.thread_id) || [];
           group.push({
             timestamp: msg.created_at,
-            content: anonymizeContent(msg.content.trim(), sessionIndex + 1),
+            content: msg.content.trim(),
+            // content: anonymizeContent(msg.content.trim(), sessionIndex + 1),
           });
           groups.set(msg.thread_id, group);
           return groups;
         }, new Map());
 
+        console.log(`Grouped messages into ${threadGroups.size} distinct threads (#participants)`)
         // Format context data for this session
         const sessionTopic =
           sessionsData[sessionIndex]?.topic || 'Unnamed Session';
@@ -150,12 +148,12 @@ ${sessionsData[sessionIndex]?.critical ? `Key Points: ${sessionsData[sessionInde
     }
 
     // Helper function to anonymize content
-    function anonymizeContent(content: string, sessionNum: number) {
-      return content
-        .replace(/\b(I|me|my|mine)\b/gi, `Participant${sessionNum}`)
-        .replace(/\b(you|your|yours)\b/gi, 'Coach')
-        .replace(/\b(we|our|ours)\b/gi, `Group${sessionNum}`);
-    }
+    // function anonymizeContent(content: string, sessionNum: number) {
+    //   return content
+    //     .replace(/\b(I|me|my|mine)\b/gi, `Participant${sessionNum}`)
+    //     .replace(/\b(you|your|yours)\b/gi, 'Coach')
+    //     .replace(/\b(we|our|ours)\b/gi, `Group${sessionNum}`);
+    // }
 
     // Format context data properly for all sessions
     const mergedContext = sessionsData
@@ -174,6 +172,13 @@ ${contextData?.critical ? `Key Points: ${contextData?.critical}` : ''}`,
       temperature: 0.3,
     });
 
+    const chatHistoryWithoutInitialWelcoming = chatHistory.slice(1)
+    const chatHistoryForPrompt = chatHistoryWithoutInitialWelcoming.length > 0
+      ? `### Previous Questions & Answers for immediate chat context:\n${chatHistoryWithoutInitialWelcoming.map(msg => 
+          `${msg.role === 'user' ? 'Question' : 'Answer'}: ${msg.content}`
+        ).join('\n\n')}`
+      : ''
+
     const userPrompt = `
 ### Sessions Context:
 ${mergedContext}
@@ -181,26 +186,29 @@ ${mergedContext}
 ### Historical Messages by Session:
 ${messagesContent}
 
+${chatHistoryForPrompt}
+
 ### Question: ${query}
 `;
-
-    console.log('[i] User prompt:', userPrompt);
-
-    // Update the prompt structure
+    console.log('[i] User prompt:', userPrompt.length > 1000 
+      ? `${userPrompt.slice(0, 500)}...${userPrompt.slice(-500)}`
+      : userPrompt
+    );
+    console.log('[i] Sending query to AI...');
+    
+    // Send the whole prompt to the AI:
+    // TODO: if possible, we should reuse the previously used thread and avoid sending _everything_.
     const response = await chatEngine.chat({
       messages: [
         { role: 'system', content: initialPrompt },
         {
           role: 'user',
           content: userPrompt,
-        },
-        ...chatHistory.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        })),
+        }
       ],
     });
 
+    console.log('[i] Received response: ', response.message.content)
     return response.message.content;
     // }
   } catch (error) {
