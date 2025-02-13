@@ -1,7 +1,7 @@
-import { GEMINI_MODEL } from 'llamaindex';
+import { Gemini, GEMINI_MODEL } from '@llamaindex/google';
 
 import * as db from '@/lib/db';
-import { Gemini } from 'llamaindex';
+import { OpenAIMessage } from '../types';
 
 const initialPrompt = `
 ### Guidelines:
@@ -32,7 +32,7 @@ const initialPrompt = `
 
 export async function generateMultiSessionAnswer(
   sessionIds: string[],
-  threadId: string,
+  chatHistory: OpenAIMessage[],
   query: string,
 ) {
   try {
@@ -49,9 +49,6 @@ export async function generateMultiSessionAnswer(
         return { sessionId, ...data };
       }),
     );
-
-    // Get all messages for this thread
-    const chatHistory = await db.getAllChatMessagesInOrder(threadId);
 
     // Get all messages from all sessions
     const sessionMessages = await Promise.all(
@@ -84,7 +81,6 @@ export async function generateMultiSessionAnswer(
 
         // Group messages by thread and sort chronologically
         const threadGroups = sessionMsgs.reduce((groups, msg) => {
-          const threadNum = groups.get(msg.thread_id)?.length || 0;
           const group = groups.get(msg.thread_id) || [];
           group.push({
             timestamp: msg.created_at,
@@ -94,7 +90,7 @@ export async function generateMultiSessionAnswer(
           return groups;
         }, new Map());
 
-        console.log(`Grouped messages into ${Object.entries(threadGroups).length} distinct threads (#participants)`)
+        console.log(`Grouped messages into ${threadGroups.size} distinct threads (#participants)`)
         // Format context data for this session
         const sessionTopic =
           sessionsData[sessionIndex]?.topic || 'Unnamed Session';
@@ -175,6 +171,13 @@ ${contextData?.critical ? `Key Points: ${contextData?.critical}` : ''}`,
       temperature: 0.3,
     });
 
+    const chatHistoryWithoutInitialWelcoming = chatHistory.slice(1)
+    const chatHistoryForPrompt = chatHistoryWithoutInitialWelcoming.length > 0
+      ? `### Previous Questions & Answers for further context:\n${chatHistoryWithoutInitialWelcoming.map(msg => 
+          `${msg.role === 'user' ? 'Question' : 'Answer'}: ${msg.content}`
+        ).join('\n\n')}`
+      : ''
+
     const userPrompt = `
 ### Sessions Context:
 ${mergedContext}
@@ -182,23 +185,24 @@ ${mergedContext}
 ### Historical Messages by Session:
 ${messagesContent}
 
+${chatHistoryForPrompt}
+
 ### Question: ${query}
 `;
 
     console.log('[i] User prompt:', userPrompt);
+    console.log('[i] Chat History: ', chatHistory)
     console.log('[i] Sending query to AI...');
-    // Update the prompt structure
+    
+    // Send the whole prompt to the AI:
+    // TODO: if possible, we should reuse the previously used thread and avoid sending _everything_.
     const response = await chatEngine.chat({
       messages: [
         { role: 'system', content: initialPrompt },
         {
           role: 'user',
           content: userPrompt,
-        },
-        ...chatHistory.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        })),
+        }
       ],
     });
 

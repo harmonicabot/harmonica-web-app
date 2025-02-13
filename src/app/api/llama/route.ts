@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { generateMonicaAnswer } from '@/lib/monica/monicaAnswer';
 
-export const maxDuration = 200;
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
-  const { messageText, threadId, sessionIds } = await req.json();
+  const { chatHistory, query, sessionIds } = await req.json();
 
-  if (!messageText || !threadId || !sessionIds) {
+  if (!chatHistory || !query || !sessionIds) {
     return NextResponse.json(
       { error: 'Missing required fields' },
       { status: 400 },
@@ -16,8 +16,8 @@ export async function POST(req: Request) {
   try {
     const answer = await generateMonicaAnswer(
       sessionIds,
-      threadId,
-      messageText,
+      chatHistory,
+      query
     );
 
     return NextResponse.json({ answer });

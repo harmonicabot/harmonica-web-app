@@ -82,7 +82,8 @@ export default function Chat({
   const createThreadInProgressRef = useRef(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!threadIdRef.current && !createThreadInProgressRef.current) {
+    // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
+    if (!threadIdRef.current && !createThreadInProgressRef.current && !isAskAi) {
       createThreadInProgressRef.current = true;
       const userName = getUserNameFromContext(userContext);
 
@@ -252,7 +253,9 @@ export default function Chat({
     if (
       userContext &&
       !threadIdRef.current &&
-      !createThreadInProgressRef.current
+      !createThreadInProgressRef.current &&
+      !isAskAi  // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
+                // Also, AskAI doesn't use the userContext, so this should never be triggered (unless maybe on page load?), but just for clarity we put it here anyway.
     ) {
       const userName = getUserNameFromContext(userContext);
 
@@ -284,7 +287,7 @@ export default function Chat({
       addMessage({
         role: messages.length % 2 === 0 ? 'user' : 'assistant',
         content:
-          "Welcome to **ENSB01 | Instance B | AI and Me**! \n\nThe objective of this session is to capture your quick and top-of-mind thoughts about AI as we kick off our two-day workshop on the governance of AI. \n\nThis session will be structured in three short steps. You can share your thoughts openly as this is a safe space. \n\nLet's get started!\n\n---\n\n**Step 1 of 3** \n\n**What are your immediate thoughts when you think about AI?** \n\nPlease share your thoughts freely. ",
+          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
       });
       setIsLoading(false);
       return;
@@ -296,16 +299,20 @@ export default function Chat({
 
       if (!messageText && !isAutomatic) return;
 
-      if (!isAutomatic) {
+      const chatHistoryWithoutQuery = messages
+
+      if (!isAutomatic || isAskAi) {
         addMessage({ role: 'user', content: messageText });
         setFormData({ messageText: '' });
         textareaRef.current?.focus();
       }
 
       const now = new Date();
-      await waitForThreadCreation(threadIdRef, setErrorMessage);
+      if (!isAskAi) {
+        await waitForThreadCreation(threadIdRef, setErrorMessage);
+      }
 
-      if (userSessionId && !isAutomatic) {
+      if (userSessionId && !isAutomatic && !isAskAi) {
         console.log(`[i] Inserting chat message for user session ${userSessionId}`);
         db.insertChatMessage({
           thread_id: threadIdRef.current,
@@ -320,20 +327,14 @@ export default function Chat({
         });
       }
 
-      const messageData = {
-        threadId: threadIdRef.current,
-        messageText,
-        assistantId: assistantId,
-      };
-
       if (isAskAi) {
         console.log(`[i] Asking AI for response`);
         const response = await fetch('/api/llama', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            messageText,
-            threadId: threadIdRef.current,
+            chatHistory: chatHistoryWithoutQuery, // We need to use this separate variable, because relying on `messages` ain't gonna work because it's not updated immediately.
+            query: messageText,
             sessionIds: sessionIds || [], // Add session ID
           }),
         });
@@ -348,9 +349,15 @@ export default function Chat({
           role: 'assistant',
           content: answer,
         });
-      } else
-        gpt
-          .handleGenerateAnswer(messageData)
+      } else {
+        
+        const messageData = {
+          threadId: threadIdRef.current,
+          messageText,
+          assistantId: assistantId,
+        };
+        
+        gpt.handleGenerateAnswer(messageData)
           .then((answer) => {
             setIsLoading(false);
             const now = new Date();
@@ -365,8 +372,8 @@ export default function Chat({
                 }),
                 userSessionId || userSessionIdFromThread
                   ? db.updateUserSession(userSessionId || userSessionIdFromThread!, {
-                      last_edit: now,
-                    })
+                    last_edit: now,
+                  })
                   : Promise.resolve(),
               ]).catch((error) => {
                 console.log(
@@ -384,6 +391,7 @@ export default function Chat({
             showErrorToast(`Sorry, we failed to answer... Please try again.`);
           })
           .finally(() => setIsLoading(false));
+      }
     } catch (error) {
       console.error(error);
       showErrorToast(`Sorry, we failed to answer... Please try again.`);
