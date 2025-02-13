@@ -52,6 +52,11 @@ const nextConfig = {
       ...config.resolve.fallback,
       'onnxruntime-node': false,
     };
+    config.ignoreWarnings = [
+      { module: /node_modules\/onnxruntime-node/ },
+      { module: /node_modules\/@huggingface\/transformers/ },
+      { message: /Critical dependency: Accessing import\.meta directly is unsupported/ }
+    ];
 
     // Add a rule to handle .node files
     config.module.rules.push({
