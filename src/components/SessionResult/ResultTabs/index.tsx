@@ -157,7 +157,7 @@ export default function ResultTabs({
         )}
       </TabContent>
 
-      {showParticipants && hasMinimumRole('editor') &&(
+      {showParticipants && hasMinimumRole('editor') && (
         <TabContent value="RESPONSES">
           <SessionParticipantsTable
             userData={userData}
@@ -219,7 +219,7 @@ export default function ResultTabs({
         >
           Summary
         </TabsTrigger>
-        {showParticipants && (
+        {showParticipants && hasMinimumRole('editor') && (
           <TabsTrigger className="ms-0" value="RESPONSES">
             Responses
           </TabsTrigger>

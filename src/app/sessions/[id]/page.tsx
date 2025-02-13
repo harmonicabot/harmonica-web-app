@@ -63,7 +63,7 @@ export default async function SessionResult({
           <SessionResultsSection
             hostData={hostData}
             userData={usersWithChat}
-            id={hostData.id}
+            resourceId={hostData.id}
           />
         </div>
     );
