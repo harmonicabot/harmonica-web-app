@@ -74,8 +74,8 @@ export default async function SimplifiedSessionResult({
         <SessionResultsSection
           hostData={hostData}
           userData={usersWithChat}
-          id={hostData.id}
-          showParticipants={false} // Disable participants table
+          resourceId={hostData.id}
+          showParticipants={true}
           showShare={false} // Disable share feature
           showSessionRecap={false}
           chatEntryMessage={{

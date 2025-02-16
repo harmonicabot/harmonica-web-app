@@ -11,11 +11,13 @@ import { createSummary } from '@/lib/serverUtils';
 import ResultTabs from './ResultTabs';
 import ExportSection from '../Export/ExportSection';
 import { OpenAIMessage } from '@/lib/types';
+import { usePermissions } from '@/lib/permissions';
+import { usePathname } from 'next/navigation';
 
 export default function SessionResultsSection({
   hostData,
   userData, // Already filtered to only those users having messages
-  id,
+  resourceId: resourceId,
   showParticipants = true,
   showShare = true,
   showSessionRecap = true,
@@ -23,12 +25,14 @@ export default function SessionResultsSection({
 }: {
   hostData: HostSession;
   userData: UserSession[];
-  id: string;
+  resourceId: string;
   showParticipants?: boolean;
   showShare?: boolean;
   showSessionRecap?: boolean;
   chatEntryMessage?: OpenAIMessage;
-}) {
+  }) {
+  const { hasMinimumRole } = usePermissions(resourceId);
+  const path = usePathname()
   const hasMessages = userData.length > 0;
   const { hasNewMessages, lastMessage, lastSummaryUpdate } =
     checkSummaryAndMessageTimes(hostData, userData);
@@ -44,9 +48,9 @@ export default function SessionResultsSection({
       console.log(`Last summary created ${minutesAgo} minutes ago, 
         and new messages were received since then. Creating an updated one.`);
       createSummary(hostData.id);
-      mutate(`sessions/${id}`);
+      mutate(path);
     }
-  }, [hasNewMessages, lastMessage, lastSummaryUpdate, hostData.id, id]);
+  }, [hasNewMessages, lastMessage, lastSummaryUpdate, hostData.id, resourceId]);
 
   return (
     <>
@@ -56,18 +60,18 @@ export default function SessionResultsSection({
           <ResultTabs
             hostData={[hostData]}
             userData={userData}
-            id={id}
+            id={resourceId}
             hasNewMessages={hasNewMessages}
             showParticipants={showParticipants}
             showSessionRecap={showSessionRecap}
             chatEntryMessage={chatEntryMessage}
           />
-          {showParticipants && (
-            <ExportSection hostData={hostData} userData={userData} id={id} />
+          {showParticipants && hasMinimumRole('editor') && (
+            <ExportSection hostData={hostData} userData={userData} id={resourceId} />
           )}
         </>
       ) : (
-        showShare && <ShareSession makeSessionId={id} />
+        showShare && <ShareSession makeSessionId={resourceId} />
       )}
     </>
   );
