@@ -190,6 +190,7 @@ ${chatHistoryForPrompt}
 
 ### Question: ${query}
 `;
+    console.log('[i] User prompt length: ', userPrompt.length)
     console.log('[i] User prompt:', userPrompt.length > 1000 
       ? `${userPrompt.slice(0, 500)}...${userPrompt.slice(-500)}`
       : userPrompt
