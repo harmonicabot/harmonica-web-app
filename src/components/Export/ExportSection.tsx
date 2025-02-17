@@ -94,7 +94,7 @@ export default function ExportSection({
     );
     return messagesFromOneUser
       .map((message) => `${message.role} : ${message.content}`)
-      .join();
+      .join('\n');
   }
 
   function exportAndDownload(
