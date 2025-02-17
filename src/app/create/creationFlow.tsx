@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import CreateSession from './create';
 import ReviewPrompt from './review';
 import LoadingMessage from './loading';
@@ -20,8 +20,7 @@ import { StepNavigation } from './StepNavigation';
 import { LaunchModal } from './LaunchModal';
 import { Step, STEPS } from './types';
 import { createPromptContent } from 'app/api/utils';
-import { error } from 'console';
-import { getSummaryAssistant, getSummaryAssistantFromTemplate } from '@/lib/utils';
+import { getSummaryAssistantFromTemplate } from '@/lib/utils';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -229,16 +228,17 @@ export default function CreationFlow() {
       };
 
       const sessionIds = await db.insertHostSessions(data);
-      const session_id = sessionIds[0];
+      const sessionId = sessionIds[0];
+      db.setPermission(sessionId, 'owner')
 
       // Set cookie
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 30);
-      document.cookie = `sessionId=${session_id}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
+      document.cookie = `sessionId=${sessionId}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
 
       // Navigate based on mode
       if (mode === 'launch') {
-        route.push(`/sessions/${encryptId(session_id)}`);
+        route.push(`/sessions/${encryptId(sessionId)}`);
       } else {
         route.push('/');
       }

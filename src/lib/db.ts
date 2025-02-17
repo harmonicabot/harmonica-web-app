@@ -4,9 +4,6 @@ import * as s from './schema';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
 import { deleteAssistants } from 'app/api/gptUtils';
-import { createKysely } from '@vercel/postgres-kysely';
-import { Kysely, PostgresDialect } from 'kysely';
-import pg from 'pg';
 
 // Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {
@@ -107,13 +104,14 @@ export async function insertHostSessions(
 ): Promise<string[]> {
   const db = await dbPromise;
   try {
-    const session = await authGetSession();
     // Due to GDPR, we don't want to store identifiable user data...
-    // const userSub = session?.user?.sub || '';
+    // But, we kind of have to, otherwise we wouldn't be able to have 'private' sessions at all and all editing etc would be public :-/
+    const session = await authGetSession();
+    const userSub = session?.user?.sub || '';
     console.log('Inserting host session with data:', data);
     const result = await db
       .insertInto(hostTableName)
-      .values({ ...data })
+      .values({ ...data, client: userSub })
       .returningAll()
       .execute();
     return result.map((row) => row.id);
@@ -129,12 +127,13 @@ export async function upsertHostSession(
 ): Promise<void> {
   const db = await dbPromise;
   try {
-    const session = await authGetSession();
     // Due to GDPR we don't want to store identifiable user data
-    // const userSub = session?.user?.sub || '';
+    // But, we kind of have to, otherwise we wouldn't be able to have 'private' sessions at all and all editing etc would be public :-/
+    const session = await authGetSession();
+    const userSub = session?.user?.sub || '';
     await db
       .insertInto(hostTableName)
-      .values({ ...data })
+      .values({ ...data, client: userSub })
       .onConflict((oc) =>
         onConflict === 'skip'
           ? oc.column('id').doNothing()
@@ -667,14 +666,21 @@ export async function getWorkspaceSessions(
 // Permissions operations
 export async function setPermission(
   resourceId: string,
-  userId: string,
   role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none',
+  userId?: string,  // Defaults to whatever user is currently logged in
 ): Promise<boolean> {
   try {
+    if (!userId) {
+      const session = await authGetSession();
+      userId = session?.user?.sub;
+    }
+    if (!userId) {
+      console.warn("Could not get user info. Will store session as anonymous.")
+    } 
     const db = await dbPromise;
     await db
       .insertInto('permissions')
-      .values({ resource_id: resourceId, user_id: userId, role })
+      .values({ resource_id: resourceId, user_id: userId || 'anonymous', role })
       .onConflict((oc) =>
         oc.columns(['resource_id', 'user_id']).doUpdateSet({ role }),
       )
@@ -700,6 +706,7 @@ export async function getPermission(
       .where('user_id', '=', userId)
       .executeTakeFirst();
 
+    console.log(`${userId}'s Permissions for ${resourceId}: `, result?.role)
     return result || null;
   } catch (error) {
     console.error('Error getting permission:', error);
@@ -761,19 +768,4 @@ export async function canEdit(
     permission?.role === 'editor' ||
     permission?.role === 'admin'
   );
-}
-
-export async function setDefaultPermissions(
-  resourceId: string,
-  ownerId: string,
-): Promise<void> {
-  const db = await dbPromise;
-  await db
-    .insertInto('permissions')
-    .values({
-      resource_id: resourceId,
-      user_id: ownerId,
-      role: 'owner',
-    })
-    .execute();
 }
