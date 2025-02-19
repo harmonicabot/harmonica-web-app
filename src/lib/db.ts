@@ -733,24 +733,6 @@ export async function removePermission(
   }
 }
 
-export async function getUserPermissions(
-  userId: string,
-): Promise<Array<{ resourceId: string; role: string }>> {
-  try {
-    const db = await dbPromise;
-    const results = await db
-      .selectFrom('permissions')
-      .select(['resource_id', 'role'])
-      .where('user_id', '=', userId)
-      .execute();
-
-    return results.map((r) => ({ resourceId: r.resource_id, role: r.role }));
-  } catch (error) {
-    console.error('Error getting user permissions:', error);
-    return [];
-  }
-}
-
 export async function canEdit(
   userId: string,
   resourceId: string,

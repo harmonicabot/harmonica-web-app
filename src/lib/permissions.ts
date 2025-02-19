@@ -30,19 +30,32 @@ export function usePermissions(resourceId: string) {
           return;
         }
         
-        // TODO: This gives priority of global roles over individual roles. 
-        // If we ever want it the other way round (e.g. some users have general admin, but no on some resources?)
-        // then we'll have to switch the logic here. I'm not sure which is better...
+        // If the user has a specific resource permission, then just use that:
+        const permission = await db.getPermission(resourceId, userId);
+        if (permission) {
+          setRole(permission.role);
+          return;
+        }
 
-        // First check for global rights
+        // Otherwise check some 'general' permissions:
+
+        // Use a local variable to keep track of the 'best' role for the user. (Can't rely on 'setRole' because that doesn't get updated immediately)
+        let role: Role = 'none';
+        // First check for global user rights (i.e. admin) across multiple resources
         const globalPermission = await db.getPermission('global', userId);
         if (globalPermission) {
-          setRole(globalPermission.role);
-          return; // setLoading will still be set in 'finally'
+          role = globalPermission.role;
         }
         
-        const permission = await db.getPermission(resourceId, userId);
-        setRole(permission?.role || 'none');
+        // Then check for general rights (e.g. public access) of 'all users' for this resource
+        // TODO: Ultimately we'd probably also want to cross-check with a 'groups' database for more fine-grained controll...
+        const publicPermission = await db.getPermission(resourceId, 'public');
+        if (publicPermission && !hasMinimumRole(role, publicPermission.role)) {
+          role = publicPermission.role
+        }
+
+        setRole(role);
+
       } catch (error) {
         console.error('Permission check failed:', error);
         setRole('none');
@@ -54,13 +67,18 @@ export function usePermissions(resourceId: string) {
     checkPermission();
   }, [resourceId, user, isLoading]);
 
-  // Return both the role and utility functions that use it
+  function compareRoles(roleA: Role, roleB: Role): number {
+    return ROLE_HIERARCHY[roleA] - ROLE_HIERARCHY[roleB];
+  }
+
+  function hasMinimumRole(currentRole: Role, requiredRole: Role): boolean {
+    return ROLE_HIERARCHY[currentRole] >= ROLE_HIERARCHY[requiredRole];
+  }
+
   return {
     role,
     loading,
-    hasMinimumRole: (requiredRole: Role) => 
-      ROLE_HIERARCHY[role] >= ROLE_HIERARCHY[requiredRole],
-    compareRole: (otherRole: Role) => 
-      ROLE_HIERARCHY[role] - ROLE_HIERARCHY[otherRole]
+    hasMinimumRole: (requiredRole: Role) => hasMinimumRole(role, requiredRole),
+    compareRole: (otherRole: Role) => compareRoles(role, otherRole)
   };
 }
