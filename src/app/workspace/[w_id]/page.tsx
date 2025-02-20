@@ -1,12 +1,11 @@
 import * as db from '@/lib/db';
-import { decryptId } from '@/lib/encryptionUtils';
 import ErrorPage from '@/components/Error';
 import SessionSummaryCard from '@/components/SessionResult/SessionSummaryCard';
 import ResultTabs from '@/components/SessionResult/ResultTabs';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { getSession } from '@auth0/nextjs-auth0';
 import { Metadata } from 'next';
 import { getGeneratedMetadata } from 'app/api/metadata';
+import InviteUsers from '@/components/workspace/InviteUsers';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 300; // in seconds
@@ -66,13 +65,16 @@ export default async function MultiSessionResults({
     return (
       <div className="p-4 md:p-8">
         {/* Hero Section */}
-        <div className="bg-gradient-to-r from-purple-900 to-purple-400 text-white rounded-lg p-8 mb-8">
+        <div className="bg-gradient-to-r from-purple-900 to-purple-400 text-white rounded-lg p-8 mb-8 relative">
+          <div className="absolute top-4 right-4">
+            <InviteUsers workspaceId={params.w_id} />
+          </div>
           <h1 className="text-4xl font-bold mb-4">
-            Assemblée étudiante sur l’IA
+            Assemblée étudiante sur l'IA
           </h1>
           <p className="text-xl mb-4">
-            Explorer ensemble les enjeux liés à l’IA et faire des propositions
-            d’actions pour un développement de l’IA au service du bien commun.
+            Explorer ensemble les enjeux liés à l'IA et faire des propositions
+            d'actions pour un développement de l'IA au service du bien commun.
           </p>
           <div className="flex items-center gap-2 text-blue-100">
             <svg
@@ -96,7 +98,7 @@ export default async function MultiSessionResults({
               />
             </svg>
             <span>
-              Projet initié par l’Ecole Normale Supérieure, l’université de Yale
+              Projet initié par l'Ecole Normale Supérieure, l'université de Yale
               et Missions Publiques
             </span>
           </div>
