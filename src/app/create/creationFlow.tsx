@@ -197,7 +197,7 @@ export default function CreationFlow() {
         },
       });
 
-      deleteTemporaryAssistants(temporaryAssistantIds);
+      await deleteTemporaryAssistants(temporaryAssistantIds);
 
       const data: NewHostSession = {
         assistant_id: assistantResponse.assistantId,
@@ -206,7 +206,7 @@ export default function CreationFlow() {
         prompt: prompt,
         num_sessions: 0,
         num_finished: 0,
-        active: mode === 'launch', // Set active based on mode
+        active: true, // Inactive = 'Finished', which ain't ever true here
         final_report_sent: false,
         start_time: new Date(),
         goal: formData.goal,
@@ -229,7 +229,7 @@ export default function CreationFlow() {
 
       const sessionIds = await db.insertHostSessions(data);
       const sessionId = sessionIds[0];
-      db.setPermission(sessionId, 'owner')
+      await db.setPermission(sessionId, 'owner')
 
       // Set cookie
       const expirationDate = new Date();
@@ -249,13 +249,13 @@ export default function CreationFlow() {
     }
   };
 
-  const handleReviewComplete = async (e: React.FormEvent) => {
+  const handleReviewComplete = (e: React.FormEvent) => {
     e.preventDefault();
     setActiveStep('Share');
   };
 
-  function deleteTemporaryAssistants(assistantIds: string[]) {
-    sendApiCall({
+  async function deleteTemporaryAssistants(assistantIds: string[]) {
+    await sendApiCall({
       target: ApiTarget.Builder,
       action: ApiAction.DeleteAssistants,
       data: {
