@@ -92,14 +92,22 @@ export type Session = {
   createdAt: Date;
 };
 
+export interface ResultTabsVisibilityConfig {
+  showSummary?: boolean;
+  showSessionRecap?: boolean;
+  showParticipants?: boolean;
+  showCustomInsights?: boolean;
+  showChat?: boolean;
+  allowCustomInsightsEditing?: boolean;
+}
+
 export interface ResultTabsProps {
   hostData: HostSession[];
   userData: UserSession[];
   id: string;
   isWorkspace?: boolean;
   hasNewMessages: boolean;
-  showParticipants: boolean;
-  showSessionRecap?: boolean;
+  visibilityConfig?: ResultTabsVisibilityConfig;
   sessionIds?: string[];
   chatEntryMessage?: OpenAIMessage;
 }

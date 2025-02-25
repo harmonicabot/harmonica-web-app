@@ -10,32 +10,31 @@ import { createSummary } from '@/lib/serverUtils';
 
 import ResultTabs from './ResultTabs';
 import ExportSection from '../Export/ExportSection';
-import { OpenAIMessage } from '@/lib/types';
+import { OpenAIMessage, ResultTabsVisibilityConfig } from '@/lib/types';
 import { usePermissions } from '@/lib/permissions';
 import { usePathname } from 'next/navigation';
 
 export default function SessionResultsSection({
   hostData,
-  userData, // Already filtered to only those users having messages
-  resourceId: resourceId,
-  showParticipants = true,
+  userData,
+  resourceId,
+  visibilityConfig,
   showShare = true,
-  showSessionRecap = true,
   chatEntryMessage,
 }: {
   hostData: HostSession;
   userData: UserSession[];
   resourceId: string;
-  showParticipants?: boolean;
+  visibilityConfig?: ResultTabsVisibilityConfig;
   showShare?: boolean;
-  showSessionRecap?: boolean;
   chatEntryMessage?: OpenAIMessage;
-  }) {
+}) {
   const { hasMinimumRole } = usePermissions(resourceId);
   const path = usePathname()
   const hasMessages = userData.length > 0;
   const { hasNewMessages, lastMessage, lastSummaryUpdate } =
     checkSummaryAndMessageTimes(hostData, userData);
+
   // Automatically update the summary if there's new content and the last update was more than 10 minutes ago
   useEffect(() => {
     if (
@@ -62,11 +61,10 @@ export default function SessionResultsSection({
             userData={userData}
             id={resourceId}
             hasNewMessages={hasNewMessages}
-            showParticipants={showParticipants}
-            showSessionRecap={showSessionRecap}
+            visibilityConfig={visibilityConfig}
             chatEntryMessage={chatEntryMessage}
           />
-          {showParticipants && hasMinimumRole('editor') && (
+          {visibilityConfig?.showParticipants && hasMinimumRole('editor') && (
             <ExportSection hostData={hostData} userData={userData} id={resourceId} />
           )}
         </>

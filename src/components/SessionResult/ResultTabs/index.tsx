@@ -9,7 +9,7 @@ import SessionParticipantsTable from '../SessionParticipantsTable';
 import SessionResultSummary from '../SessionResultSummary';
 import { ChatMessage } from '../../ChatMessage';
 import { createMultiSessionSummary, createSummary } from '@/lib/serverUtils';
-import { OpenAIMessage, ResultTabsProps } from '@/lib/types';
+import { OpenAIMessage, ResultTabsProps, ResultTabsVisibilityConfig } from '@/lib/types';
 import { CirclePlusIcon } from 'lucide-react';
 import { CustomResponseCard } from './components/CustomResponseCard';
 import { TabContent } from './components/TabContent';
@@ -18,11 +18,21 @@ import { cn } from '@/lib/clientUtils';
 import * as db from '@/lib/db';
 import { ExportButton } from '@/components/Export/ExportButton';
 import { usePermissions } from '@/lib/permissions';
+import { VisibilitySettings } from './components/VisibilitySettings';
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
+
+const defaultVisibilityConfig: ResultTabsVisibilityConfig = {
+  showSummary: true,
+  showParticipants: true,
+  showCustomInsights: true,
+  showChat: true,
+  allowCustomInsightsEditing: true,
+  showSessionRecap: true,
+};
 
 export default function ResultTabs({
   hostData, // one or more (e.g. if workspace)
@@ -30,13 +40,24 @@ export default function ResultTabs({
   id: sessionOrWorkspaceId,
   isWorkspace = false,
   hasNewMessages,
-  showParticipants = true,
-  showSessionRecap = true,
+  visibilityConfig: initialVisibilityConfig = defaultVisibilityConfig,
   chatEntryMessage,
   sessionIds = [],
 }: ResultTabsProps) {
+  const [config, setConfig] = useState({ ...defaultVisibilityConfig, ...initialVisibilityConfig });
+  
   const { hasMinimumRole, loading: loadingUserInfo } =
     usePermissions(sessionOrWorkspaceId);
+
+  // Save visibility settings when they change
+  const handleVisibilityChange = async (newConfig: ResultTabsVisibilityConfig) => {
+    setConfig(newConfig);
+    try {
+      await db.updateVisibilitySettings(sessionOrWorkspaceId, newConfig);
+    } catch (error) {
+      console.error('Failed to save visibility settings:', error);
+    }
+  };
 
   // Custom hook for managing AI responses
   const { responses, addResponse, removeResponse } =
@@ -96,7 +117,7 @@ export default function ResultTabs({
   }
 
   const [activeTab, setActiveTab] = useState(
-    hostData.some((data) => data.summary) || !showParticipants
+    hostData.some((data) => data.summary) || !config.showParticipants
       ? 'SUMMARY'
       : 'RESPONSES',
   );
@@ -148,7 +169,7 @@ export default function ResultTabs({
               setInitialUserIds(userIdsIncludedInSummary);
               setNewSummaryContentAvailable(false);
             }}
-            showSessionRecap={showSessionRecap}
+            showSessionRecap={config.showSessionRecap || true}
           />
         ) : (
           <Card>
@@ -157,7 +178,7 @@ export default function ResultTabs({
         )}
       </TabContent>
 
-      {showParticipants && hasMinimumRole('editor') && (
+      {config.showParticipants && hasMinimumRole('editor') && (
         <TabContent value="RESPONSES">
           <SessionParticipantsTable
             userData={userData}
@@ -197,39 +218,51 @@ export default function ResultTabs({
 
   return (
     <Tabs className="mb-4" value={activeTab} onValueChange={setActiveTab}>
-      <TabsList>
-        <TabsTrigger
-          className="ms-0"
-          value="SUMMARY"
-          onClick={() =>
-            hostData.some((data) => data.summary)
-              ? undefined
-              : () => {
-                  if (isWorkspace) {
-                    createMultiSessionSummary(
-                      hostData.map((data) => data.id),
-                      sessionOrWorkspaceId,
-                    );
-                  } else {
-                    createSummary(sessionOrWorkspaceId);
-                  }
-                  setInitialUserIds(userIdsIncludedInSummary);
-                }
-          }
-        >
-          Summary
-        </TabsTrigger>
-        {showParticipants && hasMinimumRole('editor') && (
-          <TabsTrigger className="ms-0" value="RESPONSES">
-            Responses
-          </TabsTrigger>
+      <div className="flex justify-between items-center mb-4">
+        <TabsList>
+          {config.showSummary && (
+            <TabsTrigger
+              className="ms-0"
+              value="SUMMARY"
+              onClick={() =>
+                hostData.some((data) => data.summary)
+                  ? undefined
+                  : () => {
+                      if (isWorkspace) {
+                        createMultiSessionSummary(
+                          hostData.map((data) => data.id),
+                          sessionOrWorkspaceId,
+                        );
+                      } else {
+                        createSummary(sessionOrWorkspaceId);
+                      }
+                      setInitialUserIds(userIdsIncludedInSummary);
+                    }
+              }
+            >
+              Summary
+            </TabsTrigger>
+          )}
+          {config.showParticipants && hasMinimumRole('editor') && (
+            <TabsTrigger className="ms-0" value="RESPONSES">
+              Responses
+            </TabsTrigger>
+          )}
+          {responses.length > 0 && config.showCustomInsights && (
+            <TabsTrigger className="ms-0" value="CUSTOM">
+              Custom Insights
+            </TabsTrigger>
+          )}
+        </TabsList>
+        
+        {hasMinimumRole('admin') && (
+          <VisibilitySettings
+            config={config}
+            onChange={handleVisibilityChange}
+            isWorkspace={isWorkspace}
+          />
         )}
-        {responses.length > 0 && (
-          <TabsTrigger className="ms-0" value="CUSTOM">
-            Custom Insights
-          </TabsTrigger>
-        )}
-      </TabsList>
+      </div>
 
       <div className="flex flex-col md:flex-row gap-4">
         {/* Desktop Layout */}
@@ -238,29 +271,35 @@ export default function ResultTabs({
             <ResizablePanel defaultSize={66}>
               {renderLeftContent()}
             </ResizablePanel>
-            <ResizableHandle withHandle className="mx-2 mt-4" />
-            <ResizablePanel className="overflow-auto mt-4 gap-4">
-              <SessionResultChat
-                userData={userData}
-                customMessageEnhancement={enhancedMessage}
-                entryMessage={chatEntryMessage}
-                sessionIds={sessionIds}
-              />
-            </ResizablePanel>
+            {config.showChat && (
+              <>
+                <ResizableHandle withHandle className="mx-2 mt-4" />
+                <ResizablePanel className="overflow-auto mt-4 gap-4">
+                  <SessionResultChat
+                    userData={userData}
+                    customMessageEnhancement={config.allowCustomInsightsEditing ? enhancedMessage : undefined}
+                    entryMessage={chatEntryMessage}
+                    sessionIds={sessionIds}
+                  />
+                </ResizablePanel>
+              </>
+            )}
           </ResizablePanelGroup>
         </div>
 
         {/* Mobile Layout */}
         <div className="md:hidden w-full flex flex-col gap-4">
           {renderLeftContent(true)}
-          <div className="w-full mt-4">
-            <SessionResultChat
-              userData={userData}
-              customMessageEnhancement={enhancedMessage}
-              entryMessage={chatEntryMessage}
-              sessionIds={sessionIds}
-            />
-          </div>
+          {config.showChat && (
+            <div className="w-full mt-4">
+              <SessionResultChat
+                userData={userData}
+                customMessageEnhancement={config.allowCustomInsightsEditing ? enhancedMessage : undefined}
+                entryMessage={chatEntryMessage}
+                sessionIds={sessionIds}
+              />
+            </div>
+          )}
         </div>
       </div>
     </Tabs>

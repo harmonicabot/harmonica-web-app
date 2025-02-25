@@ -1,14 +1,8 @@
 import { Metadata } from 'next/dist/lib/metadata/types/metadata-interface';
 import { getGeneratedMetadata } from 'app/api/metadata';
-import * as db from '@/lib/db';
-import SessionResultHeader, {
-  SessionStatus,
-} from '@/components/SessionResult/SessionResultHeader';
-import SessionResultsSection from '@/components/SessionResult/SessionResultsSection';
 import { decryptId } from '@/lib/encryptionUtils';
-import ErrorPage from '@/components/Error';
-import SessionResultsOverview from '@/components/SessionResult/SessionResultsOverview';
-import { getUserStats } from '@/lib/clientUtils';
+import SessionDataProvider from '@/components/SessionPage/SessionDataProvider';
+import { ResultTabsVisibilityConfig } from '@/lib/types';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 60; // in seconds
@@ -22,60 +16,27 @@ export async function generateMetadata(
 
 export default async function SessionResult({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams?: { access?: string };
 }) {
-  const { id } = params;
-  const decryptedId = decryptId(id);
+  const decryptedId = decryptId(params.id);
 
-  try {
-    const hostData = await db.getHostSessionById(decryptedId);
-    const userData = await db.getUsersBySessionId(decryptedId);
-    const stats = await db.getNumUsersAndMessages([hostData.id])
-    const usersWithChat = userData.filter(user => stats[decryptedId][user.id].num_messages > 2);
-    const {totalUsers, finishedUsers} = getUserStats(stats, decryptedId)
-    
-    if (!hostData)
-      return (
-        <ErrorPage
-          title={`No data available for ${id}`}
-          message="Looks like the provided SessionID is invalid or was deleted."
-        />
-      );
+  const visibilityConfig: ResultTabsVisibilityConfig = {
+    showSummary: true,
+    showParticipants: true,
+    showCustomInsights: true,
+    showChat: true,
+    allowCustomInsightsEditing: true,
+  };
 
-    return (
-        <div className="p-4 md:p-8">
-          <SessionResultHeader
-            topic={hostData.topic}
-            status={
-              !hostData.active
-                ? SessionStatus.REPORT_SENT
-                : SessionStatus.ACTIVE
-            }
-          />
-          <SessionResultsOverview
-            id={hostData.id}
-            active={hostData.active}
-            startTime={hostData.start_time}
-            numSessions={totalUsers}
-            completedSessions={finishedUsers}
-          />
-          <SessionResultsSection
-            hostData={hostData}
-            userData={usersWithChat}
-            resourceId={hostData.id}
-          />
-        </div>
-    );
-  } catch (error) {
-    console.error(`Error occured fetching data: `, error);
-    return (
-      <ErrorPage
-        title={'Error loading session'}
-        message={
-          'The session ID might be incorrect or the session may no longer exist.'
-        }
-      />
-    );
-  }
+  return (
+    <SessionDataProvider
+      sessionId={decryptedId}
+      isPublicAccess={searchParams?.access === 'public'}
+      showShare={true}
+      visibilityConfig={visibilityConfig}
+    />
+  );
 }

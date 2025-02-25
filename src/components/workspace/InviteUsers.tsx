@@ -33,7 +33,7 @@ export default function InviteUsers({ workspaceId }: InviteUsersProps) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="bg-white/10 hover:bg-white/20 text-white border-white/20">
+        <Button variant="outline">
           <UserPlus className="w-4 h-4 mr-2" />
           Invite Users
         </Button>
