@@ -31,7 +31,7 @@ export function VisibilitySettings({ config, onChange, isWorkspace, className }:
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className={className}>
+        <Button variant="outline" className={className}>
           <Settings className="h-4 w-4 mr-2" />
           View Settings
         </Button>

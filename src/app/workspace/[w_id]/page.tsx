@@ -1,8 +1,9 @@
 import { Metadata } from 'next';
 import { getGeneratedMetadata } from 'app/api/metadata';
-import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
 import { ResultTabsVisibilityConfig } from '@/lib/types';
 import WorkspaceContent from './WorkspaceContent';
+import ErrorPage from '@/components/Error';
+import { fetchWorkspaceData } from '@/lib/workspaceData';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 300; // in seconds
@@ -16,16 +17,6 @@ export async function generateMetadata({
   return getGeneratedMetadata(`/workspace/${params.w_id}`);
 }
 
-// Default visibility configuration for workspaces
-const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
-  showSummary: true,
-  showParticipants: true,
-  showCustomInsights: true,
-  showChat: true,
-  allowCustomInsightsEditing: true,
-  showSessionRecap: true,
-};
-
 export default async function Workspace({
   params,
   searchParams,
@@ -33,31 +24,37 @@ export default async function Workspace({
   params: { w_id: string };
   searchParams: { access?: string };
 }) {
-  // For public access, we show a more limited view
-  const visibilityConfig: ResultTabsVisibilityConfig = searchParams.access === 'public' 
-    ? {
-        showSummary: true,
-        showParticipants: false,
-        showCustomInsights: true,
-        showChat: true,
-        allowCustomInsightsEditing: false,
-        showSessionRecap: true,
-      }
-    : defaultWorkspaceVisibilityConfig;
+  const isPublicAccess = searchParams.access === 'public';
 
-  return (
-    <WorkspaceLayout
-      workspaceId={params.w_id}
-      isPublicAccess={searchParams.access === 'public'}
-    >
-      {(data) => (
+  try {
+    const data = await fetchWorkspaceData(params.w_id);
+    
+    // If public access is requested but workspace isn't public, show error
+    if (isPublicAccess && data.workspaceData?.is_public === false) {
+      return (
+        <ErrorPage
+          title="Access Denied"
+          message="This workspace is not publicly accessible."
+        />
+      );
+    }
+
+    return (
+      <div className="p-4 md:p-8">
         <WorkspaceContent
           {...data}
           workspaceId={params.w_id}
-          isPublicAccess={searchParams.access === 'public'}
-          visibilityConfig={visibilityConfig}
+          isPublicAccess={isPublicAccess}
         />
-      )}
-    </WorkspaceLayout>
-  );
+      </div>
+    );
+  } catch (error) {
+    console.error(`Error occurred fetching data: `, error);
+    return (
+      <ErrorPage
+        title={'Error loading workspace'}
+        message={'The workspace could not be loaded.'}
+      />
+    );
+  }
 }

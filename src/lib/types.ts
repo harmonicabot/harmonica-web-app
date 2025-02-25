@@ -119,3 +119,18 @@ export interface CustomAIResponse {
   content: string;
   created_at?: Date;
 }
+
+export interface WorkspaceData {
+  exists: boolean;
+  workspaceData?: {
+    id: string;
+    title?: string;
+    description?: string;
+    location?: string;
+    is_public?: boolean;
+    visibility_settings?: ResultTabsVisibilityConfig;
+  };
+  hostSessions: HostSession[];
+  userData: UserSession[];
+  sessionIds: string[];
+}
