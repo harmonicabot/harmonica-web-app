@@ -10,7 +10,7 @@ import SessionResultSummary from '../SessionResultSummary';
 import { ChatMessage } from '../../ChatMessage';
 import { createMultiSessionSummary, createSummary } from '@/lib/serverUtils';
 import { OpenAIMessage, ResultTabsProps, ResultTabsVisibilityConfig } from '@/lib/types';
-import { CirclePlusIcon } from 'lucide-react';
+import { CirclePlusIcon, Pencil } from 'lucide-react';
 import { CustomResponseCard } from './components/CustomResponseCard';
 import { TabContent } from './components/TabContent';
 import { useCustomResponses } from './hooks/useCustomResponses';
@@ -24,6 +24,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
+import { Button } from '@/components/ui/button';
 
 const defaultVisibilityConfig: ResultTabsVisibilityConfig = {
   showSummary: true,
@@ -43,7 +44,8 @@ export default function ResultTabs({
   visibilityConfig: config = defaultVisibilityConfig,
   chatEntryMessage,
   sessionIds = [],
-}: ResultTabsProps) {  
+  showEdit = false, // Whether to always show edit button
+}: ResultTabsProps & { showEdit?: boolean }) {  
   console.log("Visibility Settings in ResultsTabs: ", config)
 
   const { hasMinimumRole, loading: loadingUserInfo } =
@@ -207,7 +209,19 @@ export default function ResultTabs({
   );
 
   return (
-    <Tabs className="mb-4" value={activeTab} onValueChange={setActiveTab}>
+    <Tabs className="mb-4 relative group" value={activeTab} onValueChange={setActiveTab}>
+      {/* Edit Button - Displayed on hover or always if showEdit is true */}
+      <div className={`absolute top-2 right-2 z-20 ${showEdit ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity'}`}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="bg-white/10 hover:bg-white/20 border border-gray-200"
+          onClick={() => console.log("Edit ResultTabs clicked")}
+        >
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </div>
+      
       <div className="flex justify-between items-center mb-4">
         <TabsList>
           {config.showSummary && (

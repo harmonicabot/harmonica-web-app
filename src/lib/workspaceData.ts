@@ -1,10 +1,8 @@
 import * as db from '@/lib/db';
-import { HostSession, UserSession } from '@/lib/schema';
-import { WorkspaceData } from '@/lib/types'; // You would need to move the interface there
+import { WorkspaceData } from '@/lib/types';
 
 export async function fetchWorkspaceData(workspaceId: string): Promise<WorkspaceData> {
   try {
-    // Fetch workspace data
     const workspaceData = await db.getWorkspaceById(workspaceId);
     
     // If workspace doesn't exist, return empty data structure
