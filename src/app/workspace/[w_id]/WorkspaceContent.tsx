@@ -69,7 +69,7 @@ export default function WorkspaceContent({
           title={workspaceData?.title}
           description={workspaceData?.description}
           location={workspaceData?.location}
-          isEditable={!loadingUserInfo && hasMinimumRole('owner')}
+          isEditable={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
         />
         {!loadingUserInfo && hasMinimumRole('owner') && (
           <div className="flex gap-2 self-end mt-4">
@@ -110,7 +110,7 @@ You can also ask me in any other language, and I will try my best to reply in yo
         userData={userData}
         workspaceId={workspaceId}
         isPublicAccess={isPublicAccess}
-        showEdit={!loadingUserInfo && hasMinimumRole('owner')}
+        showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
       />
     </>
   );

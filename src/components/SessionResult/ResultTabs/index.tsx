@@ -302,7 +302,6 @@ export default function ResultTabs({
         {(hasMinimumRole('owner') || isNewWorkspace) && (
           <div className="flex-shrink-0">
             {/* Edit Button positioned next to tabs instead of absolute */}
-          {showEdit && (
             <Button
               variant="ghost"
               size="icon"
@@ -311,7 +310,6 @@ export default function ResultTabs({
             >
               <Pencil className="h-4 w-4" />
             </Button>
-            )}
             
             <VisibilitySettings
               config={visibilityConfig}
