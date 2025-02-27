@@ -47,7 +47,6 @@ export default function ResultTabs({
   showEdit = false, // Whether to always show edit button
   isNewWorkspace = false, // Whether this is a new workspace with no sessions
 }: ResultTabsProps & { showEdit?: boolean, isNewWorkspace?: boolean }) {  
-  console.log("Visibility Settings in ResultsTabs: ", config)
 
   const { hasMinimumRole, loading: loadingUserInfo } =
     usePermissions(sessionOrWorkspaceId);

@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { FooterConfig } from './footer';
-import { Check, Pencil, Save, X } from 'lucide-react';
+import { Check, ImageIcon, Pencil, Save, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/lib/permissions';
 import * as db from '@/lib/db';
@@ -13,10 +13,18 @@ interface FooterProps {
 }
 
 export function Footer({ workspaceId, config, onUpdate }: FooterProps) {
-  const { loading, hasMinimumRole } = usePermissions(workspaceId)
-  const [isEditable, setIsEditable] = useState(true);
-  const [isEditing, setIsEditing] = useState(true);
+  const { loading, hasMinimumRole, role } = usePermissions(workspaceId)
+  const [isEditable, setIsEditable] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [editedConfig, setEditedConfig] = useState<FooterConfig>(config);
+
+  useEffect(() => {
+    const checkEditable = async () => {
+      const workspace = await db.getWorkspaceById(workspaceId);
+      setIsEditable(hasMinimumRole('owner') || workspace != null);
+    };
+    checkEditable();
+  }, [workspaceId, loading, role]);
 
   useEffect(() => {
     if (!isEditing) {
@@ -79,6 +87,148 @@ export function Footer({ workspaceId, config, onUpdate }: FooterProps) {
     });
   };
 
+  const LogoEditor = ({ 
+    institution, 
+    index, 
+    onChange 
+  }: { 
+    institution: typeof editedConfig.institutions[0], 
+    index: number, 
+    onChange: (index: number, field: keyof typeof editedConfig.institutions[0], value: string) => void 
+  }) => {
+    const [isDragging, setIsDragging] = useState(false);
+    const [showPopup, setShowPopup] = useState(false);
+    const [logoUrl, setLogoUrl] = useState(institution.logo);
+    
+    const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragging(true);
+    };
+    
+    const handleDragLeave = () => {
+      setIsDragging(false);
+    };
+    
+    const handleDrop = (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+      
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        if (file.type.startsWith('image/')) {
+          // In a real implementation, you would upload this file to storage
+          // For now, we'll create a local object URL
+          const imageUrl = URL.createObjectURL(file);
+          onChange(index, 'logo', imageUrl);
+          setShowPopup(false);
+        }
+      }
+    };
+    
+    const handleUrlSubmit = () => {
+      onChange(index, 'logo', logoUrl);
+      setShowPopup(false);
+    };
+    
+    if (!isEditing) {
+      return institution.logo ? (
+        <img 
+          src={institution.logo} 
+          alt={institution.name} 
+          className="h-8 w-auto mr-2" 
+        />
+      ) : null;
+    }
+    
+    return (
+      <div className="relative mr-2">
+        {institution.logo ? (
+          <div className="group/logo relative"
+            onClick={() => setShowPopup(true)}
+          >
+            <img 
+              className="h-8 w-auto" 
+              src={institution.logo} 
+              alt={institution.name} 
+            />
+            <div className="absolute cursor-pointer inset-0 bg-black/50 opacity-0 group-hover/logo:opacity-100 transition-opacity flex items-center justify-center rounded-md">
+              <Pencil className="h-4 w-4 text-white" />
+            </div>
+          </div>
+        ) : (
+          <div 
+            className={`h-8 w-8 border-2 ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-dashed border-gray-300'} rounded flex items-center justify-center cursor-pointer group/logo`}
+            onClick={() => setShowPopup(true)}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="flex items-center justify-center">
+              <ImageIcon className="h-4 w-4 text-gray-400 hover:text-blue-500 hover:border-blue-500" />
+            </div>
+          </div>
+        )}
+        
+        {showPopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setShowPopup(false)}>
+            <div className="absolute inset-0 bg-black/20" />
+            <div 
+              className="bg-white shadow-lg rounded-lg p-4 w-[300px] z-10"
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-sm font-semibold mb-3">Set Logo</h3>
+              
+              <div className="mb-3">
+                <label className="block text-xs text-gray-600 mb-1">Enter logo URL</label>
+                <div className="flex gap-1">
+                  <input 
+                    type="text"
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    className="flex-1 text-sm border border-gray-300 rounded px-2 py-1"
+                    placeholder="https://..."
+                  />
+                  <Button 
+                    size="sm" 
+                    className="px-2 py-0 h-[30px]" 
+                    onClick={handleUrlSubmit}
+                  >
+                    Set
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="mb-1">
+                <label className="block text-xs text-gray-600 mb-1">Or drop an image file</label>
+                <div 
+                  className={`border-2 ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-dashed border-gray-300'} rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer text-gray-500`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <Upload className="h-6 w-6 mb-2" />
+                  <p className="text-xs">Drag & drop or click to browse</p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end mt-3">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowPopup(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+  
+
+  // Update the EditableContent component (around lines 238-248) with this implementation
   const EditableContent = ({ 
     value, 
     onChange, 
@@ -90,22 +240,33 @@ export function Footer({ workspaceId, config, onUpdate }: FooterProps) {
     className?: string,
     placeholder?: string
   }) => {
+    const [isFocused, setIsFocused] = useState(false);
+    
+    const handleFocus = () => {
+      setIsFocused(true);
+    };
+    
     const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+      setIsFocused(false);
       onChange(e.target.innerText);
     };
+
+    // Style for when the content is empty and not focused
+    const placeholderStyle = !value && !isFocused ? "text-gray-400 italic" : "";
 
     return (
       <div
         contentEditable={isEditing}
         suppressContentEditableWarning={true}
+        onFocus={handleFocus}
         onBlur={handleBlur}
-        className={`${className} ${isEditing ? 'outline-none border-b border-dashed border-gray-300 focus:border-blue-500' : ''}`}
-        data-placeholder={placeholder}
+        className={`${className} ${isEditing ? 'outline-none border-b border-dashed border-gray-300 focus:border-blue-500' : ''} ${placeholderStyle}`}
       >
-        {value || (isEditing ? '' : placeholder)}
+        {value || (isFocused ? '' : placeholder)}
       </div>
     );
   };
+
 
   return (
     <footer 
@@ -149,15 +310,16 @@ export function Footer({ workspaceId, config, onUpdate }: FooterProps) {
                   {isEditing ? (
                     <div className="flex flex-col w-full">
                       <div className="flex items-center">
-                        <img 
-                          src={institution.logo} 
-                          alt={institution.name} 
-                          className="h-8 w-auto mr-2" 
+                        <LogoEditor 
+                          institution={institution} 
+                          index={index} 
+                          onChange={handleInstitutionChange} 
                         />
                         <EditableContent
                           value={institution.name}
                           onChange={(value) => handleInstitutionChange(index, 'name', value)}
                           className="hover:text-blue-600"
+                          placeholder="Enter institution name..."
                         />
                       </div>
                       <div className="ml-10 text-xs text-gray-500 mt-1">
