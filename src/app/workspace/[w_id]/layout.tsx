@@ -34,7 +34,7 @@ export default function WorkspaceLayout({
           </div>
         </div>
       </div>
-      <Footer config={footerConfig} />
+      <Footer workspaceId={workspaceId} config={footerConfig}/>
       <Analytics />
     </Providers>
   );
