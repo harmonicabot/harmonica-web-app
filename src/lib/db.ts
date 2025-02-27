@@ -670,6 +670,7 @@ export async function setPermission(
   userId?: string,  // Defaults to whatever user is currently logged in
 ): Promise<boolean> {
   try {
+    console.log(`Setting permissions: \nResources: ${resourceId}\nUser: ${userId}\nRole: ${role}`)
     if (!userId) {
       const session = await authGetSession();
       userId = session?.user?.sub;

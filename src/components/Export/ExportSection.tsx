@@ -13,10 +13,12 @@ export default function ExportSection({
   hostData,
   userData,
   id,
+  className,
 }: {
   hostData: HostSession;
   userData: UserSession[];
   id: string;
+  className?: string;
 }) {
   const [exportInProgress, setExportInProgress] = useState(false);
   const [isExportPopupVisible, setIsExportPopupVisible] = useState(false);
@@ -116,7 +118,7 @@ export default function ExportSection({
 
   return (
     <>
-      <Button onClick={handleShowExportPopup}>Export Session Details</Button>
+      <Button className={className} onClick={handleShowExportPopup}>Export Session Details</Button>
       {isExportPopupVisible && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-purple-100 border-purple-200 p-8 rounded-lg w-4/5 md:w-3/5 lg:w-1/2 flex flex-col">

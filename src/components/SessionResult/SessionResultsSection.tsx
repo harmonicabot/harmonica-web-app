@@ -30,7 +30,7 @@ export default function SessionResultsSection({
   showShare?: boolean;
   showSessionRecap?: boolean;
   chatEntryMessage?: OpenAIMessage;
-  }) {
+}) {
   const { hasMinimumRole } = usePermissions(resourceId);
   const path = usePathname()
   const hasMessages = userData.length > 0;
@@ -67,7 +67,7 @@ export default function SessionResultsSection({
             chatEntryMessage={chatEntryMessage}
           />
           {showParticipants && hasMinimumRole('editor') && (
-            <ExportSection hostData={hostData} userData={userData} id={resourceId} />
+            <ExportSection hostData={hostData} userData={userData} id={resourceId} className="mt-4" />
           )}
         </>
       ) : (
