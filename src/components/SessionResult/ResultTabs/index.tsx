@@ -25,8 +25,8 @@ import {
 } from '@/components/ui/resizable';
 
 export default function ResultTabs({
-  hostData, // one or more (e.g. if workspace)
-  userData, // all user data related to all hostData
+  hostData, // zero or more (e.g. if workspace)
+  userData, // all user data related to all hostData; might be empty
   id: sessionOrWorkspaceId,
   isWorkspace = false,
   hasNewMessages,
@@ -78,13 +78,21 @@ export default function ResultTabs({
     setNewSummaryContentAvailable(hasNewMessages || haveIncludedUsersChanged);
   };
 
-  // Memoized values
+  const [activeTab, setActiveTab] = useState(
+    hostData.some((data) => data.summary) || !showParticipants
+      ? 'SUMMARY'
+      : 'RESPONSES',
+  );
+
+  const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
+    useState(hasNewMessages);
+
   const hasAnyIncludedUserMessages = useMemo(
     () => userIdsIncludedInSummary.length > 0,
     [userIdsIncludedInSummary],
   );
 
-  if (!hasAnyIncludedUserMessages) {
+  if (!hasAnyIncludedUserMessages && !hasMinimumRole('editor')) {
     return (
       <Card className="w-full">
         <CardContent className="text-center">
@@ -94,15 +102,6 @@ export default function ResultTabs({
       </Card>
     );
   }
-
-  const [activeTab, setActiveTab] = useState(
-    hostData.some((data) => data.summary) || !showParticipants
-      ? 'SUMMARY'
-      : 'RESPONSES',
-  );
-
-  const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
-    useState(hasNewMessages);
 
   // Message enhancement for chat
   const enhancedMessage = (message: OpenAIMessage, key: number) => {
