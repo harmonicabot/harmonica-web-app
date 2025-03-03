@@ -9,7 +9,8 @@ import SessionParticipantsTable from '../SessionParticipantsTable';
 import SessionResultSummary from '../SessionResultSummary';
 import { ChatMessage } from '../../ChatMessage';
 import { createMultiSessionSummary, createSummary } from '@/lib/serverUtils';
-import { OpenAIMessage, ResultTabsProps } from '@/lib/types';
+import { HostSession, UserSession } from '@/lib/schema';
+import { OpenAIMessage } from '@/lib/types';
 import { CirclePlusIcon } from 'lucide-react';
 import { CustomResponseCard } from './components/CustomResponseCard';
 import { TabContent } from './components/TabContent';
@@ -23,6 +24,18 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
+
+export interface ResultTabsProps {
+  hostData: HostSession[];
+  userData: UserSession[];
+  id: string;
+  isWorkspace?: boolean;
+  hasNewMessages: boolean;
+  showParticipants: boolean;
+  showSessionRecap?: boolean;
+  sessionIds?: string[];
+  chatEntryMessage?: OpenAIMessage;
+}
 
 export default function ResultTabs({
   hostData, // zero or more (e.g. if workspace)
