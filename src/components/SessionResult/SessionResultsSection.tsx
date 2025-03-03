@@ -32,7 +32,7 @@ export default function SessionResultsSection({
   chatEntryMessage?: OpenAIMessage;
 }) {
   const { hasMinimumRole } = usePermissions(resourceId);
-  const path = usePathname()
+  const path = usePathname();
   const hasMessages = userData.length > 0;
   const { hasNewMessages, lastMessage, lastSummaryUpdate } =
     checkSummaryAndMessageTimes(hostData, userData);
@@ -67,7 +67,12 @@ export default function SessionResultsSection({
             chatEntryMessage={chatEntryMessage}
           />
           {showParticipants && hasMinimumRole('editor') && (
-            <ExportSection hostData={hostData} userData={userData} id={resourceId} className="mt-4" />
+            <ExportSection
+              hostData={hostData}
+              userData={userData}
+              id={resourceId}
+              className="mt-4"
+            />
           )}
         </>
       ) : (
