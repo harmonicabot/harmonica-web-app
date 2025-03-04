@@ -24,6 +24,19 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
+import { SimScoreTab } from './SimScoreTab';
+
+export interface ResultTabsProps {
+  hostData: HostSession[];
+  userData: UserSession[];
+  id: string;
+  isWorkspace?: boolean;
+  hasNewMessages: boolean;
+  showParticipants: boolean;
+  showSessionRecap?: boolean;
+  sessionIds?: string[];
+  chatEntryMessage?: OpenAIMessage;
+}
 
 export interface ResultTabsProps {
   hostData: HostSession[];
@@ -193,6 +206,9 @@ export default function ResultTabs({
           ))}
         </TabContent>
       )}
+      <TabContent value="SIMSCORE">
+        <SimScoreTab userData={userData} hostData={hostData[0]} resourceId={ sessionOrWorkspaceId } />
+      </TabContent>
 
       {responses.length > 0 && activeTab === 'CUSTOM' && (
         <div className="mt-4 flex justify-end">
@@ -241,6 +257,9 @@ export default function ResultTabs({
             Custom Insights
           </TabsTrigger>
         )}
+        <TabsTrigger className="ms-0" value="SIMSCORE">
+            SimScore Ranking
+        </TabsTrigger>
       </TabsList>
 
       <div className="flex flex-col md:flex-row gap-4">

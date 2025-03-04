@@ -93,7 +93,7 @@ export type Session = {
 };
 
 export interface CustomAIResponse {
-  id?: string;
+  id: string;
   position: number;
   session_id: string;
   content: string;
