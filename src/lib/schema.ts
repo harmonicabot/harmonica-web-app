@@ -64,6 +64,7 @@ export interface CustomResponsesTable {
   position: number;
   session_id: string; // Could also be workspace_id!
   content: string;
+  response_type: string;  // Which table this is going to be in
   created_at: Generated<Date>;
 }
 

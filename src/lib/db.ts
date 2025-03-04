@@ -460,8 +460,9 @@ export async function getCustomResponseById(
   }
 }
 
-export async function getCustomResponsesBySessionOrWorkspaceId(
+export async function getCustomResponsesByResourceIdAndType(
   sessionId: string,
+  responseType: string = "CUSTOM",
 ): Promise<s.CustomResponse[]> {
   try {
     const db = await dbPromise;
@@ -469,6 +470,7 @@ export async function getCustomResponsesBySessionOrWorkspaceId(
       .selectFrom(customResponsesTableName)
       .selectAll()
       .where('session_id', '=', sessionId)
+      .where('response_type', '=', responseType)
       .orderBy('position', 'asc')
       .execute();
 

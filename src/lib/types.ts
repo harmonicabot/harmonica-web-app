@@ -92,20 +92,8 @@ export type Session = {
   createdAt: Date;
 };
 
-export interface ResultTabsProps {
-  hostData: HostSession[];
-  userData: UserSession[];
-  id: string;
-  isWorkspace?: boolean;
-  hasNewMessages: boolean;
-  showParticipants: boolean;
-  showSessionRecap?: boolean;
-  sessionIds?: string[];
-  chatEntryMessage?: OpenAIMessage;
-}
-
 export interface CustomAIResponse {
-  id?: string;
+  id: string;
   position: number;
   session_id: string;
   content: string;
