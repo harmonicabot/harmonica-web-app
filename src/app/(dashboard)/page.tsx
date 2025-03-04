@@ -40,14 +40,12 @@ export default async function Dashboard() {
     mpClient =
       hostSessions.length > 0 &&
       hostSessions.every(
-        (session) => session.client === 'auth0|679de14aa9e0c4faa3b80ac2'
+        (session) => session.client === 'auth0|679de14aa9e0c4faa3b80ac2',
       );
   }
   return (
     <>
-      {Date.now() < new Date('2025-02-14').getTime() && (
-        <DonateBanner/>
-      )}
+      <DonateBanner />
       <Tabs defaultValue="all">
         <div className="flex items-center justify-between sm:pb-3">
           <div className="flex flex-col gap-1">

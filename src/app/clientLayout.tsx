@@ -2,8 +2,7 @@
 import PostHogPageView from './PostHogPageView';
 import { usePathname } from 'next/navigation';
 import Navigation from './navigation';
-import { useState } from 'react';
-import SmallDonateBanner from '@/components/SmallDonateBanner';
+// import SmallDonateBanner from '@/components/SmallDonateBanner';
 
 export default function ClientLayout({
   children,
@@ -17,9 +16,9 @@ export default function ClientLayout({
 
   return (
     <div>
-      {!isRootPage && !isChatPage && !isWorkSpacePage && (
+      {/* {!isRootPage && !isChatPage && !isWorkSpacePage && (
         <SmallDonateBanner/>
-      )}
+      )} */}
 
       {isChatPage ? (
         <div>{children}</div>
