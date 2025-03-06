@@ -6,14 +6,16 @@ import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/lib/permissions';
 import * as db from '@/lib/db';
 import { uploadLogo } from 'actions/upload-logo';
+import { footerConfigs } from './footerConfig';
 
-interface FooterProps {
-  workspaceId: string;
-  config: FooterConfig;
-  onUpdate?: (config: FooterConfig) => void;
-}
+export function Footer({ workspaceId }: { workspaceId: string }) {
 
-export function Footer({ workspaceId, config, onUpdate }: FooterProps) {
+  const config = footerConfigs[workspaceId] || footerConfigs.default; 
+  const onUpdate = async (newConfig: FooterConfig) => {
+    // Update the in-memory config
+    footerConfigs[workspaceId] = newConfig
+    // ... update the config in the file... ?
+  }
   const { loading, hasMinimumRole, role } = usePermissions(workspaceId)
   const [isEditable, setIsEditable] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -34,7 +36,7 @@ export function Footer({ workspaceId, config, onUpdate }: FooterProps) {
   }, [config, isEditing]);
 
   const handleSave = () => {
-    onUpdate?.(editedConfig);
+    onUpdate(editedConfig);
     setIsEditing(false);
   };
 
