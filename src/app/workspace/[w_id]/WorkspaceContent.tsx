@@ -10,6 +10,17 @@ import { VisibilitySettings } from '@/components/SessionResult/ResultTabs/compon
 import * as db from '@/lib/db';
 import { ResultTabsVisibilityConfig } from '@/lib/types';
 import { HostSession, UserSession } from '@/lib/schema';
+import { useState } from 'react';
+
+// Default visibility configuration for workspaces
+const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
+  showSummary: true,
+  showParticipants: true,
+  showCustomInsights: true,
+  showChat: true,
+  allowCustomInsightsEditing: true,
+  showSessionRecap: true,
+};
 
 interface WorkspaceContentProps {
   exists: boolean;
@@ -26,7 +37,6 @@ interface WorkspaceContentProps {
   sessionIds: string[];
   workspaceId: string;
   isPublicAccess?: boolean;
-  visibilityConfig: ResultTabsVisibilityConfig;
 }
 
 export default function WorkspaceContent({
@@ -37,11 +47,37 @@ export default function WorkspaceContent({
   sessionIds,
   workspaceId,
   isPublicAccess,
-  visibilityConfig,
 }: WorkspaceContentProps) {
+  // For public access, we show a more limited view
+  const [visibilityConfig, setVisibilityConfig] = useState(
+    isPublicAccess
+      ? {
+          showSummary: true,
+          showParticipants: false,
+          showCustomInsights: true,
+          showChat: true,
+          allowCustomInsightsEditing: false,
+          showSessionRecap: true,
+        }
+      : defaultWorkspaceVisibilityConfig
+  );
+
+  // Save visibility settings when they change
+  const handleVisibilityChange = async (
+    newConfig: ResultTabsVisibilityConfig
+  ) => {
+    console.log("Updating vidibility config: ", newConfig)
+    setVisibilityConfig(newConfig);
+    try {
+      // await db.updateVisibilitySettings(workspaceId, newConfig);
+    } catch (error) {
+      console.error('Failed to save visibility settings:', error);
+    }
+  };
+
   return (
     <>
-      <div className="flex justify-between items-start">
+      <div className="flex w-full flex-col">
         <WorkspaceHero
           workspaceId={workspaceId}
           exists={exists}
@@ -51,19 +87,17 @@ export default function WorkspaceContent({
           isEditable={true} // TODO: Check user permissions
         />
         {exists && !isPublicAccess && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 self-end mt-4">
             <InviteUsers workspaceId={workspaceId} />
             <VisibilitySettings
               config={workspaceData?.visibility_settings || visibilityConfig}
-              onChange={async (newConfig) => {
-                await db.updateVisibilitySettings(workspaceId, newConfig);
-              }}
+              onChange={handleVisibilityChange}
               isWorkspace={true}
             />
           </div>
         )}
       </div>
-      
+
       {exists ? (
         // Existing workspace view
         <>
@@ -74,7 +108,9 @@ export default function WorkspaceContent({
               id={workspaceId}
               isWorkspace={true}
               hasNewMessages={false}
-              visibilityConfig={workspaceData?.visibility_settings || visibilityConfig}
+              visibilityConfig={
+                workspaceData?.visibility_settings || visibilityConfig
+              }
               sessionIds={sessionIds}
               chatEntryMessage={{
                 role: 'assistant',
@@ -102,7 +138,9 @@ You can also ask me in any other language, and I will try my best to reply in yo
         <Card className="mt-8">
           <CardHeader>
             <h2 className="text-2xl font-semibold">Configure Sessions</h2>
-            <p className="text-sm text-gray-500">Add sessions to your new workspace</p>
+            <p className="text-sm text-gray-500">
+              Add sessions to your new workspace
+            </p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -128,7 +166,9 @@ You can also ask me in any other language, and I will try my best to reply in yo
                     <LinkIcon className="w-6 h-6 text-primary" />
                   </div>
                   <div className="text-center">
-                    <h3 className="font-semibold mb-2">Link Existing Session</h3>
+                    <h3 className="font-semibold mb-2">
+                      Link Existing Session
+                    </h3>
                     <p className="text-sm text-gray-500">
                       Connect an existing session to this workspace
                     </p>
@@ -141,4 +181,4 @@ You can also ask me in any other language, and I will try my best to reply in yo
       )}
     </>
   );
-} 
+}

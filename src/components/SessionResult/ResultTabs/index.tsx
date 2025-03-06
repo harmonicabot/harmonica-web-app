@@ -63,24 +63,14 @@ export default function ResultTabs({
   id: sessionOrWorkspaceId,
   isWorkspace = false,
   hasNewMessages,
-  visibilityConfig: initialVisibilityConfig = defaultVisibilityConfig,
+  visibilityConfig: config = defaultVisibilityConfig,
   chatEntryMessage,
   sessionIds = [],
-}: ResultTabsProps) {
-  const [config, setConfig] = useState({ ...defaultVisibilityConfig, ...initialVisibilityConfig });
-  
+}: ResultTabsProps) {  
+  console.log("Visibility Settings in ResultsTabs: ", config)
+
   const { hasMinimumRole, loading: loadingUserInfo } =
     usePermissions(sessionOrWorkspaceId);
-
-  // Save visibility settings when they change
-  const handleVisibilityChange = async (newConfig: ResultTabsVisibilityConfig) => {
-    setConfig(newConfig);
-    try {
-      await db.updateVisibilitySettings(sessionOrWorkspaceId, newConfig);
-    } catch (error) {
-      console.error('Failed to save visibility settings:', error);
-    }
-  };
 
   // Custom hook for managing AI responses
   const { responses, addResponse, removeResponse } =
@@ -291,14 +281,6 @@ export default function ResultTabs({
             SimScore Ranking
         </TabsTrigger>
       </TabsList>
-        
-        {hasMinimumRole('admin') && (
-          <VisibilitySettings
-            config={config}
-            onChange={handleVisibilityChange}
-            isWorkspace={isWorkspace}
-          />
-        )}
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">
