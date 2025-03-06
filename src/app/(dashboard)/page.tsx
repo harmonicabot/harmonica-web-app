@@ -123,7 +123,7 @@ const mockSessions = [
   }
 ];
 
-const mockWorkspaces = [
+const mockWorkspaces: Workspace[] = [
   {
     id: "ENS-PSL",
     title: "Assemblée étudiante sur l'IA",
@@ -152,6 +152,7 @@ const mockWorkspaces = [
         summary: undefined,
         critical: undefined,
         context: undefined,
+        visibility_settings: defaultVisibilityConfig,
         questions: undefined
       },
       {
@@ -174,6 +175,7 @@ const mockWorkspaces = [
         summary: undefined,
         critical: undefined,
         context: undefined,
+        visibility_settings: defaultVisibilityConfig,
         questions: undefined
       },
       {
@@ -196,6 +198,7 @@ const mockWorkspaces = [
         summary: undefined,
         critical: undefined,
         context: undefined,
+        visibility_settings: defaultVisibilityConfig,
         questions: undefined
       }
     ]
@@ -205,7 +208,6 @@ const mockWorkspaces = [
     title: "Climate Change Summit",
     description: "A series of discussions about climate change",
     created_at: "2024-02-18",
-    last_modified: new Date(),
     num_sessions: 2,
     num_participants: 15,
     sessions: [
