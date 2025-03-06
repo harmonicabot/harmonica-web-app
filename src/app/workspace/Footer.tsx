@@ -4,7 +4,6 @@ import { FooterConfig } from './footer';
 import { Check, ImageIcon, Pencil, Save, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/lib/permissions';
-import * as db from '@/lib/db';
 import { uploadLogo } from 'actions/upload-logo';
 import { footerConfigs } from './footerConfig';
 
@@ -23,8 +22,7 @@ export function Footer({ workspaceId }: { workspaceId: string }) {
 
   useEffect(() => {
     const checkEditable = async () => {
-      const workspace = await db.getWorkspaceById(workspaceId);
-      setIsEditable(hasMinimumRole('owner') || workspace != null);
+      setIsEditable(hasMinimumRole('editor'));
     };
     checkEditable();
   }, [workspaceId, loading, role]);
@@ -281,7 +279,7 @@ export function Footer({ workspaceId }: { workspaceId: string }) {
         onBlur={handleBlur}
         className={`${className} ${isEditing ? 'outline-none border-b border-dashed border-gray-300 focus:border-blue-500' : ''} ${placeholderStyle}`}
       >
-        {value || (isFocused ? '' : placeholder)}
+        {value || (isEditing && !isFocused ? placeholder: '')}
       </div>
     );
   };

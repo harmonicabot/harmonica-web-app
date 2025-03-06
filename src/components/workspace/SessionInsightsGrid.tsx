@@ -22,22 +22,6 @@ export default function SessionInsightsGrid({
   
   return (
     <Card className="mt-4 relative group">
-      {/* Edit Button - Displayed on hover or always if showEdit is true */}
-      <div
-        className={`absolute top-2 right-2 z-20 ${
-          showEdit ? '' : 'hidden'
-        }`}
-      >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="bg-white/10 hover:bg-white/20 border border-gray-200"
-          onClick={() => console.log('Edit SessionInsightsGrid clicked')}
-        >
-          <Pencil className="h-4 w-4" />
-        </Button>
-      </div>
-
       <CardHeader>
         <h2 className="text-2xl font-semibold">Individual Session Insights</h2>
       </CardHeader>

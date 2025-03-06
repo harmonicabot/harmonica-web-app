@@ -329,16 +329,6 @@ export default function ResultTabs({
         {/* View Settings button in the top right, same line as tabs */}
         {(hasMinimumRole('owner') || isNewWorkspace) && (
           <div className="flex-shrink-0">
-            {/* Edit Button positioned next to tabs instead of absolute */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="ml-2 bg-white/10 hover:bg-white/20 border border-gray-200 mx-2"
-              onClick={() => console.log("Edit ResultTabs clicked")}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            
             <VisibilitySettings
               config={visibilityConfig}
               onChange={handleVisibilityChange}

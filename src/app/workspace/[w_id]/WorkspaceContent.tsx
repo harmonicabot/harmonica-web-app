@@ -4,10 +4,8 @@ import ResultTabs from '@/components/SessionResult/ResultTabs';
 import WorkspaceHero from '@/components/workspace/WorkspaceHero';
 import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 import InviteUsers from '@/components/workspace/InviteUsers';
-import { VisibilitySettings } from '@/components/SessionResult/ResultTabs/components/VisibilitySettings';
 import { ResultTabsVisibilityConfig } from '@/lib/types';
 import { HostSession, UserSession } from '@/lib/schema';
-import { useState } from 'react';
 import { usePermissions } from '@/lib/permissions';
 
 // Default visibility configuration for workspaces
@@ -16,6 +14,7 @@ const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
   showParticipants: true,
   showCustomInsights: true,
   showChat: true,
+  showSimScore: true,
   allowCustomInsightsEditing: true,
   showSessionRecap: true,
 };
