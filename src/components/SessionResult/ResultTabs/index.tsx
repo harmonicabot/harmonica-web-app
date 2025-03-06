@@ -10,7 +10,7 @@ import SessionResultSummary from '../SessionResultSummary';
 import { ChatMessage } from '../../ChatMessage';
 import { createMultiSessionSummary, createSummary } from '@/lib/serverUtils';
 import { HostSession, UserSession } from '@/lib/schema';
-import { OpenAIMessage } from '@/lib/types';
+import { OpenAIMessage, ResultTabsVisibilityConfig } from '@/lib/types';
 import { CirclePlusIcon, Pencil } from 'lucide-react';
 import { CustomResponseCard } from './components/CustomResponseCard';
 import { TabContent } from './components/TabContent';
@@ -34,26 +34,16 @@ export interface ResultTabsProps {
   id: string;
   isWorkspace?: boolean;
   hasNewMessages: boolean;
-  showParticipants: boolean;
-  showSessionRecap?: boolean;
   sessionIds?: string[];
   chatEntryMessage?: OpenAIMessage;
   visibilityConfig: ResultTabsVisibilityConfig;
-}
-
-export interface ResultTabsVisibilityConfig {
-  showSummary?: boolean;
-  showSessionRecap?: boolean;
-  showParticipants?: boolean;
-  showCustomInsights?: boolean;
-  showChat?: boolean;
-  allowCustomInsightsEditing?: boolean;
 }
 
 const defaultVisibilityConfig: ResultTabsVisibilityConfig = {
   showSummary: true,
   showParticipants: true,
   showCustomInsights: true,
+  showSimScore: true,
   showChat: true,
   allowCustomInsightsEditing: true,
   showSessionRecap: true,
@@ -209,6 +199,16 @@ export default function ResultTabs({
                 <h3 className="text-2xl font-semibold text-gray-700">Participant Responses</h3>
                 <p className="text-gray-500">
                   Here you will see transcripts of each respondant. You can choose who can see these transcripts in the <i>View Settings</i>.
+                </p>
+              </div>
+            </Card>
+          </TabContent>
+          <TabContent value="SIMSCORE">
+            <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
+              <div className="text-center space-y-4 max-w-md">
+                <h3 className="text-2xl font-semibold text-gray-700">SimScore Ranking</h3>
+                <p className="text-gray-500">
+                  Statements from participants will be analyzed, semantically compared and ranked. You can choose who can see this ranking in the <i>View Settings</i>.
                 </p>
               </div>
             </Card>

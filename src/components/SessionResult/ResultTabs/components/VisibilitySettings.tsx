@@ -88,6 +88,17 @@ export function VisibilitySettings({ config, onChange, isWorkspace, className }:
           </div>
 
           <div className="flex items-center justify-between space-x-2">
+            <label htmlFor="insights" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Show SimScore
+            </label>
+            <Switch
+              id="simscore"
+              checked={config.showSimScore}
+              onCheckedChange={() => toggleSetting('showSimScore')}
+            />
+          </div>
+
+          <div className="flex items-center justify-between space-x-2">
             <label htmlFor="chat" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Show Chat
             </label>

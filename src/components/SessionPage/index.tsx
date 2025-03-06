@@ -10,7 +10,7 @@ interface SessionPageProps {
   data: SessionData;
   workspaceId?: string;
   isPublicAccess?: boolean;
-  visibilityConfig?: ResultTabsVisibilityConfig;
+  visibilityConfig: ResultTabsVisibilityConfig;
   showShare?: boolean;
   chatEntryMessage?: OpenAIMessage;
 }

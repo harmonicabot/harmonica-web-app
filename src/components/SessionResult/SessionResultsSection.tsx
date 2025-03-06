@@ -25,7 +25,7 @@ export default function SessionResultsSection({
   hostData: HostSession;
   userData: UserSession[];
   resourceId: string;
-  visibilityConfig?: ResultTabsVisibilityConfig;
+  visibilityConfig: ResultTabsVisibilityConfig;
   showShare?: boolean;
   chatEntryMessage?: OpenAIMessage;
 }) {

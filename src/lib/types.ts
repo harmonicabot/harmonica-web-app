@@ -100,6 +100,16 @@ export interface CustomAIResponse {
   created_at?: Date;
 }
 
+export interface ResultTabsVisibilityConfig {
+  showSummary?: boolean;
+  showSessionRecap?: boolean;
+  showParticipants?: boolean;
+  showCustomInsights?: boolean;
+  showSimScore?: boolean;
+  showChat?: boolean;
+  allowCustomInsightsEditing?: boolean;
+}
+
 export interface WorkspaceData {
   exists: boolean;
   workspaceData?: {
