@@ -47,8 +47,7 @@ export default function WorkspaceContent({
   isPublicAccess,
 }: WorkspaceContentProps) {
   // For public access, we show a more limited view
-  const [visibilityConfig, setVisibilityConfig] = useState(
-    isPublicAccess
+  const visibilityConfig = isPublicAccess
       ? {
           showSummary: true,
           showParticipants: false,
@@ -57,21 +56,9 @@ export default function WorkspaceContent({
           allowCustomInsightsEditing: false,
           showSessionRecap: true,
         }
-      : defaultWorkspaceVisibilityConfig
-  );
-
-  // Save visibility settings when they change
-  const handleVisibilityChange = async (
-    newConfig: ResultTabsVisibilityConfig
-  ) => {
-    console.log("Updating vidibility config: ", newConfig)
-    setVisibilityConfig(newConfig);
-    try {
-      // await db.updateVisibilitySettings(workspaceId, newConfig);
-    } catch (error) {
-      console.error('Failed to save visibility settings:', error);
-    }
-  };
+      : defaultWorkspaceVisibilityConfig;
+  
+  const { hasMinimumRole, loading: loadingUserInfo } = usePermissions(workspaceId);
 
   return (
     <>
@@ -82,16 +69,13 @@ export default function WorkspaceContent({
           title={workspaceData?.title}
           description={workspaceData?.description}
           location={workspaceData?.location}
-          isEditable={true} // TODO: Check user permissions
+          isEditable={!loadingUserInfo && hasMinimumRole('owner')}
         />
-        <div className="flex gap-2 self-end mt-4">
-          <InviteUsers workspaceId={workspaceId} />
-          <VisibilitySettings
-            config={workspaceData?.visibility_settings || visibilityConfig}
-            onChange={handleVisibilityChange}
-            isWorkspace={true}
-          />
-        </div>
+        {!loadingUserInfo && hasMinimumRole('owner') && (
+          <div className="flex gap-2 self-end mt-4">
+            <InviteUsers workspaceId={workspaceId} />
+          </div>
+        )}
       </div>
 
       <div className="mt-8 flex flex-col lg:flex-row gap-4">
@@ -116,7 +100,8 @@ Voici quelques questions que vous pourriez poser :
   
 You can also ask me in any other language, and I will try my best to reply in your language. (However, I might not always get that right 😅)`,
           }}
-          showEdit={!exists} // Show edit button when workspace doesn't exist
+          showEdit={!loadingUserInfo && hasMinimumRole('owner')}
+          isNewWorkspace={!exists}
         />
       </div>
 
@@ -125,7 +110,7 @@ You can also ask me in any other language, and I will try my best to reply in yo
         userData={userData}
         workspaceId={workspaceId}
         isPublicAccess={isPublicAccess}
-        showEdit={!exists} // Show edit button when workspace doesn't exist
+        showEdit={!loadingUserInfo && hasMinimumRole('owner')}
       />
     </>
   );

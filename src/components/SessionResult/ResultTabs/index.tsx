@@ -69,7 +69,8 @@ export default function ResultTabs({
   chatEntryMessage,
   sessionIds = [],
   showEdit = false, // Whether to always show edit button
-}: ResultTabsProps & { showEdit?: boolean }) {  
+  isNewWorkspace = false, // Whether this is a new workspace with no sessions
+}: ResultTabsProps & { showEdit?: boolean, isNewWorkspace?: boolean }) {  
   console.log("Visibility Settings in ResultsTabs: ", config)
 
   const { hasMinimumRole, loading: loadingUserInfo } =
@@ -120,7 +121,23 @@ export default function ResultTabs({
     [userIdsIncludedInSummary],
   );
 
-  if (!hasAnyIncludedUserMessages && !hasMinimumRole('editor')) {
+  const [visibilityConfig, setVisibilityConfig] = useState(config)
+
+  // Save visibility settings when they change
+  const handleVisibilityChange = async (
+    newConfig: ResultTabsVisibilityConfig
+  ) => {
+    console.log("Updating visibility config: ", newConfig)
+    setVisibilityConfig(newConfig);
+    try {
+      // await db.updateVisibilitySettings(workspaceId, newConfig);
+    } catch (error) {
+      console.error('Failed to save visibility settings:', error);
+    }
+  };
+
+  // For new workspaces, we'll show a placeholder instead of the "no replies" message
+  if (!hasAnyIncludedUserMessages && !isNewWorkspace && !hasMinimumRole('editor')) {
     return (
       <Card className="w-full">
         <CardContent className="text-center">
@@ -171,141 +188,198 @@ export default function ResultTabs({
   };
 
   // Shared content renderer
-  const renderLeftContent = (isMobile = false) => (
-    <div className={cn('overflow-auto', isMobile ? 'w-full' : '')}>
-      <TabContent value="SUMMARY">
-        {hasAnyIncludedUserMessages ? (
-          <SessionResultSummary
-            hostData={hostData}
-            isWorkspace={isWorkspace}
-            workspaceId={isWorkspace ? sessionOrWorkspaceId : undefined}
-            newSummaryContentAvailable={newSummaryContentAvailable || (isWorkspace && hasMinimumRole('editor'))}
-            onUpdateSummary={() => {
-              setInitialUserIds(userIdsIncludedInSummary);
-              setNewSummaryContentAvailable(false);
-            }}
-            showSessionRecap={config.showSessionRecap || true}
-          />
-        ) : (
-          <Card>
-            <CardContent>Not enough responses to show a summary</CardContent>
-          </Card>
-        )}
-      </TabContent>
-
-      {config.showParticipants && hasMinimumRole('editor') && (
-        <TabContent value="RESPONSES">
-          <SessionParticipantsTable
-            userData={userData}
-            onIncludeInSummaryChange={updateIncludedInSummaryList}
-          />
-        </TabContent>
-      )}
-
-      {responses.length > 0 && (
-        <TabContent value="CUSTOM">
-          {responses.map((response) => (
-            <CustomResponseCard
-              key={response.id}
-              response={response}
-              onRemove={
-                !loadingUserInfo && hasMinimumRole('editor')
-                  ? removeResponse
-                  : null
-              }
+  const renderLeftContent = (isMobile = false) => {
+    // Placeholder content for new workspaces
+    if (isNewWorkspace) {
+      return (
+        <div className={cn('overflow-auto h-full', isMobile ? 'w-full' : '')}>
+          <TabContent value="SUMMARY">
+            <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
+              <div className="text-center space-y-4 max-w-md">
+                <h3 className="text-2xl font-semibold text-gray-700">Workspace Summary</h3>
+                <p className="text-gray-500">
+                  Here you will see summary information about your workspace sessions.
+                  Add sessions to your workspace to see insights across all discussions.
+                </p>
+              </div>
+            </Card>
+          </TabContent>
+          <TabContent value="RESPONSES">
+            <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
+              <div className="text-center space-y-4 max-w-md">
+                <h3 className="text-2xl font-semibold text-gray-700">Participant Responses</h3>
+                <p className="text-gray-500">
+                  Here you will see transcripts of each respondant. You can choose who can see these transcripts in the <i>View Settings</i>.
+                </p>
+              </div>
+            </Card>
+          </TabContent>
+        </div>
+      );
+    }
+    
+    // Normal content for existing workspaces
+    return (
+      <div className={cn('overflow-auto', isMobile ? 'w-full' : '')}>
+        <TabContent value="SUMMARY">
+          {hasAnyIncludedUserMessages ? (
+            <SessionResultSummary
+              hostData={hostData}
+              isWorkspace={isWorkspace}
+              workspaceId={isWorkspace ? sessionOrWorkspaceId : undefined}
+              newSummaryContentAvailable={newSummaryContentAvailable || (isWorkspace && hasMinimumRole('editor'))}
+              onUpdateSummary={() => {
+                setInitialUserIds(userIdsIncludedInSummary);
+                setNewSummaryContentAvailable(false);
+              }}
+              showSessionRecap={config.showSessionRecap || true}
             />
-          ))}
+          ) : (
+            <Card>
+              <CardContent>Not enough responses to show a summary</CardContent>
+            </Card>
+          )}
         </TabContent>
-      )}
+
+        {config.showParticipants && hasMinimumRole('editor') && (
+          <TabContent value="RESPONSES">
+            <SessionParticipantsTable
+              userData={userData}
+              onIncludeInSummaryChange={updateIncludedInSummaryList}
+            />
+          </TabContent>
+        )}
+
+        {responses.length > 0 && (
+          <TabContent value="CUSTOM">
+            {responses.map((response) => (
+              <CustomResponseCard
+                key={response.id}
+                response={response}
+                onRemove={
+                  !loadingUserInfo && hasMinimumRole('editor')
+                    ? removeResponse
+                    : null
+                }
+              />
+            ))}
+          </TabContent>
+        )}
       <TabContent value="SIMSCORE">
         <SimScoreTab userData={userData} hostData={hostData[0]} resourceId={ sessionOrWorkspaceId } />
       </TabContent>
 
-      {responses.length > 0 && activeTab === 'CUSTOM' && (
-        <div className="mt-4 flex justify-end">
-          <ExportButton
-            content={responses.map((r) => r.content).join('\n\n---\n\n')}
-            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-          >
-            Export All Insights
-          </ExportButton>
-        </div>
-      )}
-    </div>
-  );
+        {responses.length > 0 && activeTab === 'CUSTOM' && (
+          <div className="mt-4 flex justify-end">
+            <ExportButton
+              content={responses.map((r) => r.content).join('\n\n---\n\n')}
+              className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+            >
+              Export All Insights
+            </ExportButton>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <Tabs className="mb-4 relative group" value={activeTab} onValueChange={setActiveTab}>
-      {/* Edit Button - Displayed on hover or always if showEdit is true */}
-      <div className={`absolute top-2 right-2 z-20 ${showEdit ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity'}`}>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="bg-white/10 hover:bg-white/20 border border-gray-200"
-          onClick={() => console.log("Edit ResultTabs clicked")}
-        >
-          <Pencil className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      <div className="flex justify-between items-center mb-4">
-        <TabsList>
-          {config.showSummary && (
-            <TabsTrigger
-              className="ms-0"
-              value="SUMMARY"
-              onClick={() =>
-                hostData.some((data) => data.summary)
-                  ? undefined
-                  : () => {
-                      if (isWorkspace) {
-                        createMultiSessionSummary(
-                          hostData.map((data) => data.id),
-                          sessionOrWorkspaceId,
-                        );
-                      } else {
-                        createSummary(sessionOrWorkspaceId);
+    <Tabs className="relative group w-full" value={activeTab} onValueChange={setActiveTab}>
+      <div className="flex justify-between items-center w-full">
+        <div className="flex items-center">
+          <TabsList>
+            {config.showSummary && (
+              <TabsTrigger
+                className="ms-0"
+                value="SUMMARY"
+                onClick={() =>
+                  hostData.some((data) => data.summary)
+                    ? undefined
+                    : () => {
+                        if (isWorkspace) {
+                          createMultiSessionSummary(
+                            hostData.map((data) => data.id),
+                            sessionOrWorkspaceId,
+                          );
+                        } else {
+                          createSummary(sessionOrWorkspaceId);
+                        }
+                        setInitialUserIds(userIdsIncludedInSummary);
                       }
-                      setInitialUserIds(userIdsIncludedInSummary);
-                    }
-              }
-            >
-              Summary
-            </TabsTrigger>
-          )}
-          {config.showParticipants && hasMinimumRole('editor') && (
-            <TabsTrigger className="ms-0" value="RESPONSES">
-              Responses
-            </TabsTrigger>
-          )}
-          {responses.length > 0 && config.showCustomInsights && (
-            <TabsTrigger className="ms-0" value="CUSTOM">
-              Custom Insights
-            </TabsTrigger>
-          )}
-          <TabsTrigger className="ms-0" value="SIMSCORE">
+                }
+              >
+                Summary
+              </TabsTrigger>
+            )}
+            {config.showParticipants && hasMinimumRole('editor') && (
+              <TabsTrigger className="ms-0" value="RESPONSES">
+                Responses
+              </TabsTrigger>
+            )}
+            {responses.length > 0 && config.showCustomInsights && (
+              <TabsTrigger className="ms-0" value="CUSTOM">
+                Custom Insights
+              </TabsTrigger>
+            )}
+            <TabsTrigger className="ms-0" value="SIMSCORE">
             SimScore Ranking
         </TabsTrigger>
       </TabsList>
+        </div>
+        
+        {/* View Settings button in the top right, same line as tabs */}
+        {(hasMinimumRole('owner') || isNewWorkspace) && (
+          <div className="flex-shrink-0">
+            {/* Edit Button positioned next to tabs instead of absolute */}
+          {showEdit && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-2 bg-white/10 hover:bg-white/20 border border-gray-200 mx-2"
+              onClick={() => console.log("Edit ResultTabs clicked")}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            )}
+            
+            <VisibilitySettings
+              config={visibilityConfig}
+              onChange={handleVisibilityChange}
+              isWorkspace={true}
+            />
+          </div>
+        )}
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className="flex flex-col md:flex-row gap-4 w-full">
         {/* Desktop Layout */}
         <div className="hidden md:block w-full">
           <ResizablePanelGroup direction="horizontal" className="flex h-full">
             <ResizablePanel defaultSize={66}>
               {renderLeftContent()}
             </ResizablePanel>
+            
             {config.showChat && (
               <>
-                <ResizableHandle withHandle className="mx-2 mt-4" />
+                <ResizableHandle withHandle className="mx-2 mt-4"/>
                 <ResizablePanel className="overflow-auto mt-4 gap-4">
-                  <SessionResultChat
-                    userData={userData}
-                    customMessageEnhancement={config.allowCustomInsightsEditing ? enhancedMessage : undefined}
-                    entryMessage={chatEntryMessage}
-                    sessionIds={sessionIds}
-                  />
+                  {isNewWorkspace ? (
+                    <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
+                      <div className="text-center space-y-4 max-w-md">
+                        <h3 className="text-2xl font-semibold text-gray-700">Chat with Your Data</h3>
+                        <p className="text-gray-500">
+                          Chat with AI that has access to your workspace data and participant transcripts.
+                        </p>
+                      </div>
+                    </Card>
+                  ) : (
+                    <SessionResultChat
+                      userData={userData}
+                      customMessageEnhancement={config.allowCustomInsightsEditing ? enhancedMessage : undefined}
+                      entryMessage={chatEntryMessage}
+                      sessionIds={sessionIds}
+                    />
+                  )}
                 </ResizablePanel>
               </>
             )}
@@ -316,13 +390,24 @@ export default function ResultTabs({
         <div className="md:hidden w-full flex flex-col gap-4">
           {renderLeftContent(true)}
           {config.showChat && (
-            <div className="w-full mt-4">
-              <SessionResultChat
-                userData={userData}
-                customMessageEnhancement={config.allowCustomInsightsEditing ? enhancedMessage : undefined}
-                entryMessage={chatEntryMessage}
-                sessionIds={sessionIds}
-              />
+            <div className="w-full">
+              {isNewWorkspace ? (
+                <Card className="border-2 border-dashed border-gray-300 min-h-[200px] flex flex-col items-center justify-center p-6">
+                  <div className="text-center space-y-4 max-w-md">
+                    <h3 className="text-xl font-semibold text-gray-700">Chat with Your Data</h3>
+                    <p className="text-gray-500 text-sm">
+                      Ask questions about insights from your workspace sessions.
+                    </p>
+                  </div>
+                </Card>
+              ) : (
+                <SessionResultChat
+                  userData={userData}
+                  customMessageEnhancement={config.allowCustomInsightsEditing ? enhancedMessage : undefined}
+                  entryMessage={chatEntryMessage}
+                  sessionIds={sessionIds}
+                />
+              )}
             </div>
           )}
         </div>
