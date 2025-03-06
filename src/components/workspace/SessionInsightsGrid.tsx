@@ -1,10 +1,8 @@
-'use client';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import SessionSummaryCard from '@/components/SessionResult/SessionSummaryCard';
 import { HostSession, UserSession } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
 import { LinkIcon, Pencil, Plus } from 'lucide-react';
-import { usePermissions } from '@/lib/permissions';
 
 interface SessionInsightsGridProps {
   hostSessions: HostSession[];
@@ -21,15 +19,13 @@ export default function SessionInsightsGrid({
   isPublicAccess = false,
   showEdit = false,
 }: SessionInsightsGridProps) {
-
-  const { hasMinimumRole } = usePermissions(workspaceId);
   
   return (
     <Card className="mt-4 relative group">
       {/* Edit Button - Displayed on hover or always if showEdit is true */}
       <div
         className={`absolute top-2 right-2 z-20 ${
-          showEdit ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity'
+          showEdit ? '' : 'hidden'
         }`}
       >
         <Button
@@ -61,7 +57,7 @@ export default function SessionInsightsGrid({
             />
           ))}
           
-          {hasMinimumRole('owner') &&
+          {showEdit &&
             <>
               <Card className="border-2 border-dashed border-gray-300 hover:border-primary cursor-pointer transition-colors">
                 <CardContent className="flex flex-col items-center justify-center p-6 min-h-[200px] space-y-4">
