@@ -11,6 +11,7 @@ import {
 } from 'kysely';
 import { Kysely } from 'kysely';
 import pg from 'pg';
+import { ResultTabsVisibilityConfig } from './types';
 
 export interface HostSessionsTable {
   id: Generated<string>;
@@ -33,6 +34,7 @@ export interface HostSessionsTable {
   prompt_summary: string;
   questions?: JSON;
   is_public: boolean;
+  visibility_settings?: ResultTabsVisibilityConfig;
 }
 
 export interface UserSessionsTable {
@@ -77,6 +79,7 @@ export interface WorkspacesTable {
   is_public?: boolean;
   created_at: ColumnType<Date, Date | undefined, never>;
   last_modified: Generated<Date>;
+  visibility_settings?: ResultTabsVisibilityConfig;
 }
 
 // Mapping of which sessions belong to which workspaces

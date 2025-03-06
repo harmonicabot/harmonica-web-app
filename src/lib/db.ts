@@ -4,6 +4,7 @@ import * as s from './schema';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
 import { deleteAssistants } from 'app/api/gptUtils';
+import { ResultTabsVisibilityConfig } from './types';
 
 // Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {
@@ -753,4 +754,39 @@ export async function canEdit(
     permission?.role === 'editor' ||
     permission?.role === 'admin'
   );
+}
+
+export async function updateVisibilitySettings(
+  resourceId: string,
+  settings: ResultTabsVisibilityConfig
+): Promise<void> {
+  try {
+    const db = await dbPromise;
+
+    // First check if this is a workspace or session ID
+    const workspace = await db
+      .selectFrom('workspaces')
+      .select('id')
+      .where('id', '=', resourceId)
+      .executeTakeFirst();
+
+    if (workspace) {
+      // Update workspace settings
+      await db
+        .updateTable('workspaces')
+        .set({ visibility_settings: settings })
+        .where('id', '=', resourceId)
+        .execute();
+    } else {
+      // Update session settings  
+      await db
+        .updateTable('host_db')
+        .set({ visibility_settings: settings })
+        .where('id', '=', resourceId)
+        .execute();
+    }
+  } catch (error) {
+    console.error('Error updating visibility settings:', error);
+    throw error;
+  }
 }
