@@ -49,7 +49,7 @@ export default function WorkspaceHero({
 
   const content = (
     <div className="bg-gradient-to-r from-purple-900 to-purple-400 text-white rounded-lg p-8 relative group">
-      <div className="absolute top-4 right-4 flex gap-2">
+      <div className="absolute top-2 right-2 z-20 flex gap-2">
         {isEditable && exists && (
           <Button
             variant="ghost"
