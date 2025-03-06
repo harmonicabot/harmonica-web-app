@@ -1,10 +1,11 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FooterConfig } from './footer';
 import { Check, ImageIcon, Pencil, Save, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/lib/permissions';
 import * as db from '@/lib/db';
+import { uploadLogo } from 'actions/upload-logo';
 
 interface FooterProps {
   workspaceId: string;
@@ -99,37 +100,54 @@ export function Footer({ workspaceId, config, onUpdate }: FooterProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [showPopup, setShowPopup] = useState(false);
     const [logoUrl, setLogoUrl] = useState(institution.logo);
-    
+    const [isUploading, setIsUploading] = useState(false);
+    const [error, setError] = useState('');
+  
     const handleDragOver = (e: React.DragEvent) => {
       e.preventDefault();
       setIsDragging(true);
     };
-    
+  
     const handleDragLeave = () => {
       setIsDragging(false);
     };
-    
-    const handleDrop = (e: React.DragEvent) => {
+  
+    const handleDrop = async (e: React.DragEvent) => {
       e.preventDefault();
       setIsDragging(false);
-      
+    
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0];
         if (file.type.startsWith('image/')) {
-          // In a real implementation, you would upload this file to storage
-          // For now, we'll create a local object URL
-          const imageUrl = URL.createObjectURL(file);
-          onChange(index, 'logo', imageUrl);
-          setShowPopup(false);
+          try {
+            setIsUploading(true);
+            setError('');
+          
+            // Create a FormData object
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('workspaceId', workspaceId);
+          
+            const url = await uploadLogo(formData);
+          
+            // Update the logo URL
+            onChange(index, 'logo', url);
+            setShowPopup(false);
+          } catch (error) {
+            console.error('Error uploading file:', error);
+            setError(error instanceof Error ? error.message : 'Failed to upload image');
+          } finally {
+            setIsUploading(false);
+          }
         }
       }
     };
-    
+  
     const handleUrlSubmit = () => {
       onChange(index, 'logo', logoUrl);
       setShowPopup(false);
     };
-    
+  
     if (!isEditing) {
       return institution.logo ? (
         <img 
@@ -139,7 +157,7 @@ export function Footer({ workspaceId, config, onUpdate }: FooterProps) {
         />
       ) : null;
     }
-    
+  
     return (
       <div className="relative mr-2">
         {institution.logo ? (
@@ -168,7 +186,7 @@ export function Footer({ workspaceId, config, onUpdate }: FooterProps) {
             </div>
           </div>
         )}
-        
+      
         {showPopup && (
           <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setShowPopup(false)}>
             <div className="absolute inset-0 bg-black/20" />
@@ -177,7 +195,7 @@ export function Footer({ workspaceId, config, onUpdate }: FooterProps) {
               onClick={e => e.stopPropagation()}
             >
               <h3 className="text-sm font-semibold mb-3">Set Logo</h3>
-              
+            
               <div className="mb-3">
                 <label className="block text-xs text-gray-600 mb-1">Enter logo URL</label>
                 <div className="flex gap-1">
@@ -197,7 +215,7 @@ export function Footer({ workspaceId, config, onUpdate }: FooterProps) {
                   </Button>
                 </div>
               </div>
-              
+            
               <div className="mb-1">
                 <label className="block text-xs text-gray-600 mb-1">Or drop an image file</label>
                 <div 
@@ -210,7 +228,7 @@ export function Footer({ workspaceId, config, onUpdate }: FooterProps) {
                   <p className="text-xs">Drag & drop or click to browse</p>
                 </div>
               </div>
-              
+            
               <div className="flex justify-end mt-3">
                 <Button 
                   variant="outline" 
@@ -228,7 +246,6 @@ export function Footer({ workspaceId, config, onUpdate }: FooterProps) {
   };
   
 
-  // Update the EditableContent component (around lines 238-248) with this implementation
   const EditableContent = ({ 
     value, 
     onChange, 
