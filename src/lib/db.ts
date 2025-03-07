@@ -667,13 +667,36 @@ export async function getWorkspaceSessions(
 }
 
 // Permissions operations
+export async function getPermissions(
+  resourceId: string,
+  resourceType?: 'SESSION' | 'WORKSPACE'
+): Promise<{ user_id: string; role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none' }[]> {
+  try {
+    const db = await dbPromise;
+    let query = db
+      .selectFrom('permissions')
+      .select(['user_id', 'role'])
+      .where('resource_id', '=', resourceId);
+    
+    if (resourceType) {
+      query = query.where('resource_type', '=', resourceType);
+    }
+    
+    return await query.execute();
+  } catch (error) {
+    console.error('Error getting permissions:', error);
+    return [];
+  }
+}
+
 export async function setPermission(
   resourceId: string,
   role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none',
+  resourceType: 'SESSION' | 'WORKSPACE' = 'SESSION',
   userId?: string,  // Defaults to whatever user is currently logged in
 ): Promise<boolean> {
   try {
-    console.log(`Setting permissions: \nResources: ${resourceId}\nUser: ${userId}\nRole: ${role}`)
+    console.log(`Setting permissions: \nResources: ${resourceId}\nUser: ${userId}\nRole: ${role}\nResource Type: ${resourceType}`)
     if (!userId) {
       const session = await authGetSession();
       userId = session?.user?.sub;
@@ -684,9 +707,9 @@ export async function setPermission(
     const db = await dbPromise;
     await db
       .insertInto('permissions')
-      .values({ resource_id: resourceId, user_id: userId || 'anonymous', role })
+      .values({ resource_id: resourceId, user_id: userId || 'anonymous', role, resource_type: resourceType })
       .onConflict((oc) =>
-        oc.columns(['resource_id', 'user_id']).doUpdateSet({ role }),
+        oc.columns(['resource_id', 'user_id']).doUpdateSet({ role, resource_type: resourceType }),
       )
       .execute();
 
@@ -700,15 +723,21 @@ export async function setPermission(
 export async function getPermission(
   resourceId: string,
   userId: string,
+  resourceType?: 'SESSION' | 'WORKSPACE'
 ): Promise<{ role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none' } | null> {
   try {
     const db = await dbPromise;
-    const result = await db
+    let query = db
       .selectFrom('permissions')
       .select('role')
       .where('resource_id', '=', resourceId)
-      .where('user_id', '=', userId)
-      .executeTakeFirst();
+      .where('user_id', '=', userId);
+    
+    if (resourceType) {
+      query = query.where('resource_type', '=', resourceType);
+    }
+    
+    const result = await query.executeTakeFirst();
 
     console.log(`${userId}'s Permissions for ${resourceId}: `, result?.role)
     return result || null;
@@ -721,14 +750,20 @@ export async function getPermission(
 export async function removePermission(
   resourceId: string,
   userId: string,
+  resourceType?: 'SESSION' | 'WORKSPACE'
 ): Promise<boolean> {
   try {
     const db = await dbPromise;
-    await db
+    let query = db
       .deleteFrom('permissions')
       .where('resource_id', '=', resourceId)
-      .where('user_id', '=', userId)
-      .execute();
+      .where('user_id', '=', userId);
+    
+    if (resourceType) {
+      query = query.where('resource_type', '=', resourceType);
+    }
+    
+    await query.execute();
 
     return true;
   } catch (error) {
@@ -740,20 +775,46 @@ export async function removePermission(
 export async function canEdit(
   userId: string,
   resourceId: string,
+  resourceType?: 'SESSION' | 'WORKSPACE'
 ): Promise<boolean> {
   const db = await dbPromise;
-  const permission = await db
+  let query = db
     .selectFrom('permissions')
     .select('role')
     .where('user_id', '=', userId)
-    .where('resource_id', '=', resourceId)
-    .executeTakeFirst();
+    .where('resource_id', '=', resourceId);
+  
+  if (resourceType) {
+    query = query.where('resource_type', '=', resourceType);
+  }
+  
+  const permission = await query.executeTakeFirst();
 
   return (
     permission?.role === 'owner' ||
     permission?.role === 'editor' ||
     permission?.role === 'admin'
   );
+}
+
+export async function getResourcesForUser(
+  userId: string,
+  resourceType: 'SESSION' | 'WORKSPACE'
+): Promise<string[]> {
+  try {
+    const db = await dbPromise;
+    const results = await db
+      .selectFrom('permissions')
+      .select('resource_id')
+      .where('user_id', '=', userId)
+      .where('resource_type', '=', resourceType)
+      .execute();
+    
+    return results.map(result => result.resource_id);
+  } catch (error) {
+    console.error('Error getting resources for user:', error);
+    return [];
+  }
 }
 
 export async function updateVisibilitySettings(

@@ -92,6 +92,7 @@ export interface PermissionsTable {
   resource_id: string;
   user_id: string;
   role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none';
+  resource_type: 'SESSION' | 'WORKSPACE';
 }
 
 export type HostSession = Selectable<HostSessionsTable>;
