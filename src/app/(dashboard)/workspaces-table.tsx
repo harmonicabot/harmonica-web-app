@@ -8,17 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { TableCell, TableRow } from '@/components/ui/table';
 import SortableTable from '@/components/SortableTable';
 import { useState } from 'react';
-import { HostSession } from '@/lib/schema';
-
-interface Workspace {
-  id: string;
-  title: string;
-  description: string;
-  created_at: string;
-  num_sessions: number;
-  num_participants: number;
-  sessions?: HostSession[];
-}
+import { HostSession, Workspace } from '@/lib/schema';
 
 function SessionRow({ session, workspaceId }: { session: HostSession; workspaceId: string }) {
   return (
@@ -128,7 +118,7 @@ function WorkspaceRow({ workspace }: { workspace: Workspace }) {
   );
 }
 
-export function WorkspacesTable({ workspaces }: { workspaces: Workspace[] }) {
+export function WorkspacesTable({ workspaces }: { workspaces: WorkspacesWithSessions[] }) {
   const tableHeaders = [
     {
       label: 'Workspace',

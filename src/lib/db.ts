@@ -70,6 +70,28 @@ export async function getHostSessions(
     .execute();
 }
 
+export async function getHostSessionsForIds(
+  ids: string[],
+  columns: (keyof s.HostSessionsTable)[],
+  page: number = 1,
+  pageSize: number = 100,
+): Promise<s.HostSession[]> {
+  const db = await dbPromise;
+  console.log('Database call to getHostSessions at:', new Date().toISOString());
+  const client = await getAuthForClient();
+
+  let query = db
+    .selectFrom(hostTableName)
+    .select(columns)
+    .where('id', 'in', ids)
+
+  return query
+    .orderBy('start_time', 'desc')
+    .limit(pageSize)
+    .offset(Math.max(0, page - 1) * pageSize)
+    .execute();
+}
+
 export async function getHostSessionById(
   sessionId: string,
 ): Promise<s.HostSession> {
@@ -799,18 +821,21 @@ export async function canEdit(
 
 export async function getResourcesForUser(
   userId: string,
-  resourceType: 'SESSION' | 'WORKSPACE'
-): Promise<string[]> {
+  resourceType?: 'SESSION' | 'WORKSPACE'
+): Promise<s.Permission[]> {
   try {
     const db = await dbPromise;
-    const results = await db
+    const columns: (keyof s.Permission)[] = ['resource_id', 'resource_type', 'role'];
+    let query = db
       .selectFrom('permissions')
-      .select('resource_id')
+      .select(columns)
       .where('user_id', '=', userId)
-      .where('resource_type', '=', resourceType)
-      .execute();
     
-    return results.map(result => result.resource_id);
+    if (resourceType) {
+      query = query.where('resource_type', '=', resourceType)
+    }
+
+    return await query.execute();
   } catch (error) {
     console.error('Error getting resources for user:', error);
     return [];
@@ -848,6 +873,29 @@ export async function updateVisibilitySettings(
     }
   } catch (error) {
     console.error('Error updating visibility settings:', error);
+    throw error;
+  }
+}
+
+export async function getWorkspacesForIds(
+  workspaceIds: string[],
+  columns: (keyof s.WorkspacesTable)[] = []
+): Promise<s.Workspace[]> {
+  try {
+    if (!workspaceIds.length) return [];
+    
+    const db = await dbPromise;
+    let query = db
+      .selectFrom('workspaces')
+      .where('id', 'in', workspaceIds);
+    
+    if (columns.length > 0) {
+      return await query.select(columns).execute();
+    } else {
+      return await query.selectAll().execute();
+    }
+  } catch (error) {
+    console.error('Error getting workspaces by IDs:', error);
     throw error;
   }
 }
