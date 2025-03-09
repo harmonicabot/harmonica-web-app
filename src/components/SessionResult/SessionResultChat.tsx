@@ -3,8 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Chat from '@/components/chat';
 import { UserSession } from '@/lib/schema';
 import { OpenAIMessage } from '@/lib/types';
-import { useEffect, useState } from 'react';
-import { getAssistantId } from '@/lib/serverUtils';
 
 interface SessionResultChatProps {
   userData: UserSession[];
@@ -22,12 +20,6 @@ export default function SessionResultChat({
   entryMessage,
   sessionIds,
 }: SessionResultChatProps) {
-  const [assistantId, setAssistantId] = useState('');
-
-  useEffect(() => {
-    getAssistantId('RESULT_CHAT_ASSISTANT').then(setAssistantId);
-  }, []);
-
   const defaultEntryMessage: OpenAIMessage = {
     role: 'assistant',
     content: `Hi there! Consider me your expert analyst, I can help you to better understand your session.
@@ -48,7 +40,7 @@ Here are a few examples of what you can ask me:
         </CardTitle>
       </CardHeader>
       <CardContent className="h-full flex flex-col overflow-y-auto pb-0">
-        {userData && userData.length > 0 && assistantId && (
+        {userData && userData.length > 0 && (
           <Chat
             context={{
               role: 'assistant',
@@ -60,7 +52,6 @@ Here are a few examples of what you can ask me:
                 ? sessionIds
                 : [userData[0].session_id]
             }
-            assistantId={assistantId}
             entryMessage={entryMessage || defaultEntryMessage}
             placeholderText="What would you like to know?"
             customMessageEnhancement={customMessageEnhancement}

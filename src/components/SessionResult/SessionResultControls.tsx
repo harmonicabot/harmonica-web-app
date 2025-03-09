@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoaderCircle, Settings } from 'lucide-react';
-import * as db from '@/lib/db'
-import { createSummary } from '@/lib/serverUtils'
+import * as db from '@/lib/db';
+import { createSummary } from '@/lib/serverUtils';
 
 interface SessionResultControlsProps {
   id: string;
@@ -56,9 +56,11 @@ export default function SessionResultControls({
                 variant="secondary"
                 onClick={updateSummary}
                 disabled={loadSummary}
-                >
-                  Update Summary
-                {loadSummary && <LoaderCircle className='ml-2 w-6 h-6 animate-spin'/>}
+              >
+                Update Summary
+                {loadSummary && (
+                  <LoaderCircle className="ml-2 w-6 h-6 animate-spin" />
+                )}
               </Button>
             )}
           </div>

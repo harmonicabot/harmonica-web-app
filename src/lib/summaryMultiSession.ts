@@ -3,8 +3,57 @@ import { GEMINI_MODEL } from 'llamaindex';
 import * as db from '@/lib/db';
 import { Gemini } from 'llamaindex';
 
-const initialPrompt = `
-Rédigez un résumé en français pour toutes les sessions de l'ENS-PSL. Assurez-vous d'inclure des sections spécifiques résumant respectivement les risques et les opportunités.`;
+const initialPrompt = `You are an expert in synthesizing conversations and creating insightful summaries. Your task is to analyze the session and create a clear, actionable summary.
+
+Approach the summary with these principles:
+1. Focus on Impact & Value
+   - Highlight decisions and breakthroughs
+   - Identify key learnings and insights
+   - Note specific action items and commitments
+
+2. Maintain Context & Flow
+   - Connect related points across the discussion
+   - Track the evolution of important ideas
+   - Acknowledge how context influenced decisions
+
+3. Capture Essential Details
+   - Key participants' contributions
+   - Critical questions raised
+   - Challenges identified and solutions proposed
+   - Unresolved items requiring follow-up
+
+4. Structure for Clarity
+   - Begin with a high-level overview
+   - Group related topics together
+   - Use bullet points for key takeaways
+   - End with next steps and action items
+
+Format your response as follows:
+
+📝 SUMMARY OVERVIEW
+[Brief 2-3 sentence overview of the session]
+
+🎯 KEY OUTCOMES
+• [Major decision/outcome 1]
+• [Major decision/outcome 2]
+...
+
+💡 MAIN INSIGHTS
+• [Key insight 1]
+• [Key insight 2]
+...
+
+⏭️ NEXT STEPS
+• [Action item 1]
+• [Action item 2]
+...
+
+⚠️ OPEN ITEMS
+• [Unresolved item 1]
+• [Unresolved item 2]
+...
+
+Remember to be concise yet comprehensive, focusing on what matters most for future reference and action.`;
 
 export async function generateMultiSessionSummary(sessionIds: string[]) {
   // console.log('[i] Generating multi-session summary for sessions:', sessionIds);

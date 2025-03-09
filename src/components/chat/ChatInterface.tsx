@@ -71,7 +71,7 @@ export const ChatInterface = ({
               </Link>
             </div>
             <div className="md:block hidden absolute bottom-3">
-              <Link href="/" target='_blank'>
+              <Link href="/" target="_blank">
                 <PoweredByHarmonica />
               </Link>
             </div>
@@ -82,9 +82,8 @@ export const ChatInterface = ({
     <hr className="md:hidden border-t border-white ms-4 me-4" />
     <div className="w-full md:w-3/4 h-full flex-grow flex flex-col pt-3 md:pb-6">
       <div className="h-full max-h-[calc(100svh-150px)] md:max-h-[calc(100svh-50px)] max-w-2xl flex m-4">
-        {((hostData?.assistant_id && hostData?.id) || assistantId) && (
+        {hostData?.id && (
           <Chat
-            assistantId={hostData?.assistant_id || assistantId || ''}
             sessionIds={[hostData?.id || '']}
             userSessionId={userSessionId}
             setUserSessionId={setUserSessionId}
