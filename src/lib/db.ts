@@ -3,8 +3,6 @@ import { getSession as authGetSession } from '@auth0/nextjs-auth0';
 import * as s from './schema';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
-// import { deleteAssistants } from 'app/api/gptUtils';
-
 // Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {
   neonConfig.webSocketConstructor = ws;

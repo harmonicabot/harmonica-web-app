@@ -107,3 +107,18 @@ export interface CustomAIResponse {
   content: string;
   created_at?: Date;
 }
+
+export interface CrossPollinationConfig {
+  maxParticipants?: number;
+  feedbackFrequency?: number;
+  feedbackDepth?: number;
+  enabled: boolean;
+  sessionId: string;
+}
+
+export interface IdeaCluster {
+  id: string;
+  ideas: string[];
+  summary: string;
+  participants: string[];
+}

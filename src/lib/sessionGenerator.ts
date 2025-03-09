@@ -81,10 +81,6 @@ export async function generateSession(config: SessionConfig) {
       throw new Error('Session data not found');
     }
 
-    if (!sessionData.assistant_id) {
-      throw new Error('No assistant ID found for session');
-    }
-
     // Generate form answers if questions exist
     let userContextPrompt = '';
     if (sessionData.questions) {

@@ -48,7 +48,6 @@ exit anytime choosing whether incomplete sessions should be saved. If a particip
 Session Steps
 Each step from 1 onwards should be numbered out of a total number of given Steps eg. “Step 1 of 3"
 Your requested deliberation questions should be divided thematically and logically into short steps of focused questions.
-After asking the user the question or questions at each Step, you must stop and wait for the participant to respond before continuing with follow up questions or the next step as appropriate.
 
 Session Closing
 After all topics are discussed in the Session Steps, thank the users for their contributions and summarize their key points from each Step.
