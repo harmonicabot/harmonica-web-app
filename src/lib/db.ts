@@ -3,7 +3,7 @@ import { getSession as authGetSession } from '@auth0/nextjs-auth0';
 import * as s from './schema';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
-import { deleteAssistants } from 'app/api/gptUtils';
+// import { deleteAssistants } from 'app/api/gptUtils';
 
 // Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {
@@ -393,9 +393,9 @@ export async function deleteSessionById(id: string): Promise<boolean> {
       .select('assistant_id')
       .where('id', '=', id)
       .executeTakeFirst();
-    if (session?.assistant_id) {
-      deleteAssistants([session.assistant_id]);
-    }
+    // if (session?.assistant_id) {
+    //   deleteAssistants([session.assistant_id]);
+    // }
     await db.deleteFrom(hostTableName).where('id', '=', id).execute();
     // TODO: not deleting user sessions for now, we might want to analyse things?
     // await db.deleteFrom(userDbName).where('session_id', '=', id).execute();
@@ -462,7 +462,7 @@ export async function getCustomResponseById(
 
 export async function getCustomResponsesByResourceIdAndType(
   sessionId: string,
-  responseType: string = "CUSTOM",
+  responseType: string = 'CUSTOM',
 ): Promise<s.CustomResponse[]> {
   try {
     const db = await dbPromise;
@@ -669,17 +669,19 @@ export async function getWorkspaceSessions(
 export async function setPermission(
   resourceId: string,
   role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none',
-  userId?: string,  // Defaults to whatever user is currently logged in
+  userId?: string, // Defaults to whatever user is currently logged in
 ): Promise<boolean> {
   try {
-    console.log(`Setting permissions: \nResources: ${resourceId}\nUser: ${userId}\nRole: ${role}`)
+    console.log(
+      `Setting permissions: \nResources: ${resourceId}\nUser: ${userId}\nRole: ${role}`,
+    );
     if (!userId) {
       const session = await authGetSession();
       userId = session?.user?.sub;
     }
     if (!userId) {
-      console.warn("Could not get user info. Will store session as anonymous.")
-    } 
+      console.warn('Could not get user info. Will store session as anonymous.');
+    }
     const db = await dbPromise;
     await db
       .insertInto('permissions')
@@ -709,7 +711,7 @@ export async function getPermission(
       .where('user_id', '=', userId)
       .executeTakeFirst();
 
-    console.log(`${userId}'s Permissions for ${resourceId}: `, result?.role)
+    console.log(`${userId}'s Permissions for ${resourceId}: `, result?.role);
     return result || null;
   } catch (error) {
     console.error('Error getting permission:', error);

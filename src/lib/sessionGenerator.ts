@@ -1,6 +1,6 @@
 import { OpenAI as LlamaOpenAI } from 'llamaindex';
 import * as db from '@/lib/db';
-import * as gpt from '../app/api/gptUtils';
+import * as llama from '../app/api/llamaUtils';
 import { getUserNameFromContext } from '@/lib/clientUtils';
 import { generateFormAnswers } from './formAnswerGenerator';
 
@@ -126,10 +126,11 @@ export async function generateSession(config: SessionConfig) {
 
     while (turnCount < config.maxTurns) {
       // Generate question using GPT utils with last user message
-      const questionResponse = await gpt.handleGenerateAnswer({
+      const questionResponse = await llama.handleGenerateAnswer({
         threadId,
-        assistantId: sessionData.assistant_id,
         messageText: lastUserMessage,
+        sessionId: config.sessionId,
+        systemPrompt: userContextPrompt,
       });
 
       // Store AI question
@@ -254,13 +255,7 @@ async function createThreadWithContext(config: SessionConfig, context: string) {
     ? `IMPORTANT USER INFORMATION:\n${context}`
     : '';
 
-  // Create OpenAI thread with context as first message
-  const threadId = await gpt.handleCreateThread(
-    userContextPrompt
-      ? { role: 'user', content: userContextPrompt }
-      : undefined,
-  );
-
+  const threadId = crypto.randomUUID();
   // Store session data
   const simulatedUserName =
     '[AI] ' +
