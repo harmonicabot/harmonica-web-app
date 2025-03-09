@@ -43,7 +43,7 @@ export default function SessionResultSummary({
       createSummary(hostData[0].id).then((summary) => {
         setIsUpdating(false);
         onUpdateSummary();
-        setSummary(summary);
+        setSummary(summary.toString());
       });
     }
   };
