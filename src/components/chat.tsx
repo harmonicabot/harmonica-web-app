@@ -12,6 +12,7 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import { Message } from '@/lib/schema';
 import ErrorPage from './Error';
 import { getUserNameFromContext } from '@/lib/clientUtils';
+import { Loader2, Sparkles } from 'lucide-react';
 
 export default function Chat({
   sessionIds,
@@ -61,6 +62,8 @@ export default function Chat({
   const [isLoading, setIsLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isParticipantSuggestionLoading, setIsParticipantSuggestionLoading] =
+    useState(false);
 
   useEffect(() => {
     if (messagesEndRef.current && messages.length > 1) {
@@ -401,6 +404,41 @@ export default function Chat({
     }
   };
 
+  const handleParticipantSuggestion = async () => {
+    if (!threadIdRef.current || isParticipantSuggestionLoading) return;
+
+    setIsParticipantSuggestionLoading(true);
+    try {
+      const response = await fetch('/api/participant-suggestion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          threadId: threadIdRef.current,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate participant suggestion');
+      }
+
+      const data = await response.json();
+
+      setFormData({ messageText: data.content });
+
+      // Focus the textarea
+      textareaRef.current?.focus();
+    } catch (error) {
+      console.error('Error generating participant suggestion:', error);
+      showErrorToast(
+        'Failed to generate participant suggestion. Please try again.',
+      );
+    } finally {
+      setIsParticipantSuggestionLoading(false);
+    }
+  };
+
   function showErrorToast(message: string) {
     setErrorToastMessage(message);
     setTimeout(() => setErrorToastMessage(''), 6000);
@@ -459,6 +497,32 @@ export default function Chat({
         className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''} sticky bottom-0`}
         onSubmit={handleSubmit}
       >
+        <div className="flex justify-end mb-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleParticipantSuggestion}
+            disabled={
+              isLoading ||
+              isParticipantSuggestionLoading ||
+              !threadIdRef.current
+            }
+            className="flex items-center gap-2"
+          >
+            {isParticipantSuggestionLoading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Sparkles size={16} />
+            )}
+            <span>
+              {isParticipantSuggestionLoading
+                ? 'Generating...'
+                : 'AI Suggestion'}
+            </span>
+          </Button>
+        </div>
+
         <div className="relative">
           <Textarea
             name="messageText"
