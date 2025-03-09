@@ -67,7 +67,7 @@ Please type your name or "anonymous" if you prefer
         </DialogHeader>
         <div className="h-[60vh]">
           {assistantId && entryMessage ? (
-            <Chat entryMessage={entryMessage} assistantId={assistantId} />
+            <Chat entryMessage={entryMessage} />
           ) : (
             <LoadingMessage />
           )}
