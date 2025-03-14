@@ -1,4 +1,4 @@
-import { OpenAI as LlamaOpenAI } from 'llamaindex';
+import { getLLM } from '@/lib/modelConfig';
 
 interface FormQuestion {
   id: string;
@@ -14,11 +14,7 @@ export async function generateFormAnswers(
   userContext: Record<string, string>,
   prompt?: string,
 ): Promise<string> {
-  const llm = new LlamaOpenAI({
-    model: 'gpt-4o-mini',
-    apiKey: process.env.OPENAI_API_KEY,
-    temperature: 0.5,
-  });
+  const llm = getLLM('SMALL', 0.5);
 
   const answers: Record<string, string> = {};
   console.log('[i] prompt', prompt);

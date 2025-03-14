@@ -1,5 +1,4 @@
-import { Gemini } from 'llamaindex';
-import { GEMINI_MODEL } from 'llamaindex';
+import { getLLM } from '@/lib/modelConfig';
 import { Message } from './schema';
 import {
   getAllChatMessagesInOrder,
@@ -23,17 +22,17 @@ export interface IdeaCluster {
 }
 
 export class CrossPollinationManager {
-  private chatEngine: Gemini;
+  private analyzeEngine;
+  private generateEngine;
   private config: CrossPollinationConfig;
   private lastCrossPollination: number | null = null;
   private sessionData: any = null;
 
   constructor(config: CrossPollinationConfig) {
     this.config = config;
-    this.chatEngine = new Gemini({
-      model: GEMINI_MODEL.GEMINI_2_0_FLASH_THINKING_EXP,
-      temperature: 0.3,
-    });
+    // Initialize with specific models for each purpose
+    this.analyzeEngine = getLLM('MAIN', 0.3);
+    this.generateEngine = getLLM('LARGE', 0.3);
   }
 
   async loadSessionData(): Promise<any> {
@@ -80,7 +79,7 @@ export class CrossPollinationManager {
       }
 
       // 4. Analyze the current thread to determine if cross-pollination is appropriate
-      const response = await this.chatEngine.chat({
+      const response = await this.analyzeEngine.chat({
         messages: [
           {
             role: 'system',
@@ -202,7 +201,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
       );
 
       // Make a single LLM call to analyze and generate a question
-      const response = await this.chatEngine.chat({
+      const response = await this.generateEngine.chat({
         messages: [
           {
             role: 'system',

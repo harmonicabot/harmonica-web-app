@@ -1,7 +1,5 @@
-import { GEMINI_MODEL } from 'llamaindex';
-
 import * as db from '@/lib/db';
-import { Gemini } from 'llamaindex';
+import { getLLM } from '@/lib/modelConfig';
 
 const initialPrompt = `You are an expert in synthesizing conversations and creating insightful summaries. Your task is to analyze the session and create a clear, actionable summary.
 
@@ -161,10 +159,7 @@ ${sessionsData[sessionIndex]?.critical ? `Key Points: ${sessionsData[sessionInde
         .replace(/\b(we|our|ours)\b/gi, `Group${sessionNum}`);
     }
 
-    const chatEngine = new Gemini({
-      model: GEMINI_MODEL.GEMINI_PRO_LATEST,
-      temperature: 0.3,
-    });
+    const chatEngine = getLLM('MAIN', 0.3);
 
     const userPrompt = `
 ### Historical Messages by Session:
