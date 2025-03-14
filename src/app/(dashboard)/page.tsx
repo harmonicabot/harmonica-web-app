@@ -1,4 +1,3 @@
-'use server'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,6 +30,39 @@ const sessionCache = cache(async () => {
     
     // Query sessions with permissions check
     const userResources = await db.getResourcesForUser(userId)
+
+    // First, check whether there are some ovverriding permissions (e.g. admin for all resources):
+    const hasAccessToAllResources = userResources.some(res => res.resource_id === 'global'); // global = admin access to all resources
+    if (hasAccessToAllResources) {
+      // For users with global access, fetch ALL sessions without client filtering
+      const hostSessions = await db.getHostSessions([
+        'id',
+        'topic',
+        'start_time',
+        'final_report_sent',
+        'active',
+        'client',
+      ]);
+
+      // Get ALL workspace IDs
+      const allWorkspaces = await db.getAllWorkspaces();
+      
+      // Get sessions for each workspace
+      const workspaceAndSessionsIds: Record<string, string[]> = Object.fromEntries(
+        await Promise.all(
+          allWorkspaces.map(async (w) => [w.id, await db.getWorkspaceSessionIds(w.id)])
+        )
+      );
+      
+      // Combine workspaces with their sessions
+      const workspacesWithSessions = await combineWorkspacesWithSessions(
+        allWorkspaces,
+        workspaceAndSessionsIds,
+        hostSessions
+      );
+      
+      return { hostSessions, workspacesWithSessions };
+    }
     const hostSessionIds = userResources.filter(r => r.resource_type === 'SESSION').map(r => r.resource_id)
     const workspaceIds = userResources.filter(r => r.resource_type === 'WORKSPACE').map(r => r.resource_id)
 
@@ -38,7 +70,7 @@ const sessionCache = cache(async () => {
     
     const workspaceAndSessionsIds: Record<string, string[]> = Object.fromEntries(
       await Promise.all(
-        workspaceIds.map(async (wId) => [wId, await db.getWorkspaceSessions(wId)])
+        workspaceIds.map(async (wId) => [wId, await db.getWorkspaceSessionIds(wId)])
       )
     )
 
@@ -63,6 +95,8 @@ const sessionCache = cache(async () => {
     return { hostSessions: [], workspacesWithSessions: [] };
   }
 });
+
+type WorkspaceWithSessions = Workspace & { sessions: HostSession[] }
 
 async function combineWorkspacesWithSessions(
   workspaces: Workspace[],

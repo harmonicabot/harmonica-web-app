@@ -56,13 +56,9 @@ export async function getHostSessions(
 ): Promise<s.HostSession[]> {
   const db = await dbPromise;
   console.log('Database call to getHostSessions at:', new Date().toISOString());
-  const client = await getAuthForClient();
 
   let query = db.selectFrom(hostTableName).select(columns);
 
-  if (client) {
-    query = query.where('client', '=', client);
-  }
   return query
     .orderBy('start_time', 'desc')
     .limit(pageSize)
@@ -588,10 +584,10 @@ export async function getWorkspaceById(
   }
 }
 
-export async function getAllWorkspaceIds(): Promise<{ id: string }[]> {
+export async function getAllWorkspaces(): Promise<s.Workspace[]> {
   try {
     const db = await dbPromise;
-    const result = await db.selectFrom('workspaces').select('id').execute();
+    const result = await db.selectFrom('workspaces').selectAll().execute();
 
     return result;
   } catch (error) {
@@ -670,7 +666,7 @@ export async function removeSessionFromWorkspace(
   }
 }
 
-export async function getWorkspaceSessions(
+export async function getWorkspaceSessionIds(
   workspaceId: string,
 ): Promise<string[]> {
   try {

@@ -16,7 +16,7 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<Workspace
     }
 
     // Fetch all necessary data for existing workspace
-    const sessionIds = await db.getWorkspaceSessions(workspaceId);
+    const sessionIds = await db.getWorkspaceSessionIds(workspaceId);
     const [hostSessions, allUserData] = await Promise.all([
       Promise.all(sessionIds.map((id) => db.getHostSessionById(id))),
       Promise.all(sessionIds.map((id) => db.getUsersBySessionId(id))),
