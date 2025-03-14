@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
 import { getAllChatMessagesInOrder, getHostSessionById } from '@/lib/db';
 import { GEMINI_MODEL } from 'llamaindex';
 import { initializeCrossPollination } from '@/lib/crossPollination';
+import { getLLM } from '@/lib/modelConfig';
 
 const basicFacilitationPrompt = `You are a skilled facilitator helping guide productive discussions. Your role is to:
 
@@ -39,30 +40,20 @@ export async function finishedResponse(
     userPrompt,
   });
 
-  const chatEngine = new Gemini({
-    model: GEMINI_MODEL.GEMINI_2_0_FLASH_THINKING_EXP,
-    temperature: 0.3,
-  });
+  const chatEngine = getLLM('MAIN', 0.3);
 
   try {
-    const messages: ChatMessage[] = [
-      {
-        role: 'system',
-        content: systemPrompt,
-      },
-      {
-        role: 'user',
-        content: userPrompt,
-      },
-    ];
-
-    console.log(
-      '[i] Generating completion with messages:',
-      JSON.stringify(messages, null, 2),
-    );
-
     const response = await chatEngine.chat({
-      messages: messages,
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt,
+        },
+        {
+          role: 'user',
+          content: userPrompt,
+        },
+      ],
     });
 
     console.log('[i] Completion response:', response);
@@ -165,10 +156,7 @@ Session Information:
 ${sessionData?.context ? `- Background Context: ${sessionData.context}` : ''}
 ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
 
-  const chatEngine = new Gemini({
-    model: GEMINI_MODEL.GEMINI_2_0_FLASH_THINKING_EXP,
-    temperature: 0.3,
-  });
+  const chatEngine = getLLM('MAIN', 0.3);
 
   const formattedMessages = [
     { role: 'system', content: sessionContext },
@@ -232,30 +220,20 @@ function streamResponse(systemPrompt: string, userPrompt: string) {
 
   return new ReadableStream({
     async start(controller) {
-      const chatEngine = new Gemini({
-        model: GEMINI_MODEL.GEMINI_2_0_FLASH_THINKING_EXP,
-        temperature: 0.3,
-      });
+      const chatEngine = getLLM('MAIN', 0.3);
 
       try {
-        const messages: ChatMessage[] = [
-          {
-            role: 'system',
-            content: systemPrompt,
-          },
-          {
-            role: 'user',
-            content: userPrompt,
-          },
-        ];
-
-        console.log(
-          '[i] Starting stream with messages:',
-          JSON.stringify(messages, null, 2),
-        );
-
         const response = await chatEngine.chat({
-          messages: messages,
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
+            {
+              role: 'user',
+              content: userPrompt,
+            },
+          ],
         });
 
         if (response.message?.content) {
