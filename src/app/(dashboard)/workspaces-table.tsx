@@ -90,12 +90,12 @@ function WorkspaceRow({ workspace }: { workspace: WorkspaceWithSessions }) {
                 <span className="sr-only">Open</span>
               </Button>
             </Link>
-            <Link href={`/workspace/${workspace.id}/settings`}>
+            {/* <Link href={`/workspace/${workspace.id}/settings`}>
               <Button variant="outline" size="sm">
                 <Settings className="h-4 w-4" />
                 <span className="sr-only">Settings</span>
               </Button>
-            </Link>
+            </Link> */}
           </div>
         </TableCell>
       </TableRow>
