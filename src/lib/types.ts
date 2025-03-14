@@ -7,6 +7,7 @@ import { UserSession, Message, HostSession } from './schema';
 export enum ApiAction {
   CreatePrompt = 'createPrompt',
   EditPrompt = 'editPrompt',
+  SummaryOfPrompt = 'summaryOfPrompt',
   CreateAssistant = 'createAssistant',
   DeleteSession = 'deleteSession',
   CreateSummary = 'create summary',
@@ -33,6 +34,7 @@ export type RequestData = {
     | AssistantMessageData
     | TemplateEditingData
     | UserSession
+    | SummaryOfPromptData
     | OpenAIMessage[]
     | string
     | { assistantIds: string[] }
@@ -78,9 +80,15 @@ export type AssistantBuilderData = {
 };
 
 export type AssistantMessageData = {
-  threadId: string;
   messageText: string;
-  assistantId: string;
+  sessionId?: string;
+  systemPrompt?: string;
+  threadId?: string;
+};
+
+export type SummaryOfPromptData = {
+  fullPrompt: string;
+  instructions: string;
 };
 
 export type UserSessions = Record<string, UserSession>;
@@ -98,6 +106,36 @@ export interface CustomAIResponse {
   session_id: string;
   content: string;
   created_at?: Date;
+}
+
+export interface CrossPollinationConfig {
+  maxParticipants?: number;
+  feedbackFrequency?: number;
+  feedbackDepth?: number;
+  enabled: boolean;
+  sessionId: string;
+}
+
+export interface IdeaCluster {
+  id: string;
+  ideas: string[];
+  summary: string;
+  participants: string[];
+}
+
+export interface CrossPollinationConfig {
+  maxParticipants?: number;
+  feedbackFrequency?: number;
+  feedbackDepth?: number;
+  enabled: boolean;
+  sessionId: string;
+}
+
+export interface IdeaCluster {
+  id: string;
+  ideas: string[];
+  summary: string;
+  participants: string[];
 }
 
 export interface ResultTabsVisibilityConfig {
