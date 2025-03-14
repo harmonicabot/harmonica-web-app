@@ -8,13 +8,16 @@ import { Badge } from '@/components/ui/badge';
 import { TableCell, TableRow } from '@/components/ui/table';
 import SortableTable from '@/components/SortableTable';
 import { useState } from 'react';
-import { HostSession, Workspace } from '@/lib/schema';
+import { HostSession } from '@/lib/schema';
+import { WorkspaceWithSessions } from './page';
+import { encryptId } from '@/lib/encryptionUtils';
 
 function SessionRow({ session, workspaceId }: { session: HostSession; workspaceId: string }) {
+  console.log("SessionStats: ", session)
   return (
     <TableRow className="bg-muted/50">
       <TableCell className="font-medium pl-12">
-        <Link href={`/workspace/${workspaceId}/${session.id}`}>
+        <Link href={`/workspace/${workspaceId}/${encryptId(session.id)}`}>
           <div className="font-medium">{session.topic}</div>
         </Link>
       </TableCell>
@@ -23,18 +26,13 @@ function SessionRow({ session, workspaceId }: { session: HostSession; workspaceI
           {session.active ? "Active" : "Finished"}
         </Badge>
       </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-1">
-          <Users className="h-4 w-4 text-gray-500" />
-          -
-        </div>
-      </TableCell>
+      
       <TableCell>
         {new Date(session.start_time).toLocaleDateString()}
       </TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-2">
-          <Link href={`/workspace/${workspaceId}/${session.id}`}>
+          <Link href={`/workspace/${workspaceId}/${encryptId(session.id)}`}>
             <Button variant="outline" size="sm">
               <ExternalLink className="h-4 w-4" />
               <span className="sr-only">Open</span>
@@ -46,9 +44,9 @@ function SessionRow({ session, workspaceId }: { session: HostSession; workspaceI
   );
 }
 
-function WorkspaceRow({ workspace }: { workspace: Workspace }) {
+function WorkspaceRow({ workspace }: { workspace: WorkspaceWithSessions }) {
   const [isExpanded, setIsExpanded] = useState(false);
-
+  console.log("Workspace details: ", workspace)
   return (
     <>
       <TableRow className="group">
@@ -78,14 +76,8 @@ function WorkspaceRow({ workspace }: { workspace: Workspace }) {
         </TableCell>
         <TableCell>
           <Badge variant="outline" className="bg-purple-100 text-purple-900">
-            {workspace.num_sessions} Sessions
+            {workspace.sessions.length} Sessions
           </Badge>
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-1">
-            <Users className="h-4 w-4 text-gray-500" />
-            {workspace.num_participants}
-          </div>
         </TableCell>
         <TableCell>
           {new Date(workspace.created_at).toLocaleDateString()}
@@ -118,7 +110,7 @@ function WorkspaceRow({ workspace }: { workspace: Workspace }) {
   );
 }
 
-export function WorkspacesTable({ workspaces }: { workspaces: WorkspacesWithSessions[] }) {
+export function WorkspacesTable({ workspaces }: { workspaces: WorkspaceWithSessions[] }) {
   const tableHeaders = [
     {
       label: 'Workspace',
@@ -128,11 +120,6 @@ export function WorkspacesTable({ workspaces }: { workspaces: WorkspacesWithSess
     {
       label: 'Sessions',
       sortKey: 'num_sessions',
-      className: 'cursor-pointer',
-    },
-    {
-      label: 'Participants',
-      sortKey: 'num_participants',
       className: 'cursor-pointer',
     },
     {
@@ -147,7 +134,7 @@ export function WorkspacesTable({ workspaces }: { workspaces: WorkspacesWithSess
     },
   ];
 
-  const getTableRow = (workspace: Workspace, index: number) => {
+  const getTableRow = (workspace: WorkspaceWithSessions, index: number) => {
     return <WorkspaceRow key={index} workspace={workspace} />;
   };
 

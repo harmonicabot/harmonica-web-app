@@ -96,7 +96,7 @@ const sessionCache = cache(async () => {
   }
 });
 
-type WorkspaceWithSessions = Workspace & { sessions: HostSession[] }
+export type WorkspaceWithSessions = Workspace & { sessions: HostSession[] }
 
 async function combineWorkspacesWithSessions(
   workspaces: Workspace[],
