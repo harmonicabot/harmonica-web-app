@@ -20,7 +20,6 @@ export default function WorkspaceLayout({
     params: { w_id: string }
   }) {
   const workspaceId = params.w_id;
-  const footerConfig = footerConfigs[workspaceId] || footerConfigs.default; 
 
   return (
     <Providers>
@@ -34,7 +33,7 @@ export default function WorkspaceLayout({
           </div>
         </div>
       </div>
-      <Footer config={footerConfig} />
+      <Footer workspaceId={workspaceId}/>
       <Analytics />
     </Providers>
   );
