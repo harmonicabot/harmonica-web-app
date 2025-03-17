@@ -2,7 +2,8 @@ import { Suspense } from 'react';
 import { fetchSessionData, SessionData } from '@/lib/hooks/useSessionData';
 import ErrorPage from '@/components/Error';
 import SessionPage from './index';
-import { OpenAIMessage, ResultTabsVisibilityConfig } from '@/lib/types';
+import { OpenAIMessage } from '@/lib/types';
+import { ResultTabsVisibilityConfig } from '@/lib/schema';
 
 interface SessionDataProviderProps {
   sessionId: string;

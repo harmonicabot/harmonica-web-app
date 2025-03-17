@@ -10,7 +10,8 @@ import { createSummary } from '@/lib/serverUtils';
 
 import ResultTabs from './ResultTabs';
 import ExportSection from '../Export/ExportSection';
-import { OpenAIMessage, ResultTabsVisibilityConfig } from '@/lib/types';
+import { OpenAIMessage } from '@/lib/types';
+import { ResultTabsVisibilityConfig } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
 import { usePathname } from 'next/navigation';
 

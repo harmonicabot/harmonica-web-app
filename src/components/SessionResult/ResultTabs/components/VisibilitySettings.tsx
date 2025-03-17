@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
-import { ResultTabsVisibilityConfig } from '@/lib/types';
+import { ResultTabsVisibilityConfig } from '@/lib/schema';
 
 interface VisibilitySettingsProps {
   config: ResultTabsVisibilityConfig;

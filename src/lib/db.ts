@@ -3,7 +3,7 @@ import { getSession as authGetSession } from '@auth0/nextjs-auth0';
 import * as s from './schema';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
-import { ResultTabsVisibilityConfig } from './types';
+import { ResultTabsVisibilityConfig } from './schema';
 
 // Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {

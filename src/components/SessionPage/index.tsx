@@ -4,7 +4,7 @@ import SessionResultsOverview from '@/components/SessionResult/SessionResultsOve
 import SessionResultsSection from '@/components/SessionResult/SessionResultsSection';
 import ErrorPage from '@/components/Error';
 import { OpenAIMessage } from '@/lib/types';
-import { ResultTabsVisibilityConfig } from '@/lib/types';
+import { ResultTabsVisibilityConfig } from '@/lib/schema';
 
 interface SessionPageProps {
   data: SessionData;

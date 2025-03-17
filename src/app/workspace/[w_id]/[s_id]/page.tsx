@@ -1,6 +1,6 @@
 import { decryptId } from '@/lib/encryptionUtils';
 import SessionDataProvider from '@/components/SessionPage/SessionDataProvider';
-import { ResultTabsVisibilityConfig } from '@/lib/types';
+import { ResultTabsVisibilityConfig } from '@/lib/schema';
 
 export const maxDuration = 300; // in seconds
 

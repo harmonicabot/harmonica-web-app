@@ -2,7 +2,7 @@ import { Metadata } from 'next/dist/lib/metadata/types/metadata-interface';
 import { getGeneratedMetadata } from 'app/api/metadata';
 import { decryptId } from '@/lib/encryptionUtils';
 import SessionDataProvider from '@/components/SessionPage/SessionDataProvider';
-import { ResultTabsVisibilityConfig } from '@/lib/types';
+import { ResultTabsVisibilityConfig } from '@/lib/schema';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 60; // in seconds

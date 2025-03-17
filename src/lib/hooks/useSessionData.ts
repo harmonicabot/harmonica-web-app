@@ -1,7 +1,7 @@
 import * as db from '@/lib/db';
 import { HostSession, UserSession } from '@/lib/schema';
 import { getUserStats } from '@/lib/clientUtils';
-import { ResultTabsVisibilityConfig } from '@/lib/types';
+import { ResultTabsVisibilityConfig } from '@/lib/schema';
 
 export interface SessionData {
   hostData: HostSession;
