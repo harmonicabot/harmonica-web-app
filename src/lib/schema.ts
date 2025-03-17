@@ -77,6 +77,10 @@ export interface WorkspacesTable {
   summary?: string;
   parent_id?: string;
   is_public?: boolean;
+  bannerImage?: string;
+  gradientFrom?: string;
+  gradientTo?: string;
+  useGradient?: boolean;
   created_at: ColumnType<Date, Date | undefined, never>;
   last_modified: Generated<Date>;
   visibility_settings?: ResultTabsVisibilityConfig;

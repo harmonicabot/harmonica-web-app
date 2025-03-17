@@ -3,6 +3,7 @@ import { getGeneratedMetadata } from 'app/api/metadata';
 import WorkspaceContent from './WorkspaceContent';
 import ErrorPage from '@/components/Error';
 import { fetchWorkspaceData } from '@/lib/workspaceData';
+import { ExtendedWorkspaceData } from '@/lib/types';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 300; // in seconds
@@ -26,7 +27,7 @@ export default async function Workspace({
   const isPublicAccess = searchParams.access === 'public';
 
   try {
-    const data = await fetchWorkspaceData(params.w_id);
+    const data: ExtendedWorkspaceData = await fetchWorkspaceData(params.w_id);
     
     // If public access is requested but workspace isn't public, show error
     if (isPublicAccess && data.workspace?.is_public === false) {
@@ -41,7 +42,7 @@ export default async function Workspace({
     return (
       <div className="p-4 md:p-8">
         <WorkspaceContent
-          {...data}
+          extendedWorkspaceData={data}
           workspaceId={params.w_id}
           isPublicAccess={isPublicAccess}
         />

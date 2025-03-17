@@ -251,7 +251,7 @@ export default function ResultTabs({
           )}
         </TabContent>
 
-        {visibilityConfig.showParticipants && hasMinimumRole('editor') && (
+        {responses.length > 0 && visibilityConfig.showParticipants && hasMinimumRole('editor') && (
           <TabContent value="RESPONSES">
             <SessionParticipantsTable
               userData={userData}

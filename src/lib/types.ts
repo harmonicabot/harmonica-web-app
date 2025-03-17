@@ -138,7 +138,7 @@ export interface IdeaCluster {
   participants: string[];
 }
 
-export interface WorkspaceData {
+export interface ExtendedWorkspaceData {
   exists: boolean;
   workspace?: Workspace;
   hostSessions: HostSession[];

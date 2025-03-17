@@ -538,6 +538,7 @@ export async function deleteCustomResponse(id: string): Promise<boolean> {
 export async function createWorkspace(
   workspace: s.NewWorkspace,
 ): Promise<s.Workspace | null> {
+  console.log("Creating new workspace: ", workspace)
   try {
     const db = await dbPromise;
     const result = await db
