@@ -11,7 +11,6 @@ import {
 } from 'kysely';
 import { Kysely } from 'kysely';
 import pg from 'pg';
-import { ResultTabsVisibilityConfig } from './types';
 
 export interface HostSessionsTable {
   id: Generated<string>;
@@ -74,6 +73,7 @@ export interface WorkspacesTable {
   id: Generated<string>;
   title: string;
   description?: string;
+  location?: string;
   summary?: string;
   parent_id?: string;
   is_public?: boolean;
@@ -93,6 +93,16 @@ export interface PermissionsTable {
   user_id: string;
   role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none';
   resource_type: 'SESSION' | 'WORKSPACE';
+}
+
+export interface ResultTabsVisibilityConfig {
+  showSummary?: boolean;
+  showSessionRecap?: boolean;
+  showParticipants?: boolean;
+  showCustomInsights?: boolean;
+  showSimScore?: boolean;
+  showChat?: boolean;
+  allowCustomInsightsEditing?: boolean;
 }
 
 export type HostSession = Selectable<HostSessionsTable>;

@@ -230,8 +230,10 @@ function CreateSessionButton({ text = 'Create Session' }: { text?: string }) {
 }
 
 function CreateWorkspaceButton({ text = 'Create Workspace' }: { text?: string }) {
+  const workspaceId = `wsp_${Math.random().toString(36).substring(2, 14)}`
+  const link = `/workspace/${workspaceId}`;
   return (
-    <Link href="/workspace/create">
+    <Link href={link}>
       <Button size="lg" className="gap-1">
         <PlusCircle className="h-3.5 w-3.5" />
         <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">

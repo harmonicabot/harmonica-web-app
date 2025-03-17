@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -26,6 +25,7 @@ export function VisibilitySettings({ config, onChange, isWorkspace, className }:
       ...config,
       [key]: !config[key],
     });
+    
   };
 
   return (
@@ -38,6 +38,7 @@ export function VisibilitySettings({ config, onChange, isWorkspace, className }:
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuLabel>Configure View Settings</DropdownMenuLabel>
+        <div className='ml-2 text-sm italic'>Change what visitors can see</div>
         <DropdownMenuSeparator />
         
         <div className="p-4 space-y-4">

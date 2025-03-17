@@ -40,7 +40,7 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<Workspace
 
     return {
       exists: true,
-      workspaceData,
+      workspace: workspaceData,
       hostSessions,
       userData,
       sessionIds

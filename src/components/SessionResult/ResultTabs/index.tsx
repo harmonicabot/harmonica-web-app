@@ -9,8 +9,8 @@ import SessionParticipantsTable from '../SessionParticipantsTable';
 import SessionResultSummary from '../SessionResultSummary';
 import { ChatMessage } from '../../ChatMessage';
 import { createMultiSessionSummary, createSummary } from '@/lib/serverUtils';
-import { HostSession, UserSession } from '@/lib/schema';
-import { OpenAIMessage, ResultTabsVisibilityConfig } from '@/lib/types';
+import { HostSession, ResultTabsVisibilityConfig, UserSession } from '@/lib/schema';
+import { OpenAIMessage } from '@/lib/types';
 import { CirclePlusIcon, Pencil } from 'lucide-react';
 import { CustomResponseCard } from './components/CustomResponseCard';
 import { TabContent } from './components/TabContent';
@@ -31,7 +31,7 @@ import { SimScoreTab } from './SimScoreTab';
 export interface ResultTabsProps {
   hostData: HostSession[];
   userData: UserSession[];
-  id: string;
+  resourceId: string;
   isWorkspace?: boolean;
   hasNewMessages: boolean;
   sessionIds?: string[];
@@ -52,10 +52,10 @@ const defaultVisibilityConfig: ResultTabsVisibilityConfig = {
 export default function ResultTabs({
   hostData, // zero or more (e.g. if workspace)
   userData, // all user data related to all hostData; might be empty
-  id: sessionOrWorkspaceId,
+  resourceId,
   isWorkspace = false,
   hasNewMessages,
-  visibilityConfig: config = defaultVisibilityConfig,
+  visibilityConfig: initialConfig = defaultVisibilityConfig,
   chatEntryMessage,
   sessionIds = [],
   showEdit = false, // Whether to always show edit button
@@ -63,11 +63,11 @@ export default function ResultTabs({
 }: ResultTabsProps & { showEdit?: boolean, isNewWorkspace?: boolean }) {  
 
   const { hasMinimumRole, loading: loadingUserInfo } =
-    usePermissions(sessionOrWorkspaceId);
+    usePermissions(resourceId);
 
   // Custom hook for managing AI responses
   const { responses, addResponse, removeResponse } =
-    useCustomResponses(sessionOrWorkspaceId);
+    useCustomResponses(resourceId);
 
   // User management state
   const initialIncluded = userData
@@ -110,7 +110,7 @@ export default function ResultTabs({
     [userIdsIncludedInSummary],
   );
 
-  const [visibilityConfig, setVisibilityConfig] = useState(config)
+  const [visibilityConfig, setVisibilityConfig] = useState(initialConfig)
 
   // Save visibility settings when they change
   const handleVisibilityChange = async (
@@ -119,11 +119,21 @@ export default function ResultTabs({
     console.log("Updating visibility config: ", newConfig)
     setVisibilityConfig(newConfig);
     try {
-      // await db.updateVisibilitySettings(workspaceId, newConfig);
+      await db.updateVisibilitySettings(resourceId, newConfig);
     } catch (error) {
       console.error('Failed to save visibility settings:', error);
     }
   };
+
+  const [activeTab, setActiveTab] = useState(
+    hostData.some((data) => data.summary) || !visibilityConfig.showParticipants
+      ? 'SUMMARY'
+      : 'RESPONSES',
+  );
+
+  const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
+    useState(hasNewMessages);
+
 
   // For new workspaces, we'll show a placeholder instead of the "no replies" message
   if (!hasAnyIncludedUserMessages && !isNewWorkspace && !hasMinimumRole('editor')) {
@@ -136,15 +146,6 @@ export default function ResultTabs({
       </Card>
     );
   }
-
-  const [activeTab, setActiveTab] = useState(
-    hostData.some((data) => data.summary) || !config.showParticipants
-      ? 'SUMMARY'
-      : 'RESPONSES',
-  );
-
-  const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
-    useState(hasNewMessages);
 
   // Message enhancement for chat
   const enhancedMessage = (message: OpenAIMessage, key: number) => {
@@ -193,6 +194,16 @@ export default function ResultTabs({
               </div>
             </Card>
           </TabContent>
+          <TabContent value="CUSTOM">
+            <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
+              <div className="text-center space-y-4 max-w-md">
+                <h3 className="text-2xl font-semibold text-gray-700">Custom Insights</h3>
+                <p className="text-gray-500">
+                  Pin important custom insights by chatting with your results
+                </p>
+              </div>
+            </Card>
+          </TabContent>
           <TabContent value="RESPONSES">
             <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
               <div className="text-center space-y-4 max-w-md">
@@ -225,13 +236,13 @@ export default function ResultTabs({
             <SessionResultSummary
               hostData={hostData}
               isWorkspace={isWorkspace}
-              workspaceId={isWorkspace ? sessionOrWorkspaceId : undefined}
+              workspaceId={isWorkspace ? resourceId : undefined}
               newSummaryContentAvailable={newSummaryContentAvailable || (isWorkspace && hasMinimumRole('editor'))}
               onUpdateSummary={() => {
                 setInitialUserIds(userIdsIncludedInSummary);
                 setNewSummaryContentAvailable(false);
               }}
-              showSessionRecap={config.showSessionRecap || true}
+              showSessionRecap={visibilityConfig.showSessionRecap || true}
             />
           ) : (
             <Card>
@@ -240,7 +251,7 @@ export default function ResultTabs({
           )}
         </TabContent>
 
-        {config.showParticipants && hasMinimumRole('editor') && (
+        {visibilityConfig.showParticipants && hasMinimumRole('editor') && (
           <TabContent value="RESPONSES">
             <SessionParticipantsTable
               userData={userData}
@@ -265,7 +276,7 @@ export default function ResultTabs({
           </TabContent>
         )}
       <TabContent value="SIMSCORE">
-        <SimScoreTab userData={userData} hostData={hostData[0]} resourceId={ sessionOrWorkspaceId } />
+        <SimScoreTab userData={userData} hostData={hostData[0]} resourceId={ resourceId } />
       </TabContent>
 
         {responses.length > 0 && activeTab === 'CUSTOM' && (
@@ -282,12 +293,15 @@ export default function ResultTabs({
     );
   };
 
+  console.log("Show custom insights:", responses.length > 0 && visibilityConfig.showCustomInsights || hasMinimumRole('editor'))
+  console.log("Show participant responses:", visibilityConfig.showParticipants || hasMinimumRole('editor'))
+
   return (
     <Tabs className="relative group w-full" value={activeTab} onValueChange={setActiveTab}>
       <div className="flex justify-between items-center w-full">
         <div className="flex items-center">
           <TabsList>
-            {config.showSummary && (
+            {visibilityConfig.showSummary && (
               <TabsTrigger
                 className="ms-0"
                 value="SUMMARY"
@@ -298,10 +312,10 @@ export default function ResultTabs({
                         if (isWorkspace) {
                           createMultiSessionSummary(
                             hostData.map((data) => data.id),
-                            sessionOrWorkspaceId,
+                            resourceId,
                           );
                         } else {
-                          createSummary(sessionOrWorkspaceId);
+                          createSummary(resourceId);
                         }
                         setInitialUserIds(userIdsIncludedInSummary);
                       }
@@ -310,19 +324,21 @@ export default function ResultTabs({
                 Summary
               </TabsTrigger>
             )}
-            {config.showParticipants && hasMinimumRole('editor') && (
+            {visibilityConfig.showParticipants || hasMinimumRole('editor') && (
               <TabsTrigger className="ms-0" value="RESPONSES">
                 Responses
               </TabsTrigger>
             )}
-            {responses.length > 0 && config.showCustomInsights && (
+            {responses.length > 0 && visibilityConfig.showCustomInsights || hasMinimumRole('editor') && (
               <TabsTrigger className="ms-0" value="CUSTOM">
                 Custom Insights
               </TabsTrigger>
             )}
-            <TabsTrigger className="ms-0" value="SIMSCORE">
-            SimScore Ranking
-        </TabsTrigger>
+            {responses.length > 4 && (visibilityConfig.showSimScore || hasMinimumRole('editor')) && (
+              <TabsTrigger className="ms-0" value="SIMSCORE">
+                SimScore Ranking
+              </TabsTrigger>
+            )}
       </TabsList>
         </div>
         
@@ -346,7 +362,7 @@ export default function ResultTabs({
               {renderLeftContent()}
             </ResizablePanel>
             
-            {config.showChat && (
+            {visibilityConfig.showChat && (
               <>
                 <ResizableHandle withHandle className="mx-2 mt-4"/>
                 <ResizablePanel className="overflow-auto mt-4 gap-4">
@@ -362,7 +378,7 @@ export default function ResultTabs({
                   ) : (
                     <SessionResultChat
                       userData={userData}
-                      customMessageEnhancement={config.allowCustomInsightsEditing ? enhancedMessage : undefined}
+                      customMessageEnhancement={visibilityConfig.allowCustomInsightsEditing ? enhancedMessage : undefined}
                       entryMessage={chatEntryMessage}
                       sessionIds={sessionIds}
                     />
@@ -376,7 +392,7 @@ export default function ResultTabs({
         {/* Mobile Layout */}
         <div className="md:hidden w-full flex flex-col gap-4">
           {renderLeftContent(true)}
-          {config.showChat && (
+          {visibilityConfig.showChat && (
             <div className="w-full">
               {isNewWorkspace ? (
                 <Card className="border-2 border-dashed border-gray-300 min-h-[200px] flex flex-col items-center justify-center p-6">
@@ -390,7 +406,7 @@ export default function ResultTabs({
               ) : (
                 <SessionResultChat
                   userData={userData}
-                  customMessageEnhancement={config.allowCustomInsightsEditing ? enhancedMessage : undefined}
+                  customMessageEnhancement={visibilityConfig.allowCustomInsightsEditing ? enhancedMessage : undefined}
                   entryMessage={chatEntryMessage}
                   sessionIds={sessionIds}
                 />

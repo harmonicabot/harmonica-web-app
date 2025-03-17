@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import { getGeneratedMetadata } from 'app/api/metadata';
-import { ResultTabsVisibilityConfig } from '@/lib/types';
 import WorkspaceContent from './WorkspaceContent';
 import ErrorPage from '@/components/Error';
 import { fetchWorkspaceData } from '@/lib/workspaceData';
@@ -30,7 +29,7 @@ export default async function Workspace({
     const data = await fetchWorkspaceData(params.w_id);
     
     // If public access is requested but workspace isn't public, show error
-    if (isPublicAccess && data.workspaceData?.is_public === false) {
+    if (isPublicAccess && data.workspace?.is_public === false) {
       return (
         <ErrorPage
           title="Access Denied"

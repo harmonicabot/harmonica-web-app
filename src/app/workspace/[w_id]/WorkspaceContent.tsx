@@ -4,9 +4,11 @@ import ResultTabs from '@/components/SessionResult/ResultTabs';
 import WorkspaceHero from '@/components/workspace/WorkspaceHero';
 import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 import InviteUsers from '@/components/workspace/InviteUsers';
-import { ResultTabsVisibilityConfig } from '@/lib/types';
-import { HostSession, UserSession } from '@/lib/schema';
+import { HostSession, ResultTabsVisibilityConfig, UserSession, Workspace } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
+import { Button } from '@/components/ui/button';
+import { createNewWorkspace } from './actions';
+import { useEffect, useState } from 'react';
 
 // Default visibility configuration for workspaces
 const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
@@ -21,14 +23,7 @@ const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
 
 interface WorkspaceContentProps {
   exists: boolean;
-  workspaceData?: {
-    id: string;
-    title?: string;
-    description?: string;
-    location?: string;
-    is_public?: boolean;
-    visibility_settings?: ResultTabsVisibilityConfig;
-  };
+  workspaceData?: Workspace;
   hostSessions: HostSession[];
   userData: UserSession[];
   sessionIds: string[];
@@ -38,13 +33,31 @@ interface WorkspaceContentProps {
 
 export default function WorkspaceContent({
   exists,
-  workspaceData,
+  workspaceData: initialWorkspaceData,
   hostSessions,
   userData,
   sessionIds,
   workspaceId,
   isPublicAccess,
 }: WorkspaceContentProps) {
+
+  const [workspaceData, setWorkspaceData] = useState<Workspace>(initialWorkspaceData);
+
+  // Update state when initialWorkspaceData changes (e.g., after fetch)
+  useEffect(() => {
+    if (initialWorkspaceData) {
+      setWorkspaceData(initialWorkspaceData);
+    }
+  }, [initialWorkspaceData]);
+
+  // Function to handle updates from child components
+  const handleWorkspaceUpdate = (updates: Partial<typeof workspaceData>) => {
+    setWorkspaceData(prev => ({
+      ...prev,
+      ...updates
+    }));
+  };
+
   // For public access, we show a more limited view
   const visibilityConfig = isPublicAccess
       ? {
@@ -58,6 +71,15 @@ export default function WorkspaceContent({
       : defaultWorkspaceVisibilityConfig;
   
   const { hasMinimumRole, loading: loadingUserInfo } = usePermissions(workspaceId);
+
+  const submitNewWorkspace = async () => {
+    if (workspaceData) {
+      if (workspaceId) {
+        workspaceData.id = workspaceId; // If this is enabled we can navigate to arbitrary pages to create new ids (instead of using random ids);
+      }
+      await createNewWorkspace(workspaceData)
+    }
+  }
 
   return (
     <>
@@ -81,7 +103,7 @@ export default function WorkspaceContent({
         <ResultTabs
           hostData={hostSessions}
           userData={userData}
-          id={workspaceId}
+          resourceId={workspaceId}
           isWorkspace={true}
           hasNewMessages={false}
           visibilityConfig={
@@ -111,6 +133,9 @@ You can also ask me in any other language, and I will try my best to reply in yo
         isPublicAccess={isPublicAccess}
         showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
       />
+      {!exists && (
+        <Button className="mt-4" onClick={submitNewWorkspace}>Save Workspace</Button>
+      )}
     </>
   );
 }

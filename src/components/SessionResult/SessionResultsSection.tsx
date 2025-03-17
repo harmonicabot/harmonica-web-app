@@ -59,7 +59,7 @@ export default function SessionResultsSection({
           <ResultTabs
             hostData={[hostData]}
             userData={userData}
-            id={resourceId}
+            resourceId={resourceId}
             hasNewMessages={hasNewMessages}
             visibilityConfig={visibilityConfig}
             chatEntryMessage={chatEntryMessage}
