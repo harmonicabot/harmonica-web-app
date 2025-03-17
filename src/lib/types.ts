@@ -2,7 +2,7 @@
 //  There's just too much going on right now and the separation between
 //  UserData, SessionData & AccumulatedData isn't clear enough.
 
-import { UserSession, Message, HostSession } from './schema';
+import { UserSession, Message, HostSession, ResultTabsVisibilityConfig, Workspace } from './schema';
 
 export enum ApiAction {
   CreatePrompt = 'createPrompt',
@@ -121,4 +121,27 @@ export interface IdeaCluster {
   ideas: string[];
   summary: string;
   participants: string[];
+}
+
+export interface CrossPollinationConfig {
+  maxParticipants?: number;
+  feedbackFrequency?: number;
+  feedbackDepth?: number;
+  enabled: boolean;
+  sessionId: string;
+}
+
+export interface IdeaCluster {
+  id: string;
+  ideas: string[];
+  summary: string;
+  participants: string[];
+}
+
+export interface ExtendedWorkspaceData {
+  exists: boolean;
+  workspace?: Workspace;
+  hostSessions: HostSession[];
+  userData: UserSession[];
+  sessionIds: string[];
 }

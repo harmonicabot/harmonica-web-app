@@ -33,6 +33,7 @@ export interface HostSessionsTable {
   prompt_summary: string;
   questions?: JSON;
   is_public: boolean;
+  visibility_settings?: ResultTabsVisibilityConfig;
 }
 
 export interface UserSessionsTable {
@@ -72,11 +73,17 @@ export interface WorkspacesTable {
   id: Generated<string>;
   title: string;
   description?: string;
+  location?: string;
   summary?: string;
   parent_id?: string;
   is_public?: boolean;
+  bannerImage?: string;
+  gradientFrom?: string;
+  gradientTo?: string;
+  useGradient?: boolean;
   created_at: ColumnType<Date, Date | undefined, never>;
   last_modified: Generated<Date>;
+  visibility_settings?: ResultTabsVisibilityConfig;
 }
 
 // Mapping of which sessions belong to which workspaces
@@ -89,6 +96,17 @@ export interface PermissionsTable {
   resource_id: string;
   user_id: string;
   role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none';
+  resource_type: 'SESSION' | 'WORKSPACE';
+}
+
+export interface ResultTabsVisibilityConfig {
+  showSummary?: boolean;
+  showSessionRecap?: boolean;
+  showParticipants?: boolean;
+  showCustomInsights?: boolean;
+  showSimScore?: boolean;
+  showChat?: boolean;
+  allowCustomInsightsEditing?: boolean;
 }
 
 export type HostSession = Selectable<HostSessionsTable>;
