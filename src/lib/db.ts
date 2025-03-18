@@ -19,6 +19,7 @@ const customResponsesTableName = 'custom_responses';
 const workspaceTableName = 'workspaces';
 const workspaceSessionsTableName = 'workspace_sessions';
 const permissionsTableName = 'permissions';
+const invitationsTableName = 'invitations';
 
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
@@ -28,6 +29,7 @@ interface Databases {
   [workspaceTableName]: s.WorkspacesTable;
   [workspaceSessionsTableName]: s.WorkspaceSessionsTable;
   [permissionsTableName]: s.PermissionsTable;
+  [invitationsTableName]: s.InvitationsTable;
 }
 
 const dbPromise = (async () => {
@@ -727,7 +729,7 @@ export async function setPermission(
       .insertInto('permissions')
       .values({ resource_id: resourceId, user_id: userId || 'anonymous', role, resource_type: resourceType })
       .onConflict((oc) =>
-        oc.columns(['resource_id', 'user_id']).doUpdateSet({ role, resource_type: resourceType }),
+        oc.columns(['resource_id', 'user_id', 'resource_type']).doUpdateSet({ role }),
       )
       .execute();
 
@@ -870,6 +872,105 @@ export async function updateVisibilitySettings(
   } catch (error) {
     console.error('Error updating visibility settings:', error);
     throw error;
+  }
+}
+
+// Invitation Management Functions
+export async function createInvitation(
+  invitation: s.NewInvitation
+): Promise<s.Invitation | null> {
+  try {
+    const db = await dbPromise;
+    const session = await authGetSession();
+    const userSub = session?.user?.sub;
+    
+    const result = await db
+      .insertInto(invitationsTableName)
+      .values({
+        ...invitation,
+        created_by: userSub
+      })
+      .returningAll()
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error creating invitation:', error);
+    return null;
+  }
+}
+
+export async function getInvitationsByEmail(
+  email: string
+): Promise<s.Invitation[]> {
+  try {
+    const db = await dbPromise;
+    const invitations = await db
+      .selectFrom(invitationsTableName)
+      .selectAll()
+      .where('email', '=', email.toLowerCase())
+      .where('accepted', '=', false)
+      .execute();
+
+    return invitations;
+  } catch (error) {
+    console.error('Error getting invitations by email:', error);
+    return [];
+  }
+}
+
+export async function getInvitationsByResource(
+  resourceId: string,
+  resourceType: 'SESSION' | 'WORKSPACE'
+): Promise<s.Invitation[]> {
+  try {
+    const db = await dbPromise;
+    const invitations = await db
+      .selectFrom(invitationsTableName)
+      .selectAll()
+      .where('resource_id', '=', resourceId)
+      .where('resource_type', '=', resourceType)
+      .execute();
+
+    return invitations;
+  } catch (error) {
+    console.error('Error getting invitations by resource:', error);
+    return [];
+  }
+}
+
+export async function markInvitationAsAccepted(
+  invitationId: string
+): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .updateTable(invitationsTableName)
+      .set({ accepted: true })
+      .where('id', '=', invitationId)
+      .execute();
+
+    return true;
+  } catch (error) {
+    console.error('Error marking invitation as accepted:', error);
+    return false;
+  }
+}
+
+export async function deleteInvitation(
+  invitationId: string
+): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .deleteFrom(invitationsTableName)
+      .where('id', '=', invitationId)
+      .execute();
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting invitation:', error);
+    return false;
   }
 }
 
