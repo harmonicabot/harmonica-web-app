@@ -5,7 +5,7 @@ import {
   getAllMessagesForSessionSorted,
   getHostSessionById,
 } from '@/lib/db';
-
+import { getPromptInstructions } from './promptsCache';
 export interface CrossPollinationConfig {
   maxParticipants?: number;
   feedbackFrequency?: number;
@@ -77,21 +77,16 @@ export class CrossPollinationManager {
         console.log('[i] Too soon since last cross-pollination');
         return false;
       }
+      const crossPollinationReasoningPrompt = await getPromptInstructions(
+        'CROSS_POLLINATION_REASONING',
+      );
 
       // 4. Analyze the current thread to determine if cross-pollination is appropriate
       const response = await this.analyzeEngine.chat({
         messages: [
           {
             role: 'system',
-            content: `You are an AI facilitator deciding when to introduce cross-pollination of ideas between conversations.
-            
-Determine if NOW is the right time to introduce ideas from other conversations based on:
-1. Progress of the current conversation (look for a natural pause point)
-2. Depth of the current conversation (is it substantive enough?)
-3. Session purpose and goals
-4. Current conversation flow and engagement
-
-Respond with ONLY "YES" or "NO" followed by a brief reason.`,
+            content: crossPollinationReasoningPrompt,
           },
           {
             role: 'user',
@@ -200,28 +195,15 @@ Based on this information, should I introduce cross-pollination now? Answer with
         },
       );
 
+      const crossPollinationPrompt =
+        await getPromptInstructions('CROSS_POLLINATION');
+
       // Make a single LLM call to analyze and generate a question
       const response = await this.generateEngine.chat({
         messages: [
           {
             role: 'system',
-            content: `You are an expert facilitator managing cross-pollination of ideas between conversations.
-
-Your task is to:
-1. Analyze the current conversation
-2. Review ideas from other conversations in the same session
-3. Identify connections, contrasts, or complementary perspectives
-4. Generate ONE thought-provoking question that introduces relevant ideas from other conversations
-
-The question should:
-- Begin with "What do you think about..." or a similar engaging phrase
-- Reference specific insights or perspectives from other participants
-- Relate directly to the current conversation's focus
-- Be concise and engaging (1-2 sentences)
-- Not reveal personal information about other participants
-- Focus on what other users think, not what "the team" thinks
-
-Respond with ONLY the question, no explanations or other text.`,
+            content: crossPollinationPrompt,
           },
           {
             role: 'user',
