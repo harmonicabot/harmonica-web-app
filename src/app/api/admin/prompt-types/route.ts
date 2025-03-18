@@ -4,12 +4,23 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     const { rows: promptTypes } = await sql`
-      SELECT name as id, name, description, created_at, updated_at
+      SELECT 
+        id,
+        name, 
+        description, 
+        created_at, 
+        updated_at
       FROM prompt_type
       ORDER BY created_at DESC
     `;
-    console.log('Fetched prompt types:', promptTypes); // Debug log
-    return NextResponse.json(promptTypes);
+
+    return NextResponse.json(
+      promptTypes.map((type) => ({
+        ...type,
+        created_at: type.created_at?.toISOString(),
+        updated_at: type.updated_at?.toISOString(),
+      })),
+    );
   } catch (error) {
     console.error('Failed to fetch prompt types:', error);
     return NextResponse.json(

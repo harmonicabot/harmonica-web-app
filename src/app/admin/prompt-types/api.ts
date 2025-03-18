@@ -30,8 +30,8 @@ export async function updatePromptType(
   return response.json();
 }
 
-export async function deletePromptType(id: string) {
-  const response = await fetch(`/api/admin/prompt-types/${id}`, {
+export async function deletePromptType(name: string) {
+  const response = await fetch(`/api/admin/prompt-types/${name}`, {
     method: 'DELETE',
   });
   if (!response.ok) throw new Error('Failed to delete prompt type');
