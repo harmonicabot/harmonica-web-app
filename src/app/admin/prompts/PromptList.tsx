@@ -66,7 +66,10 @@ export function PromptList() {
           {prompts.map((prompt) => (
             <TableRow key={prompt.id}>
               <TableCell className="font-medium">{prompt.type_name}</TableCell>
-              <TableCell>{prompt.instructions}</TableCell>
+              <TableCell>
+                {prompt.instructions.split('\n')[0]}
+                {prompt.instructions.includes('\n') && '...'}
+              </TableCell>
               <TableCell>
                 <Badge variant={prompt.active ? 'default' : 'secondary'}>
                   {prompt.active ? 'Active' : 'Inactive'}

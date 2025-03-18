@@ -20,6 +20,7 @@ import { StepNavigation } from './StepNavigation';
 import { LaunchModal } from './LaunchModal';
 import { Step, STEPS } from './types';
 import { createPromptContent } from 'app/api/utils';
+import { getPromptInstructions } from '@/lib/promptsCache';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -401,32 +402,15 @@ export default function CreationFlow() {
   }
 
   async function getStreamOfSummary({ fullPrompt }: { fullPrompt: string }) {
+    const sessionRecapPrompt = await getPromptInstructions('SESSION_RECAP');
+
     const response = await sendApiCall({
       target: ApiTarget.Builder,
       action: ApiAction.SummaryOfPrompt,
       stream: true,
       data: {
         fullPrompt: fullPrompt,
-        instructions: `
-Summarize the template instructions which you just created in a concise manner and easy to read.
-
-Provide a very brief overview of the structure of this template, the key questions, and about the desired outcome.
-
-Format this in Markdown.
-Example Summary:
-
-## Structure
-* 3 short questions to find out xyz
-* Relevant follow ups that focus on finding key information
-## Questions
-1. [Question1, possibly paraphrased]
-2. [Question2, possibly paraphrased]
-N. [QuestionN, possibly paraphrased]
-
-## Outcome
-A list of each participant's **ideas** will be collected and **sorted by priority**.
-Any **concerns and downsides** will be highlighted. This should help to **[achieve session_objective]**.
-            `,
+        instructions: sessionRecapPrompt,
       },
     });
 

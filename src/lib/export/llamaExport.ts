@@ -1,5 +1,6 @@
 import { getLLM } from '@/lib/modelConfig';
 import { Message, UserSession } from '@/lib/schema';
+import { getPromptInstructions } from '../promptsCache';
 
 /**
  * Extracts structured data from user messages using configured LLM
@@ -23,12 +24,17 @@ export async function extractDataWithLlama(
       `[llamaExport] Processing ${context.length} conversations for structured data extraction`,
     );
 
+    const extractPrompt = await getPromptInstructions('EXTRACT_PROMPT');
+    const extractUserPrompt = await getPromptInstructions(
+      'EXTRACT_USER_PROMPT',
+    );
+
     // Get the response
     const response = await chatEngine.chat({
       messages: [
         {
           role: 'system',
-          content: `You are a data extraction assistant that formats conversation data according to specific instructions. Always return valid JSON without markdown formatting or code blocks.`,
+          content: extractPrompt,
         },
         {
           role: 'user',
@@ -36,7 +42,7 @@ export async function extractDataWithLlama(
         },
         {
           role: 'user',
-          content: `Here are the conversations to extract data from:\n\n${formattedContext}\n\nIMPORTANT: Return ONLY the JSON without any backticks, markdown formatting, or explanations.`,
+          content: `Here are the conversations to extract data from:\n\n${formattedContext}\n\n${extractUserPrompt}`,
         },
       ],
     });
