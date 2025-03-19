@@ -2,31 +2,12 @@
 
 import { NewMessage } from '@/lib/schema';
 import { AssistantMessageData } from '@/lib/types';
-import { ChatMessage, Gemini } from 'llamaindex';
+import { ChatMessage } from 'llamaindex';
 import { NextResponse } from 'next/server';
 import { getAllChatMessagesInOrder, getHostSessionById } from '@/lib/db';
-import { GEMINI_MODEL } from 'llamaindex';
 import { initializeCrossPollination } from '@/lib/crossPollination';
 import { getLLM } from '@/lib/modelConfig';
-
-const basicFacilitationPrompt = `You are a skilled facilitator helping guide productive discussions. Your role is to:
-
-1. Keep discussions focused and on-topic
-2. Ensure all participants have opportunities to contribute
-3. Summarize key points and progress periodically
-4. Ask clarifying questions when needed
-5. Help resolve any misunderstandings or conflicts constructively
-6. Maintain a respectful and inclusive environment
-
-When responding:
-- Be clear and concise
-- Remain neutral and objective
-- Acknowledge contributions positively
-- Guide rather than dominate the conversation
-- Help connect different viewpoints and ideas
-- Keep track of time and progress toward session goals
-
-If the discussion gets off track, gently redirect it back to the main topic. If you notice someone hasn't contributed in a while, create opportunities for them to share their thoughts.`;
+import { getPromptInstructions } from '@/lib/promptsCache';
 
 // Add a new variable to track when we should skip cross-pollination
 let skipCrossPollination = 0;
@@ -145,6 +126,9 @@ export async function handleGenerateAnswer(
   const sessionData = await getHostSessionById(messageData.sessionId);
   console.log(`[i] Session data:`, sessionData);
 
+  const basicFacilitationPrompt = await getPromptInstructions(
+    'BASIC_FACILITATION_PROMPT',
+  );
   // Format context data
   const sessionContext = `
 System Instructions:

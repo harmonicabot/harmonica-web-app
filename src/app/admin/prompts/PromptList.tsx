@@ -27,8 +27,13 @@ interface Prompt {
   updated_at: string;
 }
 
-export function PromptList() {
+interface PromptListProps {
+  showOnlyActive: boolean;
+}
+
+export function PromptList({ showOnlyActive }: PromptListProps) {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [filteredPrompts, setFilteredPrompts] = useState<Prompt[]>([]);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
   const [deletingPrompt, setDeletingPrompt] = useState<Prompt | null>(null);
 
@@ -44,6 +49,14 @@ export function PromptList() {
   useEffect(() => {
     loadPrompts();
   }, []);
+
+  useEffect(() => {
+    if (showOnlyActive) {
+      setFilteredPrompts(prompts.filter((prompt) => prompt.active));
+    } else {
+      setFilteredPrompts(prompts);
+    }
+  }, [prompts, showOnlyActive]);
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), 'MMM d, yyyy HH:mm');
@@ -63,10 +76,13 @@ export function PromptList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {prompts.map((prompt) => (
+          {filteredPrompts.map((prompt) => (
             <TableRow key={prompt.id}>
               <TableCell className="font-medium">{prompt.type_name}</TableCell>
-              <TableCell>{prompt.instructions}</TableCell>
+              <TableCell>
+                {prompt.instructions.split('\n')[0]}
+                {prompt.instructions.includes('\n') && '...'}
+              </TableCell>
               <TableCell>
                 <Badge variant={prompt.active ? 'default' : 'secondary'}>
                   {prompt.active ? 'Active' : 'Inactive'}

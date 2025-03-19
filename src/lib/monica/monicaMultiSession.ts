@@ -2,33 +2,7 @@ import { GEMINI_MODEL } from 'llamaindex';
 import * as db from '@/lib/db';
 import { Gemini } from 'llamaindex';
 import { OpenAIMessage } from '../types';
-
-const initialPrompt = `
-### Guidelines:
-
-1. **Task Focus**:
-     * Analyze ALL provided messages and conversations
-     * Count occurrences and identify patterns
-     * Provide quantitative insights when possible
-     * Synthesize information across all available data
-
-2. **Response Structure**:
-   - **Direct Answer**: Provide a concise response to the user's question
-   - **Contextual Reference**: Cite specific relevant details or patterns from the chat history
-   - **Insight/Recommendation** (if applicable): Offer additional analysis or actionable insights
-   - **Language**: Reply in the same language as the _latest question_
-
-3. **Handling Frequencies and Patterns**:
-   - When asked about "most common" or patterns:
-     * Review all messages
-     * Count occurrences
-     * Identify recurring themes
-     * Provide specific examples
-
-4. **Security & Privacy** (CRITICAL):
-   - NEVER include any identifiers in responses
-   - Use generic terms like "a participant" or "several participants"
-   - Remove or redact any identifiers from examples`;
+import { getPromptInstructions } from '../promptsCache';
 
 export async function generateMultiSessionAnswer(
   sessionIds: string[],
@@ -36,7 +10,10 @@ export async function generateMultiSessionAnswer(
   query: string,
 ) {
   try {
-    console.log('[i] Generating multi-session answer for session(s):', sessionIds);
+    console.log(
+      '[i] Generating multi-session answer for session(s):',
+      sessionIds,
+    );
     // Get session context and objective data for all sessions
     const sessionsData = await Promise.all(
       sessionIds.map(async (sessionId) => {
@@ -91,7 +68,9 @@ export async function generateMultiSessionAnswer(
           return groups;
         }, new Map());
 
-        console.log(`Grouped messages into ${threadGroups.size} distinct threads (#participants)`)
+        console.log(
+          `Grouped messages into ${threadGroups.size} distinct threads (#participants)`,
+        );
         // Format context data for this session
         const sessionTopic =
           sessionsData[sessionIndex]?.topic || 'Unnamed Session';
@@ -172,12 +151,16 @@ ${contextData?.critical ? `Key Points: ${contextData?.critical}` : ''}`,
       temperature: 0.3,
     });
 
-    const chatHistoryWithoutInitialWelcoming = chatHistory.slice(1)
-    const chatHistoryForPrompt = chatHistoryWithoutInitialWelcoming.length > 0
-      ? `### Previous Questions & Answers for immediate chat context:\n${chatHistoryWithoutInitialWelcoming.map(msg => 
-          `${msg.role === 'user' ? 'Question' : 'Answer'}: ${msg.content}`
-        ).join('\n\n')}`
-      : ''
+    const chatHistoryWithoutInitialWelcoming = chatHistory.slice(1);
+    const chatHistoryForPrompt =
+      chatHistoryWithoutInitialWelcoming.length > 0
+        ? `### Previous Questions & Answers for immediate chat context:\n${chatHistoryWithoutInitialWelcoming
+            .map(
+              (msg) =>
+                `${msg.role === 'user' ? 'Question' : 'Answer'}: ${msg.content}`,
+            )
+            .join('\n\n')}`
+        : '';
 
     const userPrompt = `
 ### Sessions Context:
@@ -190,26 +173,29 @@ ${chatHistoryForPrompt}
 
 ### Question: ${query}
 `;
-    console.log('[i] User prompt length: ', userPrompt.length)
-    console.log('[i] User prompt:', userPrompt.length > 1000 
-      ? `${userPrompt.slice(0, 500)}...${userPrompt.slice(-500)}`
-      : userPrompt
+    console.log('[i] User prompt length: ', userPrompt.length);
+    console.log(
+      '[i] User prompt:',
+      userPrompt.length > 1000
+        ? `${userPrompt.slice(0, 500)}...${userPrompt.slice(-500)}`
+        : userPrompt,
     );
     console.log('[i] Sending query to AI...');
-    
+    const askAiPrompt = await getPromptInstructions('ASK_AI_PROMPT');
+
     // Send the whole prompt to the AI:
     // TODO: if possible, we should reuse the previously used thread and avoid sending _everything_.
     const response = await chatEngine.chat({
       messages: [
-        { role: 'system', content: initialPrompt },
+        { role: 'system', content: askAiPrompt },
         {
           role: 'user',
           content: userPrompt,
-        }
+        },
       ],
     });
 
-    console.log('[i] Received response: ', response.message.content)
+    console.log('[i] Received response: ', response.message.content);
     return response.message.content;
     // }
   } catch (error) {
