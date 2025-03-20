@@ -7,6 +7,7 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
     
     // If workspace doesn't exist, return empty data structure
     if (!workspaceData) {
+      console.log(`Workspace ${workspaceId} not found, seems this is a new one!`);
       return {
         exists: false,
         hostSessions: [],
@@ -15,6 +16,7 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
       };
     }
 
+    console.log(`Found workspace ${workspaceId}!`);
     // Fetch all necessary data for existing workspace
     const sessionIds = await db.getWorkspaceSessionIds(workspaceId);
     const [hostSessions, allUserData] = await Promise.all([

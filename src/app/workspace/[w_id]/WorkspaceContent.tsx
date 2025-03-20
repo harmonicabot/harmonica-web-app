@@ -100,7 +100,7 @@ export default function WorkspaceContent({
           isEditable={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
           onUpdate={handleWorkspaceUpdate}
         />
-        {!loadingUserInfo && hasMinimumRole('owner') && (
+        {!loadingUserInfo && hasMinimumRole('owner') && exists && (
           <div className="flex gap-2 self-end mt-4">
             <ShareWorkspace workspaceId={workspaceId} />
           </div>
@@ -138,12 +138,9 @@ Here are some questions you might want to ask:
         isPublicAccess={isPublicAccess}
         showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
       />
-      {!exists ? (
+      {!exists && (
         <Button className="mt-4" onClick={submitNewWorkspace}>Create Workspace</Button>
-      ) : (
-        <Button className="mt-4" onClick={updateWorkspace}>Update Workspace</Button>
-      )
-      }
+      )}
     </>
   );
 }

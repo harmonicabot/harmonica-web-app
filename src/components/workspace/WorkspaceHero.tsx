@@ -87,9 +87,8 @@ export default function WorkspaceHero({
 
   const handleSave = async () => {
     try {
-      let finalBannerImage = bannerImage;
-      
-      // If there's a new image file waiting to be uploaded
+      let finalBannerImage = useGradient ? undefined : bannerImageUrl; // Start with existing URL or otherwise a gradient
+      // Only upload if we have a new image file
       if (imageFile && !useGradient) {
         // Import is inside the function to maintain client component compatibility
         const { uploadBanner } = await import('app/workspace/[w_id]/actions'); 
@@ -100,7 +99,7 @@ export default function WorkspaceHero({
         
         // Upload the image and get the URL
         finalBannerImage = await uploadBanner(formData);
-        
+        console.log('Uploaded image to url:', finalBannerImage);
         // Reset the file state
         setImageFile(null);
       }
@@ -108,31 +107,29 @@ export default function WorkspaceHero({
       // Create the update data object
       const updateData: WorkspaceUpdate = {
         ...values,
-        bannerImage: finalBannerImage,
+        bannerImage: finalBannerImage, // This will be either undefined, existing URL, or newly uploaded URL
         gradientFrom,
         gradientTo,
         useGradient
       };
+
       
-      // Update local state with the uploaded image URL
-      if (finalBannerImage !== bannerImage) {
+      // If we got a new URL, update the local state
+      if (finalBannerImage && finalBannerImage !== bannerImage) {
         setBannerImage(finalBannerImage);
       }
       
-      // If parent provided an onUpdate function, call it with our data
       if (onUpdate) {
         onUpdate(updateData);
       }
       
-      // If the workspace exists, save to the database
+      // If the workspace exists, save to the database. Otherwise, only save it once the user confirms the workspace creation. (The data will be passed up with onUpdate above)
       if (exists) {
         await updateWorkspaceDetails(workspaceId, updateData);
       }
-      
-      // Optionally show success message
+
     } catch (error) {
       console.error('Error updating workspace:', error);
-      // Handle error (show error message, etc.)
     }
     setIsEditing(false);
   };
@@ -143,6 +140,7 @@ export default function WorkspaceHero({
       style={bannerStyle}
     >
       <div className="absolute top-2 right-2 z-20 flex gap-2">
+        {/* Button in the top right corner*/}
         {isEditable && exists && (
           <Button
             variant="ghost"
@@ -164,14 +162,19 @@ export default function WorkspaceHero({
             <Pencil className="w-16 h-16 text-white/50" />
           </div>
         )}
-        <h1 className="text-4xl font-bold mb-4">{values.title}</h1>
-        <p className="text-xl mb-4">{values.description}</p>
-        {values.location && (
+        <h1 className="text-4xl font-bold mb-4">
+          {values.title || (!exists && "Add Workspace Title")}
+        </h1>
+        <p className="text-xl mb-4">
+          {values.description || (!exists && "Add a description for your workspace")}
+        </p>
+        {(values.location || !exists) && (
           <div className="flex items-center gap-2 text-blue-100">
             <MapPin className="h-5 w-5" />
-            <span>{values.location}</span>
+            <span>{values.location || (!exists && "Add location")}</span>
           </div>
         )}
+
       </div>
     </div>
   );
@@ -249,6 +252,7 @@ export default function WorkspaceHero({
                         const reader = new FileReader();
                         reader.onload = () => {
                           setBannerImage(reader.result as string);
+                          setImageFile(file);
                           setUseGradient(false);
                         };
                         reader.readAsDataURL(file);
