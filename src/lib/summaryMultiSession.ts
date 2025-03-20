@@ -1,59 +1,6 @@
-import { GEMINI_MODEL } from 'llamaindex';
-
 import * as db from '@/lib/db';
-import { Gemini } from 'llamaindex';
-
-const initialPrompt = `You are an expert in synthesizing conversations and creating insightful summaries. Your task is to analyze the session and create a clear, actionable summary.
-
-Approach the summary with these principles:
-1. Focus on Impact & Value
-   - Highlight decisions and breakthroughs
-   - Identify key learnings and insights
-   - Note specific action items and commitments
-
-2. Maintain Context & Flow
-   - Connect related points across the discussion
-   - Track the evolution of important ideas
-   - Acknowledge how context influenced decisions
-
-3. Capture Essential Details
-   - Key participants' contributions
-   - Critical questions raised
-   - Challenges identified and solutions proposed
-   - Unresolved items requiring follow-up
-
-4. Structure for Clarity
-   - Begin with a high-level overview
-   - Group related topics together
-   - Use bullet points for key takeaways
-   - End with next steps and action items
-
-Format your response as follows:
-
-📝 SUMMARY OVERVIEW
-[Brief 2-3 sentence overview of the session]
-
-🎯 KEY OUTCOMES
-• [Major decision/outcome 1]
-• [Major decision/outcome 2]
-...
-
-💡 MAIN INSIGHTS
-• [Key insight 1]
-• [Key insight 2]
-...
-
-⏭️ NEXT STEPS
-• [Action item 1]
-• [Action item 2]
-...
-
-⚠️ OPEN ITEMS
-• [Unresolved item 1]
-• [Unresolved item 2]
-...
-
-Remember to be concise yet comprehensive, focusing on what matters most for future reference and action.`;
+import { getLLM } from '@/lib/modelConfig';
+import { getPromptInstructions } from '@/lib/promptsCache';
 
 export async function generateMultiSessionSummary(sessionIds: string[]) {
   // console.log('[i] Generating multi-session summary for sessions:', sessionIds);
@@ -161,22 +108,18 @@ ${sessionsData[sessionIndex]?.critical ? `Key Points: ${sessionsData[sessionInde
         .replace(/\b(we|our|ours)\b/gi, `Group${sessionNum}`);
     }
 
-    const chatEngine = new Gemini({
-      model: GEMINI_MODEL.GEMINI_PRO_LATEST,
-      temperature: 0.3,
-    });
+    const chatEngine = getLLM('MAIN', 0.3);
 
     const userPrompt = `
 ### Historical Messages by Session:
 ${messagesContent}
 `;
 
-    // console.log('[i] User prompt:', userPrompt);
+    const summaryPrompt = await getPromptInstructions('SUMMARY_PROMPT');
 
-    // Update the prompt structure
     const response = await chatEngine.chat({
       messages: [
-        { role: 'system', content: initialPrompt },
+        { role: 'system', content: summaryPrompt },
         {
           role: 'user',
           content: userPrompt,

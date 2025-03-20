@@ -1,16 +1,10 @@
-import { OpenAI as LlamaOpenAI } from 'llamaindex';
+import { getLLM } from '@/lib/modelConfig';
 import { getAllChatMessagesInOrder } from '@/lib/db';
 import { NewMessage } from '@/lib/schema';
-
-enum ModelProvider {
-  GPT4_MINI = 'gpt-4o-mini',
-  GPT3_TURBO = 'gpt-3.5-turbo',
-}
 
 interface AnswerGeneratorConfig {
   threadId: string;
   temperature?: number;
-  modelProvider?: ModelProvider;
 }
 
 const TEAM_MEMBER_PROMPT = `You are a creative UI/UX lead participating in this discussion. Follow these guidelines:
@@ -41,12 +35,10 @@ export async function generateParticipantAnswer(
   config: AnswerGeneratorConfig,
 ): Promise<NewMessage> {
   try {
-    const {
-      threadId,
-      temperature = 0.7,
-      modelProvider = ModelProvider.GPT4_MINI,
-    } = config;
+    const { threadId, temperature = 0.7 } = config;
 
+    // Initialize LLM with SMALL model configuration
+    const llm = getLLM('SMALL', temperature);
     console.log(`[i] Generating participant answer for thread: ${threadId}`);
 
     // Get all messages in the thread
@@ -75,17 +67,7 @@ export async function generateParticipantAnswer(
       )
       .join('\n\n');
 
-    // Set up OpenAI client
-    const llm = new LlamaOpenAI({
-      model: modelProvider,
-      apiKey: process.env.OPENAI_API_KEY,
-      maxTokens: 150, // Reduced token count for shorter responses
-      temperature: temperature,
-    });
-
-    console.log('[i] Generating participant response with OpenAI');
-
-    // Generate response
+    // Generate response using configured LLM
     const response = await llm.chat({
       messages: [
         {

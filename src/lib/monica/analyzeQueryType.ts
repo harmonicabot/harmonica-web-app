@@ -1,4 +1,4 @@
-import { OpenAI as LlamaOpenAI } from 'llamaindex';
+import { getLLM } from '@/lib/modelConfig';
 
 export type QueryClassification = {
   type: 'analytical' | 'specific';
@@ -8,11 +8,7 @@ export type QueryClassification = {
 export async function analyzeQueryType(
   query: string,
 ): Promise<QueryClassification> {
-  const classificationModel = new LlamaOpenAI({
-    model: 'gpt-3.5-turbo', // Using smaller model for classification
-    temperature: 0, // Zero temperature for consistent results
-    apiKey: process.env.OPENAI_API_KEY,
-  });
+  const llm = getLLM('MAIN', 0); // Using zero temperature for consistent results
 
   const classificationPrompt = `Analyze if this question requires RAG (specific) or analytical processing: "${query}"
 
@@ -39,12 +35,17 @@ export async function analyzeQueryType(
     Return only a JSON object: {"type":"analytical"|"specific","confidence":0.0-1.0}`;
 
   try {
-    const classificationResponse = await classificationModel.complete({
-      prompt: classificationPrompt,
+    const response = await llm.chat({
+      messages: [
+        {
+          role: 'user',
+          content: classificationPrompt,
+        },
+      ],
     });
 
     const queryClassification = JSON.parse(
-      classificationResponse.text as string,
+      response.message.content.toString(),
     ) as QueryClassification;
     return queryClassification;
   } catch (error) {

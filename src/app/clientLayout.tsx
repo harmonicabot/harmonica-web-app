@@ -12,6 +12,7 @@ export default function ClientLayout({
   const pathname = usePathname();
   const isChatPage = pathname?.startsWith('/chat');
   const isWorkSpacePage = pathname?.startsWith('/workspace');
+  const isAdminPage = pathname?.startsWith('/admin');
   const isRootPage = pathname === '/';
 
   return (
@@ -24,7 +25,7 @@ export default function ClientLayout({
         <div>{children}</div>
       ) : (
         <div className="flex flex-col min-h-screen">
-          <Navigation />
+          {!isAdminPage && <Navigation />}
           <main className="flex flex-col justify-start flex-grow bg-purple-50">
             {children}
           </main>
