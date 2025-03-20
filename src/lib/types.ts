@@ -144,4 +144,5 @@ export interface ExtendedWorkspaceData {
   hostSessions: HostSession[];
   userData: UserSession[];
   sessionIds: string[];
+  availableSessionIds: string[];
 }

@@ -3,6 +3,19 @@ import SessionSummaryCard from '@/components/SessionResult/SessionSummaryCard';
 import { HostSession, UserSession } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
 import { LinkIcon, Pencil, Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { linkSessionsToWorkspace } from '@/lib/workspaceActions';
 
 interface SessionInsightsGridProps {
   hostSessions: HostSession[];
@@ -10,6 +23,7 @@ interface SessionInsightsGridProps {
   workspaceId: string;
   isPublicAccess?: boolean;
   showEdit?: boolean;
+  availableSessions?: String[];
 }
 
 export default function SessionInsightsGrid({
@@ -18,7 +32,50 @@ export default function SessionInsightsGrid({
   workspaceId,
   isPublicAccess = false,
   showEdit = false,
+  availableSessions = [],
 }: SessionInsightsGridProps) {
+  const router = useRouter();
+  const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
+  const [isLinking, setIsLinking] = useState(false);
+  
+  console.log("Available Sessions: ", availableSessions)
+
+  // Filter out sessions that are already in the workspace
+  const sessionsToLink = hostSessions.filter(
+    session => !availableSessions.includes(session.id)
+  );
+
+  console.log("Sessions to link: ", sessionsToLink)
+
+  const handleCreateSession = () => {
+    // Store the workspace ID in localStorage to retrieve after session creation
+    localStorage.setItem('pendingWorkspaceLink', workspaceId);
+    router.push('/app/create');
+  };
+
+  const handleSessionSelection = (sessionId: string) => {
+    setSelectedSessions(prev => 
+      prev.includes(sessionId)
+        ? prev.filter(id => id !== sessionId)
+        : [...prev, sessionId]
+    );
+  };
+
+  const handleLinkSessions = async () => {
+    if (selectedSessions.length === 0) return;
+    
+    setIsLinking(true);
+    try {
+      await linkSessionsToWorkspace(workspaceId, selectedSessions);
+      router.refresh(); // Refresh the page to show the newly linked sessions
+    } catch (error) {
+      console.error('Failed to link sessions:', error);
+      // You might want to add error handling UI here
+    } finally {
+      setIsLinking(false);
+      setSelectedSessions([]);
+    }
+  };
   
   return (
     <Card className="mt-4 relative group">
@@ -43,7 +100,10 @@ export default function SessionInsightsGrid({
           
           {showEdit &&
             <>
-              <Card className="border-2 border-dashed border-gray-300 hover:border-primary cursor-pointer transition-colors">
+              <Card 
+                className="border-2 border-dashed border-gray-300 hover:border-primary cursor-pointer transition-colors"
+                onClick={handleCreateSession}
+              >
                 <CardContent className="flex flex-col items-center justify-center p-6 min-h-[200px] space-y-4">
                   <div className="p-3 rounded-full bg-primary/10">
                     <Plus className="w-6 h-6 text-primary" />
@@ -58,21 +118,66 @@ export default function SessionInsightsGrid({
               </Card>
 
               {/* Link Existing Session Card */}
-              <Card className="border-2 border-dashed border-gray-300 hover:border-primary cursor-pointer transition-colors">
-                <CardContent className="flex flex-col items-center justify-center p-6 min-h-[200px] space-y-4">
-                  <div className="p-3 rounded-full bg-primary/10">
-                    <LinkIcon className="w-6 h-6 text-primary" />
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Card className="border-2 border-dashed border-gray-300 hover:border-primary cursor-pointer transition-colors">
+                    <CardContent className="flex flex-col items-center justify-center p-6 min-h-[200px] space-y-4">
+                      <div className="p-3 rounded-full bg-primary/10">
+                        <LinkIcon className="w-6 h-6 text-primary" />
+                      </div>
+                      <div className="text-center">
+                        <h3 className="font-semibold mb-2">
+                          Link Existing Session
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          Connect an existing session to this workspace
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Link Existing Sessions</DialogTitle>
+                  </DialogHeader>
+                  <div className="py-4">
+                    {sessionsToLink.length === 0 ? (
+                      <p className="text-center text-gray-500">No available sessions to link</p>
+                    ) : (
+                      <div className="space-y-4 max-h-[300px] overflow-y-auto">
+                        {sessionsToLink.map(session => (
+                          <div key={session.id} className="flex items-start space-x-2">
+                            <Checkbox 
+                              id={session.id} 
+                              checked={selectedSessions.includes(session.id)}
+                              onCheckedChange={() => handleSessionSelection(session.id)}
+                            />
+                            <div className="grid gap-1.5">
+                              <Label htmlFor={session.id} className="font-medium">
+                                {session.topic}
+                              </Label>
+                              <p className="text-sm text-gray-500">
+                                {new Date(session.start_time).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-center">
-                    <h3 className="font-semibold mb-2">
-                      Link Existing Session
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Connect an existing session to this workspace
-                    </p>
+                  <div className="flex justify-end gap-2">
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button 
+                      onClick={handleLinkSessions} 
+                      disabled={selectedSessions.length === 0 || isLinking}
+                    >
+                      {isLinking ? 'Linking...' : 'Link Selected Sessions'}
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </DialogContent>
+              </Dialog>
             </>
           }
         </div>

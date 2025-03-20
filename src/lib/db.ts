@@ -823,20 +823,33 @@ export async function canEdit(
 
 export async function getResourcesForUser(
   userId: string,
-  resourceType?: 'SESSION' | 'WORKSPACE'
+  resourceType?: 'SESSION' | 'WORKSPACE',
+  columns: (keyof s.Permission)[] = ['resource_id', 'resource_type', 'role']
 ): Promise<s.Permission[]> {
   try {
-    const db = await dbPromise;
-    const columns: (keyof s.Permission)[] = ['resource_id', 'resource_type', 'role'];
+    const db = await dbPromise;    
+    // Check for global permissions first
+    const globalPermission = await db
+      .selectFrom(permissionsTableName)
+      .select('role')
+      .where('user_id', '=', userId)
+      .where('resource_id', '=', 'global')
+      .executeTakeFirst();
+    console.log("Global Permission: ", globalPermission)
     let query = db
       .selectFrom('permissions')
-      .select(columns)
-      .where('user_id', '=', userId)
+      .select(columns);
+      
+    if (!globalPermission) {
+      console.log("Getting resources, limiting to userId: ", userId)
+      query = query.where('user_id', '=', userId);
+    } else {
+      console.log("Getting resources for admin")
+    }
     
     if (resourceType) {
       query = query.where('resource_type', '=', resourceType)
     }
-
     return await query.execute();
   } catch (error) {
     console.error('Error getting resources for user:', error);
@@ -1125,5 +1138,81 @@ export async function getUsersWithPermissionsForResource(
   } catch (error) {
     console.error('Error getting users with permissions:', error);
     return [];
+  }
+}
+
+/**
+ * Creates a link between a workspace and a session
+ */
+export async function createWorkspaceSessionLink(workspaceId: string, sessionId: string) {
+  const db = await dbPromise;
+  
+  try {
+    // Check if the link already exists to avoid duplicates
+    const existingLink = await db
+      .selectFrom(workspaceSessionsTableName)
+      .select(['workspace_id', 'session_id'])
+      .where('workspace_id', '=', workspaceId)
+      .where('session_id', '=', sessionId)
+      .executeTakeFirst();
+    
+    if (existingLink) {
+      return existingLink; // Link already exists
+    }
+    
+    // Create the new link
+    return await db
+      .insertInto(workspaceSessionsTableName)
+      .values({
+        workspace_id: workspaceId,
+        session_id: sessionId,
+      })
+      .returningAll()
+      .executeTakeFirst();
+  } catch (error) {
+    console.error('Error creating workspace-session link:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches all available sessions that could be linked to a workspace
+ * (This would typically be sessions the user has access to)
+ */
+export async function getAvailableSessionIdsForUser(userId: string) {
+  const db = await dbPromise;
+  
+  try {
+    let query;
+    // First, check if the user has global admin access
+    const globalPermission = await db
+      .selectFrom(permissionsTableName)
+      .where('resource_id', '=', 'global')
+      .where('user_id', '=', userId)
+      .select('role')
+      .executeTakeFirst();
+    
+    console.log('Global permission:', globalPermission);
+    // If user has global access, return all session IDs
+    if (globalPermission) {
+      query = db
+        .selectFrom(hostTableName)
+        .select(`${hostTableName}.id`)
+    } else {
+    
+      // Otherwise, return only sessions the user has specific permissions for
+      query = db
+        .selectFrom(hostTableName)
+        .innerJoin(permissionsTableName, `${permissionsTableName}.resource_id`, `${hostTableName}.id`)
+        .where(`${permissionsTableName}.resource_type`, '=', 'SESSION')
+        .where(`${permissionsTableName}.user_id`, '=', userId)
+        .select(`${hostTableName}.id`)
+      }
+    const result = await query.execute();
+    console.log('Available sessions for linking:', result);
+    return result.map((row) => row.id);
+  } catch (error) {
+    console.error('Error fetching available session IDs:', error);
+    throw error;
   }
 }

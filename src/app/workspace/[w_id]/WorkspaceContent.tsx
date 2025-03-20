@@ -31,7 +31,7 @@ interface WorkspaceContentProps {
 export default function WorkspaceContent({
   extendedWorkspaceData,
   workspaceId,
-  isPublicAccess,
+  isPublicAccess = false,
 }: WorkspaceContentProps) {
 
   const initialWorkspaceData = extendedWorkspaceData?.workspace
@@ -137,6 +137,7 @@ Here are some questions you might want to ask:
         workspaceId={workspaceId}
         isPublicAccess={isPublicAccess}
         showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
+        availableSessions={extendedWorkspaceData.availableSessionIds}
       />
       {!exists && (
         <Button className="mt-4" onClick={submitNewWorkspace}>Create Workspace</Button>

@@ -21,6 +21,7 @@ import { LaunchModal } from './LaunchModal';
 import { Step, STEPS } from './types';
 import { createPromptContent } from 'app/api/utils';
 import { getPromptInstructions } from '@/lib/promptsCache';
+import { linkSessionsToWorkspace } from '@/lib/workspaceActions';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -225,8 +226,20 @@ export default function CreationFlow() {
       expirationDate.setDate(expirationDate.getDate() + 30);
       document.cookie = `sessionId=${sessionId}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
 
-      // Navigate based on mode
-      if (mode === 'launch') {
+      // Navigate based on mode & whether there's a pending workspace linking action
+      const pendingWorkspaceId = localStorage.getItem('pendingWorkspaceLink');      
+      if (pendingWorkspaceId) {
+        try {
+          // Link the newly created session to the workspace
+          await linkSessionsToWorkspace(pendingWorkspaceId, [sessionId]);        
+          // Clear the pending link
+          localStorage.removeItem('pendingWorkspaceLink');
+          // Redirect to the workspace page
+          route.push(`/workspace/${pendingWorkspaceId}`);
+        } catch (error) {
+          console.error('Failed to link session to workspace:', error);
+        }
+      } else if (mode === 'launch') {
         route.push(`/sessions/${encryptId(sessionId)}`);
       } else {
         route.push('/');
