@@ -144,4 +144,5 @@ export interface ExtendedWorkspaceData {
   hostSessions: HostSession[];
   userData: UserSession[];
   sessionIds: string[];
+  availableSessions?: Pick<HostSession, 'id' | 'topic' | 'start_time'>[];
 }

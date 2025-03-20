@@ -3,7 +3,7 @@
 import ResultTabs from '@/components/SessionResult/ResultTabs';
 import WorkspaceHero from '@/components/workspace/WorkspaceHero';
 import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
-import InviteUsers from '@/components/workspace/InviteUsers';
+import ShareWorkspace from '@/components/workspace/ShareWorkspace';
 import { ResultTabsVisibilityConfig, Workspace } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ interface WorkspaceContentProps {
 export default function WorkspaceContent({
   extendedWorkspaceData,
   workspaceId,
-  isPublicAccess,
+  isPublicAccess = false,
 }: WorkspaceContentProps) {
 
   const initialWorkspaceData = extendedWorkspaceData?.workspace
@@ -100,9 +100,9 @@ export default function WorkspaceContent({
           isEditable={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
           onUpdate={handleWorkspaceUpdate}
         />
-        {!loadingUserInfo && hasMinimumRole('owner') && (
+        {!loadingUserInfo && hasMinimumRole('owner') && exists && (
           <div className="flex gap-2 self-end mt-4">
-            <InviteUsers workspaceId={workspaceId} />
+            <ShareWorkspace workspaceId={workspaceId} />
           </div>
         )}
       </div>
@@ -117,17 +117,14 @@ export default function WorkspaceContent({
           visibilityConfig={
             workspaceData?.visibility_settings || visibilityConfig
           }
-          sessionIds={exists ? extendedWorkspaceData.sessionIds : ['placeholder-session-1', 'placeholder-session-2']}
+          sessionIds={extendedWorkspaceData.sessionIds}
           chatEntryMessage={{
             role: 'assistant',
-            content: `Bienvenue au Sommet IA de l'ENS-PSL! Je suis là pour vous aider à comprendre les enseignements des discussions précédentes.
+            content: `Welcome to ${workspaceData?.title || 'this workspace'}! I'm here to help you understand the learnings across the linked discussions.
 
-Voici quelques questions que vous pourriez poser :
-  - Quels ont été les thèmes principaux abordés lors des sessions ?
-  - Comment les participants ont-ils perçu le rôle de l'IA dans l'éducation ?
-  - Quelles étaient les principales préoccupations concernant l'adoption de l'IA ?
-  
-You can also ask me in any other language, and I will try my best to reply in your language. (However, I might not always get that right 😅)`,
+Here are some questions you might want to ask:
+  - What were the main themes discussed during the sessions?
+  - What was controversial, and where did participants agree?`,
           }}
           showEdit={!loadingUserInfo && hasMinimumRole('owner')}
           isNewWorkspace={!exists}
@@ -140,13 +137,11 @@ You can also ask me in any other language, and I will try my best to reply in yo
         workspaceId={workspaceId}
         isPublicAccess={isPublicAccess}
         showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
+        availableSessions={extendedWorkspaceData.availableSessions}
       />
-      {!exists ? (
+      {!exists && (
         <Button className="mt-4" onClick={submitNewWorkspace}>Create Workspace</Button>
-      ) : (
-        <Button className="mt-4" onClick={updateWorkspace}>Update Workspace</Button>
-      )
-      }
+      )}
     </>
   );
 }

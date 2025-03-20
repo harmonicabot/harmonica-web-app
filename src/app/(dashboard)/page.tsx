@@ -34,6 +34,7 @@ const sessionCache = cache(async () => {
     // First, check whether there are some ovverriding permissions (e.g. admin for all resources):
     const hasAccessToAllResources = userResources.some(res => res.resource_id === 'global'); // global = admin access to all resources
     if (hasAccessToAllResources) {
+      // This block is strictly speaking not necessary any more, but it might still be more performant, so leaving it here.
       // For users with global access, fetch ALL sessions without client filtering
       const hostSessions = await db.getHostSessions([
         'id',

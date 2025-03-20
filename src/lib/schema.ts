@@ -109,6 +109,28 @@ export interface ResultTabsVisibilityConfig {
   allowCustomInsightsEditing?: boolean;
 }
 
+export interface InvitationsTable {
+  id: Generated<string>;
+  email: string;
+  resource_id: string;
+  resource_type: 'SESSION' | 'WORKSPACE';
+  role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none';
+  message?: string;
+  created_by?: string; // The user_id (sub) of who created the invitation
+  created_at: Generated<Date>;
+  accepted: Generated<boolean>; // Default to false
+}
+
+export interface UsersTable {
+  id: string; // Auth0 sub
+  email: string;
+  name?: string;
+  avatar_url?: string;
+  last_login: Generated<Date>;
+  created_at: Generated<Date>;
+  metadata?: JSON;
+}
+
 export type HostSession = Selectable<HostSessionsTable>;
 export type NewHostSession = Insertable<HostSessionsTable>;
 export type HostSessionUpdate = Updateable<HostSessionsTable>;
@@ -126,6 +148,11 @@ export type WorkspaceUpdate = Updateable<WorkspacesTable>;
 export type Permission = Selectable<PermissionsTable>;
 export type NewPermission = Insertable<PermissionsTable>;
 export type PermissionUpdate = Updateable<PermissionsTable>;
+export type Invitation = Selectable<InvitationsTable>;
+export type NewInvitation = Insertable<InvitationsTable>;
+export type User = Selectable<UsersTable>;
+export type NewUser = Insertable<UsersTable>;
+export type UserUpdate = Updateable<UsersTable>;
 
 export async function createDbInstance<T extends Record<string, any>>() {
   try {

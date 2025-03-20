@@ -18,9 +18,10 @@ globs:
 
     ### Optimization and Best Practices
     - Minimize the use of `'use client'`, `useEffect`, and `setState`; favor React Server Components (RSC) and Next.js SSR features.
-    - Implement dynamic imports for code splitting and optimization.
+    - Favor server actions over API routes
     - Use responsive design with a mobile-first approach.
     - Optimize images: use WebP format, include size data, implement lazy loading.
+    - Implement dynamic imports for code splitting and optimization.
 
     ### Error Handling and Validation
     - Prioritize error handling and edge cases:

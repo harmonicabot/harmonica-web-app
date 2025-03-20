@@ -78,6 +78,24 @@ export default function SessionParticipantsTable({
     );
   };
 
+  if (userData.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Participants</CardTitle>
+          <CardDescription>
+            View participants progress and transcripts
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center text-gray-500">
+            No participants have joined this session yet
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">

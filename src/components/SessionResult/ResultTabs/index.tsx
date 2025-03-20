@@ -9,7 +9,11 @@ import SessionParticipantsTable from '../SessionParticipantsTable';
 import SessionResultSummary from '../SessionResultSummary';
 import { ChatMessage } from '../../ChatMessage';
 import { createMultiSessionSummary, createSummary } from '@/lib/serverUtils';
-import { HostSession, ResultTabsVisibilityConfig, UserSession } from '@/lib/schema';
+import {
+  HostSession,
+  ResultTabsVisibilityConfig,
+  UserSession,
+} from '@/lib/schema';
 import { OpenAIMessage } from '@/lib/types';
 import { CirclePlusIcon, Pencil } from 'lucide-react';
 import { CustomResponseCard } from './components/CustomResponseCard';
@@ -60,8 +64,7 @@ export default function ResultTabs({
   sessionIds = [],
   showEdit = false, // Whether to always show edit button
   isNewWorkspace = false, // Whether this is a new workspace with no sessions
-}: ResultTabsProps & { showEdit?: boolean, isNewWorkspace?: boolean }) {  
-
+}: ResultTabsProps & { showEdit?: boolean; isNewWorkspace?: boolean }) {
   const { hasMinimumRole, loading: loadingUserInfo } =
     usePermissions(resourceId);
 
@@ -80,7 +83,7 @@ export default function ResultTabs({
 
   const updateIncludedInSummaryList = (
     userSessionId: string,
-    included: boolean,
+    included: boolean
   ) => {
     const includedIds = userData
       .filter((user) => user.include_in_summary)
@@ -107,16 +110,16 @@ export default function ResultTabs({
 
   const hasAnyIncludedUserMessages = useMemo(
     () => userIdsIncludedInSummary.length > 0,
-    [userIdsIncludedInSummary],
+    [userIdsIncludedInSummary]
   );
 
-  const [visibilityConfig, setVisibilityConfig] = useState(initialConfig)
+  const [visibilityConfig, setVisibilityConfig] = useState(initialConfig);
 
   // Save visibility settings when they change
   const handleVisibilityChange = async (
     newConfig: ResultTabsVisibilityConfig
   ) => {
-    console.log("Updating visibility config: ", newConfig)
+    console.log('Updating visibility config: ', newConfig);
     setVisibilityConfig(newConfig);
     try {
       await db.updateVisibilitySettings(resourceId, newConfig);
@@ -128,20 +131,22 @@ export default function ResultTabs({
   const [activeTab, setActiveTab] = useState(
     hostData.some((data) => data.summary) || !visibilityConfig.showParticipants
       ? 'SUMMARY'
-      : 'RESPONSES',
+      : 'RESPONSES'
   );
 
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
     useState(hasNewMessages);
 
-
-  // For new workspaces, we'll show a placeholder instead of the "no replies" message
-  if (!hasAnyIncludedUserMessages && !isNewWorkspace && !hasMinimumRole('editor')) {
+  // // For new workspaces, we'll show a placeholder instead of the "no replies" message
+  if (
+    !hasAnyIncludedUserMessages &&
+    !isNewWorkspace &&
+    !hasMinimumRole('editor')
+  ) {
     return (
       <Card className="w-full">
         <CardContent className="text-center">
-          No user replies available yet. Be one of the first by participating in
-          the sessions below 👇️👇️👇️
+          No user replies available yet.
         </CardContent>
       </Card>
     );
@@ -186,10 +191,13 @@ export default function ResultTabs({
           <TabContent value="SUMMARY">
             <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
               <div className="text-center space-y-4 max-w-md">
-                <h3 className="text-2xl font-semibold text-gray-700">Workspace Summary</h3>
+                <h3 className="text-2xl font-semibold text-gray-700">
+                  Workspace Summary
+                </h3>
                 <p className="text-gray-500">
-                  Here you will see summary information about your workspace sessions.
-                  Add sessions to your workspace to see insights across all discussions.
+                  Here you will see summary information about your workspace
+                  sessions. Add sessions to your workspace to see insights
+                  across all discussions.
                 </p>
               </div>
             </Card>
@@ -197,7 +205,9 @@ export default function ResultTabs({
           <TabContent value="CUSTOM">
             <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
               <div className="text-center space-y-4 max-w-md">
-                <h3 className="text-2xl font-semibold text-gray-700">Custom Insights</h3>
+                <h3 className="text-2xl font-semibold text-gray-700">
+                  Custom Insights
+                </h3>
                 <p className="text-gray-500">
                   Pin important custom insights by chatting with your results
                 </p>
@@ -207,9 +217,13 @@ export default function ResultTabs({
           <TabContent value="RESPONSES">
             <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
               <div className="text-center space-y-4 max-w-md">
-                <h3 className="text-2xl font-semibold text-gray-700">Participant Responses</h3>
+                <h3 className="text-2xl font-semibold text-gray-700">
+                  Participant Responses
+                </h3>
                 <p className="text-gray-500">
-                  Here you will see transcripts of each respondant. You can choose who can see these transcripts in the <i>View Settings</i>.
+                  Here you will see transcripts of each respondant. You can
+                  choose who can see these transcripts in the{' '}
+                  <i>View Settings</i>.
                 </p>
               </div>
             </Card>
@@ -217,9 +231,13 @@ export default function ResultTabs({
           <TabContent value="SIMSCORE">
             <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
               <div className="text-center space-y-4 max-w-md">
-                <h3 className="text-2xl font-semibold text-gray-700">SimScore Ranking</h3>
+                <h3 className="text-2xl font-semibold text-gray-700">
+                  SimScore Ranking
+                </h3>
                 <p className="text-gray-500">
-                  Statements from participants will be analyzed, semantically compared and ranked. You can choose who can see this ranking in the <i>View Settings</i>.
+                  Statements from participants will be analyzed, semantically
+                  compared and ranked. You can choose who can see this ranking
+                  in the <i>View Settings</i>.
                 </p>
               </div>
             </Card>
@@ -227,7 +245,7 @@ export default function ResultTabs({
         </div>
       );
     }
-    
+
     // Normal content for existing workspaces
     return (
       <div className={cn('overflow-auto', isMobile ? 'w-full' : '')}>
@@ -237,7 +255,10 @@ export default function ResultTabs({
               hostData={hostData}
               isWorkspace={isWorkspace}
               workspaceId={isWorkspace ? resourceId : undefined}
-              newSummaryContentAvailable={newSummaryContentAvailable || (isWorkspace && hasMinimumRole('editor'))}
+              newSummaryContentAvailable={
+                newSummaryContentAvailable ||
+                (isWorkspace && hasMinimumRole('editor'))
+              }
               onUpdateSummary={() => {
                 setInitialUserIds(userIdsIncludedInSummary);
                 setNewSummaryContentAvailable(false);
@@ -251,57 +272,74 @@ export default function ResultTabs({
           )}
         </TabContent>
 
-        {responses.length > 0 && visibilityConfig.showParticipants && hasMinimumRole('editor') && (
-          <TabContent value="RESPONSES">
+        <TabContent value="RESPONSES">
             <SessionParticipantsTable
               userData={userData}
               onIncludeInSummaryChange={updateIncludedInSummaryList}
             />
-          </TabContent>
-        )}
+        </TabContent>
 
-        {responses.length > 0 && (
-          <TabContent value="CUSTOM">
-            {responses.map((response) => (
-              <CustomResponseCard
-                key={response.id}
-                response={response}
-                onRemove={
-                  !loadingUserInfo && hasMinimumRole('editor')
-                    ? removeResponse
-                    : null
-                }
-              />
-            ))}
-          </TabContent>
-        )}
-      <TabContent value="SIMSCORE">
-        <SimScoreTab userData={userData} hostData={hostData[0]} resourceId={ resourceId } />
-      </TabContent>
+        <TabContent value="CUSTOM">
+          {responses.length > 0 ? (
+              responses.map((response) => (
+                <CustomResponseCard
+                  key={response.id}
+                  response={response}
+                  onRemove={
+                    !loadingUserInfo && hasMinimumRole('editor')
+                      ? removeResponse
+                      : null
+                  }
+                />
+              ))
+            ) : (
+              <Card>
+                <CardContent>
+                  No custom insights have been added yet
+                </CardContent>
+              </Card>
+            )}
+        </TabContent>
+        <TabContent value="SIMSCORE">
+          <SimScoreTab
+            userData={userData}
+            hostData={hostData[0]}
+            resourceId={resourceId}
+          />
+        </TabContent>
 
-        {responses.length > 0 && activeTab === 'CUSTOM' && (
-          <div className="mt-4 flex justify-end">
-            <ExportButton
-              content={responses.map((r) => r.content).join('\n\n---\n\n')}
-              className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-            >
-              Export All Insights
-            </ExportButton>
-          </div>
-        )}
+        <div className="mt-4 flex justify-end">
+          <ExportButton
+            content={responses.map((r) => r.content).join('\n\n---\n\n')}
+            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+          >
+            Export All Insights
+          </ExportButton>
+        </div>
       </div>
     );
   };
 
-  console.log("Show custom insights:", responses.length > 0 && visibilityConfig.showCustomInsights || hasMinimumRole('editor'))
-  console.log("Show participant responses:", visibilityConfig.showParticipants || hasMinimumRole('editor'))
+  console.log(
+    'Show custom insights:',
+    (responses.length > 0 && visibilityConfig.showCustomInsights) ||
+      hasMinimumRole('editor')
+  );
+  console.log(
+    'Show participant responses:',
+    visibilityConfig.showParticipants || hasMinimumRole('editor')
+  );
 
   return (
-    <Tabs className="relative group w-full" value={activeTab} onValueChange={setActiveTab}>
+    <Tabs
+      className="relative group w-full"
+      value={activeTab}
+      onValueChange={setActiveTab}
+    >
       <div className="flex justify-between items-center w-full">
         <div className="flex items-center">
           <TabsList>
-            {visibilityConfig.showSummary && (
+            {(visibilityConfig.showSummary  || hasMinimumRole('editor')) && (
               <TabsTrigger
                 className="ms-0"
                 value="SUMMARY"
@@ -312,7 +350,7 @@ export default function ResultTabs({
                         if (isWorkspace) {
                           createMultiSessionSummary(
                             hostData.map((data) => data.id),
-                            resourceId,
+                            resourceId
                           );
                         } else {
                           createSummary(resourceId);
@@ -324,24 +362,24 @@ export default function ResultTabs({
                 Summary
               </TabsTrigger>
             )}
-            {visibilityConfig.showParticipants || hasMinimumRole('editor') && (
+            {(visibilityConfig.showParticipants || hasMinimumRole('editor')) && (
               <TabsTrigger className="ms-0" value="RESPONSES">
                 Responses
               </TabsTrigger>
             )}
-            {responses.length > 0 && visibilityConfig.showCustomInsights || hasMinimumRole('editor') && (
-              <TabsTrigger className="ms-0" value="CUSTOM">
-                Custom Insights
-              </TabsTrigger>
-            )}
-            {responses.length > 4 && (visibilityConfig.showSimScore || hasMinimumRole('editor')) && (
-              <TabsTrigger className="ms-0" value="SIMSCORE">
-                SimScore Ranking
-              </TabsTrigger>
-            )}
-      </TabsList>
+            {(visibilityConfig.showCustomInsights || hasMinimumRole('editor')) && (
+                <TabsTrigger className="ms-0" value="CUSTOM">
+                  Custom Insights
+                </TabsTrigger>
+              )}
+            {(visibilityConfig.showSimScore || hasMinimumRole('editor')) && (
+                <TabsTrigger className="ms-0" value="SIMSCORE">
+                  SimScore Ranking
+                </TabsTrigger>
+              )}
+          </TabsList>
         </div>
-        
+
         {/* View Settings button in the top right, same line as tabs */}
         {(hasMinimumRole('owner') || isNewWorkspace) && (
           <div className="flex-shrink-0">
@@ -361,24 +399,31 @@ export default function ResultTabs({
             <ResizablePanel defaultSize={66}>
               {renderLeftContent()}
             </ResizablePanel>
-            
+
             {visibilityConfig.showChat && (
               <>
-                <ResizableHandle withHandle className="mx-2 mt-4"/>
+                <ResizableHandle withHandle className="mx-2 mt-4" />
                 <ResizablePanel className="overflow-auto mt-4 gap-4">
                   {isNewWorkspace ? (
                     <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
                       <div className="text-center space-y-4 max-w-md">
-                        <h3 className="text-2xl font-semibold text-gray-700">Chat with Your Data</h3>
+                        <h3 className="text-2xl font-semibold text-gray-700">
+                          Chat with Your Data
+                        </h3>
                         <p className="text-gray-500">
-                          Chat with AI that has access to your workspace data and participant transcripts.
+                          Chat with AI that has access to your workspace data
+                          and participant transcripts.
                         </p>
                       </div>
                     </Card>
                   ) : (
                     <SessionResultChat
                       userData={userData}
-                      customMessageEnhancement={visibilityConfig.allowCustomInsightsEditing ? enhancedMessage : undefined}
+                      customMessageEnhancement={
+                        visibilityConfig.allowCustomInsightsEditing
+                          ? enhancedMessage
+                          : undefined
+                      }
                       entryMessage={chatEntryMessage}
                       sessionIds={sessionIds}
                     />
@@ -397,7 +442,9 @@ export default function ResultTabs({
               {isNewWorkspace ? (
                 <Card className="border-2 border-dashed border-gray-300 min-h-[200px] flex flex-col items-center justify-center p-6">
                   <div className="text-center space-y-4 max-w-md">
-                    <h3 className="text-xl font-semibold text-gray-700">Chat with Your Data</h3>
+                    <h3 className="text-xl font-semibold text-gray-700">
+                      Chat with Your Data
+                    </h3>
                     <p className="text-gray-500 text-sm">
                       Ask questions about insights from your workspace sessions.
                     </p>
@@ -406,7 +453,11 @@ export default function ResultTabs({
               ) : (
                 <SessionResultChat
                   userData={userData}
-                  customMessageEnhancement={visibilityConfig.allowCustomInsightsEditing ? enhancedMessage : undefined}
+                  customMessageEnhancement={
+                    visibilityConfig.allowCustomInsightsEditing
+                      ? enhancedMessage
+                      : undefined
+                  }
                   entryMessage={chatEntryMessage}
                   sessionIds={sessionIds}
                 />

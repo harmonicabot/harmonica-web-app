@@ -20,14 +20,18 @@ export function SimScoreTab({
 }) {
   const [generatingSimScore, setGenerating] = useState(false);
   const [simScoreResult, setSimScoreResult] = useState<string | null>(null);
-  const { responses, addResponse, removeResponse, isLoading: isFetchingResults } =
-    useCustomResponses(resourceId, 'SIMSCORE');
+  const {
+    responses,
+    addResponse,
+    removeResponse,
+    isLoading: isFetchingResults,
+  } = useCustomResponses(resourceId, 'SIMSCORE');
 
   // Add this ref to track if we need to generate a new SimScore
   const shouldGenerateRef = useRef(true);
 
   useEffect(() => {
-    if (isFetchingResults) return;  // Still loading. Check later.
+    if (isFetchingResults) return; // Still loading. Check later.
     if (responses.length > 0 && !simScoreResult) {
       // If we haven't previously set these results then set them now
       console.log('Found existing SimScore responses:', responses.length);
@@ -36,19 +40,23 @@ export function SimScoreTab({
       shouldGenerateRef.current = false; // Don't need to generate any more (in case rendering calls this again before results are updated)
     } else if (
       // Only generate if:
-      !generatingSimScore &&    // 1. Generation isn't already in progress
-      !simScoreResult &&        // 2. We don't already have a result
+      !generatingSimScore && // 1. Generation isn't already in progress
+      !simScoreResult && // 2. We don't already have a result
       responses.length === 0 && // 3. We have no existing responses
       shouldGenerateRef.current && // 4. We haven't already decided not to generate
-      userData.length > 3       // 5. If there are at least 4 user entries
+      userData.length > 3 // 5. If there are at least 4 user entries
     ) {
       console.log('No SimScore found, generating...');
       shouldGenerateRef.current = false; // Prevent multiple generations
       generateSimScore();
-    } else if ( // Update existing...
+    } else if (
+      // Update existing...
       !generatingSimScore &&
       responses.length > 0 &&
-      userData.some(data => responses[0].created_at && data.last_edit > responses[0].created_at)
+      userData.some(
+        (data) =>
+          responses[0].created_at && data.last_edit > responses[0].created_at
+      )
     ) {
       shouldGenerateRef.current = false;
       removeResponse(responses[0].id);
@@ -122,6 +130,8 @@ ONLY include plain JSON in your reply, without any backticks, markdown formattin
             <div className="prose max-w-none">
               <HRMarkdown content={simScoreResult} />
             </div>
+          ) : userData.length === 0 ? (
+            <>No responses available for SimScore analysis</>
           ) : (
             <div className="text-center p-8">
               <p>No SimScore analysis available</p>
