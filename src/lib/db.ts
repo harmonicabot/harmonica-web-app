@@ -84,7 +84,6 @@ export async function getHostSessionsForIds(
 ): Promise<s.HostSession[]> {
   const db = await dbPromise;
   console.log('Database call to getHostSessions at:', new Date().toISOString());
-  const client = await getAuthForClient();
 
   let query = db
     .selectFrom(hostTableName)
