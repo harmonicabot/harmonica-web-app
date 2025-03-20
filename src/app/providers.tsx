@@ -23,10 +23,11 @@ function InvitationProcessor() {
 
   useEffect(() => {
     // Check for invitations when user logs in
-    console.log(`Checking invitations: IsLoading:${isLoading}; hasUser: ${user}`)
+    console.log(`Checking invitations: IsLoading:${isLoading}; hasUser: ${!!user}`)
     if (!isLoading && user) {
       const processInvitations = async () => {
         try {
+          // processUserInvitations now includes syncCurrentUser internally
           const result = await processUserInvitations();
           
           if (result.success && result.processed > 0) {

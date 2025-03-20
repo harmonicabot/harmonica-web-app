@@ -4,6 +4,8 @@ import * as s from './schema';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
 import { ResultTabsVisibilityConfig } from './schema';
+import { sql } from 'kysely';
+import { Role } from './permissions';
 
 // Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {
@@ -20,6 +22,7 @@ const workspaceTableName = 'workspaces';
 const workspaceSessionsTableName = 'workspace_sessions';
 const permissionsTableName = 'permissions';
 const invitationsTableName = 'invitations';
+const usersTableName = 'users';
 
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
@@ -30,6 +33,7 @@ interface Databases {
   [workspaceSessionsTableName]: s.WorkspaceSessionsTable;
   [permissionsTableName]: s.PermissionsTable;
   [invitationsTableName]: s.InvitationsTable;
+  [usersTableName]: s.UsersTable;
 }
 
 const dbPromise = (async () => {
@@ -690,7 +694,7 @@ export async function getWorkspaceSessionIds(
 export async function getPermissions(
   resourceId: string,
   resourceType?: 'SESSION' | 'WORKSPACE'
-): Promise<{ user_id: string; role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none' }[]> {
+): Promise<{ user_id: string; role: Role }[]> {
   try {
     const db = await dbPromise;
     let query = db
@@ -711,7 +715,7 @@ export async function getPermissions(
 
 export async function setPermission(
   resourceId: string,
-  role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none',
+  role: Role,
   resourceType: 'SESSION' | 'WORKSPACE' = 'SESSION',
   userId?: string,  // Defaults to whatever user is currently logged in
 ): Promise<boolean> {
@@ -744,7 +748,7 @@ export async function getPermission(
   resourceId: string,
   userId: string,
   resourceType?: 'SESSION' | 'WORKSPACE'
-): Promise<{ role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none' } | null> {
+): Promise<{ role: Role } | null> {
   try {
     const db = await dbPromise;
     let query = db
@@ -994,5 +998,132 @@ export async function getWorkspacesForIds(
   } catch (error) {
     console.error('Error getting workspaces by IDs:', error);
     throw error;
+  }
+}
+
+// User Management Functions
+
+/**
+ * Create or update a user profile based on Auth0 data
+ */
+export async function upsertUser(userData: s.NewUser): Promise<s.User | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .insertInto(usersTableName)
+      .values(userData)
+      .onConflict((oc) => 
+        oc.column('id').doUpdateSet({
+          email: userData.email,
+          name: userData.name,
+          avatar_url: userData.avatar_url,
+          last_login: sql`CURRENT_TIMESTAMP`,
+          metadata: userData.metadata
+        })
+      )
+      .returningAll()
+      .executeTakeFirst();
+    
+    return result || null;
+  } catch (error) {
+    console.error('Error upserting user:', error);
+    return null;
+  }
+}
+
+/**
+ * Get a user by ID (Auth0 sub)
+ */
+export async function getUserById(id: string): Promise<s.User | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom(usersTableName)
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
+    
+    return result || null;
+  } catch (error) {
+    console.error('Error getting user by ID:', error);
+    return null;
+  }
+}
+
+/**
+ * Get a user by email
+ */
+export async function getUserByEmail(email: string): Promise<s.User | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom(usersTableName)
+      .selectAll()
+      .where('email', '=', email.toLowerCase())
+      .executeTakeFirst();
+    
+    return result || null;
+  } catch (error) {
+    console.error('Error getting user by email:', error);
+    return null;
+  }
+}
+
+/**
+ * Get multiple users by their IDs
+ */
+export async function getUsersByIds(ids: string[]): Promise<s.User[]> {
+  try {
+    if (!ids.length) return [];
+    
+    const db = await dbPromise;
+    const users = await db
+      .selectFrom(usersTableName)
+      .selectAll()
+      .where('id', 'in', ids)
+      .execute();
+    
+    return users;
+  } catch (error) {
+    console.error('Error getting users by IDs:', error);
+    return [];
+  }
+}
+
+type UserAndRole = s.User & { role: Role };
+
+/**
+ * Get users with permissions for a resource
+ */
+export async function getUsersWithPermissionsForResource(
+  resourceId: string,
+  resourceType?: 'SESSION' | 'WORKSPACE'
+): Promise<Array<UserAndRole>> {
+  try {
+    const db = await dbPromise;
+    let query = db
+      .selectFrom(permissionsTableName)
+      .innerJoin(
+        usersTableName,
+        `${usersTableName}.id`,
+        `${permissionsTableName}.user_id`
+      )
+      .where(`${permissionsTableName}.resource_id`, '=', resourceId)
+      .select([
+        `${usersTableName}.id`,
+        `${usersTableName}.email`,
+        `${usersTableName}.name`,
+        `${usersTableName}.avatar_url`,
+        `${permissionsTableName}.role`
+      ]);
+    
+    if (resourceType) {
+      query = query.where(`${permissionsTableName}.resource_type`, '=', resourceType);
+    }
+    
+    return await query.execute() as UserAndRole[];
+  } catch (error) {
+    console.error('Error getting users with permissions:', error);
+    return [];
   }
 }

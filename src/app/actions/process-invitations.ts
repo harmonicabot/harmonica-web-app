@@ -2,6 +2,7 @@
 
 import { getSession } from '@auth0/nextjs-auth0';
 import { getInvitationsByEmail, markInvitationAsAccepted, setPermission } from '@/lib/db';
+import { syncCurrentUser } from '@/lib/serverUtils';
 
 /**
  * Server action to process invitations for the current user
@@ -16,7 +17,7 @@ export async function processUserInvitations(): Promise<{
     // Get the authenticated user
     const session = await getSession();
     if (!session || !session.user) {
-    console.log(`User session not available`);
+      console.log(`User session not available`);
 
       return {
         success: false,
@@ -37,6 +38,9 @@ export async function processUserInvitations(): Promise<{
         processed: 0
       };
     }
+    
+    // Ensure user profile is saved in our database
+    await syncCurrentUser();
     
     // Find pending invitations for this email
     const invitations = await getInvitationsByEmail(userEmail);

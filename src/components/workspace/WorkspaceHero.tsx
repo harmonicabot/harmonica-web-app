@@ -33,9 +33,9 @@ interface WorkspaceHeroProps {
 export default function WorkspaceHero({
   workspaceId,
   exists,
-  title = 'Create New Workspace',
-  description = 'Get started by adding workspace details',
-  location = 'you can set a location if you want',
+  title,
+  description,
+  location,
   isEditable = false,
   bannerImageUrl,
   initialGradientFrom = '#6B21A8',

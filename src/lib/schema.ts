@@ -121,6 +121,16 @@ export interface InvitationsTable {
   accepted: Generated<boolean>; // Default to false
 }
 
+export interface UsersTable {
+  id: string; // Auth0 sub
+  email: string;
+  name?: string;
+  avatar_url?: string;
+  last_login: Generated<Date>;
+  created_at: Generated<Date>;
+  metadata?: JSON;
+}
+
 export type HostSession = Selectable<HostSessionsTable>;
 export type NewHostSession = Insertable<HostSessionsTable>;
 export type HostSessionUpdate = Updateable<HostSessionsTable>;
@@ -140,6 +150,9 @@ export type NewPermission = Insertable<PermissionsTable>;
 export type PermissionUpdate = Updateable<PermissionsTable>;
 export type Invitation = Selectable<InvitationsTable>;
 export type NewInvitation = Insertable<InvitationsTable>;
+export type User = Selectable<UsersTable>;
+export type NewUser = Insertable<UsersTable>;
+export type UserUpdate = Updateable<UsersTable>;
 
 export async function createDbInstance<T extends Record<string, any>>() {
   try {
