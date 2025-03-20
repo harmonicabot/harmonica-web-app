@@ -137,7 +137,7 @@ Here are some questions you might want to ask:
         workspaceId={workspaceId}
         isPublicAccess={isPublicAccess}
         showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
-        availableSessions={extendedWorkspaceData.availableSessionIds}
+        availableSessions={extendedWorkspaceData.availableSessions}
       />
       {!exists && (
         <Button className="mt-4" onClick={submitNewWorkspace}>Create Workspace</Button>

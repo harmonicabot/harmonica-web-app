@@ -10,7 +10,12 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
     const session = await getSession();
     const userId = session?.user?.sub;    
     const availableResources = await db.getResourcesForUser(userId, "SESSION", ["resource_id"]);
-    const availableSessionIds = availableResources.map((r) => r.resource_id).filter((id) => id !== 'global');
+    const availableSessionsIds = availableResources.map((r) => r.resource_id).filter((id) => id !== 'global');
+    const availableSessions = await db.getHostSessionsForIds(availableSessionsIds, [
+      'id',
+      'topic',
+      'start_time'
+    ]);
 
     // If workspace doesn't exist, return empty data structure
     if (!workspaceData) {
@@ -20,7 +25,7 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
         hostSessions: [],
         userData: [],
         sessionIds: [],
-        availableSessionIds
+        availableSessions
       };
     }
 
@@ -54,7 +59,7 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
       hostSessions,
       userData,
       sessionIds,
-      availableSessionIds,
+      availableSessions,
     };
   } catch (error) {
     console.error(`Error occurred fetching workspace data: `, error);

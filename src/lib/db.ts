@@ -1179,40 +1179,24 @@ export async function createWorkspaceSessionLink(workspaceId: string, sessionId:
  * Fetches all available sessions that could be linked to a workspace
  * (This would typically be sessions the user has access to)
  */
-export async function getAvailableSessionIdsForUser(userId: string) {
+export async function getAvailableSessionsForUser(userId: string) {
   const db = await dbPromise;
   
   try {
-    let query;
-    // First, check if the user has global admin access
-    const globalPermission = await db
-      .selectFrom(permissionsTableName)
-      .where('resource_id', '=', 'global')
-      .where('user_id', '=', userId)
-      .select('role')
-      .executeTakeFirst();
-    
-    console.log('Global permission:', globalPermission);
-    // If user has global access, return all session IDs
-    if (globalPermission) {
-      query = db
-        .selectFrom(hostTableName)
-        .select(`${hostTableName}.id`)
-    } else {
-    
-      // Otherwise, return only sessions the user has specific permissions for
-      query = db
-        .selectFrom(hostTableName)
-        .innerJoin(permissionsTableName, `${permissionsTableName}.resource_id`, `${hostTableName}.id`)
-        .where(`${permissionsTableName}.resource_type`, '=', 'SESSION')
-        .where(`${permissionsTableName}.user_id`, '=', userId)
-        .select(`${hostTableName}.id`)
-      }
-    const result = await query.execute();
-    console.log('Available sessions for linking:', result);
-    return result.map((row) => row.id);
+    const query = db
+      .selectFrom(hostTableName)
+      .innerJoin(permissionsTableName, `${permissionsTableName}.resource_id`, `${hostTableName}.id`)
+      .where(`${permissionsTableName}.resource_type`, '=', 'SESSION')
+      .where(`${permissionsTableName}.user_id`, '=', userId)
+      .select([
+        `${hostTableName}.id as id`,
+        `${hostTableName}.topic as topic`,
+        `${hostTableName}.start_time as start_time`,
+      ])
+      
+    return await query.execute();
   } catch (error) {
-    console.error('Error fetching available session IDs:', error);
+    console.error('Error fetching available sessions:', error);
     throw error;
   }
 }

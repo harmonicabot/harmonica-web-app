@@ -23,7 +23,7 @@ interface SessionInsightsGridProps {
   workspaceId: string;
   isPublicAccess?: boolean;
   showEdit?: boolean;
-  availableSessions?: String[];
+  availableSessions?: Pick<HostSession, 'id' | 'topic' | 'start_time'>[];
 }
 
 export default function SessionInsightsGrid({
@@ -37,20 +37,19 @@ export default function SessionInsightsGrid({
   const router = useRouter();
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
   const [isLinking, setIsLinking] = useState(false);
-  
-  console.log("Available Sessions: ", availableSessions)
 
   // Filter out sessions that are already in the workspace
-  const sessionsToLink = hostSessions.filter(
-    session => !availableSessions.includes(session.id)
+  const sessionsToLink = availableSessions.filter(
+    session => !hostSessions.some(hostSession => hostSession.id === session.id)
   );
 
+  console.log("Available sessions: ", availableSessions)
   console.log("Sessions to link: ", sessionsToLink)
 
   const handleCreateSession = () => {
     // Store the workspace ID in localStorage to retrieve after session creation
     localStorage.setItem('pendingWorkspaceLink', workspaceId);
-    router.push('/app/create');
+    router.push('/create');
   };
 
   const handleSessionSelection = (sessionId: string) => {
@@ -142,7 +141,7 @@ export default function SessionInsightsGrid({
                   </DialogHeader>
                   <div className="py-4">
                     {sessionsToLink.length === 0 ? (
-                      <p className="text-center text-gray-500">No available sessions to link</p>
+                      <p className="text-center text-gray-500">No available sessions yet. Create one first.</p>
                     ) : (
                       <div className="space-y-4 max-h-[300px] overflow-y-auto">
                         {sessionsToLink.map(session => (
