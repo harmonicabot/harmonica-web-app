@@ -86,6 +86,16 @@ export interface WorkspacesTable {
   visibility_settings?: ResultTabsVisibilityConfig;
 }
 
+export interface ResultTabsVisibilityConfig {
+  showSummary?: boolean;
+  showSessionRecap?: boolean;
+  showParticipants?: boolean;
+  showCustomInsights?: boolean;
+  showSimScore?: boolean;
+  showChat?: boolean;
+  allowCustomInsightsEditing?: boolean;
+}
+
 // Mapping of which sessions belong to which workspaces
 export interface WorkspaceSessionsTable {
   workspace_id: string;
@@ -97,16 +107,6 @@ export interface PermissionsTable {
   user_id: string;
   role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none';
   resource_type: 'SESSION' | 'WORKSPACE';
-}
-
-export interface ResultTabsVisibilityConfig {
-  showSummary?: boolean;
-  showSessionRecap?: boolean;
-  showParticipants?: boolean;
-  showCustomInsights?: boolean;
-  showSimScore?: boolean;
-  showChat?: boolean;
-  allowCustomInsightsEditing?: boolean;
 }
 
 export interface InvitationsTable {
@@ -131,6 +131,23 @@ export interface UsersTable {
   metadata?: JSON;
 }
 
+export type PromptsTable = {
+  id: string;
+  prompt_type: string;
+  instructions: string;
+  active: boolean;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+};
+
+export type PromptTypesTable = {
+  id: string;
+  name: string;
+  description: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+};
+
 export type HostSession = Selectable<HostSessionsTable>;
 export type NewHostSession = Insertable<HostSessionsTable>;
 export type HostSessionUpdate = Updateable<HostSessionsTable>;
@@ -153,6 +170,12 @@ export type NewInvitation = Insertable<InvitationsTable>;
 export type User = Selectable<UsersTable>;
 export type NewUser = Insertable<UsersTable>;
 export type UserUpdate = Updateable<UsersTable>;
+export type Prompt = Selectable<PromptsTable>;
+export type NewPrompt = Insertable<PromptsTable>;
+export type PromptUpdate = Updateable<PromptsTable>;
+export type PromptType = Selectable<PromptTypesTable>;
+export type NewPromptType = Insertable<PromptTypesTable>;
+export type PromptTypeUpdate = Updateable<PromptTypesTable>;
 
 export async function createDbInstance<T extends Record<string, any>>() {
   try {

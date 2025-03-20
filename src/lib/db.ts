@@ -6,6 +6,7 @@ import ws from 'ws';
 import { ResultTabsVisibilityConfig } from './schema';
 import { sql } from 'kysely';
 import { Role } from './permissions';
+import { cache } from 'react';
 
 // Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {
@@ -23,6 +24,8 @@ const workspaceSessionsTableName = 'workspace_sessions';
 const permissionsTableName = 'permissions';
 const invitationsTableName = 'invitations';
 const usersTableName = 'users';
+const promptsTableName = 'prompts';
+const promptTypesTableName = 'prompt_type';
 
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
@@ -34,6 +37,8 @@ interface Databases {
   [permissionsTableName]: s.PermissionsTable;
   [invitationsTableName]: s.InvitationsTable;
   [usersTableName]: s.UsersTable;
+  [promptsTableName]: s.PromptsTable;
+  [promptTypesTableName]: s.PromptTypesTable;
 }
 
 const dbPromise = (async () => {
@@ -57,7 +62,7 @@ async function getAuthForClient() {
 export async function getHostSessions(
   columns: (keyof s.HostSessionsTable)[],
   page: number = 1,
-  pageSize: number = 100,
+  pageSize: number = 100
 ): Promise<s.HostSession[]> {
   const db = await dbPromise;
   console.log('Database call to getHostSessions at:', new Date().toISOString());
@@ -75,7 +80,7 @@ export async function getHostSessionsForIds(
   ids: string[],
   columns: (keyof s.HostSessionsTable)[],
   page: number = 1,
-  pageSize: number = 100,
+  pageSize: number = 100
 ): Promise<s.HostSession[]> {
   const db = await dbPromise;
   console.log('Database call to getHostSessions at:', new Date().toISOString());
@@ -84,7 +89,7 @@ export async function getHostSessionsForIds(
   let query = db
     .selectFrom(hostTableName)
     .select(columns)
-    .where('id', 'in', ids)
+    .where('id', 'in', ids);
 
   return query
     .orderBy('start_time', 'desc')
@@ -94,7 +99,7 @@ export async function getHostSessionsForIds(
 }
 
 export async function getHostSessionById(
-  sessionId: string,
+  sessionId: string
 ): Promise<s.HostSession> {
   const db = await dbPromise;
   console.log('ID: ', sessionId);
@@ -112,7 +117,7 @@ export async function getHostSessionById(
 
 export async function getFromHostSession(
   sessionId: string,
-  columns: (keyof s.HostSessionsTable)[],
+  columns: (keyof s.HostSessionsTable)[]
 ) {
   const db = await dbPromise;
   const result = await db
@@ -124,7 +129,7 @@ export async function getFromHostSession(
 }
 
 export async function insertHostSessions(
-  data: s.NewHostSession | s.NewHostSession[],
+  data: s.NewHostSession | s.NewHostSession[]
 ): Promise<string[]> {
   const db = await dbPromise;
   try {
@@ -147,7 +152,7 @@ export async function insertHostSessions(
 
 export async function upsertHostSession(
   data: s.NewHostSession,
-  onConflict: 'skip' | 'update' = 'skip',
+  onConflict: 'skip' | 'update' = 'skip'
 ): Promise<void> {
   const db = await dbPromise;
   try {
@@ -161,7 +166,7 @@ export async function upsertHostSession(
       .onConflict((oc) =>
         onConflict === 'skip'
           ? oc.column('id').doNothing()
-          : oc.column('id').doUpdateSet(data),
+          : oc.column('id').doUpdateSet(data)
       )
       .execute();
   } catch (error) {
@@ -172,7 +177,7 @@ export async function upsertHostSession(
 
 export async function updateHostSession(
   id: string,
-  data: s.HostSessionUpdate,
+  data: s.HostSessionUpdate
 ): Promise<void> {
   const db = await dbPromise;
   try {
@@ -190,7 +195,7 @@ export async function updateHostSession(
 
 export async function increaseSessionsCount(
   id: string,
-  toIncrease: 'num_sessions' | 'num_finished',
+  toIncrease: 'num_sessions' | 'num_finished'
 ) {
   // This is a bit clumsy, but I couldn't find a way with kysely to do it in one go. Submitting sql`...` breaks it :-(
   const db = await dbPromise;
@@ -216,7 +221,7 @@ export async function deleteHostSession(id: string): Promise<void> {
 
 export async function getUsersBySessionId(
   sessionId: string,
-  columns: (keyof s.UserSessionsTable)[] = [],
+  columns: (keyof s.UserSessionsTable)[] = []
 ): Promise<s.UserSession[]> {
   try {
     const db = await dbPromise;
@@ -232,7 +237,7 @@ export async function getUsersBySessionId(
 }
 
 export async function insertUserSessions(
-  data: s.NewUserSession | s.NewUserSession[],
+  data: s.NewUserSession | s.NewUserSession[]
 ): Promise<string[]> {
   try {
     const db = await dbPromise;
@@ -251,7 +256,7 @@ export async function insertUserSessions(
 
 export async function updateUserSession(
   id: string,
-  data: s.UserSessionUpdate,
+  data: s.UserSessionUpdate
 ): Promise<void> {
   try {
     const db = await dbPromise;
@@ -279,7 +284,7 @@ export async function deleteUserSession(id: string): Promise<void> {
 
 export async function searchUserSessions(
   columnName: keyof s.UserSessionsTable,
-  searchTerm: string,
+  searchTerm: string
 ): Promise<s.UserSession[]> {
   try {
     const db = await dbPromise;
@@ -303,12 +308,12 @@ export async function getNumUsersAndMessages(sessionIds: string[]) {
     .leftJoin(
       userTableName,
       `${userTableName}.session_id`,
-      `${hostTableName}.id`,
+      `${hostTableName}.id`
     )
     .leftJoin(
       messageTableName,
       `${messageTableName}.thread_id`,
-      `${userTableName}.thread_id`,
+      `${userTableName}.thread_id`
     )
     .where(`${hostTableName}.id`, 'in', sessionIds)
     .select(({ fn }) => [
@@ -365,7 +370,7 @@ export async function getAllChatMessagesInOrder(threadId: string) {
 }
 
 export async function getAllMessagesForUsersSorted(
-  users: s.UserSession[],
+  users: s.UserSession[]
 ): Promise<s.Message[]> {
   if (users.length === 0) return [];
   const db = await dbPromise;
@@ -374,7 +379,7 @@ export async function getAllMessagesForUsersSorted(
     .where(
       'thread_id',
       'in',
-      users.map((user) => user.thread_id),
+      users.map((user) => user.thread_id)
     )
     .selectAll()
     .orderBy('created_at', 'asc')
@@ -383,7 +388,7 @@ export async function getAllMessagesForUsersSorted(
 }
 
 export async function getAllMessagesForSessionSorted(
-  sessionId: string,
+  sessionId: string
 ): Promise<s.Message[]> {
   if (!sessionId) return [];
 
@@ -393,12 +398,12 @@ export async function getAllMessagesForSessionSorted(
     .innerJoin(
       userTableName,
       `${userTableName}.session_id`,
-      `${hostTableName}.id`,
+      `${hostTableName}.id`
     )
     .innerJoin(
       messageTableName,
       `${messageTableName}.thread_id`,
-      `${userTableName}.thread_id`,
+      `${userTableName}.thread_id`
     )
     .where(`${hostTableName}.id`, '=', sessionId)
     .selectAll(`${messageTableName}`)
@@ -431,7 +436,7 @@ export async function deleteSessionById(id: string): Promise<boolean> {
 }
 
 export async function deactivateHostSession(
-  sessionId: string,
+  sessionId: string
 ): Promise<boolean> {
   try {
     const db = await dbPromise;
@@ -449,7 +454,7 @@ export async function deactivateHostSession(
 }
 
 export async function createCustomResponse(
-  customResponse: s.NewCustomResponse,
+  customResponse: s.NewCustomResponse
 ): Promise<s.CustomResponse | null> {
   try {
     const db = await dbPromise;
@@ -467,7 +472,7 @@ export async function createCustomResponse(
 }
 
 export async function getCustomResponseById(
-  id: string,
+  id: string
 ): Promise<s.CustomResponse | null> {
   try {
     const db = await dbPromise;
@@ -486,7 +491,7 @@ export async function getCustomResponseById(
 
 export async function getCustomResponsesByResourceIdAndType(
   sessionId: string,
-  responseType: string = 'CUSTOM',
+  responseType: string = 'CUSTOM'
 ): Promise<s.CustomResponse[]> {
   try {
     const db = await dbPromise;
@@ -507,7 +512,7 @@ export async function getCustomResponsesByResourceIdAndType(
 
 export async function updateCustomResponse(
   id: string,
-  update: s.CustomResponseUpdate,
+  update: s.CustomResponseUpdate
 ): Promise<s.CustomResponse | null> {
   try {
     const db = await dbPromise;
@@ -542,9 +547,9 @@ export async function deleteCustomResponse(id: string): Promise<boolean> {
 
 // Workspace CRUD operations
 export async function createWorkspace(
-  workspace: s.NewWorkspace,
+  workspace: s.NewWorkspace
 ): Promise<s.Workspace | null> {
-  console.log("Creating new workspace: ", workspace)
+  console.log('Creating new workspace: ', workspace);
   try {
     const db = await dbPromise;
     const result = await db
@@ -561,7 +566,7 @@ export async function createWorkspace(
 }
 
 export async function getWorkspaceSummary(
-  workspaceId: string,
+  workspaceId: string
 ): Promise<string> {
   const db = await dbPromise;
   const result = await db
@@ -573,7 +578,7 @@ export async function getWorkspaceSummary(
 }
 
 export async function getWorkspaceById(
-  id: string,
+  id: string
 ): Promise<s.Workspace | null> {
   try {
     const db = await dbPromise;
@@ -604,7 +609,7 @@ export async function getAllWorkspaces(): Promise<s.Workspace[]> {
 
 export async function updateWorkspace(
   id: string,
-  update: s.WorkspaceUpdate,
+  update: s.WorkspaceUpdate
 ): Promise<s.Workspace | null> {
   try {
     const db = await dbPromise;
@@ -637,7 +642,7 @@ export async function deleteWorkspace(id: string): Promise<boolean> {
 // Workspace Sessions operations
 export async function addSessionToWorkspace(
   workspaceId: string,
-  sessionId: string,
+  sessionId: string
 ): Promise<boolean> {
   try {
     const db = await dbPromise;
@@ -655,7 +660,7 @@ export async function addSessionToWorkspace(
 
 export async function removeSessionFromWorkspace(
   workspaceId: string,
-  sessionId: string,
+  sessionId: string
 ): Promise<boolean> {
   try {
     const db = await dbPromise;
@@ -673,7 +678,7 @@ export async function removeSessionFromWorkspace(
 }
 
 export async function getWorkspaceSessionIds(
-  workspaceId: string,
+  workspaceId: string
 ): Promise<string[]> {
   try {
     const db = await dbPromise;
@@ -701,11 +706,11 @@ export async function getPermissions(
       .selectFrom('permissions')
       .select(['user_id', 'role'])
       .where('resource_id', '=', resourceId);
-    
+
     if (resourceType) {
       query = query.where('resource_type', '=', resourceType);
     }
-    
+
     return await query.execute();
   } catch (error) {
     console.error('Error getting permissions:', error);
@@ -717,10 +722,12 @@ export async function setPermission(
   resourceId: string,
   role: Role,
   resourceType: 'SESSION' | 'WORKSPACE' = 'SESSION',
-  userId?: string,  // Defaults to whatever user is currently logged in
+  userId?: string // Defaults to whatever user is currently logged in
 ): Promise<boolean> {
   try {
-    console.log(`Setting permissions: \nResources: ${resourceId}\nUser: ${userId}\nRole: ${role}\nResource Type: ${resourceType}`)
+    console.log(
+      `Setting permissions: \nResources: ${resourceId}\nUser: ${userId}\nRole: ${role}\nResource Type: ${resourceType}`
+    );
     if (!userId) {
       const session = await authGetSession();
       userId = session?.user?.sub;
@@ -731,9 +738,16 @@ export async function setPermission(
     const db = await dbPromise;
     await db
       .insertInto('permissions')
-      .values({ resource_id: resourceId, user_id: userId || 'anonymous', role, resource_type: resourceType })
+      .values({
+        resource_id: resourceId,
+        user_id: userId || 'anonymous',
+        role,
+        resource_type: resourceType,
+      })
       .onConflict((oc) =>
-        oc.columns(['resource_id', 'user_id', 'resource_type']).doUpdateSet({ role }),
+        oc
+          .columns(['resource_id', 'user_id', 'resource_type'])
+          .doUpdateSet({ role })
       )
       .execute();
 
@@ -756,11 +770,11 @@ export async function getPermission(
       .select('role')
       .where('resource_id', '=', resourceId)
       .where('user_id', '=', userId);
-    
+
     if (resourceType) {
       query = query.where('resource_type', '=', resourceType);
     }
-    
+
     const result = await query.executeTakeFirst();
 
     console.log(`${userId}'s Permissions for ${resourceId}: `, result?.role);
@@ -782,11 +796,11 @@ export async function removePermission(
       .deleteFrom('permissions')
       .where('resource_id', '=', resourceId)
       .where('user_id', '=', userId);
-    
+
     if (resourceType) {
       query = query.where('resource_type', '=', resourceType);
     }
-    
+
     await query.execute();
 
     return true;
@@ -807,11 +821,11 @@ export async function canEdit(
     .select('role')
     .where('user_id', '=', userId)
     .where('resource_id', '=', resourceId);
-  
+
   if (resourceType) {
     query = query.where('resource_type', '=', resourceType);
   }
-  
+
   const permission = await query.executeTakeFirst();
 
   return (
@@ -827,7 +841,7 @@ export async function getResourcesForUser(
   columns: (keyof s.Permission)[] = ['resource_id', 'resource_type', 'role']
 ): Promise<s.Permission[]> {
   try {
-    const db = await dbPromise;    
+    const db = await dbPromise;
     // Check for global permissions first
     const globalPermission = await db
       .selectFrom(permissionsTableName)
@@ -835,20 +849,18 @@ export async function getResourcesForUser(
       .where('user_id', '=', userId)
       .where('resource_id', '=', 'global')
       .executeTakeFirst();
-    console.log("Global Permission: ", globalPermission)
-    let query = db
-      .selectFrom('permissions')
-      .select(columns);
-      
+    console.log('Global Permission: ', globalPermission);
+    let query = db.selectFrom('permissions').select(columns);
+
     if (!globalPermission) {
-      console.log("Getting resources, limiting to userId: ", userId)
+      console.log('Getting resources, limiting to userId: ', userId);
       query = query.where('user_id', '=', userId);
     } else {
-      console.log("Getting resources for admin")
+      console.log('Getting resources for admin');
     }
-    
+
     if (resourceType) {
-      query = query.where('resource_type', '=', resourceType)
+      query = query.where('resource_type', '=', resourceType);
     }
     return await query.execute();
   } catch (error) {
@@ -879,7 +891,7 @@ export async function updateVisibilitySettings(
         .where('id', '=', resourceId)
         .execute();
     } else {
-      // Update session settings  
+      // Update session settings
       await db
         .updateTable('host_db')
         .set({ visibility_settings: settings })
@@ -900,12 +912,12 @@ export async function createInvitation(
     const db = await dbPromise;
     const session = await authGetSession();
     const userSub = session?.user?.sub;
-    
+
     const result = await db
       .insertInto(invitationsTableName)
       .values({
         ...invitation,
-        created_by: userSub
+        created_by: userSub,
       })
       .returningAll()
       .executeTakeFirst();
@@ -974,9 +986,7 @@ export async function markInvitationAsAccepted(
   }
 }
 
-export async function deleteInvitation(
-  invitationId: string
-): Promise<boolean> {
+export async function deleteInvitation(invitationId: string): Promise<boolean> {
   try {
     const db = await dbPromise;
     await db
@@ -997,12 +1007,10 @@ export async function getWorkspacesForIds(
 ): Promise<s.Workspace[]> {
   try {
     if (!workspaceIds.length) return [];
-    
+
     const db = await dbPromise;
-    let query = db
-      .selectFrom('workspaces')
-      .where('id', 'in', workspaceIds);
-    
+    let query = db.selectFrom('workspaces').where('id', 'in', workspaceIds);
+
     if (columns.length > 0) {
       return await query.select(columns).execute();
     } else {
@@ -1025,18 +1033,18 @@ export async function upsertUser(userData: s.NewUser): Promise<s.User | null> {
     const result = await db
       .insertInto(usersTableName)
       .values(userData)
-      .onConflict((oc) => 
+      .onConflict((oc) =>
         oc.column('id').doUpdateSet({
           email: userData.email,
           name: userData.name,
           avatar_url: userData.avatar_url,
           last_login: sql`CURRENT_TIMESTAMP`,
-          metadata: userData.metadata
+          metadata: userData.metadata,
         })
       )
       .returningAll()
       .executeTakeFirst();
-    
+
     return result || null;
   } catch (error) {
     console.error('Error upserting user:', error);
@@ -1055,7 +1063,7 @@ export async function getUserById(id: string): Promise<s.User | null> {
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirst();
-    
+
     return result || null;
   } catch (error) {
     console.error('Error getting user by ID:', error);
@@ -1074,7 +1082,7 @@ export async function getUserByEmail(email: string): Promise<s.User | null> {
       .selectAll()
       .where('email', '=', email.toLowerCase())
       .executeTakeFirst();
-    
+
     return result || null;
   } catch (error) {
     console.error('Error getting user by email:', error);
@@ -1088,14 +1096,14 @@ export async function getUserByEmail(email: string): Promise<s.User | null> {
 export async function getUsersByIds(ids: string[]): Promise<s.User[]> {
   try {
     if (!ids.length) return [];
-    
+
     const db = await dbPromise;
     const users = await db
       .selectFrom(usersTableName)
       .selectAll()
       .where('id', 'in', ids)
       .execute();
-    
+
     return users;
   } catch (error) {
     console.error('Error getting users by IDs:', error);
@@ -1127,14 +1135,18 @@ export async function getUsersWithPermissionsForResource(
         `${usersTableName}.email`,
         `${usersTableName}.name`,
         `${usersTableName}.avatar_url`,
-        `${permissionsTableName}.role`
+        `${permissionsTableName}.role`,
       ]);
-    
+
     if (resourceType) {
-      query = query.where(`${permissionsTableName}.resource_type`, '=', resourceType);
+      query = query.where(
+        `${permissionsTableName}.resource_type`,
+        '=',
+        resourceType
+      );
     }
-    
-    return await query.execute() as UserAndRole[];
+
+    return (await query.execute()) as UserAndRole[];
   } catch (error) {
     console.error('Error getting users with permissions:', error);
     return [];
@@ -1144,9 +1156,12 @@ export async function getUsersWithPermissionsForResource(
 /**
  * Creates a link between a workspace and a session
  */
-export async function createWorkspaceSessionLink(workspaceId: string, sessionId: string) {
+export async function createWorkspaceSessionLink(
+  workspaceId: string,
+  sessionId: string
+) {
   const db = await dbPromise;
-  
+
   try {
     // Check if the link already exists to avoid duplicates
     const existingLink = await db
@@ -1155,11 +1170,11 @@ export async function createWorkspaceSessionLink(workspaceId: string, sessionId:
       .where('workspace_id', '=', workspaceId)
       .where('session_id', '=', sessionId)
       .executeTakeFirst();
-    
+
     if (existingLink) {
       return existingLink; // Link already exists
     }
-    
+
     // Create the new link
     return await db
       .insertInto(workspaceSessionsTableName)
@@ -1181,22 +1196,57 @@ export async function createWorkspaceSessionLink(workspaceId: string, sessionId:
  */
 export async function getAvailableSessionsForUser(userId: string) {
   const db = await dbPromise;
-  
+
   try {
     const query = db
       .selectFrom(hostTableName)
-      .innerJoin(permissionsTableName, `${permissionsTableName}.resource_id`, `${hostTableName}.id`)
+      .innerJoin(
+        permissionsTableName,
+        `${permissionsTableName}.resource_id`,
+        `${hostTableName}.id`
+      )
       .where(`${permissionsTableName}.resource_type`, '=', 'SESSION')
       .where(`${permissionsTableName}.user_id`, '=', userId)
       .select([
         `${hostTableName}.id as id`,
         `${hostTableName}.topic as topic`,
         `${hostTableName}.start_time as start_time`,
-      ])
-      
+      ]);
+
     return await query.execute();
   } catch (error) {
     console.error('Error fetching available sessions:', error);
     throw error;
   }
 }
+
+export type PromptWithType = s.PromptsTable & { type_name: string };
+
+// Cached function to get active prompt by type with default fallback
+export const getActivePromptByType = cache(
+  async (typeId: string): Promise<PromptWithType | null> => {
+    // First, try to find by direct ID match
+    const db = await dbPromise;
+    const rows = await db
+      .selectFrom('prompts as p')
+      .innerJoin('prompt_type as pt', 'p.prompt_type', 'pt.id')
+      .select([
+        'p.id',
+        'p.prompt_type',
+        'p.instructions',
+        'p.active',
+        'pt.name as type_name',
+      ])
+      .where((eb) =>
+        eb.or([eb('p.prompt_type', '=', typeId), eb('pt.name', '=', typeId)])
+      )
+      .where('p.active', '=', true)
+      .limit(1)
+      .execute();
+    console.log(
+      `[i] Retrieved prompt for type ${typeId}:`,
+      rows[0] || 'Not found'
+    );
+    return (rows[0] as PromptWithType) || null;
+  }
+);

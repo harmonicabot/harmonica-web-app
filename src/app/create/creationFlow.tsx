@@ -20,7 +20,7 @@ import { StepNavigation } from './StepNavigation';
 import { LaunchModal } from './LaunchModal';
 import { Step, STEPS } from './types';
 import { createPromptContent } from 'app/api/utils';
-import { getPromptInstructions } from '@/lib/promptsCache';
+import { getPromptInstructions } from '@/lib/promptActions';
 import { linkSessionsToWorkspace } from '@/lib/workspaceActions';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
