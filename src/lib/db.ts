@@ -48,17 +48,6 @@ const dbPromise = (async () => {
   return db;
 })();
 
-async function getAuthForClient() {
-  const authSession = await authGetSession();
-  // console.log('Session: ', JSON.stringify(authSession, null, 2));
-  const userSub = authSession?.user?.sub || '';
-  const adminIds = process.env.ADMIN_ID ? process.env.ADMIN_ID.split(',') : [];
-  if (adminIds.includes(userSub)) {
-    return undefined;
-  }
-  return userSub;
-}
-
 export async function getHostSessions(
   columns: (keyof s.HostSessionsTable)[],
   page: number = 1,
@@ -1249,3 +1238,21 @@ export const getActivePromptByType = cache(
     return (rows[0] as PromptWithType) || null;
   }
 );
+
+export async function getAllPrompts(): Promise<PromptWithType[]> {
+  const db = await dbPromise;
+  const rows = await db
+    .selectFrom('prompts as p')
+    .innerJoin('prompt_type as pt', 'p.prompt_type', 'pt.id')
+    .select([
+      'p.id',
+      'p.prompt_type',
+      'p.instructions',
+      'p.active',
+      'pt.name as type_name',
+    ])
+    .orderBy('p.created_at', 'desc')
+    .execute();
+
+  return rows as PromptWithType[];
+}
