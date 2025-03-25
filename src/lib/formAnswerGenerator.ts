@@ -74,11 +74,9 @@ ${attempts > 0 ? `Previous attempt failed with: ${lastError}\nIMPORTANT: Ensure 
         });
 
         console.log('\n=== LLM Response ===');
-        console.log('Raw response:', response.message.content);
+        console.log('Raw response:', response);
 
-        const answerLines =
-          response.message.content
-            ?.toString()
+        const answerLines = response
             .split('\n')
             .filter((line) => line.trim().length > 0) || [];
 

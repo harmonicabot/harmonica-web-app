@@ -127,7 +127,7 @@ ${messagesContent}
       ],
     });
 
-    return response.message.content;
+    return response;
   } catch (error) {
     console.error('[x] LlamaIndex error:', error);
     return `I apologize, but I encountered an error processing your request. ${error}`;

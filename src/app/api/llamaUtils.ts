@@ -24,8 +24,8 @@ export async function finishedResponse(
   const chatEngine = getLLM('MAIN', 0.3);
 
   try {
-    const response = await chatEngine.chat(
-      [
+    const response = await chatEngine.chat({
+      messages: [
         {
           role: 'system',
           content: systemPrompt,
@@ -35,7 +35,7 @@ export async function finishedResponse(
           content: userPrompt,
         },
       ]
-    );
+    });
 
     console.log('[i] Completion response:', JSON.stringify(response));
     const message = response;
@@ -158,7 +158,7 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
   console.log('[i] Formatted messages:', formattedMessages);
 
   try {
-    const message = await chatEngine.chat(formattedMessages as ChatMessage[]);
+    const message = await chatEngine.chat({ messages: formattedMessages as ChatMessage[] });
     console.log('[i] Response:', message);
     return {
       thread_id: messageData.threadId || '',
@@ -206,7 +206,8 @@ function streamResponse(systemPrompt: string, userPrompt: string) {
       const chatEngine = getLLM('MAIN', 0.3);
 
       try {
-        const response = await chatEngine.chat([
+        const response = await chatEngine.chat({
+          messages: [
             {
               role: 'system',
               content: systemPrompt,
@@ -216,7 +217,7 @@ function streamResponse(systemPrompt: string, userPrompt: string) {
               content: userPrompt,
             },
           ],
-        );
+        });
 
         if (response) {
           controller.enqueue(encoder.encode(response));

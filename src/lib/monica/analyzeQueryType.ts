@@ -44,9 +44,7 @@ export async function analyzeQueryType(
       ],
     });
 
-    const queryClassification = JSON.parse(
-      response.message.content.toString(),
-    ) as QueryClassification;
+    const queryClassification = JSON.parse(response) as QueryClassification;
     return queryClassification;
   } catch (error) {
     console.error('[x] Failed to analyze query type:', error);

@@ -47,5 +47,5 @@ Create authentic characters with diverse perspectives while avoiding assumptions
     messages: [{ role: 'user', content: prompt }],
   });
 
-  return response.message.content?.toString() || '';
+  return response || '';
 }

@@ -46,10 +46,10 @@ export class LLM {
     this.llm = llm as LLMInstance & ChatInterface;
   }
 
-  async chat(messages: ChatMessage[]): Promise<string> {
+  async chat(params: { messages: ChatMessage[] }): Promise<string> {
     // All LLMs actually accept the same message format, even though they specify it differently.
     // In TS we have to have the ChatInterface to prevent type errors.
-    const response = await this.llm.chat({ messages });
+    const response = await this.llm.chat(params);
 
     console.log('[i] Chat response:', response);
     // Normalize response format based on provider type

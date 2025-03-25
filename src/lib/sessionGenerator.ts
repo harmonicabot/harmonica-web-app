@@ -42,7 +42,7 @@ Reply with ONLY "true" if the session should end, or "false" if it should contin
   });
 
   return (
-    response.message.content?.toString().toLowerCase().includes('true') || false
+    response.toLowerCase().includes('true') || false
   );
 }
 
@@ -164,7 +164,7 @@ Additional response guidelines:
         ],
       });
 
-      lastUserMessage = userResponse.message.content?.toString() || '';
+      lastUserMessage = userResponse || '';
 
       // Store user response
       await db.insertChatMessage({
