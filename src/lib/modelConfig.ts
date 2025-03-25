@@ -3,10 +3,11 @@ import {
   Gemini,
   GEMINI_MODEL,
   Anthropic,
+  ChatMessage,
 } from 'llamaindex';
 
 type Provider = 'openai' | 'anthropic' | 'gemini';
-type LLMInstance = LlamaOpenAI | Gemini | Anthropic;
+type LLMInstance = LlamaOpenAI | Anthropic | Gemini;
 
 const getApiKey = (provider: Provider): string => {
   switch (provider) {
@@ -31,10 +32,39 @@ const getGeminiModel = (modelName: string) => {
   return model;
 };
 
+interface ChatInterface {
+  chat(params: { messages: ChatMessage[] }): Promise<any>;
+}
+
+// A wrapper class that normalizes the chat interface 
+// (each LLM's chat & response is unfortunately slightly different, 
+//  so creating a class that ensures they're handled properly and return a consistent response)
+export class LLM {
+  private llm: LLMInstance & ChatInterface;
+
+  constructor(llm: LLMInstance) {
+    this.llm = llm as LLMInstance & ChatInterface;
+  }
+
+  async chat(messages: ChatMessage[]): Promise<string> {
+    // All LLMs actually accept the same message format, even though they specify it differently.
+    // In TS we have to have the ChatInterface to prevent type errors.
+    const response = await this.llm.chat({ messages });
+
+    console.log('[i] Chat response:', response);
+    // Normalize response format based on provider type
+    if (response.message.content instanceof Array) {
+      return response.message.content.map((c: any) => c.text).join('') 
+    } else {
+      return response.message.content.toString();
+    }
+  }
+}
+
 export const getLLM = (
   type: 'SMALL' | 'MAIN' | 'LARGE',
   temperature = 0.7,
-): LLMInstance => {
+): LLM => {
   const model = process.env[`${type}_LLM_MODEL`];
   const provider = process.env[`${type}_LLM_PROVIDER`] as Provider;
 
@@ -43,27 +73,33 @@ export const getLLM = (
   }
 
   const apiKey = getApiKey(provider);
+  let llm: LLMInstance;
 
   switch (provider) {
     case 'openai':
-      return new LlamaOpenAI({
+      llm = new LlamaOpenAI({
         model,
         apiKey,
         maxTokens: 150,
         temperature,
       });
+      break;
     case 'anthropic':
-      return new Anthropic({
+      llm = new Anthropic({
         model,
         apiKey,
         temperature,
       });
+      break;
     case 'gemini':
-      return new Gemini({
+      llm = new Gemini({
         model: getGeminiModel(model),
         temperature,
       });
+      break;
     default:
       throw new Error(`Provider ${provider} not implemented`);
   }
+
+  return new LLM(llm);
 };

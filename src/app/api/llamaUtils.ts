@@ -24,8 +24,8 @@ export async function finishedResponse(
   const chatEngine = getLLM('MAIN', 0.3);
 
   try {
-    const response = await chatEngine.chat({
-      messages: [
+    const response = await chatEngine.chat(
+      [
         {
           role: 'system',
           content: systemPrompt,
@@ -34,11 +34,12 @@ export async function finishedResponse(
           role: 'user',
           content: userPrompt,
         },
-      ],
-    });
+      ]
+    );
 
-    console.log('[i] Completion response:', response);
-    return response.message.content.toString();
+    console.log('[i] Completion response:', JSON.stringify(response));
+    const message = response;
+    return message;
   } catch (error) {
     console.error('[x] Error in finishedResponse:', error);
     throw new Error(`Failed to generate response: ${error}`);
@@ -157,14 +158,12 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
   console.log('[i] Formatted messages:', formattedMessages);
 
   try {
-    const response = await chatEngine.chat({
-      messages: formattedMessages as ChatMessage[],
-    });
-    console.log('[i] Response:', response);
+    const message = await chatEngine.chat(formattedMessages as ChatMessage[]);
+    console.log('[i] Response:', message);
     return {
       thread_id: messageData.threadId || '',
       role: 'assistant',
-      content: response.message.content.toString(),
+      content: message,
       created_at: new Date(),
     };
   } catch (error) {
@@ -207,8 +206,7 @@ function streamResponse(systemPrompt: string, userPrompt: string) {
       const chatEngine = getLLM('MAIN', 0.3);
 
       try {
-        const response = await chatEngine.chat({
-          messages: [
+        const response = await chatEngine.chat([
             {
               role: 'system',
               content: systemPrompt,
@@ -218,11 +216,10 @@ function streamResponse(systemPrompt: string, userPrompt: string) {
               content: userPrompt,
             },
           ],
-        });
+        );
 
-        if (response.message?.content) {
-          const content = response.message.content.toString();
-          controller.enqueue(encoder.encode(content));
+        if (response) {
+          controller.enqueue(encoder.encode(response));
         } else {
           controller.error('No content in response');
         }

@@ -400,14 +400,14 @@ export default function CreationFlow() {
       target: ApiTarget.Builder,
       action: ApiAction.EditPrompt,
       data: {
-        threadId: threadId,
-        assistantId: builderAssistantId,
+        fullPrompt: latestFullPromptRef.current,
         instructions: newPromptInstructions,
       },
     };
 
     const newPromptResponse = await sendApiCall(payload);
     latestFullPromptRef.current = newPromptResponse.fullPrompt;
+    console.log('[i] New prompt response: ', newPromptResponse.fullPrompt);
 
     getStreamOfSummary({
       fullPrompt: newPromptResponse.fullPrompt,
@@ -437,6 +437,7 @@ export default function CreationFlow() {
       const { done, value } = await reader.read();
       if (done) break;
       const chunk = decoder.decode(value);
+      console.log(`[i] Chunk: ${JSON.stringify(chunk)}; Initial Value: ${JSON.stringify(value)}`);
       message += chunk;
       // console.log('\nChunk: ', chunk);
       updateStreaming(message);

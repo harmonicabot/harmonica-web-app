@@ -14,6 +14,10 @@ export const getPromptInstructions = cache(
       const prompt = await db.getActivePromptByType(typeId);
       // If the prompt exists in the database, return it
       if (prompt) {
+        console.log(
+          `[i] Prompt instructions for type ${typeId}:`,
+          prompt.instructions
+        );
         return prompt.instructions;
       }
     } catch (error) {

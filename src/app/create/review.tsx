@@ -66,14 +66,6 @@ export default function ReviewPrompt({
     setEditValue(e.currentTarget.value);
   };
 
-  function sanitizeHtml(html: string) {
-    // Sometimes the string will start with a 'code-block indicator'
-    const cleaned = html.replace(/^```html|```$/g, '');
-    return {
-      __html: DOMPurify.sanitize(cleaned),
-    };
-  }
-
   const showFullPrompt = (promptId: number) => {
     setShowModalState(true);
     setFullPrompt(prompts[promptId - 1].fullPrompt);

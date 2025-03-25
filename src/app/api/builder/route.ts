@@ -54,6 +54,8 @@ async function createNewPrompt(data: SessionBuilderData) {
       createPromptContent(data),
     );
 
+    console.log('[i] Created new prompt:', fullPrompt);
+
     return NextResponse.json({
       threadId,
       assistantId: '',
