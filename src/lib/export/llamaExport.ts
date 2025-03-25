@@ -48,7 +48,7 @@ export async function extractDataWithLlama(
     });
 
     // Clean the response if it includes markdown code blocks
-    let content = response.message.content.toString();
+    let content = response;
 
     // Remove markdown code blocks if present (```json ... ```)
     if (content.includes('```')) {

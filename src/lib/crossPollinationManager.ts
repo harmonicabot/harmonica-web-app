@@ -103,8 +103,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
         ],
       });
 
-      const responseText = response.message.content
-        .toString()
+      const responseText = response
         .trim()
         .toUpperCase();
       console.log('[i] Cross-pollination analysis response:', responseText);
@@ -171,7 +170,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
             .map((m) => m.content);
 
           // Extract conversation as pairs of messages for context
-          const conversationPairs = [];
+          const conversationPairs: { question: string, answer?: string }[] = [];
           for (let i = 0; i < sortedMessages.length; i += 2) {
             if (i + 1 < sortedMessages.length) {
               conversationPairs.push({
@@ -180,8 +179,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
               });
             } else {
               conversationPairs.push({
-                question: sortedMessages[i].content,
-                answer: null,
+                question: sortedMessages[i].content
               });
             }
           }
@@ -237,7 +235,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
         ],
       });
 
-      const responseText = response.message.content.toString().trim();
+      const responseText = response.trim();
       console.log('[i] Cross-pollination question generated:', responseText);
 
       // Update the last cross-pollination timestamp

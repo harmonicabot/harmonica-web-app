@@ -81,9 +81,8 @@ export async function generateParticipantAnswer(
       ],
     });
 
-    const participantResponse =
-      response.message.content?.toString() ||
-      'I need more information to provide a helpful response.';
+    const participantResponse = response
+      || 'I need more information to provide a helpful response.';
 
     console.log('[i] Generated participant response:', participantResponse);
 
