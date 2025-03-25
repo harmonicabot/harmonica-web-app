@@ -70,6 +70,7 @@ export async function analyzeWithSimScore(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.SIMSCORE_API_KEY}`,
       },
       body: JSON.stringify(simscoreFormatted),
     });
