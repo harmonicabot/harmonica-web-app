@@ -1,7 +1,12 @@
-import { OpenAI as LlamaOpenAI, Gemini, GEMINI_MODEL } from 'llamaindex';
+import {
+  OpenAI as LlamaOpenAI,
+  Gemini,
+  GEMINI_MODEL,
+  Anthropic,
+} from 'llamaindex';
 
 type Provider = 'openai' | 'anthropic' | 'gemini';
-type LLMInstance = LlamaOpenAI | Gemini;
+type LLMInstance = LlamaOpenAI | Gemini | Anthropic;
 
 const getApiKey = (provider: Provider): string => {
   switch (provider) {
@@ -45,6 +50,12 @@ export const getLLM = (
         model,
         apiKey,
         maxTokens: 150,
+        temperature,
+      });
+    case 'anthropic':
+      return new Anthropic({
+        model,
+        apiKey,
         temperature,
       });
     case 'gemini':
