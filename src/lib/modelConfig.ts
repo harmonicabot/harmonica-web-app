@@ -51,7 +51,7 @@ export class LLM {
     // In TS we have to have the ChatInterface to prevent type errors.
     const response = await this.llm.chat(params);
 
-    console.log('[i] Chat response:', response);
+    console.log('[i] Chat response content:', JSON.stringify(response.message.content));
     // Normalize response format based on provider type
     if (response.message.content instanceof Array) {
       return response.message.content.map((c: any) => c.text).join('') 
@@ -80,7 +80,6 @@ export const getLLM = (
       llm = new LlamaOpenAI({
         model,
         apiKey,
-        maxTokens: 150,
         temperature,
       });
       break;
