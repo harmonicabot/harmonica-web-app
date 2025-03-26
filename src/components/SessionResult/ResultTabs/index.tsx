@@ -81,7 +81,8 @@ export default function ResultTabs({
   const [initialUserIds, setInitialUserIds] =
     useState<string[]>(initialIncluded);
 
-  const updateIncludedInSummaryList = (
+  // Participant Ids that should be included in the _summary_ and _simscore_ analysis
+  const updateIncludedInAnalysisList = (
     userSessionId: string,
     included: boolean
   ) => {
@@ -273,9 +274,10 @@ export default function ResultTabs({
         </TabContent>
 
         <TabContent value="RESPONSES">
-            <SessionParticipantsTable
+          <SessionParticipantsTable
+              sessionId={resourceId}
               userData={userData}
-              onIncludeInSummaryChange={updateIncludedInSummaryList}
+              onIncludeInSummaryChange={updateIncludedInAnalysisList}
             />
         </TabContent>
 
