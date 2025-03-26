@@ -53,11 +53,6 @@ export default function CreationFlow() {
   const route = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [activeStep, setActiveStep] = useState<Step>(STEPS[0]);
-  const [threadId, setThreadId] = useState('');
-  const [builderAssistantId, setBuilderAssistantId] = useState('');
-  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>(
-    [],
-  );
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
@@ -292,7 +287,6 @@ export default function CreationFlow() {
         setCurrentVersion={setCurrentVersion}
         isEditing={isEditingPrompt}
         handleEdit={handleEditPrompt}
-        setTemporaryAssistantIds={setTemporaryAssistantIds}
       />
     ),
     Share: !isLoading && activeStep === 'Share' && (
@@ -370,23 +364,14 @@ export default function CreationFlow() {
   );
 
   async function getInitialPrompt() {
-    // We need to do two API calls here, one to create the main prompt and threadId/assistantId,
-    // and one to create the summary. The reason for that is mainly so that we can
-    // get the threadId separately from the summary _stream_,
-    // SO that we can then use the threadId to edit the prompt.
-    // Otherwise we would need to pass the threadId along inside the stream,
-    // and parse the stream for it, which is not great.
-
     const responseFullPrompt = await sendApiCall({
       target: ApiTarget.Builder,
       action: ApiAction.CreatePrompt,
       data: formData,
     });
-
-    setThreadId(responseFullPrompt.threadId);
-    setBuilderAssistantId(responseFullPrompt.assistantId);
     latestFullPromptRef.current = responseFullPrompt.fullPrompt;
 
+    // This will stream directly into the streamPromptRef:
     getStreamOfSummary({
       fullPrompt: responseFullPrompt.fullPrompt,
     });

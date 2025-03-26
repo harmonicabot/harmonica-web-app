@@ -2,7 +2,6 @@
 
 import { memo, useEffect, useState, useRef } from 'react';
 
-import Chat from '@/components/chat';
 import { useSearchParams } from 'next/navigation';
 import { useSessionStore } from '@/stores/SessionStore';
 import { Button } from '@/components/ui/button';
