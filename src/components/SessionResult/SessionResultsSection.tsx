@@ -4,7 +4,6 @@ import { HostSession, UserSession } from '@/lib/schema';
 import React, { useEffect } from 'react';
 import { mutate } from 'swr';
 
-import ShareSession from './ShareSession';
 import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
 import { createSummary } from '@/lib/serverUtils';
 
@@ -20,7 +19,6 @@ export default function SessionResultsSection({
   userData,
   resourceId,
   visibilityConfig,
-  showShare = true,
   chatEntryMessage,
 }: {
   hostData: HostSession;
@@ -52,11 +50,11 @@ export default function SessionResultsSection({
     }
   }, [hasNewMessages, lastMessage, lastSummaryUpdate, hostData.id, resourceId]);
 
+  visibilityConfig.showChat = visibilityConfig.showChat && hasMessages;
+
   return (
     <>
       <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
-      {hasMessages ? (
-        <>
           <ResultTabs
             hostData={[hostData]}
             userData={userData}
@@ -65,7 +63,7 @@ export default function SessionResultsSection({
             visibilityConfig={visibilityConfig}
             chatEntryMessage={chatEntryMessage}
           />
-          {visibilityConfig?.showParticipants && hasMinimumRole('editor') && (
+          {visibilityConfig.showParticipants && hasMinimumRole('editor') && hasMessages && (
             <ExportSection
               hostData={hostData}
               userData={userData}
@@ -73,10 +71,6 @@ export default function SessionResultsSection({
               className="mt-4"
             />
           )}
-        </>
-      ) : (
-        showShare && <ShareSession makeSessionId={resourceId} />
-      )}
     </>
   );
 }

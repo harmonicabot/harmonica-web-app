@@ -136,14 +136,14 @@ export async function generateSession(config: SessionConfig) {
 
 Additional response guidelines:
 1. If multiple characters/personas are described, feel free to randomly choose one for variety
-2. Show personality and emotion while staying consistent
+2. Show personality and emotion in written replies while staying consistent
 3. Keep responses concise (2-3 sentences maximum)
 4. Add character through:
    - Unique speech patterns or expressions
    - Emotional reactions
    - Personal opinions
    - Brief references to background
-5. Use natural language with occasional filler words or expressions
+5. Use natural language with occasional filler words or expressions that are realistic for written chats
 6. IMPORTANT: Do not use or make up specific names - always refer to people by their roles or relationships instead
 7. Include a mix of response types:
    - Sometimes disagree or express skepticism

@@ -148,11 +148,7 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
     ...messages.map((msg) => ({
       role: msg.role as 'user' | 'assistant',
       content: msg.content,
-    })),
-    {
-      role: 'user',
-      content: messageData.messageText,
-    },
+    }))
   ];
 
   console.log('[i] Formatted messages:', formattedMessages);
