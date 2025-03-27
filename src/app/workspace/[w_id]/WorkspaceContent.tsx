@@ -10,6 +10,14 @@ import { Button } from '@/components/ui/button';
 import { updateWorkspaceDetails } from './actions';
 import { useEffect, useState } from 'react';
 import { ExtendedWorkspaceData } from '@/lib/types';
+import { Label } from '@/components/ui/label';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Switch } from '@/components/ui/switch';
 
 // Default visibility configuration for workspaces
 const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
@@ -33,9 +41,10 @@ export default function WorkspaceContent({
   workspaceId,
   isPublicAccess = false,
 }: WorkspaceContentProps) {
-
-  const initialWorkspaceData = extendedWorkspaceData?.workspace
-  const [workspaceData, setWorkspaceData] = useState<Workspace | undefined>(initialWorkspaceData);
+  const initialWorkspaceData = extendedWorkspaceData?.workspace;
+  const [workspaceData, setWorkspaceData] = useState<Workspace | undefined>(
+    initialWorkspaceData
+  );
 
   // Update state when initialWorkspaceData changes (e.g., after fetch)
   useEffect(() => {
@@ -46,30 +55,40 @@ export default function WorkspaceContent({
 
   // Function to handle updates from child components
   const handleWorkspaceUpdate = (updates: Workspace) => {
-    setWorkspaceData(prev => ({
+    setWorkspaceData((prev) => ({
       ...prev,
-      ...updates
+      ...updates,
     }));
   };
 
   // For public access, we show a more limited view
   const visibilityConfig = isPublicAccess
-      ? {
-          showSummary: true,
-          showParticipants: false,
-          showCustomInsights: true,
-          showChat: true,
-          allowCustomInsightsEditing: false,
-          showSessionRecap: true,
-        }
-      : defaultWorkspaceVisibilityConfig;
-  
-  const { hasMinimumRole, loading: loadingUserInfo } = usePermissions(workspaceId);
+    ? {
+        showSummary: true,
+        showParticipants: false,
+        showCustomInsights: true,
+        showChat: true,
+        allowCustomInsightsEditing: false,
+        showSessionRecap: true,
+      }
+    : defaultWorkspaceVisibilityConfig;
+
+  const { hasMinimumRole, loading: loadingUserInfo } =
+    usePermissions(workspaceId);
 
   const submitNewWorkspace = async () => {
-    console.log("Saving workspace: ", workspaceData)
+    console.log('Saving workspace: ', workspaceData);
     await updateWorkspaceDetails(workspaceId, workspaceData!);
-  }
+  };
+
+  const handlePublicToggle = (checked: boolean) => {
+    const updatedWorkspace = {
+      ...workspaceData!,
+      is_public: checked,
+    };
+    setWorkspaceData(updatedWorkspace);
+    updateWorkspaceDetails(workspaceId, updatedWorkspace);
+  };
 
   const exists = extendedWorkspaceData.exists;
 
@@ -89,8 +108,31 @@ export default function WorkspaceContent({
           isEditable={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
           onUpdate={handleWorkspaceUpdate}
         />
-        {!loadingUserInfo && hasMinimumRole('owner') && exists && (
-          <div className="flex gap-2 self-end mt-4">
+        {!loadingUserInfo && hasMinimumRole('owner') && (
+          <div className="flex items-center gap-4 self-end mt-4">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="public-mode"
+                      checked={workspaceData?.is_public || false}
+                      onCheckedChange={handlePublicToggle}
+                    />
+                    <Label htmlFor="public-mode" className="text-sm">
+                      {workspaceData?.is_public ? 'Public' : 'Private'}
+                    </Label>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    When public, anyone with the link can view this workspace
+                    without logging in,<br/>
+                    but details such as 'Participants' will be hidden.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <ShareWorkspace workspaceId={workspaceId} />
           </div>
         )}
@@ -109,7 +151,9 @@ export default function WorkspaceContent({
           sessionIds={extendedWorkspaceData.sessionIds}
           chatEntryMessage={{
             role: 'assistant',
-            content: `Welcome to ${workspaceData?.title || 'this workspace'}! I'm here to help you understand the learnings across the linked discussions.
+            content: `Welcome to ${
+              workspaceData?.title || 'this workspace'
+            }! I'm here to help you understand the learnings across the linked discussions.
 
 Here are some questions you might want to ask:
   - What were the main themes discussed during the sessions?
@@ -129,7 +173,9 @@ Here are some questions you might want to ask:
         availableSessions={extendedWorkspaceData.availableSessions}
       />
       {!exists && workspaceData && (
-        <Button className="mt-4" onClick={submitNewWorkspace}>Create Workspace</Button>
+        <Button className="mt-4" onClick={submitNewWorkspace}>
+          Create Workspace
+        </Button>
       )}
     </>
   );

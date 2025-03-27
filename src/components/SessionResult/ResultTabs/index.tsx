@@ -405,7 +405,7 @@ export default function ResultTabs({
             {visibilityConfig.showChat && (
               <>
                 <ResizableHandle withHandle className="mx-2 mt-4" />
-                <ResizablePanel className="overflow-auto mt-4 gap-4">
+                <ResizablePanel className="overflow-auto mt-4 gap-4" defaultSize={34}>
                   {isNewWorkspace ? (
                     <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
                       <div className="text-center space-y-4 max-w-md">
