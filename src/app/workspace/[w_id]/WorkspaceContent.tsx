@@ -110,29 +110,6 @@ export default function WorkspaceContent({
         />
         {!loadingUserInfo && hasMinimumRole('owner') && (
           <div className="flex items-center gap-4 self-end mt-4">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="public-mode"
-                      checked={workspaceData?.is_public || false}
-                      onCheckedChange={handlePublicToggle}
-                    />
-                    <Label htmlFor="public-mode" className="text-sm">
-                      {workspaceData?.is_public ? 'Public' : 'Private'}
-                    </Label>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>
-                    When public, anyone with the link can view this workspace
-                    without logging in,<br/>
-                    but details such as 'Participants' will be hidden.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
             <ShareWorkspace workspaceId={workspaceId} />
           </div>
         )}
@@ -149,6 +126,8 @@ export default function WorkspaceContent({
             workspaceData?.visibility_settings || visibilityConfig
           }
           sessionIds={extendedWorkspaceData.sessionIds}
+          isPublic={workspaceData?.is_public}
+          onPublicToggle={hasMinimumRole('owner') ? handlePublicToggle : undefined}
           chatEntryMessage={{
             role: 'assistant',
             content: `Welcome to ${

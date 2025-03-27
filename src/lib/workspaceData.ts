@@ -2,9 +2,16 @@ import * as db from '@/lib/db';
 import { ExtendedWorkspaceData } from '@/lib/types';
 import { getSession } from '@auth0/nextjs-auth0';
 import { NewWorkspace } from './schema';
+import { hasWorkspaceAccess } from './serverUtils';
 
 export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedWorkspaceData> {
   try {
+    // Check if user has access to this workspace
+    const hasAccess = await hasWorkspaceAccess(workspaceId);
+    if (!hasAccess) {
+      throw new Error('Access denied: You do not have permission to view this workspace');
+    }
+
     let workspaceData = await db.getWorkspaceById(workspaceId);
     
     // Fetch available sessions for linking if the user is logged in
@@ -73,6 +80,10 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
     };
   } catch (error) {
     console.error(`Error occurred fetching workspace data: `, error);
+    // Check if this is an access denied error
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      throw new Error('Access denied: You do not have permission to view this workspace');
+    }
     throw error; // Re-throw to let the component handle it
   }
 }

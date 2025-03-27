@@ -46,17 +46,38 @@ async function SessionDataLoader({
         }
       : baseConfig;
 
+    // Function to handle public state toggle
+    const handlePublicToggle = async (isPublic: boolean) => {
+      try {
+        // Update the data in local state first for immediate UI response
+        data.hostData.is_public = isPublic;        
+        // Import is done dynamically to avoid circular dependencies
+        const db = await import('@/lib/db');
+        await db.updateHostSession(sessionId, { is_public: isPublic });
+      } catch (error) {
+        console.error('Error updating session public state:', error);
+      }
+    };
+
     return (
       <SessionPage
         data={data}
         workspaceId={workspaceId}
         isPublicAccess={isPublicAccess}
         visibilityConfig={finalVisibilityConfig}
+        onPublicToggle={handlePublicToggle}
         {...props}
       />
     );
   } catch (error) {
     console.error('Error loading session:', error);
+    
+    // If it's an access denied error, rethrow to use the error.tsx boundary
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      throw error;
+    }
+    
+    // For other errors, use the inline error component
     return (
       <ErrorPage
         title="Error loading session"

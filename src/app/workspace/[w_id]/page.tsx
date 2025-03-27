@@ -31,12 +31,7 @@ export default async function Workspace({
     
     // If public access is requested but workspace isn't public, show error
     if (isPublicAccess && data.workspace?.is_public === false) {
-      return (
-        <ErrorPage
-          title="Access Denied"
-          message="This workspace is not publicly accessible."
-        />
-      );
+      throw new Error('This workspace is not publicly accessible.');
     }
 
     return (
@@ -50,6 +45,14 @@ export default async function Workspace({
     );
   } catch (error) {
     console.error(`Error occurred fetching data: `, error);
+    
+    // Check if this is an access denied error
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      // Allow the error to propagate to the error.tsx boundary
+      throw error;
+    }
+    
+    // For other errors, show the error page component
     return (
       <ErrorPage
         title={'Error loading workspace'}

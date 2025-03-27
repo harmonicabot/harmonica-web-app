@@ -41,6 +41,8 @@ export interface ResultTabsProps {
   sessionIds?: string[];
   chatEntryMessage?: OpenAIMessage;
   visibilityConfig: ResultTabsVisibilityConfig;
+  isPublic?: boolean;
+  onPublicToggle?: (isPublic: boolean) => void;
 }
 
 const defaultVisibilityConfig: ResultTabsVisibilityConfig = {
@@ -388,7 +390,9 @@ export default function ResultTabs({
             <VisibilitySettings
               config={visibilityConfig}
               onChange={handleVisibilityChange}
-              isWorkspace={true}
+              isWorkspace={isWorkspace}
+              isPublic={isPublic}
+              onPublicToggle={onPublicToggle}
             />
           </div>
         )}

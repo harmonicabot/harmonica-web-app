@@ -17,15 +17,22 @@ interface VisibilitySettingsProps {
   onChange: (newConfig: ResultTabsVisibilityConfig) => void;
   isWorkspace?: boolean;
   className?: string;
+  isPublic?: boolean;
+  onPublicToggle?: (isPublic: boolean) => void;
 }
 
-export function VisibilitySettings({ config, onChange, isWorkspace, className }: VisibilitySettingsProps) {
+export function VisibilitySettings({ config, onChange, isWorkspace, className, isPublic = false, onPublicToggle }: VisibilitySettingsProps) {
   const toggleSetting = (key: keyof ResultTabsVisibilityConfig) => {
     onChange({
       ...config,
       [key]: !config[key],
     });
-    
+  };
+  
+  const handlePublicToggle = (checked: boolean) => {
+    if (onPublicToggle) {
+      onPublicToggle(checked);
+    }
   };
 
   return (
@@ -42,6 +49,25 @@ export function VisibilitySettings({ config, onChange, isWorkspace, className }:
         <DropdownMenuSeparator />
         
         <div className="p-4 space-y-4">
+          {onPublicToggle && (
+            <>
+              <div className="flex items-center justify-between space-x-2">
+                <label htmlFor="public-access" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  Public Access
+                </label>
+                <Switch
+                  id="public-access"
+                  checked={isPublic}
+                  onCheckedChange={handlePublicToggle}
+                />
+              </div>
+              <div className="text-xs text-gray-500 italic mb-2">
+                When public, anyone with the link can view without logging in
+              </div>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          
           <div className="flex items-center justify-between space-x-2">
             <label htmlFor="summary" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Show Summary
