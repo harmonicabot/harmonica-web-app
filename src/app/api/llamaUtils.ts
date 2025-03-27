@@ -122,6 +122,7 @@ export async function handleGenerateAnswer(
 
   // Get host session data directly using session_id
   if (!messageData.sessionId) {
+    // This is likely a 'test chat' during session creation, for which we don't have a sessionId yet.
     throw new Error('Session ID is required');
   }
   const sessionData = await getHostSessionById(messageData.sessionId);

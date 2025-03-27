@@ -123,11 +123,7 @@ export default function WorkspaceHero({
         onUpdate(updateData);
       }
       
-      // If the workspace exists, save to the database. Otherwise, only save it once the user confirms the workspace creation. (The data will be passed up with onUpdate above)
-      if (exists) {
-        await updateWorkspaceDetails(workspaceId, updateData);
-      }
-
+      await updateWorkspaceDetails(workspaceId, updateData);
     } catch (error) {
       console.error('Error updating workspace:', error);
     }

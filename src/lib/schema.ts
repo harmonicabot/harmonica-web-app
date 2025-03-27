@@ -81,7 +81,8 @@ export interface WorkspacesTable {
   gradientFrom?: string;
   gradientTo?: string;
   useGradient?: boolean;
-  created_at: ColumnType<Date, Date | undefined, never>;
+  status: 'active' | 'draft';
+  created_at: Generated<Date>;
   last_modified: Generated<Date>;
   visibility_settings?: ResultTabsVisibilityConfig;
 }

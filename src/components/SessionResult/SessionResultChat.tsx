@@ -48,7 +48,7 @@ Here are a few examples of what you can ask me:
               userData: userData.filter((user) => user.include_in_summary),
             }}
             sessionIds={
-              sessionIds && sessionIds.length
+              sessionIds && sessionIds.length > 0
                 ? sessionIds
                 : [userData[0].session_id]
             }

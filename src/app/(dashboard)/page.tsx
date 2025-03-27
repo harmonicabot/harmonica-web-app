@@ -231,7 +231,7 @@ function CreateSessionButton({ text = 'Create Session' }: { text?: string }) {
 }
 
 function CreateWorkspaceButton({ text = 'Create Workspace' }: { text?: string }) {
-  const workspaceId = `wsp_${Math.random().toString(36).substring(2, 14)}`
+  const workspaceId = `wsp_${Math.random().toString(36).substring(2, 14)}`;
   const link = `/workspace/${workspaceId}`;
   return (
     <Link href={link}>

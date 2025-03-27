@@ -84,7 +84,7 @@ export const ChatInterface = ({
       <div className="h-full max-h-[calc(100svh-150px)] md:max-h-[calc(100svh-50px)] max-w-2xl flex m-4">
         {hostData?.id && (
           <Chat
-            sessionIds={[hostData?.id || '']}
+            sessionIds={[hostData?.id]}
             userSessionId={userSessionId}
             setUserSessionId={setUserSessionId}
             userContext={userContext}
