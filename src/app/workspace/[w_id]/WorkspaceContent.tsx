@@ -7,7 +7,7 @@ import ShareWorkspace from '@/components/workspace/ShareWorkspace';
 import { ResultTabsVisibilityConfig, Workspace } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
-import { createNewWorkspace, updateWorkspaceDetails } from './actions';
+import { updateWorkspaceDetails } from './actions';
 import { useEffect, useState } from 'react';
 import { ExtendedWorkspaceData } from '@/lib/types';
 
@@ -68,18 +68,7 @@ export default function WorkspaceContent({
 
   const submitNewWorkspace = async () => {
     console.log("Saving workspace: ", workspaceData)
-    if (workspaceData) {
-      if (workspaceId) {
-        workspaceData.id = workspaceId; // If this is enabled we can navigate to arbitrary pages to create new ids (instead of using random ids);
-      }
-      await createNewWorkspace(workspaceData)
-    }
-  }
-
-  const updateWorkspace = async () => {
-    if (workspaceData) {
-      updateWorkspaceDetails(workspaceId, workspaceData)
-    }
+    await updateWorkspaceDetails(workspaceId, workspaceData!);
   }
 
   const exists = extendedWorkspaceData.exists;
@@ -139,7 +128,7 @@ Here are some questions you might want to ask:
         showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
         availableSessions={extendedWorkspaceData.availableSessions}
       />
-      {!exists && (
+      {!exists && workspaceData && (
         <Button className="mt-4" onClick={submitNewWorkspace}>Create Workspace</Button>
       )}
     </>

@@ -54,7 +54,7 @@ export async function getHostSessions(
   pageSize: number = 100
 ): Promise<s.HostSession[]> {
   const db = await dbPromise;
-  console.log('Database call to getHostSessions at:', new Date().toISOString());
+  console.log('Calling getHostSessions');
 
   let query = db.selectFrom(hostTableName).select(columns);
 
@@ -1255,4 +1255,73 @@ export async function getAllPrompts(): Promise<PromptWithType[]> {
     .execute();
 
   return rows as PromptWithType[];
+}
+
+export async function createDraftWorkspace(
+  title: string = "New Workspace"
+): Promise<s.Workspace | null> {
+  try {
+    const db = await dbPromise;
+    console.log("Creating draft workspace");
+    
+    // Create the draft workspace
+    const result = await db
+      .insertInto('workspaces')
+      .values({
+        title,
+        description: "",
+        is_public: false,
+        status: 'draft',
+        created_at: new Date()
+      })
+      .returningAll()
+      .executeTakeFirst();
+    
+    if (result) {
+
+       // Get current user for permissions
+      const session = await authGetSession();
+      const userSub = session?.user?.sub;
+      
+      if (!userSub) {
+        console.warn('No user ID found when creating draft workspace');
+        return result;
+      }
+      // Set owner permission for the user
+      await setPermission(
+        result.id,
+        'owner',
+        'WORKSPACE',
+        userSub
+      );
+    }
+    
+    return result || null;
+  } catch (error) {
+    console.error('Error creating draft workspace:', error);
+    return null;
+  }
+}
+
+// This is supposed to be run on some intervals to clean up draft workspaces that were never finished.
+// At this point there's no automatic invocation of this and should be done manually.
+export async function cleanupDraftWorkspaces(
+  olderThanHours: number = 30 * 24
+): Promise<number> {
+  try {
+    const db = await dbPromise;
+    const cutoffDate = new Date();
+    cutoffDate.setHours(cutoffDate.getHours() - olderThanHours);
+    
+    const result = await db
+      .deleteFrom('workspaces')
+      .where('status', '=', 'draft')
+      .where('last_modified', '<', cutoffDate)
+      .execute();
+    
+    return result.length;
+  } catch (error) {
+    console.error('Error cleaning up draft workspaces:', error);
+    return 0;
+  }
 }

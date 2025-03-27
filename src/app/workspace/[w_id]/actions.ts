@@ -2,21 +2,16 @@
 
 import { put } from '@vercel/blob';
 import * as db from '@/lib/db';
-import { Workspace, WorkspaceUpdate } from '@/lib/schema';
+import { WorkspaceUpdate } from '@/lib/schema';
 
-export async function createNewWorkspace(workspaceData: Workspace) {
-  return await db.createWorkspace({
-    ...workspaceData
-  });
-}
-
-export async function updateWorkspaceDetails(id: string, workspaceData: WorkspaceUpdate) {
-  // Explicitly handle the banner styling properties
-  
-  return await db.updateWorkspace(
-    id,
-    workspaceData
-  );
+export async function updateWorkspaceDetails(id: string, data: WorkspaceUpdate) {
+  try {
+    await db.updateWorkspace(id, data);
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating workspace details:', error);
+    return { success: false, error: 'Failed to update workspace details' };
+  }
 }
 
 export async function uploadBanner(

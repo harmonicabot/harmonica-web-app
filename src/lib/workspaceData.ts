@@ -1,10 +1,11 @@
 import * as db from '@/lib/db';
 import { ExtendedWorkspaceData } from '@/lib/types';
 import { getSession } from '@auth0/nextjs-auth0';
+import { NewWorkspace } from './schema';
 
 export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedWorkspaceData> {
   try {
-    const workspaceData = await db.getWorkspaceById(workspaceId);
+    let workspaceData = await db.getWorkspaceById(workspaceId);
     
     // Fetch available sessions for linking if the user is logged in
     const session = await getSession();
@@ -20,9 +21,15 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
       ]);
     }
 
-    // If workspace doesn't exist, return empty data structure
+    // If workspace doesn't exist, create it.
     if (!workspaceData) {
-      console.log(`Workspace ${workspaceId} not found, seems this is a new one!`);
+      const draftWorkspace: NewWorkspace = {
+        id: workspaceId,
+        title: "New Workspace",
+        status: 'draft',
+      }
+      workspaceData = await db.createWorkspace(draftWorkspace);
+
       return {
         exists: false,
         hostSessions: [],
@@ -57,7 +64,7 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
     const userData = usersWithChat.flat();
 
     return {
-      exists: true,
+      exists: workspaceData.status !== 'draft',
       workspace: workspaceData,
       hostSessions,
       userData,
