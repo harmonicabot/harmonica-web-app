@@ -1,7 +1,11 @@
 'use server';
 
 import { getSession } from '@auth0/nextjs-auth0';
-import { getInvitationsByEmail, markInvitationAsAccepted, setPermission } from '@/lib/db';
+import {
+  getInvitationsByEmail,
+  markInvitationAsAccepted,
+  setPermission,
+} from '@/lib/db';
 import { syncCurrentUser } from '@/lib/serverUtils';
 
 /**
@@ -22,31 +26,44 @@ export async function processUserInvitations(): Promise<{
       return {
         success: false,
         error: 'Not authenticated',
-        processed: 0
+        processed: 0,
       };
     }
-    
-    const userEmail = session.user.email;
+
+    // Get user email - handle cases where email might be in the name field
+    let userEmail = session.user.email;
+    let userName = session.user.name;
+
+    // If email is missing but name contains an email format, use name as email
+    if (!userEmail && userName && userName.includes('@')) {
+      userEmail = userName;
+    }
+
     const userId = session.user.sub;
-    
+
     if (!userEmail || !userId) {
-      console.log(`User email or ID not available`);
+      console.log(
+        `User email or ID not available: `,
+        JSON.stringify(session.user, null, 2)
+      );
 
       return {
         success: false,
         error: 'User email or ID not available',
-        processed: 0
+        processed: 0,
       };
     }
-    
+
     // Ensure user profile is saved in our database
     await syncCurrentUser();
-    
+
     // Find pending invitations for this email
     const invitations = await getInvitationsByEmail(userEmail);
-    console.log(`Found ${invitations.length} pending invitations for ${userEmail}`);
+    console.log(
+      `Found ${invitations.length} pending invitations for ${userEmail}`
+    );
     let processed = 0;
-    
+
     // Process each invitation
     for (const invitation of invitations) {
       // Set permission based on the invitation
@@ -56,14 +73,14 @@ export async function processUserInvitations(): Promise<{
         invitation.resource_type,
         userId
       );
-      
+
       if (success) {
         // Mark invitation as accepted
         await markInvitationAsAccepted(invitation.id);
         processed++;
       }
     }
-    
+
     console.log(`Processed ${processed} invitations for user ${userEmail}`);
     return {
       success: true,
@@ -74,7 +91,7 @@ export async function processUserInvitations(): Promise<{
     return {
       success: false,
       error: 'Failed to process invitations',
-      processed: 0
+      processed: 0,
     };
   }
 }

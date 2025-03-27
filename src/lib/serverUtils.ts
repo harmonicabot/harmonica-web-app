@@ -24,16 +24,33 @@ export async function syncCurrentUser(): Promise<boolean> {
 
     const { sub, email, name, picture } = session.user;
     
-    if (!sub || !email) {
-      console.log('Missing required user data');
+    if (!sub) {
+      console.log('Missing required user ID (sub)');
+      return false;
+    }
+
+    // Handle case where email might be in the name field
+    let userEmail = email;
+    let userName = name;
+    
+    // If email is missing but name contains an email format, use name as email
+    if (!userEmail && userName && userName.includes('@')) {
+      userEmail = userName;
+      if (session.user.nickname) {
+        userName = session.user.nickname; // Often just the bit before the @
+      }
+    }
+    
+    if (!userEmail) {
+      console.log('Missing required email data');
       return false;
     }
 
     // Create or update user record
     const userData: NewUser = {
       id: sub,
-      email: email,
-      name: name || undefined,
+      email: userEmail,
+      name: userName || undefined,
       avatar_url: picture || undefined,
     };
 
