@@ -38,9 +38,9 @@ export default function WorkspaceHero({
   location,
   isEditable = false,
   bannerImageUrl,
-  initialGradientFrom = '#6B21A8',
-  initialGradientTo = '#9333EA',
-  initialUseGradient = true,
+  initialGradientFrom,
+  initialGradientTo,
+  initialUseGradient,
   onUpdate,
 }: WorkspaceHeroProps) {
   const [bannerImage, setBannerImage] = useState<string | undefined>(bannerImageUrl);

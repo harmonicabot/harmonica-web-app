@@ -4,10 +4,16 @@ import WorkspaceContent from './WorkspaceContent';
 import ErrorPage from '@/components/Error';
 import { fetchWorkspaceData } from '@/lib/workspaceData';
 import { ExtendedWorkspaceData } from '@/lib/types';
+import { cache } from 'react';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 300; // in seconds
 export const revalidate = 5 * 60; // check new data only every 5 minutes
+
+// Create a cached version of fetchWorkspaceData
+const cachedFetchWorkspaceData = cache(async (workspaceId: string): Promise<ExtendedWorkspaceData> => {
+  return fetchWorkspaceData(workspaceId);
+});
 
 export async function generateMetadata({
   params,
@@ -27,16 +33,11 @@ export default async function Workspace({
   const isPublicAccess = searchParams.access === 'public';
 
   try {
-    const data: ExtendedWorkspaceData = await fetchWorkspaceData(params.w_id);
+    const data: ExtendedWorkspaceData = await cachedFetchWorkspaceData(params.w_id);
     
     // If public access is requested but workspace isn't public, show error
     if (isPublicAccess && data.workspace?.is_public === false) {
-      return (
-        <ErrorPage
-          title="Access Denied"
-          message="This workspace is not publicly accessible."
-        />
-      );
+      throw new Error('This workspace is not publicly accessible.');
     }
 
     return (
@@ -50,6 +51,14 @@ export default async function Workspace({
     );
   } catch (error) {
     console.error(`Error occurred fetching data: `, error);
+    
+    // Check if this is an access denied error
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      // Allow the error to propagate to the error.tsx boundary
+      throw error;
+    }
+    
+    // For other errors, show the error page component
     return (
       <ErrorPage
         title={'Error loading workspace'}

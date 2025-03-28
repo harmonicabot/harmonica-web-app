@@ -62,6 +62,7 @@ export default function SessionResultsSection({
             hasNewMessages={hasNewMessages}
             visibilityConfig={visibilityConfig}
             chatEntryMessage={chatEntryMessage}
+            isPublic={hostData.is_public}
           />
           {visibilityConfig.showParticipants && hasMinimumRole('editor') && hasMessages && (
             <ExportSection

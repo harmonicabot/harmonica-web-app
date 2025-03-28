@@ -2,6 +2,7 @@ import * as db from '@/lib/db';
 import { HostSession, UserSession } from '@/lib/schema';
 import { getUserStats } from '@/lib/clientUtils';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
+import { hasSessionAccess } from '@/lib/serverUtils';
 
 export interface SessionData {
   hostData: HostSession;
@@ -26,6 +27,14 @@ export async function fetchSessionData(
   isPublicAccess?: boolean
 ): Promise<SessionData> {
   try {
+    // Check if user has permission to access this session
+    if (!isPublicAccess) {
+      const hasAccess = await hasSessionAccess(sessionId);
+      if (!hasAccess) {
+        throw new Error('Access denied: You do not have permission to view this session');
+      }
+    }
+
     // Fetch host session data
     const hostData = await db.getHostSessionById(sessionId);
 

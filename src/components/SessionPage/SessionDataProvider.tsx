@@ -49,14 +49,19 @@ async function SessionDataLoader({
     return (
       <SessionPage
         data={data}
-        workspaceId={workspaceId}
-        isPublicAccess={isPublicAccess}
         visibilityConfig={finalVisibilityConfig}
         {...props}
       />
     );
   } catch (error) {
     console.error('Error loading session:', error);
+    
+    // If it's an access denied error, rethrow to use the error.tsx boundary
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      throw error;
+    }
+    
+    // For other errors, use the inline error component
     return (
       <ErrorPage
         title="Error loading session"

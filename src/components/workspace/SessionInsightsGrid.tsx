@@ -43,9 +43,6 @@ export default function SessionInsightsGrid({
     session => !hostSessions.some(hostSession => hostSession.id === session.id)
   );
 
-  console.log("Available sessions: ", availableSessions)
-  console.log("Sessions to link: ", sessionsToLink)
-
   const handleCreateSession = () => {
     // Store the workspace ID in localStorage to retrieve after session creation
     localStorage.setItem('pendingWorkspaceLink', workspaceId);

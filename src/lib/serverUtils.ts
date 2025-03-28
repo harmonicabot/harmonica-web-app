@@ -24,16 +24,30 @@ export async function syncCurrentUser(): Promise<boolean> {
 
     const { sub, email, name, picture } = session.user;
     
-    if (!sub || !email) {
-      console.log('Missing required user data');
+    if (!sub) {
+      console.log('Missing required user ID (sub)');
+      return false;
+    }
+
+    // Handle case where email might be in the name field
+    let userEmail = email;
+    let userName = name;
+    
+    // If email is missing but name contains an email format, use name as email
+    if (!userEmail && userName && userName.includes('@')) {
+      userEmail = userName;
+    }
+    
+    if (!userEmail) {
+      console.log('Missing required email data');
       return false;
     }
 
     // Create or update user record
     const userData: NewUser = {
       id: sub,
-      email: email,
-      name: name || undefined,
+      email: userEmail,
+      name: userName || undefined,
       avatar_url: picture || undefined,
     };
 
@@ -55,6 +69,64 @@ export async function getCurrentUserId(): Promise<string | null> {
   } catch (error) {
     console.error('Error getting current user:', error);
     return null;
+  }
+}
+
+/**
+ * Check if current user has access to a workspace
+ * @param workspaceId The workspace ID to check access for
+ * @returns True if the user has access, false otherwise
+ */
+export async function hasWorkspaceAccess(workspaceId: string): Promise<boolean> {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return false;
+    
+    // Check direct permission
+    const permission = await db.getPermission(workspaceId, userId, 'WORKSPACE');
+    if (permission) return true;
+    
+    // Check global permission
+    const globalPermission = await db.getPermission('global', userId);
+    if (globalPermission) return true;
+    
+    // Check public access
+    const publicPermission = await db.getPermission(workspaceId, 'public', 'WORKSPACE');
+    if (publicPermission) return true;
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking workspace access:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if current user has access to a session
+ * @param sessionId The session ID to check access for
+ * @returns True if the user has access, false otherwise
+ */
+export async function hasSessionAccess(sessionId: string): Promise<boolean> {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return false;
+    
+    // Check direct permission
+    const permission = await db.getPermission(sessionId, userId, 'SESSION');
+    if (permission) return true;
+    
+    // Check public access
+    const publicPermission = await db.getPermission(sessionId, 'public', 'SESSION');
+    if (publicPermission) return true;
+
+    // Check global permission
+    const globalPermission = await db.getPermission('global', userId);
+    if (globalPermission) return true;
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking session access:', error);
+    return false;
   }
 }
 

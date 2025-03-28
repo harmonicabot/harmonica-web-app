@@ -4,12 +4,20 @@ import ResultTabs from '@/components/SessionResult/ResultTabs';
 import WorkspaceHero from '@/components/workspace/WorkspaceHero';
 import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 import ShareWorkspace from '@/components/workspace/ShareWorkspace';
-import { ResultTabsVisibilityConfig, Workspace } from '@/lib/schema';
+import { NewWorkspace, ResultTabsVisibilityConfig, Workspace } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import { updateWorkspaceDetails } from './actions';
 import { useEffect, useState } from 'react';
 import { ExtendedWorkspaceData } from '@/lib/types';
+import { Label } from '@/components/ui/label';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Switch } from '@/components/ui/switch';
 
 // Default visibility configuration for workspaces
 const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
@@ -33,9 +41,10 @@ export default function WorkspaceContent({
   workspaceId,
   isPublicAccess = false,
 }: WorkspaceContentProps) {
-
-  const initialWorkspaceData = extendedWorkspaceData?.workspace
-  const [workspaceData, setWorkspaceData] = useState<Workspace | undefined>(initialWorkspaceData);
+  const initialWorkspaceData = extendedWorkspaceData?.workspace;
+  const [workspaceData, setWorkspaceData] = useState<Workspace | NewWorkspace>(
+    initialWorkspaceData
+  );
 
   // Update state when initialWorkspaceData changes (e.g., after fetch)
   useEffect(() => {
@@ -46,30 +55,35 @@ export default function WorkspaceContent({
 
   // Function to handle updates from child components
   const handleWorkspaceUpdate = (updates: Workspace) => {
-    setWorkspaceData(prev => ({
+    setWorkspaceData((prev) => ({
       ...prev,
-      ...updates
+      ...updates,
     }));
   };
 
   // For public access, we show a more limited view
   const visibilityConfig = isPublicAccess
-      ? {
-          showSummary: true,
-          showParticipants: false,
-          showCustomInsights: true,
-          showChat: true,
-          allowCustomInsightsEditing: false,
-          showSessionRecap: true,
-        }
-      : defaultWorkspaceVisibilityConfig;
-  
-  const { hasMinimumRole, loading: loadingUserInfo } = usePermissions(workspaceId);
+    ? {
+        showSummary: true,
+        showParticipants: false,
+        showCustomInsights: true,
+        showChat: true,
+        allowCustomInsightsEditing: false,
+        showSessionRecap: true,
+      }
+    : defaultWorkspaceVisibilityConfig;
+
+  const { hasMinimumRole, loading: loadingUserInfo } =
+    usePermissions(workspaceId);
 
   const submitNewWorkspace = async () => {
-    console.log("Saving workspace: ", workspaceData)
-    await updateWorkspaceDetails(workspaceId, workspaceData!);
-  }
+    console.log('Saving workspace: ', workspaceData);
+    const tempWorkspaceData: Workspace | NewWorkspace = {
+      ...workspaceData,
+      status: 'active',
+    }
+    await updateWorkspaceDetails(workspaceId, tempWorkspaceData);
+  };
 
   const exists = extendedWorkspaceData.exists;
 
@@ -89,8 +103,8 @@ export default function WorkspaceContent({
           isEditable={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
           onUpdate={handleWorkspaceUpdate}
         />
-        {!loadingUserInfo && hasMinimumRole('owner') && exists && (
-          <div className="flex gap-2 self-end mt-4">
+        {!loadingUserInfo && hasMinimumRole('owner') && (
+          <div className="flex items-center gap-4 self-end mt-4">
             <ShareWorkspace workspaceId={workspaceId} />
           </div>
         )}
@@ -107,16 +121,19 @@ export default function WorkspaceContent({
             workspaceData?.visibility_settings || visibilityConfig
           }
           sessionIds={extendedWorkspaceData.sessionIds}
+          isPublic={workspaceData?.is_public}
           chatEntryMessage={{
             role: 'assistant',
-            content: `Welcome to ${workspaceData?.title || 'this workspace'}! I'm here to help you understand the learnings across the linked discussions.
+            content: `Welcome to ${
+              workspaceData?.title || 'this workspace'
+            }! I'm here to help you understand the learnings across the linked discussions.
 
 Here are some questions you might want to ask:
   - What were the main themes discussed during the sessions?
   - What was controversial, and where did participants agree?`,
           }}
           showEdit={!loadingUserInfo && hasMinimumRole('owner')}
-          isNewWorkspace={!exists}
+          draft={!exists}
         />
       </div>
 
@@ -129,7 +146,9 @@ Here are some questions you might want to ask:
         availableSessions={extendedWorkspaceData.availableSessions}
       />
       {!exists && workspaceData && (
-        <Button className="mt-4" onClick={submitNewWorkspace}>Create Workspace</Button>
+        <Button className="mt-4" onClick={submitNewWorkspace}>
+          Create Workspace
+        </Button>
       )}
     </>
   );
