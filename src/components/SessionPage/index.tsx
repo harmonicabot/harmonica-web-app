@@ -8,22 +8,16 @@ import { ResultTabsVisibilityConfig } from '@/lib/schema';
 
 interface SessionPageProps {
   data: SessionData;
-  workspaceId?: string;
-  isPublicAccess?: boolean;
   visibilityConfig: ResultTabsVisibilityConfig;
   showShare?: boolean;
   chatEntryMessage?: OpenAIMessage;
-  onPublicToggle?: (isPublic: boolean) => void;
 }
 
 export default function SessionPage({
   data,
-  workspaceId,
-  isPublicAccess,
   visibilityConfig,
   showShare = true,
   chatEntryMessage,
-  onPublicToggle
 }: SessionPageProps) {
   const { hostData, usersWithChat, stats } = data;
 
@@ -50,7 +44,6 @@ export default function SessionPage({
         visibilityConfig={visibilityConfig}
         showShare={showShare}
         chatEntryMessage={chatEntryMessage}
-        onPublicToggle={onPublicToggle}
       />
     </div>
   );

@@ -4,10 +4,16 @@ import WorkspaceContent from './WorkspaceContent';
 import ErrorPage from '@/components/Error';
 import { fetchWorkspaceData } from '@/lib/workspaceData';
 import { ExtendedWorkspaceData } from '@/lib/types';
+import { cache } from 'react';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 300; // in seconds
 export const revalidate = 5 * 60; // check new data only every 5 minutes
+
+// Create a cached version of fetchWorkspaceData
+const cachedFetchWorkspaceData = cache(async (workspaceId: string): Promise<ExtendedWorkspaceData> => {
+  return fetchWorkspaceData(workspaceId);
+});
 
 export async function generateMetadata({
   params,
@@ -27,7 +33,7 @@ export default async function Workspace({
   const isPublicAccess = searchParams.access === 'public';
 
   try {
-    const data: ExtendedWorkspaceData = await fetchWorkspaceData(params.w_id);
+    const data: ExtendedWorkspaceData = await cachedFetchWorkspaceData(params.w_id);
     
     // If public access is requested but workspace isn't public, show error
     if (isPublicAccess && data.workspace?.is_public === false) {

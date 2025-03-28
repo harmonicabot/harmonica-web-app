@@ -46,26 +46,10 @@ async function SessionDataLoader({
         }
       : baseConfig;
 
-    // Function to handle public state toggle
-    const handlePublicToggle = async (isPublic: boolean) => {
-      try {
-        // Update the data in local state first for immediate UI response
-        data.hostData.is_public = isPublic;        
-        // Import is done dynamically to avoid circular dependencies
-        const db = await import('@/lib/db');
-        await db.updateHostSession(sessionId, { is_public: isPublic });
-      } catch (error) {
-        console.error('Error updating session public state:', error);
-      }
-    };
-
     return (
       <SessionPage
         data={data}
-        workspaceId={workspaceId}
-        isPublicAccess={isPublicAccess}
         visibilityConfig={finalVisibilityConfig}
-        onPublicToggle={handlePublicToggle}
         {...props}
       />
     );

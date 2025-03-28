@@ -20,7 +20,6 @@ export default function SessionResultsSection({
   resourceId,
   visibilityConfig,
   chatEntryMessage,
-  onPublicToggle,
 }: {
   hostData: HostSession;
   userData: UserSession[];
@@ -28,7 +27,6 @@ export default function SessionResultsSection({
   visibilityConfig: ResultTabsVisibilityConfig;
   showShare?: boolean;
   chatEntryMessage?: OpenAIMessage;
-  onPublicToggle?: (isPublic: boolean) => void;
 }) {
   const { hasMinimumRole } = usePermissions(resourceId);
   const path = usePathname();
@@ -65,7 +63,6 @@ export default function SessionResultsSection({
             visibilityConfig={visibilityConfig}
             chatEntryMessage={chatEntryMessage}
             isPublic={hostData.is_public}
-            onPublicToggle={onPublicToggle}
           />
           {visibilityConfig.showParticipants && hasMinimumRole('editor') && hasMessages && (
             <ExportSection

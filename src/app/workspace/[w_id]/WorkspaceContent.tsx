@@ -4,7 +4,7 @@ import ResultTabs from '@/components/SessionResult/ResultTabs';
 import WorkspaceHero from '@/components/workspace/WorkspaceHero';
 import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 import ShareWorkspace from '@/components/workspace/ShareWorkspace';
-import { ResultTabsVisibilityConfig, Workspace } from '@/lib/schema';
+import { NewWorkspace, ResultTabsVisibilityConfig, Workspace } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import { updateWorkspaceDetails } from './actions';
@@ -42,7 +42,7 @@ export default function WorkspaceContent({
   isPublicAccess = false,
 }: WorkspaceContentProps) {
   const initialWorkspaceData = extendedWorkspaceData?.workspace;
-  const [workspaceData, setWorkspaceData] = useState<Workspace | undefined>(
+  const [workspaceData, setWorkspaceData] = useState<Workspace | NewWorkspace>(
     initialWorkspaceData
   );
 
@@ -78,16 +78,11 @@ export default function WorkspaceContent({
 
   const submitNewWorkspace = async () => {
     console.log('Saving workspace: ', workspaceData);
-    await updateWorkspaceDetails(workspaceId, workspaceData!);
-  };
-
-  const handlePublicToggle = (checked: boolean) => {
-    const updatedWorkspace = {
-      ...workspaceData!,
-      is_public: checked,
-    };
-    setWorkspaceData(updatedWorkspace);
-    updateWorkspaceDetails(workspaceId, updatedWorkspace);
+    const tempWorkspaceData: Workspace | NewWorkspace = {
+      ...workspaceData,
+      status: 'active',
+    }
+    await updateWorkspaceDetails(workspaceId, tempWorkspaceData);
   };
 
   const exists = extendedWorkspaceData.exists;
@@ -127,7 +122,6 @@ export default function WorkspaceContent({
           }
           sessionIds={extendedWorkspaceData.sessionIds}
           isPublic={workspaceData?.is_public}
-          onPublicToggle={hasMinimumRole('owner') ? handlePublicToggle : undefined}
           chatEntryMessage={{
             role: 'assistant',
             content: `Welcome to ${
@@ -139,7 +133,7 @@ Here are some questions you might want to ask:
   - What was controversial, and where did participants agree?`,
           }}
           showEdit={!loadingUserInfo && hasMinimumRole('owner')}
-          isNewWorkspace={!exists}
+          draft={!exists}
         />
       </div>
 

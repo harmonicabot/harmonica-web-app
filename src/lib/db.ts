@@ -565,6 +565,22 @@ export async function getWorkspaceSummary(
   return result?.summary || '';
 }
 
+export async function hasWorkspace(id: string): Promise<boolean> {
+  try {
+    const db = await dbPromise
+    const result = await db
+      .selectFrom('workspaces')
+      .select('id')
+      .where('id', '=', id)
+      .executeTakeFirst()
+
+    return result !== undefined
+  } catch (error) {
+    console.error('Error checking workspace existence:', error)
+    return false
+  }
+}
+
 export async function getWorkspaceById(
   id: string
 ): Promise<s.Workspace | null> {
@@ -764,8 +780,6 @@ export async function getPermission(
     }
 
     const result = await query.executeTakeFirst();
-
-    console.log(`${userId}'s Permissions for ${resourceId}: `, result?.role);
     return result || null;
   } catch (error) {
     console.error('Error getting permission:', error);

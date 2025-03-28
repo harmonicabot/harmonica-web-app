@@ -29,7 +29,6 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
-import { Button } from '@/components/ui/button';
 import { SimScoreTab } from './SimScoreTab';
 
 export interface ResultTabsProps {
@@ -42,7 +41,6 @@ export interface ResultTabsProps {
   chatEntryMessage?: OpenAIMessage;
   visibilityConfig: ResultTabsVisibilityConfig;
   isPublic?: boolean;
-  onPublicToggle?: (isPublic: boolean) => void;
 }
 
 const defaultVisibilityConfig: ResultTabsVisibilityConfig = {
@@ -64,9 +62,9 @@ export default function ResultTabs({
   visibilityConfig: initialConfig = defaultVisibilityConfig,
   chatEntryMessage,
   sessionIds = [],
-  showEdit = false, // Whether to always show edit button
-  isNewWorkspace = false, // Whether this is a new workspace with no sessions
-}: ResultTabsProps & { showEdit?: boolean; isNewWorkspace?: boolean }) {
+  isPublic = false,
+  draft = false, // Whether this is a new workspace / session
+}: ResultTabsProps & { showEdit?: boolean; draft?: boolean }) {
   const { hasMinimumRole, loading: loadingUserInfo } =
     usePermissions(resourceId);
 
@@ -143,7 +141,7 @@ export default function ResultTabs({
   // // For new workspaces, we'll show a placeholder instead of the "no replies" message
   if (
     !hasAnyIncludedUserMessages &&
-    !isNewWorkspace &&
+    !draft &&
     !hasMinimumRole('editor')
   ) {
     return (
@@ -188,7 +186,7 @@ export default function ResultTabs({
   // Shared content renderer
   const renderLeftContent = (isMobile = false) => {
     // Placeholder content for new workspaces
-    if (isNewWorkspace) {
+    if (draft) {
       return (
         <div className={cn('overflow-auto h-full', isMobile ? 'w-full' : '')}>
           <TabContent value="SUMMARY">
@@ -324,16 +322,6 @@ export default function ResultTabs({
     );
   };
 
-  console.log(
-    'Show custom insights:',
-    (responses.length > 0 && visibilityConfig.showCustomInsights) ||
-      hasMinimumRole('editor')
-  );
-  console.log(
-    'Show participant responses:',
-    visibilityConfig.showParticipants || hasMinimumRole('editor')
-  );
-
   return (
     <Tabs
       className="relative group w-full"
@@ -385,14 +373,14 @@ export default function ResultTabs({
         </div>
 
         {/* View Settings button in the top right, same line as tabs */}
-        {(hasMinimumRole('owner') || isNewWorkspace) && (
+        {(hasMinimumRole('editor')) && (
           <div className="flex-shrink-0">
             <VisibilitySettings
               config={visibilityConfig}
               onChange={handleVisibilityChange}
               isWorkspace={isWorkspace}
               isPublic={isPublic}
-              onPublicToggle={onPublicToggle}
+              resourceId={resourceId}
             />
           </div>
         )}
@@ -410,7 +398,7 @@ export default function ResultTabs({
               <>
                 <ResizableHandle withHandle className="mx-2 mt-4" />
                 <ResizablePanel className="overflow-auto mt-4 gap-4" defaultSize={34}>
-                  {isNewWorkspace ? (
+                  {draft ? (
                     <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
                       <div className="text-center space-y-4 max-w-md">
                         <h3 className="text-2xl font-semibold text-gray-700">
@@ -445,7 +433,7 @@ export default function ResultTabs({
           {renderLeftContent(true)}
           {visibilityConfig.showChat && (
             <div className="w-full">
-              {isNewWorkspace ? (
+              {draft ? (
                 <Card className="border-2 border-dashed border-gray-300 min-h-[200px] flex flex-col items-center justify-center p-6">
                   <div className="text-center space-y-4 max-w-md">
                     <h3 className="text-xl font-semibold text-gray-700">

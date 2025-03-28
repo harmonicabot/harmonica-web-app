@@ -82,7 +82,7 @@ export async function hasWorkspaceAccess(workspaceId: string): Promise<boolean> 
     const userId = await getCurrentUserId();
     if (!userId) return false;
     
-    // First check direct permission
+    // Check direct permission
     const permission = await db.getPermission(workspaceId, userId, 'WORKSPACE');
     if (permission) return true;
     
@@ -111,21 +111,17 @@ export async function hasSessionAccess(sessionId: string): Promise<boolean> {
     const userId = await getCurrentUserId();
     if (!userId) return false;
     
-    // First check direct permission
+    // Check direct permission
     const permission = await db.getPermission(sessionId, userId, 'SESSION');
     if (permission) return true;
-    
-    // Check global permission
-    const globalPermission = await db.getPermission('global', userId);
-    if (globalPermission) return true;
     
     // Check public access
     const publicPermission = await db.getPermission(sessionId, 'public', 'SESSION');
     if (publicPermission) return true;
-    
-    // Also check if the session is marked as public
-    const sessionData = await db.getHostSessionById(sessionId);
-    if (sessionData && sessionData.is_public) return true;
+
+    // Check global permission
+    const globalPermission = await db.getPermission('global', userId);
+    if (globalPermission) return true;
     
     return false;
   } catch (error) {
