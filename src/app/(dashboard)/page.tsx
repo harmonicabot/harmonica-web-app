@@ -22,17 +22,19 @@ const sessionCache = cache(async () => {
     // Get the current user session to access user ID
     const session = await getSession();
     const userId = session?.user?.sub;
-    
+
     if (!userId) {
       console.warn('No user ID found');
       return { hostSessions: [], workspacesWithSessions: [] };
     }
-    
+
     // Query sessions with permissions check
-    const userResources = await db.getResourcesForUser(userId)
+    const userResources = await db.getResourcesForUser(userId);
 
     // First, check whether there are some ovverriding permissions (e.g. admin for all resources):
-    const hasAccessToAllResources = userResources.some(res => res.resource_id === 'global'); // global = admin access to all resources
+    const hasAccessToAllResources = userResources.some(
+      (res) => res.resource_id === 'global',
+    ); // global = admin access to all resources
     if (hasAccessToAllResources) {
       // This block is strictly speaking not necessary any more, but it might still be more performant, so leaving it here.
       // For users with global access, fetch ALL sessions without client filtering
@@ -47,33 +49,45 @@ const sessionCache = cache(async () => {
 
       // Get ALL workspace IDs
       const allWorkspaces = await db.getAllWorkspaces();
-      
+
       // Get sessions for each workspace
-      const workspaceAndSessionsIds: Record<string, string[]> = Object.fromEntries(
-        await Promise.all(
-          allWorkspaces.map(async (w) => [w.id, await db.getWorkspaceSessionIds(w.id)])
-        )
-      );
-      
+      const workspaceAndSessionsIds: Record<string, string[]> =
+        Object.fromEntries(
+          await Promise.all(
+            allWorkspaces.map(async (w) => [
+              w.id,
+              await db.getWorkspaceSessionIds(w.id),
+            ]),
+          ),
+        );
+
       // Combine workspaces with their sessions
       const workspacesWithSessions = await combineWorkspacesWithSessions(
         allWorkspaces,
         workspaceAndSessionsIds,
-        hostSessions
+        hostSessions,
       );
-      
+
       return { hostSessions, workspacesWithSessions };
     }
-    const hostSessionIds = userResources.filter(r => r.resource_type === 'SESSION').map(r => r.resource_id)
-    const workspaceIds = userResources.filter(r => r.resource_type === 'WORKSPACE').map(r => r.resource_id)
+    const hostSessionIds = userResources
+      .filter((r) => r.resource_type === 'SESSION')
+      .map((r) => r.resource_id);
+    const workspaceIds = userResources
+      .filter((r) => r.resource_type === 'WORKSPACE')
+      .map((r) => r.resource_id);
 
-    const workspaces = await db.getWorkspacesForIds(workspaceIds)
-    
-    const workspaceAndSessionsIds: Record<string, string[]> = Object.fromEntries(
-      await Promise.all(
-        workspaceIds.map(async (wId) => [wId, await db.getWorkspaceSessionIds(wId)])
-      )
-    )
+    const workspaces = await db.getWorkspacesForIds(workspaceIds);
+
+    const workspaceAndSessionsIds: Record<string, string[]> =
+      Object.fromEntries(
+        await Promise.all(
+          workspaceIds.map(async (wId) => [
+            wId,
+            await db.getWorkspaceSessionIds(wId),
+          ]),
+        ),
+      );
 
     const hostSessions = await db.getHostSessionsForIds(hostSessionIds, [
       'id',
@@ -87,7 +101,7 @@ const sessionCache = cache(async () => {
     const workspacesWithSessions = await combineWorkspacesWithSessions(
       workspaces,
       workspaceAndSessionsIds,
-      hostSessions
+      hostSessions,
     );
 
     return { hostSessions, workspacesWithSessions };
@@ -97,17 +111,19 @@ const sessionCache = cache(async () => {
   }
 });
 
-export type WorkspaceWithSessions = Workspace & { sessions: HostSession[] }
+export type WorkspaceWithSessions = Workspace & { sessions: HostSession[] };
 
 async function combineWorkspacesWithSessions(
   workspaces: Workspace[],
   workspaceAndSessionsIds: Record<string, string[]>,
-  hostSessions: HostSession[]
+  hostSessions: HostSession[],
 ): Promise<WorkspaceWithSessions[]> {
   // Get all session IDs that need to be fetched but aren't in hostSessions
   const allSessionIds = Object.values(workspaceAndSessionsIds).flat();
-  const existingSessionIds = new Set(hostSessions.map(s => s.id));
-  const missingSessionIds = allSessionIds.filter(id => !existingSessionIds.has(id));
+  const existingSessionIds = new Set(hostSessions.map((s) => s.id));
+  const missingSessionIds = allSessionIds.filter(
+    (id) => !existingSessionIds.has(id),
+  );
 
   // Fetch all missing sessions
   const newSessionsMap: Record<string, HostSession> = {};
@@ -120,26 +136,26 @@ async function combineWorkspacesWithSessions(
       'active',
       'client',
     ]);
-    
+
     // Create a map for quick lookup
-    newSessions.forEach(session => {
+    newSessions.forEach((session) => {
       newSessionsMap[session.id] = session;
     });
   }
-  
+
   // Create a map of all available sessions for quick lookup
   const sessionsMap: Record<string, HostSession> = {};
-  hostSessions.forEach(session => {
+  hostSessions.forEach((session) => {
     sessionsMap[session.id] = session;
   });
-  
+
   // Combine workspaces with their sessions
-  return workspaces.map(workspace => {
+  return workspaces.map((workspace) => {
     const sessionIds = workspaceAndSessionsIds[workspace.id] || [];
     const sessions = sessionIds
-      .map(sessionId => sessionsMap[sessionId] || newSessionsMap[sessionId])
+      .map((sessionId) => sessionsMap[sessionId] || newSessionsMap[sessionId])
       .filter(Boolean);
-      
+
     return { ...workspace, sessions };
   });
 }
@@ -153,26 +169,22 @@ export default async function Dashboard() {
 
   return (
     <>
-      {Date.now() < new Date('2025-02-14').getTime() && (
-        <DonateBanner />
-      )}
+      {Date.now() < new Date('2025-02-14').getTime() && <DonateBanner />}
       <Tabs defaultValue="sessions">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h1 className="text-3xl font-semibold tracking-tight">
-              Dashboard
-            </h1>
+            <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
             <p className="text-sm text-muted-foreground">
               Manage your sessions and workspaces
             </p>
           </div>
           <div className="flex items-center space-x-2">
             <CreateSessionButton />
-            <CreateWorkspaceButton />
+            {/* <CreateWorkspaceButton /> */}
           </div>
         </div>
 
-        <TabsList className="mt-6">
+        {/* <TabsList className="mt-6">
           <TabsTrigger value="sessions" className="flex items-center gap-2">
             Sessions
             {hostSessions.length > 0 && (
@@ -187,7 +199,7 @@ export default async function Dashboard() {
               {workspacesWithSessions.length}
             </span>
           </TabsTrigger>
-        </TabsList>
+        </TabsList> */}
 
         <TabsContent value="sessions" className="mt-4">
           {hostSessions.length > 0 ? (
@@ -230,7 +242,11 @@ function CreateSessionButton({ text = 'Create Session' }: { text?: string }) {
   );
 }
 
-function CreateWorkspaceButton({ text = 'Create Workspace' }: { text?: string }) {
+function CreateWorkspaceButton({
+  text = 'Create Workspace',
+}: {
+  text?: string;
+}) {
   const workspaceId = `wsp_${Math.random().toString(36).substring(2, 14)}`;
   const link = `/workspace/${workspaceId}`;
   return (

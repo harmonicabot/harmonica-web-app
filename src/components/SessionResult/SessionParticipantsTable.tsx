@@ -89,9 +89,9 @@ export default function SessionParticipantsTable({
             View participants progress and transcripts
           </CardDescription>
         </div>
-        <Button variant="default" onClick={() => setIsModalOpen(true)}>
+        {/* <Button variant="default" onClick={() => setIsModalOpen(true)}>
           Generate Responses
-        </Button>
+        </Button> */}
       </CardHeader>
       <CardContent>
         {userData.length === 0 ? (
