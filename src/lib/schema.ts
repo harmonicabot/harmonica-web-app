@@ -33,6 +33,7 @@ export interface HostSessionsTable {
   prompt_summary: string;
   questions?: JSON;
   is_public: boolean;
+  visibility_settings?: ResultTabsVisibilityConfig;
 }
 
 export interface UserSessionsTable {
@@ -64,6 +65,7 @@ export interface CustomResponsesTable {
   position: number;
   session_id: string; // Could also be workspace_id!
   content: string;
+  response_type: string;  // Which table this is going to be in
   created_at: Generated<Date>;
 }
 
@@ -71,11 +73,28 @@ export interface WorkspacesTable {
   id: Generated<string>;
   title: string;
   description?: string;
+  location?: string;
   summary?: string;
   parent_id?: string;
   is_public?: boolean;
-  created_at: ColumnType<Date, Date | undefined, never>;
+  bannerImage?: string;
+  gradientFrom?: string;
+  gradientTo?: string;
+  useGradient?: boolean;
+  status: 'active' | 'draft';
+  created_at: Generated<Date>;
   last_modified: Generated<Date>;
+  visibility_settings?: ResultTabsVisibilityConfig;
+}
+
+export interface ResultTabsVisibilityConfig {
+  showSummary?: boolean;
+  showSessionRecap?: boolean;
+  showParticipants?: boolean;
+  showCustomInsights?: boolean;
+  showSimScore?: boolean;
+  showChat?: boolean;
+  allowCustomInsightsEditing?: boolean;
 }
 
 // Mapping of which sessions belong to which workspaces
@@ -88,7 +107,47 @@ export interface PermissionsTable {
   resource_id: string;
   user_id: string;
   role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none';
+  resource_type: 'SESSION' | 'WORKSPACE';
 }
+
+export interface InvitationsTable {
+  id: Generated<string>;
+  email: string;
+  resource_id: string;
+  resource_type: 'SESSION' | 'WORKSPACE';
+  role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none';
+  message?: string;
+  created_by?: string; // The user_id (sub) of who created the invitation
+  created_at: Generated<Date>;
+  accepted: Generated<boolean>; // Default to false
+}
+
+export interface UsersTable {
+  id: string; // Auth0 sub
+  email: string;
+  name?: string;
+  avatar_url?: string;
+  last_login: Generated<Date>;
+  created_at: Generated<Date>;
+  metadata?: JSON;
+}
+
+export type PromptsTable = {
+  id: string;
+  prompt_type: string;
+  instructions: string;
+  active: boolean;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+};
+
+export type PromptTypesTable = {
+  id: string;
+  name: string;
+  description: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+};
 
 export type HostSession = Selectable<HostSessionsTable>;
 export type NewHostSession = Insertable<HostSessionsTable>;
@@ -107,6 +166,17 @@ export type WorkspaceUpdate = Updateable<WorkspacesTable>;
 export type Permission = Selectable<PermissionsTable>;
 export type NewPermission = Insertable<PermissionsTable>;
 export type PermissionUpdate = Updateable<PermissionsTable>;
+export type Invitation = Selectable<InvitationsTable>;
+export type NewInvitation = Insertable<InvitationsTable>;
+export type User = Selectable<UsersTable>;
+export type NewUser = Insertable<UsersTable>;
+export type UserUpdate = Updateable<UsersTable>;
+export type Prompt = Selectable<PromptsTable>;
+export type NewPrompt = Insertable<PromptsTable>;
+export type PromptUpdate = Updateable<PromptsTable>;
+export type PromptType = Selectable<PromptTypesTable>;
+export type NewPromptType = Insertable<PromptTypesTable>;
+export type PromptTypeUpdate = Updateable<PromptTypesTable>;
 
 export async function createDbInstance<T extends Record<string, any>>() {
   try {

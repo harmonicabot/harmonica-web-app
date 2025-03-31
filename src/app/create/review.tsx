@@ -1,7 +1,6 @@
 'use client';
 
 import { SetStateAction, useEffect, useState } from 'react';
-import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,7 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import ChatPopupButton from '@/components/ChatPopupButton';
 import { HRMarkdown } from '@/components/HRMarkdown';
 import { Eye } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { isAdmin } from '@/lib/serverUtils';
 
@@ -23,7 +21,6 @@ export default function ReviewPrompt({
   setCurrentVersion,
   isEditing,
   handleEdit,
-  setTemporaryAssistantIds,
 }: {
   prompts: VersionedPrompt[];
   setPrompts: (value: SetStateAction<VersionedPrompt[]>) => void;
@@ -32,7 +29,6 @@ export default function ReviewPrompt({
   setCurrentVersion: (version: number) => void;
   isEditing: boolean;
   handleEdit: (instructions: string) => void;
-  setTemporaryAssistantIds: (value: SetStateAction<string[]>) => void;
 }) {
   const [editValue, setEditValue] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -65,14 +61,6 @@ export default function ReviewPrompt({
   ) => {
     setEditValue(e.currentTarget.value);
   };
-
-  function sanitizeHtml(html: string) {
-    // Sometimes the string will start with a 'code-block indicator'
-    const cleaned = html.replace(/^```html|```$/g, '');
-    return {
-      __html: DOMPurify.sanitize(cleaned),
-    };
-  }
 
   const showFullPrompt = (promptId: number) => {
     setShowModalState(true);
@@ -114,10 +102,10 @@ export default function ReviewPrompt({
       )}
       <div
         id="card-container"
-        className="bg-white m-4 h-[calc(100vh-200px)] overflow-hidden mx-auto p-4 rounded-xl shadow space-y-12"
+        className="bg-white m-4 overflow-hidden mx-auto p-4 rounded-xl shadow space-y-12"
       >
         <div className="lg:flex h-full">
-          <div className={`${isEditing ? 'lg:w-2/3' : ''} overflow-scroll`}>
+          <div className={`${isEditing ? 'lg:w-2/3' : ''} overflow-auto`}>
             {streamingPrompt ||
               (generating && (
                 <Card className={`p-6 bg-purple-50 my-4`}>
@@ -160,7 +148,6 @@ export default function ReviewPrompt({
                     )}
                     <ChatPopupButton
                       prompt={prompt}
-                      handleSetTempAssistantIds={setTemporaryAssistantIds}
                     />
                     {prompt.id !== currentVersion ? (
                       <Button className='border-[1px]' onClick={() => setCurrentVersion(prompt.id)}>

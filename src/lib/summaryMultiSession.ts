@@ -1,10 +1,6 @@
-import { GEMINI_MODEL } from 'llamaindex';
-
 import * as db from '@/lib/db';
-import { Gemini } from 'llamaindex';
-
-const initialPrompt = `
-Rédigez un résumé en français pour toutes les sessions de l'ENS-PSL. Assurez-vous d'inclure des sections spécifiques résumant respectivement les risques et les opportunités.`;
+import { getLLM } from '@/lib/modelConfig';
+import { getPromptInstructions } from '@/lib/promptsCache';
 
 export async function generateMultiSessionSummary(sessionIds: string[]) {
   // console.log('[i] Generating multi-session summary for sessions:', sessionIds);
@@ -112,22 +108,18 @@ ${sessionsData[sessionIndex]?.critical ? `Key Points: ${sessionsData[sessionInde
         .replace(/\b(we|our|ours)\b/gi, `Group${sessionNum}`);
     }
 
-    const chatEngine = new Gemini({
-      model: GEMINI_MODEL.GEMINI_PRO_LATEST,
-      temperature: 0.3,
-    });
+    const chatEngine = getLLM('MAIN', 0.3);
 
     const userPrompt = `
 ### Historical Messages by Session:
 ${messagesContent}
 `;
 
-    // console.log('[i] User prompt:', userPrompt);
+    const summaryPrompt = await getPromptInstructions('SUMMARY_PROMPT');
 
-    // Update the prompt structure
     const response = await chatEngine.chat({
       messages: [
-        { role: 'system', content: initialPrompt },
+        { role: 'system', content: summaryPrompt },
         {
           role: 'user',
           content: userPrompt,
@@ -135,7 +127,7 @@ ${messagesContent}
       ],
     });
 
-    return response.message.content;
+    return response;
   } catch (error) {
     console.error('[x] LlamaIndex error:', error);
     return `I apologize, but I encountered an error processing your request. ${error}`;

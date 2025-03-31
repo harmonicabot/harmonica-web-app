@@ -33,15 +33,23 @@ async function migrate() {
   if (direction === 'down') {
     console.log(`Migrating down`);
     await migrateDown(migrator);
+  } else if (direction === 'up') {
+    console.log(`Migrating up one step`);
+    await migrateUp(migrator);
   } else {
     console.log(`Migrating to latest`);
     await migrateToLatest(migrator);
   }
-  console.log('Migration script finished!');
+  console.log('Please wait while operations terminate...');
 }
 
 async function migrateToLatest(migrator: Migrator) {
   const { error, results } = await migrator.migrateToLatest();
+  handleResults(error, results);
+}
+
+async function migrateUp(migrator: Migrator) {
+  const { error, results } = await migrator.migrateUp();
   handleResults(error, results);
 }
 
@@ -53,14 +61,15 @@ async function migrateDown(migrator: Migrator) {
 function handleResults(error: any, results: any) {
   results?.forEach((it: any) => {
     if (it.status === 'Success') {
-      console.log(`migration "${it.migrationName}" was executed successfully`);
+      const direction = it.direction.toLowerCase() === 'down' ? 'Reverted' : 'Applied';
+      console.log(`Successfully ${direction}: "${it.migrationName}"`);
     } else if (it.status === 'Error') {
-      console.error(`failed to execute migration "${it.migrationName}"`);
+      console.error(`Failed to execute migration "${it.migrationName}"`);
     }
   });
 
   if (error) {
-    console.error('failed to migrate');
+    console.error('Failed to migrate');
     console.error(error);
     process.exit(1);
   }

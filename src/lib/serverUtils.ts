@@ -1,116 +1,147 @@
 'use server';
 import * as db from './db';
-import * as gpt from 'app/api/gptUtils';
-import { Message } from './schema';
 import { UserProfile } from '@auth0/nextjs-auth0/client';
 import { generateMultiSessionSummary } from './summaryMultiSession';
+import { getSession } from "@auth0/nextjs-auth0";
+import { NewUser } from "./schema";
 
 export async function isAdmin(user: UserProfile) {
   console.log('Admin IDs: ', process.env.ADMIN_ID);
   return (process.env.ADMIN_ID || '').indexOf(user.sub ?? 'NO USER') > -1;
 }
 
-// Define the type for the grouped chats
-interface GroupedChats {
-  [threadId: string]: Message[];
-}
-
-export async function getAssistantId(
-  assistant:
-    | 'RESULT_CHAT_ASSISTANT'
-    | 'EXPORT_ASSISTANT'
-    | 'TEMPLATE_BUILDER_ID'
-    | 'SUMMARY_ASSISTANT',
-) {
-  const result = process.env[assistant];
-  if (result) return result;
-  throw new Error(`Missing ${assistant}`);
-}
-
-export async function createSummary(sessionId: string) {
-  console.log(`Creating summary for ${sessionId}...`);
-  const messageStats = await db.getNumUsersAndMessages([sessionId]);
-  const allUsers = await db.getUsersBySessionId(sessionId, [
-    'id',
-    'thread_id',
-    'include_in_summary',
-  ]);
-  const onlyIncludedUsersWithAtLeast2Messages = allUsers.filter(
-    (usr) =>
-      usr.include_in_summary &&
-      messageStats[sessionId][usr.id].num_messages > 2,
-  );
-  console.log(
-    'Users with contributions to summary: ',
-    onlyIncludedUsersWithAtLeast2Messages.length,
-  );
-
-  const chats = await db.getAllMessagesForUsersSorted(
-    onlyIncludedUsersWithAtLeast2Messages,
-  );
-  const contextData = await db.getFromHostSession(sessionId, [
-    'context',
-    'critical',
-    'goal',
-    'topic',
-  ]);
-  // Todo: createSummary could also be called from a workspace, in which case the workspace might have its own summary_assistant, and there would also be multiple sessions to summarize.
-  const summaryAssistantId =
-    (await db.getFromHostSession(sessionId, ['summary_assistant_id']))
-      ?.summary_assistant_id || 'asst_QTmamFSqEIcbUX4ZwrjEqdm8';
-
-  // Flatten the chats and group by thread_id to distinguish participants
-  const groupedChats: GroupedChats = chats.reduce((acc, chat) => {
-    const participant = chat.thread_id; // Use thread_id to identify the participant
-    if (!acc[participant]) {
-      acc[participant] = [];
+/**
+ * Ensures the current user exists in our local users table
+ * This should be called during authentication flow
+ */
+export async function syncCurrentUser(): Promise<boolean> {
+  try {
+    const session = await getSession();
+    if (!session?.user) {
+      console.log('No user session found');
+      return false;
     }
-    acc[participant].push(chat);
-    return acc;
-  }, {} as GroupedChats); // Type assertion for the accumulator
 
-  // Create formatted messages for each participant
-  const chatMessages = Object.entries(groupedChats).map(
-    ([participantId, messages]) => {
-      const participantMessages = messages
-        .map((chat) => {
-          return `${chat.role === 'user' ? 'User' : 'AI'}: ${chat.content}`;
-        })
-        .join(`\n\n`); // Join messages for the same participant
-      return `\`\`\`\n----START Participant ${participantId}:----\n${participantMessages}\n\n----END Participant ${participantId}----\`\`\``; // Format for each participant
-    },
-  );
+    const { sub, email, name, picture } = session.user;
+    
+    if (!sub) {
+      console.log('Missing required user ID (sub)');
+      return false;
+    }
 
-  const objectiveData = `\`\`\`This is the context, including the **OBJECTIVE**, used to create the session.\n
-  Use this information to design an appropriate report structure:\n\n
-  ----START OBJECTIVE DATA----\n
-  ${JSON.stringify(contextData)}
-  \n----END OBJECTIVE DATA----\n\`\`\``;
-  // console.log('Sending prompt to GPT-4: ', promptForObjective);
-  const threadId = await gpt.handleCreateThread(
-    {
-      role: 'assistant',
-      content: 'Use the following messages as context for user input.',
-    },
-    [...chatMessages, objectiveData],
-  );
+    // Handle case where email might be in the name field
+    let userEmail = email;
+    let userName = name;
+    
+    // If email is missing but name contains an email format, use name as email
+    if (!userEmail && userName && userName.includes('@')) {
+      userEmail = userName;
+    }
+    
+    if (!userEmail) {
+      console.log('Missing required email data');
+      return false;
+    }
 
-  const summaryReply = await gpt.handleGenerateAnswer({
-    threadId: threadId,
-    assistantId: summaryAssistantId,
-    messageText:
-      'Generate the report based on the participant data provided addressing the objective.',
-  });
-  const summary = summaryReply.content;
-  console.log('Summary: ', summary);
+    // Create or update user record
+    const userData: NewUser = {
+      id: sub,
+      email: userEmail,
+      name: userName || undefined,
+      avatar_url: picture || undefined,
+    };
+
+    const result = await db.upsertUser(userData);
+    return !!result;
+  } catch (error) {
+    console.error('Error syncing user:', error);
+    return false;
+  }
+}
+
+/**
+ * Get the current authenticated user sub
+ */
+export async function getCurrentUserId(): Promise<string | null> {
+  try {
+    const session = await getSession();
+    return session?.user?.sub || null;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if current user has access to a workspace
+ * @param workspaceId The workspace ID to check access for
+ * @returns True if the user has access, false otherwise
+ */
+export async function hasWorkspaceAccess(workspaceId: string): Promise<boolean> {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return false;
+    
+    // Check direct permission
+    const permission = await db.getPermission(workspaceId, userId, 'WORKSPACE');
+    if (permission) return true;
+    
+    // Check global permission
+    const globalPermission = await db.getPermission('global', userId);
+    if (globalPermission) return true;
+    
+    // Check public access
+    const publicPermission = await db.getPermission(workspaceId, 'public', 'WORKSPACE');
+    if (publicPermission) return true;
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking workspace access:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if current user has access to a session
+ * @param sessionId The session ID to check access for
+ * @returns True if the user has access, false otherwise
+ */
+export async function hasSessionAccess(sessionId: string): Promise<boolean> {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return false;
+    
+    // Check direct permission
+    const permission = await db.getPermission(sessionId, userId, 'SESSION');
+    if (permission) return true;
+    
+    // Check public access
+    const publicPermission = await db.getPermission(sessionId, 'public', 'SESSION');
+    if (publicPermission) return true;
+
+    // Check global permission
+    const globalPermission = await db.getPermission('global', userId);
+    if (globalPermission) return true;
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking session access:', error);
+    return false;
+  }
+}
+
+// Create a summary for a single session
+export async function createSummary(sessionId: string) {
+  const summary = await generateMultiSessionSummary([sessionId]);
 
   await db.updateHostSession(sessionId, {
-    summary: summary ?? undefined,
+    summary: summary.toString(),
     last_edit: new Date(),
   });
   return summary;
 }
 
+// Create a summary for multiple sessions
 export async function createMultiSessionSummary(
   sessionIds: string[],
   workspaceId: string,

@@ -20,7 +20,8 @@ import { StepNavigation } from './StepNavigation';
 import { LaunchModal } from './LaunchModal';
 import { Step, STEPS } from './types';
 import { createPromptContent } from 'app/api/utils';
-import { getSummaryAssistantFromTemplate } from '@/lib/utils';
+import { getPromptInstructions } from '@/lib/promptActions';
+import { linkSessionsToWorkspace } from '@/lib/workspaceActions';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -52,9 +53,6 @@ export default function CreationFlow() {
   const route = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [activeStep, setActiveStep] = useState<Step>(STEPS[0]);
-  const [threadId, setThreadId] = useState('');
-  const [builderAssistantId, setBuilderAssistantId] = useState('');
-  const [temporaryAssistantIds, setTemporaryAssistantIds] = useState<string[]>([]);
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
@@ -148,7 +146,7 @@ export default function CreationFlow() {
   };
 
   const handleEditPrompt = async (editValue: string) => {
-    console.log('Edit instructions: ', editValue);
+    console.log('[i] Edit instructions: ', editValue);
 
     // We need to slightly update the edit instructions so that AI knows to apply those changes to the full prompt, not the summary.
     editValue = `Apply the following changes/improvements to the last full template: \n${editValue}`;
@@ -156,8 +154,7 @@ export default function CreationFlow() {
       target: ApiTarget.Builder,
       action: ApiAction.EditPrompt,
       data: {
-        threadId: threadId,
-        assistantId: builderAssistantId,
+        fullPrompt: latestFullPromptRef.current,
         instructions: editValue,
       },
     };
@@ -167,8 +164,7 @@ export default function CreationFlow() {
       latestFullPromptRef.current = newPromptResponse.fullPrompt;
 
       getStreamOfSummary({
-        threadId,
-        assistantId: builderAssistantId,
+        fullPrompt: newPromptResponse.fullPrompt,
       });
     } catch (error) {
       setThrowError(() => {
@@ -179,7 +175,7 @@ export default function CreationFlow() {
 
   const handleShareComplete = async (
     e: React.FormEvent,
-    mode: 'launch' | 'draft' = 'launch'
+    mode: 'launch' | 'draft' = 'launch',
   ) => {
     e.preventDefault();
     setIsLoading(true);
@@ -188,25 +184,14 @@ export default function CreationFlow() {
     const promptSummary = currentPrompt.summary;
 
     try {
-      const assistantResponse = await sendApiCall({
-        action: ApiAction.CreateAssistant,
-        target: ApiTarget.Builder,
-        data: {
-          prompt: prompt,
-          name: formData.sessionName,
-        },
-      });
-
-      await deleteTemporaryAssistants(temporaryAssistantIds);
-
       const data: NewHostSession = {
-        assistant_id: assistantResponse.assistantId,
+        assistant_id: '',
         template_id: templateId,
         topic: formData.sessionName,
         prompt: prompt,
         num_sessions: 0,
         num_finished: 0,
-        active: true, // Inactive = 'Finished', which ain't ever true here
+        active: mode === 'launch', // Set active based on mode
         final_report_sent: false,
         start_time: new Date(),
         goal: formData.goal,
@@ -214,7 +199,7 @@ export default function CreationFlow() {
         context: formData.context,
         prompt_summary: promptSummary,
         is_public: false,
-        summary_assistant_id: await getSummaryAssistantFromTemplate(templateId),
+        summary_assistant_id: '',
         questions: JSON.stringify(
           participantQuestions.map((q) => ({
             id: q.id,
@@ -223,21 +208,33 @@ export default function CreationFlow() {
             typeValue: q.typeValue,
             required: q.required,
             options: q.options,
-          }))
+          })),
         ) as unknown as JSON,
       };
 
       const sessionIds = await db.insertHostSessions(data);
       const sessionId = sessionIds[0];
-      await db.setPermission(sessionId, 'owner')
+      await db.setPermission(sessionId, 'owner');
 
       // Set cookie
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 30);
       document.cookie = `sessionId=${sessionId}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
 
-      // Navigate based on mode
-      if (mode === 'launch') {
+      // Navigate based on mode & whether there's a pending workspace linking action
+      const pendingWorkspaceId = localStorage.getItem('pendingWorkspaceLink');      
+      if (pendingWorkspaceId) {
+        try {
+          // Link the newly created session to the workspace
+          await linkSessionsToWorkspace(pendingWorkspaceId, [sessionId]);        
+          // Clear the pending link
+          localStorage.removeItem('pendingWorkspaceLink');
+          // Redirect to the workspace page
+          route.push(`/workspace/${pendingWorkspaceId}`);
+        } catch (error) {
+          console.error('Failed to link session to workspace:', error);
+        }
+      } else if (mode === 'launch') {
         route.push(`/sessions/${encryptId(sessionId)}`);
       } else {
         route.push('/');
@@ -254,21 +251,14 @@ export default function CreationFlow() {
     setActiveStep('Share');
   };
 
-  async function deleteTemporaryAssistants(assistantIds: string[]) {
-    await sendApiCall({
-      target: ApiTarget.Builder,
-      action: ApiAction.DeleteAssistants,
-      data: {
-        assistantIds: assistantIds,
-      },
-    });
-  }
-
   const stepContent = {
     Template: (
       <div className="max-w-[1080px] mx-auto">
         <ChooseTemplate
-          onTemplateSelect={(formDataDefaults: Partial<SessionBuilderData>, templateId?: string) => {
+          onTemplateSelect={(
+            formDataDefaults: Partial<SessionBuilderData>,
+            templateId?: string,
+          ) => {
             onFormDataChange(formDataDefaults);
             setTemplateId(templateId);
             enabledSteps[1] = true;
@@ -297,7 +287,6 @@ export default function CreationFlow() {
         setCurrentVersion={setCurrentVersion}
         isEditing={isEditingPrompt}
         handleEdit={handleEditPrompt}
-        setTemporaryAssistantIds={setTemporaryAssistantIds}
       />
     ),
     Share: !isLoading && activeStep === 'Share' && (
@@ -354,11 +343,11 @@ export default function CreationFlow() {
             activeStep === 'Create'
               ? handleCreateComplete
               : activeStep === 'Share'
-              ? (e) => {
-                  e.preventDefault();
-                  setShowLaunchModal(true);
-                }
-              : handleReviewComplete
+                ? (e) => {
+                    e.preventDefault();
+                    setShowLaunchModal(true);
+                  }
+                : handleReviewComplete
           }
           nextLabel={activeStep === 'Share' ? 'Launch' : undefined}
         />
@@ -375,26 +364,16 @@ export default function CreationFlow() {
   );
 
   async function getInitialPrompt() {
-    // We need to do two API calls here, one to create the main prompt and threadId/assistantId,
-    // and one to create the summary. The reason for that is mainly so that we can
-    // get the threadId separately from the summary _stream_,
-    // SO that we can then use the threadId to edit the prompt.
-    // Otherwise we would need to pass the threadId along inside the stream,
-    // and parse the stream for it, which is not great.
-
     const responseFullPrompt = await sendApiCall({
       target: ApiTarget.Builder,
       action: ApiAction.CreatePrompt,
       data: formData,
     });
-
-    setThreadId(responseFullPrompt.threadId);
-    setBuilderAssistantId(responseFullPrompt.assistantId);
     latestFullPromptRef.current = responseFullPrompt.fullPrompt;
 
+    // This will stream directly into the streamPromptRef:
     getStreamOfSummary({
-      threadId: responseFullPrompt.threadId,
-      assistantId: responseFullPrompt.assistantId,
+      fullPrompt: responseFullPrompt.fullPrompt,
     });
   }
 
@@ -406,55 +385,30 @@ export default function CreationFlow() {
       target: ApiTarget.Builder,
       action: ApiAction.EditPrompt,
       data: {
-        threadId: threadId,
-        assistantId: builderAssistantId,
+        fullPrompt: latestFullPromptRef.current,
         instructions: newPromptInstructions,
       },
     };
 
     const newPromptResponse = await sendApiCall(payload);
     latestFullPromptRef.current = newPromptResponse.fullPrompt;
+    console.log('[i] New prompt response: ', newPromptResponse.fullPrompt);
 
     getStreamOfSummary({
-      threadId,
-      assistantId: builderAssistantId,
+      fullPrompt: newPromptResponse.fullPrompt,
     });
   }
 
-  async function getStreamOfSummary({
-    threadId,
-    assistantId,
-  }: {
-    threadId: string;
-    assistantId: string;
-  }) {
+  async function getStreamOfSummary({ fullPrompt }: { fullPrompt: string }) {
+    const sessionRecapPrompt = await getPromptInstructions('SESSION_RECAP');
+
     const response = await sendApiCall({
       target: ApiTarget.Builder,
-      action: ApiAction.EditPrompt,
+      action: ApiAction.SummaryOfPrompt,
       stream: true,
       data: {
-        threadId: threadId,
-        assistantId: assistantId,
-        instructions: `
-Summarize the template instructions which you just created in a concise manner and easy to read.
-
-Provide a very brief overview of the structure of this template, the key questions, and about the desired outcome.
-
-Format this in Markdown.
-Example Summary:
-
-## Structure
-* 3 short questions to find out xyz
-* Relevant follow ups that focus on finding key information
-## Questions
-1. [Question1, possibly paraphrased]
-2. [Question2, possibly paraphrased]
-N. [QuestionN, possibly paraphrased]
-
-## Outcome
-A list of each participant's **ideas** will be collected and **sorted by priority**.
-Any **concerns and downsides** will be highlighted. This should help to **[achieve session_objective]**.
-            `,
+        fullPrompt: fullPrompt,
+        instructions: sessionRecapPrompt,
       },
     });
 
@@ -468,6 +422,7 @@ Any **concerns and downsides** will be highlighted. This should help to **[achie
       const { done, value } = await reader.read();
       if (done) break;
       const chunk = decoder.decode(value);
+      console.log(`[i] Chunk: ${JSON.stringify(chunk)}; Initial Value: ${JSON.stringify(value)}`);
       message += chunk;
       // console.log('\nChunk: ', chunk);
       updateStreaming(message);

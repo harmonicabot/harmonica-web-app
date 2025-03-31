@@ -22,9 +22,11 @@ export type ParticipantsTableData = {
 };
 
 export default function SessionParticipantsTable({
+  sessionId,
   userData,
   onIncludeInSummaryChange,
 }: {
+  sessionId: string;
   userData: UserSession[];
   onIncludeInSummaryChange: (userId: string, included: boolean) => void;
 }) {
@@ -92,18 +94,23 @@ export default function SessionParticipantsTable({
         </Button>
       </CardHeader>
       <CardContent>
-        <SortableTable
-          tableHeaders={tableHeaders}
-          getTableRow={getTableRow}
-          data={sortableData}
-          defaultSort={{ column: 'updatedDate', direction: 'desc' }}
-        />
+        {userData.length === 0 ? (
+          <div className="text-center text-gray-500">
+            No participants have joined this session yet
+          </div>
+        ) : (
+          <SortableTable
+            tableHeaders={tableHeaders}
+            getTableRow={getTableRow}
+            data={sortableData}
+            defaultSort={{ column: 'updatedDate', direction: 'desc' }}
+          />
+        )}
       </CardContent>
-
       <GenerateResponsesModal
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
-        sessionId={userData[0].session_id}
+        sessionId={sessionId}
       />
     </Card>
   );

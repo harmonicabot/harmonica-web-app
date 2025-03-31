@@ -1,21 +1,14 @@
-import { OpenAI as LlamaOpenAI } from 'llamaindex';
 import * as db from '@/lib/db';
-import * as gpt from '../app/api/gptUtils';
+import * as llama from '../app/api/llamaUtils';
 import { getUserNameFromContext } from '@/lib/clientUtils';
 import { generateFormAnswers } from './formAnswerGenerator';
-
-enum ModelProvider {
-  GPT4 = 'gpt-4o-mini',
-  GPT3 = 'gpt-3.5-turbo',
-  CLAUDE = 'claude-3-sonnet',
-}
+import { getLLM } from '@/lib/modelConfig';
 
 interface SessionConfig {
   maxTurns: number;
   sessionId: string;
   temperature?: number;
   responsePrompt?: string;
-  modelProvider?: ModelProvider;
 }
 
 const DEFAULT_RESPONSE_PROMPT = `You are simulating user responses. Follow these guidelines:
@@ -28,12 +21,7 @@ async function isSessionComplete(
   lastQuestion: string,
   sessionData: any,
 ): Promise<boolean> {
-  const llm = new LlamaOpenAI({
-    model: 'gpt-4o-mini',
-    apiKey: process.env.OPENAI_API_KEY,
-    maxTokens: 100,
-    temperature: 0.1, // Low temperature for more consistent results
-  });
+  const llm = getLLM('MAIN', 0.1); // Low temperature for more consistent results
 
   const prompt = `Given this workshop context:
 Topic: ${sessionData.topic}
@@ -54,17 +42,14 @@ Reply with ONLY "true" if the session should end, or "false" if it should contin
   });
 
   return (
-    response.message.content?.toString().toLowerCase().includes('true') || false
+    response.toLowerCase().includes('true') || false
   );
 }
 
 export async function generateSession(config: SessionConfig) {
   try {
-    const {
-      temperature = 0.7,
-      responsePrompt = DEFAULT_RESPONSE_PROMPT,
-      modelProvider = ModelProvider.GPT4,
-    } = config;
+    const { temperature = 0.7, responsePrompt = DEFAULT_RESPONSE_PROMPT } =
+      config;
 
     // Get session data from DB
     const sessionData = await db.getFromHostSession(config.sessionId, [
@@ -79,10 +64,6 @@ export async function generateSession(config: SessionConfig) {
 
     if (!sessionData) {
       throw new Error('Session data not found');
-    }
-
-    if (!sessionData.assistant_id) {
-      throw new Error('No assistant ID found for session');
     }
 
     // Generate form answers if questions exist
@@ -105,13 +86,8 @@ export async function generateSession(config: SessionConfig) {
       );
     }
 
-    // Set up LlamaIndex chat model
-    const llm = new LlamaOpenAI({
-      model: modelProvider,
-      apiKey: process.env.OPENAI_API_KEY,
-      maxTokens: 1000,
-      temperature: temperature,
-    });
+    // Set up LLM with MAIN model configuration
+    const llm = getLLM('MAIN', temperature);
 
     const threadId = await createThreadWithContext(config, userContextPrompt);
     let turnCount = 0;
@@ -126,10 +102,11 @@ export async function generateSession(config: SessionConfig) {
 
     while (turnCount < config.maxTurns) {
       // Generate question using GPT utils with last user message
-      const questionResponse = await gpt.handleGenerateAnswer({
+      const questionResponse = await llama.handleGenerateAnswer({
         threadId,
-        assistantId: sessionData.assistant_id,
         messageText: lastUserMessage,
+        sessionId: config.sessionId,
+        systemPrompt: userContextPrompt,
       });
 
       // Store AI question
@@ -150,7 +127,7 @@ export async function generateSession(config: SessionConfig) {
         break;
       }
 
-      // Generate response using LlamaIndex OpenAI
+      // Generate response using LLM
       const userResponse = await llm.chat({
         messages: [
           {
@@ -159,18 +136,15 @@ export async function generateSession(config: SessionConfig) {
 
 Additional response guidelines:
 1. If multiple characters/personas are described, feel free to randomly choose one for variety
-2. Show personality and emotion while staying consistent
+2. Show personality and emotion in written replies while staying consistent
 3. Keep responses concise (2-3 sentences maximum)
 4. Add character through:
    - Unique speech patterns or expressions
    - Emotional reactions
    - Personal opinions
    - Brief references to background
-5. Use natural language with occasional filler words or expressions
+5. Use natural language with occasional filler words or expressions that are realistic for written chats
 6. IMPORTANT: Do not use or make up specific names - always refer to people by their roles or relationships instead
-   - Even if names are provided in the context, replace them with roles (e.g., "I" or "my colleague" instead of "Clara")
-   - Never create new names or pseudonyms
-   - Use professional roles, relationships, or first-person perspective instead
 7. Include a mix of response types:
    - Sometimes disagree or express skepticism
    - Occasionally share negative experiences or concerns
@@ -190,7 +164,7 @@ Additional response guidelines:
         ],
       });
 
-      lastUserMessage = userResponse.message.content?.toString() || '';
+      lastUserMessage = userResponse || '';
 
       // Store user response
       await db.insertChatMessage({
@@ -228,39 +202,13 @@ function isConversationComplete(message: string): boolean {
   );
 }
 
-async function generateUserResponse(
-  client: LlamaOpenAI,
-  params: {
-    threadId: string;
-    question: string;
-    context?: Record<string, string>;
-    turnCount: number;
-  },
-): Promise<string> {
-  const prompt = `Given this context: ${JSON.stringify(params.context)}
-    And this question: "${params.question}"
-    Generate a realistic user response for turn ${params.turnCount + 1}.`;
-
-  const response = await client.chat({
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  return response.message.content?.toString() || ''; // Convert to string
-}
-
 async function createThreadWithContext(config: SessionConfig, context: string) {
   // Format user context as entry message
   const userContextPrompt = context
     ? `IMPORTANT USER INFORMATION:\n${context}`
     : '';
 
-  // Create OpenAI thread with context as first message
-  const threadId = await gpt.handleCreateThread(
-    userContextPrompt
-      ? { role: 'user', content: userContextPrompt }
-      : undefined,
-  );
-
+  const threadId = crypto.randomUUID();
   // Store session data
   const simulatedUserName =
     '[AI] ' +

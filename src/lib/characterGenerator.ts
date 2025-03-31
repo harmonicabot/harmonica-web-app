@@ -1,4 +1,4 @@
-import { OpenAI as LlamaOpenAI } from 'llamaindex';
+import { getLLM } from '@/lib/modelConfig';
 import * as db from '@/lib/db';
 
 export async function generateCharacters(sessionId: string): Promise<string> {
@@ -15,13 +15,8 @@ export async function generateCharacters(sessionId: string): Promise<string> {
     throw new Error('Session data not found');
   }
 
-  // Set up LlamaIndex chat model
-  const llm = new LlamaOpenAI({
-    model: 'gpt-4o-mini',
-    apiKey: process.env.OPENAI_API_KEY,
-    maxTokens: 1500,
-    temperature: 0.8,
-  });
+  // Set up LLM with SMALL model configuration
+  const llm = getLLM('SMALL', 0.8);
 
   const prompt = `Given this workshop context:
 Topic: ${sessionData.topic}
@@ -52,5 +47,5 @@ Create authentic characters with diverse perspectives while avoiding assumptions
     messages: [{ role: 'user', content: prompt }],
   });
 
-  return response.message.content?.toString() || '';
+  return response || '';
 }

@@ -1,12 +1,14 @@
 import { HostSession, Message, UserSession } from '@/lib/schema';
 import * as db from '@/lib/db';
-import { formatForExport } from 'app/api/exportUtils';
+import { analyzeWithSimScore, extractDataFromUserMessages } from 'app/api/exportUtils';
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '../icons';
 import { Button } from '../ui/button';
 import { usePermissions } from '@/lib/permissions';
+import { useCustomResponses } from '../SessionResult/ResultTabs/hooks/useCustomResponses';
+import { OpenAIMessage } from '@/lib/types';
 
 // ExportSection.tsx
 export default function ExportSection({
@@ -20,6 +22,7 @@ export default function ExportSection({
   id: string;
   className?: string;
 }) {
+  const { addResponse } = useCustomResponses(id);
   const [exportInProgress, setExportInProgress] = useState(false);
   const [isExportPopupVisible, setIsExportPopupVisible] = useState(false);
   const [exportInstructions, setExportInstructions] = useState('');
@@ -29,26 +32,17 @@ export default function ExportSection({
     setIsExportPopupVisible(true);
     setExportInProgress(true);
 
-    const allUsersMessages = await db.getAllMessagesForUsersSorted(userData);
-    const messagesByThread = allUsersMessages.reduce((acc, message) => {
-      acc[message.thread_id] = acc[message.thread_id] || [];
-      acc[message.thread_id].push(message);
-      return acc;
-    }, {} as Record<string, Message[]>);
-    const chatMessages = Object.entries(messagesByThread).map(
-      ([threadId, messages]) => concatenateMessages(messages)
-    );
-    const response = await formatForExport(chatMessages, exportInstructions);
+    const response = await extractDataFromUserMessages(userData, exportInstructions);
 
     const blob = new Blob([JSON.stringify(JSON.parse(response), null, 2)], {
       type: 'application/json',
     });
     const link = document.createElement('a');
-    exportAndDownload(blob, link, `Harmonica_${hostData.topic ?? id}.json`, id);
+    exportAndDownload(blob, link, `Harmonica_${hostData.topic ?? id}.json`);
 
     setExportInProgress(false);
     setIsExportPopupVisible(false);
-  };
+  };  
 
   const exportAllData = async () => {
     const allMessages = await db.getAllMessagesForUsersSorted(userData);
@@ -76,7 +70,6 @@ export default function ExportSection({
       }),
       document.createElement('a'),
       `Harmonica_${hostData.topic ?? id}_allData.json`,
-      id
     );
     setExportInProgress(false);
     setIsExportPopupVisible(false);
@@ -103,7 +96,6 @@ export default function ExportSection({
     blob: Blob,
     link: HTMLAnchorElement,
     filename: string,
-    id: string
   ) {
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -113,6 +105,39 @@ export default function ExportSection({
     link.click();
     document.body.removeChild(link);
   }
+
+  const rankWithSimScore = async () => {
+    setIsExportPopupVisible(true);
+    setExportInProgress(true);
+    const sampleObject = [{ author_id: 'user_name', idea: 'idea1' }]
+    const adjustedExportInstructions = `${exportInstructions}
+\n!IMPORTANT! Use the following JSON schema. 
+If specified, group different subject areas and their ideas together.\n
+\`\`\`json\n 
+${JSON.stringify(sampleObject, null, 2)};
+\`\`\`\n
+ONLY include plain JSON in your reply, without any backticks, markdown formatting, or explanations!`;
+    const extractedData = await extractDataFromUserMessages(userData, adjustedExportInstructions);
+    console.log("Extracted Data: ", extractedData)
+    const analyzed = await analyzeWithSimScore(extractedData).catch(error => console.log('Sorry, there was an error! ', error));
+    console.log('Simscore-analyzed data: ', analyzed);
+    
+    if (analyzed) {
+      // Format the SimScore results as an OpenAIMessage
+      const simScoreMessage: OpenAIMessage = {
+        role: 'assistant',
+        content: `## SimScore Analysis Results\n\n${analyzed}`
+      };
+      
+      // Add to Custom Insights using the hook
+      addResponse(simScoreMessage);
+    }
+    
+    setExportInProgress(false);
+    setIsExportPopupVisible(false);
+    return analyzed;
+  }
+
 
   const { hasMinimumRole, loading } = usePermissions(id);
 
@@ -154,10 +179,10 @@ export default function ExportSection({
                     </>
                   ) : (
                     <div className="flex justify-between items-center">
-                      <Button type="submit">Submit</Button>
+                        <Button type="submit">Submit</Button>
+                        <Button onClick={rankWithSimScore}>Rank with SimScore</Button>
                       {!loading && hasMinimumRole('owner') && <Button onClick={exportAllData} variant="ghost">
-                          {' '}
-                          Export All{' '}
+                        {' Export All '} 
                         </Button>
                       }
                     </div>

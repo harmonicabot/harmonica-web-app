@@ -3,7 +3,10 @@ import { getSession as authGetSession } from '@auth0/nextjs-auth0';
 import * as s from './schema';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
-import { deleteAssistants } from 'app/api/gptUtils';
+import { ResultTabsVisibilityConfig } from './schema';
+import { sql } from 'kysely';
+import { Role } from './permissions';
+import { cache } from 'react';
 
 // Only set WebSocket constructor on the server side. Needed for db communication.
 if (typeof window === 'undefined') {
@@ -19,6 +22,10 @@ const customResponsesTableName = 'custom_responses';
 const workspaceTableName = 'workspaces';
 const workspaceSessionsTableName = 'workspace_sessions';
 const permissionsTableName = 'permissions';
+const invitationsTableName = 'invitations';
+const usersTableName = 'users';
+const promptsTableName = 'prompts';
+const promptTypesTableName = 'prompt_type';
 
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
@@ -28,6 +35,10 @@ interface Databases {
   [workspaceTableName]: s.WorkspacesTable;
   [workspaceSessionsTableName]: s.WorkspaceSessionsTable;
   [permissionsTableName]: s.PermissionsTable;
+  [invitationsTableName]: s.InvitationsTable;
+  [usersTableName]: s.UsersTable;
+  [promptsTableName]: s.PromptsTable;
+  [promptTypesTableName]: s.PromptTypesTable;
 }
 
 const dbPromise = (async () => {
@@ -37,31 +48,37 @@ const dbPromise = (async () => {
   return db;
 })();
 
-async function getAuthForClient() {
-  const authSession = await authGetSession();
-  // console.log('Session: ', JSON.stringify(authSession, null, 2));
-  const userSub = authSession?.user?.sub || '';
-  const adminIds = process.env.ADMIN_ID ? process.env.ADMIN_ID.split(',') : [];
-  if (adminIds.includes(userSub)) {
-    return undefined;
-  }
-  return userSub;
-}
-
 export async function getHostSessions(
   columns: (keyof s.HostSessionsTable)[],
   page: number = 1,
-  pageSize: number = 100,
+  pageSize: number = 100
 ): Promise<s.HostSession[]> {
   const db = await dbPromise;
-  console.log('Database call to getHostSessions at:', new Date().toISOString());
-  const client = await getAuthForClient();
+  console.log('Calling getHostSessions');
 
   let query = db.selectFrom(hostTableName).select(columns);
 
-  if (client) {
-    query = query.where('client', '=', client);
-  }
+  return query
+    .orderBy('start_time', 'desc')
+    .limit(pageSize)
+    .offset(Math.max(0, page - 1) * pageSize)
+    .execute();
+}
+
+export async function getHostSessionsForIds(
+  ids: string[],
+  columns: (keyof s.HostSessionsTable)[],
+  page: number = 1,
+  pageSize: number = 100
+): Promise<s.HostSession[]> {
+  const db = await dbPromise;
+  console.log('Database call to getHostSessions at:', new Date().toISOString());
+
+  let query = db
+    .selectFrom(hostTableName)
+    .select(columns)
+    .where('id', 'in', ids);
+
   return query
     .orderBy('start_time', 'desc')
     .limit(pageSize)
@@ -70,7 +87,7 @@ export async function getHostSessions(
 }
 
 export async function getHostSessionById(
-  sessionId: string,
+  sessionId: string
 ): Promise<s.HostSession> {
   const db = await dbPromise;
   console.log('ID: ', sessionId);
@@ -88,7 +105,7 @@ export async function getHostSessionById(
 
 export async function getFromHostSession(
   sessionId: string,
-  columns: (keyof s.HostSessionsTable)[],
+  columns: (keyof s.HostSessionsTable)[]
 ) {
   const db = await dbPromise;
   const result = await db
@@ -100,7 +117,7 @@ export async function getFromHostSession(
 }
 
 export async function insertHostSessions(
-  data: s.NewHostSession | s.NewHostSession[],
+  data: s.NewHostSession | s.NewHostSession[]
 ): Promise<string[]> {
   const db = await dbPromise;
   try {
@@ -123,7 +140,7 @@ export async function insertHostSessions(
 
 export async function upsertHostSession(
   data: s.NewHostSession,
-  onConflict: 'skip' | 'update' = 'skip',
+  onConflict: 'skip' | 'update' = 'skip'
 ): Promise<void> {
   const db = await dbPromise;
   try {
@@ -137,7 +154,7 @@ export async function upsertHostSession(
       .onConflict((oc) =>
         onConflict === 'skip'
           ? oc.column('id').doNothing()
-          : oc.column('id').doUpdateSet(data),
+          : oc.column('id').doUpdateSet(data)
       )
       .execute();
   } catch (error) {
@@ -148,7 +165,7 @@ export async function upsertHostSession(
 
 export async function updateHostSession(
   id: string,
-  data: s.HostSessionUpdate,
+  data: s.HostSessionUpdate
 ): Promise<void> {
   const db = await dbPromise;
   try {
@@ -166,7 +183,7 @@ export async function updateHostSession(
 
 export async function increaseSessionsCount(
   id: string,
-  toIncrease: 'num_sessions' | 'num_finished',
+  toIncrease: 'num_sessions' | 'num_finished'
 ) {
   // This is a bit clumsy, but I couldn't find a way with kysely to do it in one go. Submitting sql`...` breaks it :-(
   const db = await dbPromise;
@@ -192,7 +209,7 @@ export async function deleteHostSession(id: string): Promise<void> {
 
 export async function getUsersBySessionId(
   sessionId: string,
-  columns: (keyof s.UserSessionsTable)[] = [],
+  columns: (keyof s.UserSessionsTable)[] = []
 ): Promise<s.UserSession[]> {
   try {
     const db = await dbPromise;
@@ -208,7 +225,7 @@ export async function getUsersBySessionId(
 }
 
 export async function insertUserSessions(
-  data: s.NewUserSession | s.NewUserSession[],
+  data: s.NewUserSession | s.NewUserSession[]
 ): Promise<string[]> {
   try {
     const db = await dbPromise;
@@ -227,7 +244,7 @@ export async function insertUserSessions(
 
 export async function updateUserSession(
   id: string,
-  data: s.UserSessionUpdate,
+  data: s.UserSessionUpdate
 ): Promise<void> {
   try {
     const db = await dbPromise;
@@ -255,7 +272,7 @@ export async function deleteUserSession(id: string): Promise<void> {
 
 export async function searchUserSessions(
   columnName: keyof s.UserSessionsTable,
-  searchTerm: string,
+  searchTerm: string
 ): Promise<s.UserSession[]> {
   try {
     const db = await dbPromise;
@@ -279,12 +296,12 @@ export async function getNumUsersAndMessages(sessionIds: string[]) {
     .leftJoin(
       userTableName,
       `${userTableName}.session_id`,
-      `${hostTableName}.id`,
+      `${hostTableName}.id`
     )
     .leftJoin(
       messageTableName,
       `${messageTableName}.thread_id`,
-      `${userTableName}.thread_id`,
+      `${userTableName}.thread_id`
     )
     .where(`${hostTableName}.id`, 'in', sessionIds)
     .select(({ fn }) => [
@@ -341,7 +358,7 @@ export async function getAllChatMessagesInOrder(threadId: string) {
 }
 
 export async function getAllMessagesForUsersSorted(
-  users: s.UserSession[],
+  users: s.UserSession[]
 ): Promise<s.Message[]> {
   if (users.length === 0) return [];
   const db = await dbPromise;
@@ -350,7 +367,7 @@ export async function getAllMessagesForUsersSorted(
     .where(
       'thread_id',
       'in',
-      users.map((user) => user.thread_id),
+      users.map((user) => user.thread_id)
     )
     .selectAll()
     .orderBy('created_at', 'asc')
@@ -359,7 +376,7 @@ export async function getAllMessagesForUsersSorted(
 }
 
 export async function getAllMessagesForSessionSorted(
-  sessionId: string,
+  sessionId: string
 ): Promise<s.Message[]> {
   if (!sessionId) return [];
 
@@ -369,12 +386,12 @@ export async function getAllMessagesForSessionSorted(
     .innerJoin(
       userTableName,
       `${userTableName}.session_id`,
-      `${hostTableName}.id`,
+      `${hostTableName}.id`
     )
     .innerJoin(
       messageTableName,
       `${messageTableName}.thread_id`,
-      `${userTableName}.thread_id`,
+      `${userTableName}.thread_id`
     )
     .where(`${hostTableName}.id`, '=', sessionId)
     .selectAll(`${messageTableName}`)
@@ -393,9 +410,9 @@ export async function deleteSessionById(id: string): Promise<boolean> {
       .select('assistant_id')
       .where('id', '=', id)
       .executeTakeFirst();
-    if (session?.assistant_id) {
-      deleteAssistants([session.assistant_id]);
-    }
+    // if (session?.assistant_id) {
+    //   deleteAssistants([session.assistant_id]);
+    // }
     await db.deleteFrom(hostTableName).where('id', '=', id).execute();
     // TODO: not deleting user sessions for now, we might want to analyse things?
     // await db.deleteFrom(userDbName).where('session_id', '=', id).execute();
@@ -407,7 +424,7 @@ export async function deleteSessionById(id: string): Promise<boolean> {
 }
 
 export async function deactivateHostSession(
-  sessionId: string,
+  sessionId: string
 ): Promise<boolean> {
   try {
     const db = await dbPromise;
@@ -425,7 +442,7 @@ export async function deactivateHostSession(
 }
 
 export async function createCustomResponse(
-  customResponse: s.NewCustomResponse,
+  customResponse: s.NewCustomResponse
 ): Promise<s.CustomResponse | null> {
   try {
     const db = await dbPromise;
@@ -443,7 +460,7 @@ export async function createCustomResponse(
 }
 
 export async function getCustomResponseById(
-  id: string,
+  id: string
 ): Promise<s.CustomResponse | null> {
   try {
     const db = await dbPromise;
@@ -460,8 +477,9 @@ export async function getCustomResponseById(
   }
 }
 
-export async function getCustomResponsesBySessionOrWorkspaceId(
+export async function getCustomResponsesByResourceIdAndType(
   sessionId: string,
+  responseType: string = 'CUSTOM'
 ): Promise<s.CustomResponse[]> {
   try {
     const db = await dbPromise;
@@ -469,6 +487,7 @@ export async function getCustomResponsesBySessionOrWorkspaceId(
       .selectFrom(customResponsesTableName)
       .selectAll()
       .where('session_id', '=', sessionId)
+      .where('response_type', '=', responseType)
       .orderBy('position', 'asc')
       .execute();
 
@@ -481,7 +500,7 @@ export async function getCustomResponsesBySessionOrWorkspaceId(
 
 export async function updateCustomResponse(
   id: string,
-  update: s.CustomResponseUpdate,
+  update: s.CustomResponseUpdate
 ): Promise<s.CustomResponse | null> {
   try {
     const db = await dbPromise;
@@ -516,8 +535,9 @@ export async function deleteCustomResponse(id: string): Promise<boolean> {
 
 // Workspace CRUD operations
 export async function createWorkspace(
-  workspace: s.NewWorkspace,
+  workspace: s.NewWorkspace
 ): Promise<s.Workspace | null> {
+  console.log('Creating new workspace: ', workspace);
   try {
     const db = await dbPromise;
     const result = await db
@@ -534,7 +554,7 @@ export async function createWorkspace(
 }
 
 export async function getWorkspaceSummary(
-  workspaceId: string,
+  workspaceId: string
 ): Promise<string> {
   const db = await dbPromise;
   const result = await db
@@ -545,8 +565,24 @@ export async function getWorkspaceSummary(
   return result?.summary || '';
 }
 
+export async function hasWorkspace(id: string): Promise<boolean> {
+  try {
+    const db = await dbPromise
+    const result = await db
+      .selectFrom('workspaces')
+      .select('id')
+      .where('id', '=', id)
+      .executeTakeFirst()
+
+    return result !== undefined
+  } catch (error) {
+    console.error('Error checking workspace existence:', error)
+    return false
+  }
+}
+
 export async function getWorkspaceById(
-  id: string,
+  id: string
 ): Promise<s.Workspace | null> {
   try {
     const db = await dbPromise;
@@ -563,10 +599,10 @@ export async function getWorkspaceById(
   }
 }
 
-export async function getAllWorkspaceIds(): Promise<{ id: string }[]> {
+export async function getAllWorkspaces(): Promise<s.Workspace[]> {
   try {
     const db = await dbPromise;
-    const result = await db.selectFrom('workspaces').select('id').execute();
+    const result = await db.selectFrom('workspaces').selectAll().execute();
 
     return result;
   } catch (error) {
@@ -577,7 +613,7 @@ export async function getAllWorkspaceIds(): Promise<{ id: string }[]> {
 
 export async function updateWorkspace(
   id: string,
-  update: s.WorkspaceUpdate,
+  update: s.WorkspaceUpdate
 ): Promise<s.Workspace | null> {
   try {
     const db = await dbPromise;
@@ -610,7 +646,7 @@ export async function deleteWorkspace(id: string): Promise<boolean> {
 // Workspace Sessions operations
 export async function addSessionToWorkspace(
   workspaceId: string,
-  sessionId: string,
+  sessionId: string
 ): Promise<boolean> {
   try {
     const db = await dbPromise;
@@ -628,7 +664,7 @@ export async function addSessionToWorkspace(
 
 export async function removeSessionFromWorkspace(
   workspaceId: string,
-  sessionId: string,
+  sessionId: string
 ): Promise<boolean> {
   try {
     const db = await dbPromise;
@@ -645,8 +681,8 @@ export async function removeSessionFromWorkspace(
   }
 }
 
-export async function getWorkspaceSessions(
-  workspaceId: string,
+export async function getWorkspaceSessionIds(
+  workspaceId: string
 ): Promise<string[]> {
   try {
     const db = await dbPromise;
@@ -664,26 +700,58 @@ export async function getWorkspaceSessions(
 }
 
 // Permissions operations
+export async function getPermissions(
+  resourceId: string,
+  resourceType?: 'SESSION' | 'WORKSPACE'
+): Promise<{ user_id: string; role: Role }[]> {
+  try {
+    const db = await dbPromise;
+    let query = db
+      .selectFrom('permissions')
+      .select(['user_id', 'role'])
+      .where('resource_id', '=', resourceId);
+
+    if (resourceType) {
+      query = query.where('resource_type', '=', resourceType);
+    }
+
+    return await query.execute();
+  } catch (error) {
+    console.error('Error getting permissions:', error);
+    return [];
+  }
+}
+
 export async function setPermission(
   resourceId: string,
-  role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none',
-  userId?: string,  // Defaults to whatever user is currently logged in
+  role: Role,
+  resourceType: 'SESSION' | 'WORKSPACE' = 'SESSION',
+  userId?: string // Defaults to whatever user is currently logged in
 ): Promise<boolean> {
   try {
-    console.log(`Setting permissions: \nResources: ${resourceId}\nUser: ${userId}\nRole: ${role}`)
+    console.log(
+      `Setting permissions: \nResources: ${resourceId}\nUser: ${userId}\nRole: ${role}\nResource Type: ${resourceType}`
+    );
     if (!userId) {
       const session = await authGetSession();
       userId = session?.user?.sub;
     }
     if (!userId) {
-      console.warn("Could not get user info. Will store session as anonymous.")
-    } 
+      console.warn('Could not get user info. Will store session as anonymous.');
+    }
     const db = await dbPromise;
     await db
       .insertInto('permissions')
-      .values({ resource_id: resourceId, user_id: userId || 'anonymous', role })
+      .values({
+        resource_id: resourceId,
+        user_id: userId || 'anonymous',
+        role,
+        resource_type: resourceType,
+      })
       .onConflict((oc) =>
-        oc.columns(['resource_id', 'user_id']).doUpdateSet({ role }),
+        oc
+          .columns(['resource_id', 'user_id', 'resource_type'])
+          .doUpdateSet({ role })
       )
       .execute();
 
@@ -697,17 +765,21 @@ export async function setPermission(
 export async function getPermission(
   resourceId: string,
   userId: string,
-): Promise<{ role: 'admin' | 'owner' | 'editor' | 'viewer' | 'none' } | null> {
+  resourceType?: 'SESSION' | 'WORKSPACE'
+): Promise<{ role: Role } | null> {
   try {
     const db = await dbPromise;
-    const result = await db
+    let query = db
       .selectFrom('permissions')
       .select('role')
       .where('resource_id', '=', resourceId)
-      .where('user_id', '=', userId)
-      .executeTakeFirst();
+      .where('user_id', '=', userId);
 
-    console.log(`${userId}'s Permissions for ${resourceId}: `, result?.role)
+    if (resourceType) {
+      query = query.where('resource_type', '=', resourceType);
+    }
+
+    const result = await query.executeTakeFirst();
     return result || null;
   } catch (error) {
     console.error('Error getting permission:', error);
@@ -718,14 +790,20 @@ export async function getPermission(
 export async function removePermission(
   resourceId: string,
   userId: string,
+  resourceType?: 'SESSION' | 'WORKSPACE'
 ): Promise<boolean> {
   try {
     const db = await dbPromise;
-    await db
+    let query = db
       .deleteFrom('permissions')
       .where('resource_id', '=', resourceId)
-      .where('user_id', '=', userId)
-      .execute();
+      .where('user_id', '=', userId);
+
+    if (resourceType) {
+      query = query.where('resource_type', '=', resourceType);
+    }
+
+    await query.execute();
 
     return true;
   } catch (error) {
@@ -737,18 +815,527 @@ export async function removePermission(
 export async function canEdit(
   userId: string,
   resourceId: string,
+  resourceType?: 'SESSION' | 'WORKSPACE'
 ): Promise<boolean> {
   const db = await dbPromise;
-  const permission = await db
+  let query = db
     .selectFrom('permissions')
     .select('role')
     .where('user_id', '=', userId)
-    .where('resource_id', '=', resourceId)
-    .executeTakeFirst();
+    .where('resource_id', '=', resourceId);
+
+  if (resourceType) {
+    query = query.where('resource_type', '=', resourceType);
+  }
+
+  const permission = await query.executeTakeFirst();
 
   return (
     permission?.role === 'owner' ||
     permission?.role === 'editor' ||
     permission?.role === 'admin'
   );
+}
+
+export async function getResourcesForUser(
+  userId: string,
+  resourceType?: 'SESSION' | 'WORKSPACE',
+  columns: (keyof s.Permission)[] = ['resource_id', 'resource_type', 'role']
+): Promise<s.Permission[]> {
+  try {
+    const db = await dbPromise;
+    // Check for global permissions first
+    const globalPermission = await db
+      .selectFrom(permissionsTableName)
+      .select('role')
+      .where('user_id', '=', userId)
+      .where('resource_id', '=', 'global')
+      .executeTakeFirst();
+    console.log('Global Permission: ', globalPermission);
+    let query = db.selectFrom('permissions').select(columns);
+
+    if (!globalPermission) {
+      console.log('Getting resources, limiting to userId: ', userId);
+      query = query.where('user_id', '=', userId);
+    } else {
+      console.log('Getting resources for admin');
+    }
+
+    if (resourceType) {
+      query = query.where('resource_type', '=', resourceType);
+    }
+    return await query.execute();
+  } catch (error) {
+    console.error('Error getting resources for user:', error);
+    return [];
+  }
+}
+
+export async function updateVisibilitySettings(
+  resourceId: string,
+  settings: ResultTabsVisibilityConfig
+): Promise<void> {
+  try {
+    const db = await dbPromise;
+
+    // First check if this is a workspace or session ID
+    const workspace = await db
+      .selectFrom('workspaces')
+      .select('id')
+      .where('id', '=', resourceId)
+      .executeTakeFirst();
+
+    if (workspace) {
+      // Update workspace settings
+      await db
+        .updateTable('workspaces')
+        .set({ visibility_settings: settings })
+        .where('id', '=', resourceId)
+        .execute();
+    } else {
+      // Update session settings
+      await db
+        .updateTable('host_db')
+        .set({ visibility_settings: settings })
+        .where('id', '=', resourceId)
+        .execute();
+    }
+  } catch (error) {
+    console.error('Error updating visibility settings:', error);
+    throw error;
+  }
+}
+
+// Invitation Management Functions
+export async function createInvitation(
+  invitation: s.NewInvitation
+): Promise<s.Invitation | null> {
+  try {
+    const db = await dbPromise;
+    const session = await authGetSession();
+    const userSub = session?.user?.sub;
+
+    const result = await db
+      .insertInto(invitationsTableName)
+      .values({
+        ...invitation,
+        created_by: userSub,
+      })
+      .returningAll()
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error creating invitation:', error);
+    return null;
+  }
+}
+
+export async function getInvitationsByEmail(
+  email: string
+): Promise<s.Invitation[]> {
+  try {
+    const db = await dbPromise;
+    const invitations = await db
+      .selectFrom(invitationsTableName)
+      .selectAll()
+      .where('email', '=', email.toLowerCase())
+      .where('accepted', '=', false)
+      .execute();
+
+    return invitations;
+  } catch (error) {
+    console.error('Error getting invitations by email:', error);
+    return [];
+  }
+}
+
+export async function getInvitationsByResource(
+  resourceId: string,
+  resourceType: 'SESSION' | 'WORKSPACE'
+): Promise<s.Invitation[]> {
+  try {
+    const db = await dbPromise;
+    const invitations = await db
+      .selectFrom(invitationsTableName)
+      .selectAll()
+      .where('resource_id', '=', resourceId)
+      .where('resource_type', '=', resourceType)
+      .execute();
+
+    return invitations;
+  } catch (error) {
+    console.error('Error getting invitations by resource:', error);
+    return [];
+  }
+}
+
+export async function markInvitationAsAccepted(
+  invitationId: string
+): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .updateTable(invitationsTableName)
+      .set({ accepted: true })
+      .where('id', '=', invitationId)
+      .execute();
+
+    return true;
+  } catch (error) {
+    console.error('Error marking invitation as accepted:', error);
+    return false;
+  }
+}
+
+export async function deleteInvitation(invitationId: string): Promise<boolean> {
+  try {
+    const db = await dbPromise;
+    await db
+      .deleteFrom(invitationsTableName)
+      .where('id', '=', invitationId)
+      .execute();
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting invitation:', error);
+    return false;
+  }
+}
+
+export async function getWorkspacesForIds(
+  workspaceIds: string[],
+  columns: (keyof s.WorkspacesTable)[] = []
+): Promise<s.Workspace[]> {
+  try {
+    if (!workspaceIds.length) return [];
+
+    const db = await dbPromise;
+    let query = db.selectFrom('workspaces').where('id', 'in', workspaceIds);
+
+    if (columns.length > 0) {
+      return await query.select(columns).execute();
+    } else {
+      return await query.selectAll().execute();
+    }
+  } catch (error) {
+    console.error('Error getting workspaces by IDs:', error);
+    throw error;
+  }
+}
+
+// User Management Functions
+
+/**
+ * Create or update a user profile based on Auth0 data
+ */
+export async function upsertUser(userData: s.NewUser): Promise<s.User | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .insertInto(usersTableName)
+      .values(userData)
+      .onConflict((oc) =>
+        oc.column('id').doUpdateSet({
+          email: userData.email,
+          name: userData.name,
+          avatar_url: userData.avatar_url,
+          last_login: sql`CURRENT_TIMESTAMP`,
+          metadata: userData.metadata,
+        })
+      )
+      .returningAll()
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error upserting user:', error);
+    return null;
+  }
+}
+
+/**
+ * Get a user by ID (Auth0 sub)
+ */
+export async function getUserById(id: string): Promise<s.User | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom(usersTableName)
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error getting user by ID:', error);
+    return null;
+  }
+}
+
+/**
+ * Get a user by email
+ */
+export async function getUserByEmail(email: string): Promise<s.User | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom(usersTableName)
+      .selectAll()
+      .where('email', '=', email.toLowerCase())
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error getting user by email:', error);
+    return null;
+  }
+}
+
+/**
+ * Get multiple users by their IDs
+ */
+export async function getUsersByIds(ids: string[]): Promise<s.User[]> {
+  try {
+    if (!ids.length) return [];
+
+    const db = await dbPromise;
+    const users = await db
+      .selectFrom(usersTableName)
+      .selectAll()
+      .where('id', 'in', ids)
+      .execute();
+
+    return users;
+  } catch (error) {
+    console.error('Error getting users by IDs:', error);
+    return [];
+  }
+}
+
+type UserAndRole = s.User & { role: Role };
+
+/**
+ * Get users with permissions for a resource
+ */
+export async function getUsersWithPermissionsForResource(
+  resourceId: string,
+  resourceType?: 'SESSION' | 'WORKSPACE'
+): Promise<Array<UserAndRole>> {
+  try {
+    const db = await dbPromise;
+    let query = db
+      .selectFrom(permissionsTableName)
+      .innerJoin(
+        usersTableName,
+        `${usersTableName}.id`,
+        `${permissionsTableName}.user_id`
+      )
+      .where(`${permissionsTableName}.resource_id`, '=', resourceId)
+      .select([
+        `${usersTableName}.id`,
+        `${usersTableName}.email`,
+        `${usersTableName}.name`,
+        `${usersTableName}.avatar_url`,
+        `${permissionsTableName}.role`,
+      ]);
+
+    if (resourceType) {
+      query = query.where(
+        `${permissionsTableName}.resource_type`,
+        '=',
+        resourceType
+      );
+    }
+
+    return (await query.execute()) as UserAndRole[];
+  } catch (error) {
+    console.error('Error getting users with permissions:', error);
+    return [];
+  }
+}
+
+/**
+ * Creates a link between a workspace and a session
+ */
+export async function createWorkspaceSessionLink(
+  workspaceId: string,
+  sessionId: string
+) {
+  const db = await dbPromise;
+
+  try {
+    // Check if the link already exists to avoid duplicates
+    const existingLink = await db
+      .selectFrom(workspaceSessionsTableName)
+      .select(['workspace_id', 'session_id'])
+      .where('workspace_id', '=', workspaceId)
+      .where('session_id', '=', sessionId)
+      .executeTakeFirst();
+
+    if (existingLink) {
+      return existingLink; // Link already exists
+    }
+
+    // Create the new link
+    return await db
+      .insertInto(workspaceSessionsTableName)
+      .values({
+        workspace_id: workspaceId,
+        session_id: sessionId,
+      })
+      .returningAll()
+      .executeTakeFirst();
+  } catch (error) {
+    console.error('Error creating workspace-session link:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches all available sessions that could be linked to a workspace
+ * (This would typically be sessions the user has access to)
+ */
+export async function getAvailableSessionsForUser(userId: string) {
+  const db = await dbPromise;
+
+  try {
+    const query = db
+      .selectFrom(hostTableName)
+      .innerJoin(
+        permissionsTableName,
+        `${permissionsTableName}.resource_id`,
+        `${hostTableName}.id`
+      )
+      .where(`${permissionsTableName}.resource_type`, '=', 'SESSION')
+      .where(`${permissionsTableName}.user_id`, '=', userId)
+      .select([
+        `${hostTableName}.id as id`,
+        `${hostTableName}.topic as topic`,
+        `${hostTableName}.start_time as start_time`,
+      ]);
+
+    return await query.execute();
+  } catch (error) {
+    console.error('Error fetching available sessions:', error);
+    throw error;
+  }
+}
+
+export type PromptWithType = s.PromptsTable & { type_name: string };
+
+// Cached function to get active prompt by type with default fallback
+export const getActivePromptByType = cache(
+  async (typeId: string): Promise<PromptWithType | null> => {
+    // First, try to find by direct ID match
+    const db = await dbPromise;
+    const rows = await db
+      .selectFrom('prompts as p')
+      .innerJoin('prompt_type as pt', 'p.prompt_type', 'pt.id')
+      .select([
+        'p.id',
+        'p.prompt_type',
+        'p.instructions',
+        'p.active',
+        'pt.name as type_name',
+      ])
+      .where((eb) =>
+        eb.or([eb('p.prompt_type', '=', typeId), eb('pt.name', '=', typeId)])
+      )
+      .where('p.active', '=', true)
+      .limit(1)
+      .execute();
+    console.log(
+      `[i] Retrieved prompt for type ${typeId}:`,
+      rows[0] || 'Not found'
+    );
+    return (rows[0] as PromptWithType) || null;
+  }
+);
+
+export async function getAllPrompts(): Promise<PromptWithType[]> {
+  const db = await dbPromise;
+  const rows = await db
+    .selectFrom('prompts as p')
+    .innerJoin('prompt_type as pt', 'p.prompt_type', 'pt.id')
+    .select([
+      'p.id',
+      'p.prompt_type',
+      'p.instructions',
+      'p.active',
+      'pt.name as type_name',
+    ])
+    .orderBy('p.created_at', 'desc')
+    .execute();
+
+  return rows as PromptWithType[];
+}
+
+export async function createDraftWorkspace(
+  title: string = "New Workspace"
+): Promise<s.Workspace | null> {
+  try {
+    const db = await dbPromise;
+    console.log("Creating draft workspace");
+    
+    // Create the draft workspace
+    const result = await db
+      .insertInto('workspaces')
+      .values({
+        title,
+        description: "",
+        is_public: false,
+        status: 'draft',
+        created_at: new Date()
+      })
+      .returningAll()
+      .executeTakeFirst();
+    
+    if (result) {
+
+       // Get current user for permissions
+      const session = await authGetSession();
+      const userSub = session?.user?.sub;
+      
+      if (!userSub) {
+        console.warn('No user ID found when creating draft workspace');
+        return result;
+      }
+      // Set owner permission for the user
+      await setPermission(
+        result.id,
+        'owner',
+        'WORKSPACE',
+        userSub
+      );
+    }
+    
+    return result || null;
+  } catch (error) {
+    console.error('Error creating draft workspace:', error);
+    return null;
+  }
+}
+
+// This is supposed to be run on some intervals to clean up draft workspaces that were never finished.
+// At this point there's no automatic invocation of this and should be done manually.
+export async function cleanupDraftWorkspaces(
+  olderThanHours: number = 30 * 24
+): Promise<number> {
+  try {
+    const db = await dbPromise;
+    const cutoffDate = new Date();
+    cutoffDate.setHours(cutoffDate.getHours() - olderThanHours);
+    
+    const result = await db
+      .deleteFrom('workspaces')
+      .where('status', '=', 'draft')
+      .where('last_modified', '<', cutoffDate)
+      .execute();
+    
+    return result.length;
+  } catch (error) {
+    console.error('Error cleaning up draft workspaces:', error);
+    return 0;
+  }
 }

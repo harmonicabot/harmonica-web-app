@@ -4,38 +4,36 @@ import { HostSession, UserSession } from '@/lib/schema';
 import React, { useEffect } from 'react';
 import { mutate } from 'swr';
 
-import ShareSession from './ShareSession';
 import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
 import { createSummary } from '@/lib/serverUtils';
 
 import ResultTabs from './ResultTabs';
 import ExportSection from '../Export/ExportSection';
 import { OpenAIMessage } from '@/lib/types';
+import { ResultTabsVisibilityConfig } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
 import { usePathname } from 'next/navigation';
 
 export default function SessionResultsSection({
   hostData,
-  userData, // Already filtered to only those users having messages
-  resourceId: resourceId,
-  showParticipants = true,
-  showShare = true,
-  showSessionRecap = true,
+  userData,
+  resourceId,
+  visibilityConfig,
   chatEntryMessage,
 }: {
   hostData: HostSession;
   userData: UserSession[];
   resourceId: string;
-  showParticipants?: boolean;
+  visibilityConfig: ResultTabsVisibilityConfig;
   showShare?: boolean;
-  showSessionRecap?: boolean;
   chatEntryMessage?: OpenAIMessage;
 }) {
   const { hasMinimumRole } = usePermissions(resourceId);
-  const path = usePathname()
+  const path = usePathname();
   const hasMessages = userData.length > 0;
   const { hasNewMessages, lastMessage, lastSummaryUpdate } =
     checkSummaryAndMessageTimes(hostData, userData);
+
   // Automatically update the summary if there's new content and the last update was more than 10 minutes ago
   useEffect(() => {
     if (
@@ -52,27 +50,28 @@ export default function SessionResultsSection({
     }
   }, [hasNewMessages, lastMessage, lastSummaryUpdate, hostData.id, resourceId]);
 
+  visibilityConfig.showChat = visibilityConfig.showChat && hasMessages;
+
   return (
     <>
       <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
-      {hasMessages ? (
-        <>
           <ResultTabs
             hostData={[hostData]}
             userData={userData}
-            id={resourceId}
+            resourceId={resourceId}
             hasNewMessages={hasNewMessages}
-            showParticipants={showParticipants}
-            showSessionRecap={showSessionRecap}
+            visibilityConfig={visibilityConfig}
             chatEntryMessage={chatEntryMessage}
+            isPublic={hostData.is_public}
           />
-          {showParticipants && hasMinimumRole('editor') && (
-            <ExportSection hostData={hostData} userData={userData} id={resourceId} className="mt-4" />
+          {visibilityConfig.showParticipants && hasMinimumRole('editor') && hasMessages && (
+            <ExportSection
+              hostData={hostData}
+              userData={userData}
+              id={resourceId}
+              className="mt-4"
+            />
           )}
-        </>
-      ) : (
-        showShare && <ShareSession makeSessionId={resourceId} />
-      )}
     </>
   );
 }

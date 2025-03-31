@@ -2,11 +2,12 @@
 //  There's just too much going on right now and the separation between
 //  UserData, SessionData & AccumulatedData isn't clear enough.
 
-import { UserSession, Message, HostSession } from './schema';
+import { UserSession, Message, HostSession, ResultTabsVisibilityConfig, Workspace, NewWorkspace } from './schema';
 
 export enum ApiAction {
   CreatePrompt = 'createPrompt',
   EditPrompt = 'editPrompt',
+  SummaryOfPrompt = 'summaryOfPrompt',
   CreateAssistant = 'createAssistant',
   DeleteSession = 'deleteSession',
   CreateSummary = 'create summary',
@@ -33,6 +34,7 @@ export type RequestData = {
     | AssistantMessageData
     | TemplateEditingData
     | UserSession
+    | SummaryOfPromptData
     | OpenAIMessage[]
     | string
     | { assistantIds: string[] }
@@ -78,9 +80,15 @@ export type AssistantBuilderData = {
 };
 
 export type AssistantMessageData = {
-  threadId: string;
   messageText: string;
-  assistantId: string;
+  sessionId?: string;
+  systemPrompt?: string;
+  threadId?: string;
+};
+
+export type SummaryOfPromptData = {
+  fullPrompt: string;
+  instructions: string;
 };
 
 export type UserSessions = Record<string, UserSession>;
@@ -92,22 +100,49 @@ export type Session = {
   createdAt: Date;
 };
 
-export interface ResultTabsProps {
-  hostData: HostSession[];
-  userData: UserSession[];
-  id: string;
-  isWorkspace?: boolean;
-  hasNewMessages: boolean;
-  showParticipants: boolean;
-  showSessionRecap?: boolean;
-  sessionIds?: string[];
-  chatEntryMessage?: OpenAIMessage;
-}
-
 export interface CustomAIResponse {
-  id?: string;
+  id: string;
   position: number;
   session_id: string;
   content: string;
   created_at?: Date;
+}
+
+export interface CrossPollinationConfig {
+  maxParticipants?: number;
+  feedbackFrequency?: number;
+  feedbackDepth?: number;
+  enabled: boolean;
+  sessionId: string;
+}
+
+export interface IdeaCluster {
+  id: string;
+  ideas: string[];
+  summary: string;
+  participants: string[];
+}
+
+export interface CrossPollinationConfig {
+  maxParticipants?: number;
+  feedbackFrequency?: number;
+  feedbackDepth?: number;
+  enabled: boolean;
+  sessionId: string;
+}
+
+export interface IdeaCluster {
+  id: string;
+  ideas: string[];
+  summary: string;
+  participants: string[];
+}
+
+export interface ExtendedWorkspaceData {
+  exists: boolean;
+  workspace: Workspace | NewWorkspace;
+  hostSessions: HostSession[];
+  userData: UserSession[];
+  sessionIds: string[];
+  availableSessions?: Pick<HostSession, 'id' | 'topic' | 'start_time'>[];
 }

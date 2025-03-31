@@ -1,23 +1,16 @@
 import {
   ApiAction,
-  AssistantBuilderData,
   RequestData,
   SessionBuilderData,
+  SummaryOfPromptData,
   TemplateEditingData,
 } from '@/lib/types';
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import {
-  finishedResponse,
-  handleCreateAssistant,
-  handleResponse,
-} from '../gptUtils';
+import * as llama from '../llamaUtils';
 import { createPromptContent } from '../utils';
+import { getPromptInstructions } from '@/lib/promptsCache';
 
 export const maxDuration = 200;
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function POST(req: Request) {
   const request: RequestData = await req.json();
@@ -30,21 +23,21 @@ export async function POST(req: Request) {
     case ApiAction.EditPrompt:
       // console.log('Editing prompt for data: ', data.data);
       const d = request.data as TemplateEditingData;
-      return handleResponse(
-        client,
-        d.threadId,
-        d.assistantId,
+      const createTemplatePrompt =
+        await getPromptInstructions('CREATE_SESSION');
+      return llama.handleResponse(
+        createTemplatePrompt,
         d.instructions,
         request.stream ?? false,
       );
-    case ApiAction.CreateAssistant:
-      return NextResponse.json({ assistantId: await handleCreateAssistant(request.data as AssistantBuilderData) });
-    case ApiAction.DeleteAssistants:
-      if (typeof request.data === 'object' && 'assistantIds' in request.data && Array.isArray(request.data.assistantIds)) {
-        return await deleteAssistants(request.data.assistantIds);
-      } else {
-        return NextResponse.json({ error: 'Invalid data format for DeleteAssistants' }, { status: 400 });
-      }
+    case ApiAction.SummaryOfPrompt:
+      const summaryData = request.data as SummaryOfPromptData;
+      return llama.handleResponse(
+        summaryData.instructions,
+        summaryData.fullPrompt,
+        request.stream ?? false,
+      );
+
     default:
       console.log('Invalid action: ', request.action);
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -52,27 +45,20 @@ export async function POST(req: Request) {
 }
 
 async function createNewPrompt(data: SessionBuilderData) {
-  const templateBuilderId = process.env.TEMPLATE_BUILDER_ID;
-  if (!templateBuilderId) {
-    return NextResponse.json(
-      { error: 'Template builder not set!' },
-      { status: 500 },
+  console.log('[i] Creating prompt for data: ', data);
+  try {
+    const createTemplatePrompt = await getPromptInstructions('CREATE_SESSION');
+    const threadId = crypto.randomUUID();
+    const fullPrompt = await llama.finishedResponse(
+      createTemplatePrompt,
+      createPromptContent(data),
     );
-  }
 
-  console.log(
-    'Creating prompt for data: ',
-    data,
-    templateBuilderId,
-  );
-  try { 
-    const [threadId, fullPrompt] = await generateFullPrompt(
-      data,
-      templateBuilderId,
-    );
+    console.log('[i] Created new prompt:', fullPrompt);
+
     return NextResponse.json({
       threadId,
-      assistantId: templateBuilderId,
+      assistantId: '',
       fullPrompt: fullPrompt,
     });
   } catch (error) {
@@ -82,26 +68,4 @@ async function createNewPrompt(data: SessionBuilderData) {
       { status: 500 },
     );
   }
-}
-
-async function deleteAssistants(idsToDelete: string[]) {
-  idsToDelete.forEach((id) => {
-    console.log(`Deleting assistant with id ${id}`);
-    client.beta.assistants.del(id);
-  });
-  return NextResponse.json({ success: true }, { status: 200 });
-}
-
-async function generateFullPrompt(
-  data: SessionBuilderData,
-  assistantId: string,
-) {
-  const thread = await client.beta.threads.create();
-  const content = await finishedResponse(
-    client,
-    thread.id,
-    assistantId,
-    createPromptContent(data),
-  );
-  return [thread.id, content];
 }

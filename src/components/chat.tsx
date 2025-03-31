@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import * as db from '@/lib/db';
-import * as gpt from 'app/api/gptUtils';
+import * as llama from 'app/api/llamaUtils';
 import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
 import { ChatMessage } from './ChatMessage';
 import { Send } from './icons';
@@ -12,9 +12,9 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import { Message } from '@/lib/schema';
 import ErrorPage from './Error';
 import { getUserNameFromContext } from '@/lib/clientUtils';
+import { Loader2, Sparkles } from 'lucide-react';
 
 export default function Chat({
-  assistantId,
   sessionIds,
   setUserSessionId,
   userSessionId,
@@ -25,7 +25,6 @@ export default function Chat({
   customMessageEnhancement,
   isAskAi = false,
 }: {
-  assistantId: string;
   sessionIds?: string[];
   setUserSessionId?: (id: string) => void;
   userSessionId?: string;
@@ -36,7 +35,7 @@ export default function Chat({
   isAskAi?: boolean;
   customMessageEnhancement?: (
     message: OpenAIMessage,
-    index: number
+    index: number,
   ) => React.ReactNode;
 }) {
   const isTesting = false;
@@ -63,6 +62,8 @@ export default function Chat({
   const [isLoading, setIsLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isParticipantSuggestionLoading, setIsParticipantSuggestionLoading] =
+    useState(false);
 
   useEffect(() => {
     if (messagesEndRef.current && messages.length > 1) {
@@ -73,8 +74,12 @@ export default function Chat({
     }
   }, [messages]);
 
+  useEffect(() => {
+    console.log('[i] Chat loading: ');
+  }, []);
+
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -83,7 +88,11 @@ export default function Chat({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
-    if (!threadIdRef.current && !createThreadInProgressRef.current && !isAskAi) {
+    if (
+      !threadIdRef.current &&
+      !createThreadInProgressRef.current &&
+      !isAskAi
+    ) {
       createThreadInProgressRef.current = true;
       const userName = getUserNameFromContext(userContext);
 
@@ -92,7 +101,7 @@ export default function Chat({
         sessionIds && sessionIds.length ? sessionIds[0] : undefined,
         user ? user : 'id',
         userName,
-        userContext
+        userContext,
       );
     }
 
@@ -121,7 +130,7 @@ export default function Chat({
 
   function concatenateMessages(messagesFromOneUser: Message[]) {
     messagesFromOneUser.sort(
-      (a, b) => a.created_at.getTime() - b.created_at.getTime()
+      (a, b) => a.created_at.getTime() - b.created_at.getTime(),
     );
     return messagesFromOneUser
       .map((message) => `${message.role} : ${message.content}`)
@@ -142,7 +151,7 @@ export default function Chat({
     sessionId: string | undefined,
     user: any,
     userName?: string,
-    userContext?: Record<string, string>
+    userContext?: Record<string, string>,
   ): Promise<string | undefined> {
     if (isTesting) {
       return undefined;
@@ -151,20 +160,23 @@ export default function Chat({
     const chatMessages = [];
     if (context?.userData) {
       const allUsersMessages = await db.getAllMessagesForUsersSorted(
-        context.userData
+        context.userData,
       );
-      const messagesByThread = allUsersMessages.reduce((acc, message) => {
-        acc[message.thread_id] = acc[message.thread_id] || []; // to make sure this array exists
-        acc[message.thread_id].push(message);
-        return acc;
-      }, {} as Record<string, Message[]>);
+      const messagesByThread = allUsersMessages.reduce(
+        (acc, message) => {
+          acc[message.thread_id] = acc[message.thread_id] || []; // to make sure this array exists
+          acc[message.thread_id].push(message);
+          return acc;
+        },
+        {} as Record<string, Message[]>,
+      );
       chatMessages.push('\n----START CHAT HISTORY for CONTEXT----\n');
       const concatenatedUserMessages = Object.entries(messagesByThread).map(
         ([threadId, messages]) => {
           return `\n----START NEXT USER CHAT----\n${concatenateMessages(
-            messages
+            messages,
           )}\n----END USER CHAT----\n`;
-        }
+        },
       );
       chatMessages.push(...concatenatedUserMessages);
       chatMessages.push('\n----END CHAT HISTORY for CONTEXT----\n');
@@ -173,89 +185,78 @@ export default function Chat({
 
     const userContextPrompt = userContext
       ? `IMPORTANT USER INFORMATION:\nPlease consider the following user details in your responses:\n${Object.entries(
-          userContext
+          userContext,
         )
           .map(([key, value]) => `- ${key}: ${value}`)
           .join(
-            '\n'
+            '\n',
           )}\n\nPlease tailor your responses appropriately based on this user information.`
       : '';
 
-    let threadEntryMessage = userContextPrompt
-      ? {
-          role: 'user' as const,
-          content: userContextPrompt,
-        }
-      : undefined;
+    // let threadEntryMessage = userContextPrompt
+    //   ? {
+    //       role: 'user' as const,
+    //       content: userContextPrompt,
+    //     }
+    //   : undefined;
+    // handleCreateThread(threadEntryMessage, chatMessages)
+    const threadId = crypto.randomUUID();
+    console.log(`[i] Created threadId ${threadId} for session ${sessionId}`);
+    threadIdRef.current = threadId;
 
-    return gpt
-      .handleCreateThread(threadEntryMessage, chatMessages)
-      .then((threadId) => {
-        console.log(`[i] Created threadId ${threadId} for session ${sessionId}`);
-        threadIdRef.current = threadId;
-        
-        if (sessionId) {
-          const data = {
-            session_id: sessionId,
-            user_id: userName + '_' + crypto.randomUUID(),
-            user_name: userName,
-            thread_id: threadId,
-            active: true,
-            start_time: new Date(),
-            last_edit: new Date(),
-          };
-          //insert user formdata
-          db.insertChatMessage({
-            thread_id: threadIdRef.current,
-            role: 'user',
-            content: `User shared the following context:\n${Object.entries(
-              userContext || {}
-            )
-              .map(([key, value]) => `${key}: ${value}`)
-              .join('; ')}`,
-            created_at: new Date(),
-          }).catch((error) => {
-            console.log('Error in insertChatMessage: ', error);
-            showErrorToast(
-              'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can'
-            );
-          });
-          console.log('Inserting new session with initial data: ', data);
-          return db
-            .insertUserSessions(data)
-            .then((userIds) => {
-              if (userIds[0] && setUserSessionId) setUserSessionId(userIds[0]);
-              return userIds[0]; // Return the userId, just in case setUserSessionId is not fast enough
-            })
-            .catch((error) => {
-              console.error('[!] error creating user session -> ', error);
-              setErrorMessage({
-                title: 'Failed to create session',
-                message:
-                  'Oops, that should not have happened. Please try again.',
-              });
-              throw error; // Re-throw the error to be caught by the caller
-            });
-        }
-        return undefined; // Return undefined if no sessionId was provided
-      })
-      .catch((error) => {
-        console.error(error);
-        setErrorMessage({
-          title: 'Failed to create message thread',
-          message: 'Sorry for the inconvenience. Please try again.',
-        });
-        throw error; // Re-throw the error to be caught by the caller
+    if (sessionId) {
+      const data = {
+        session_id: sessionId,
+        user_id: userName + '_' + crypto.randomUUID(),
+        user_name: userName,
+        thread_id: threadId,
+        active: true,
+        start_time: new Date(),
+        last_edit: new Date(),
+      };
+      //insert user formdata
+      db.insertChatMessage({
+        thread_id: threadIdRef.current,
+        role: 'user',
+        content: `User shared the following context:\n${Object.entries(
+          userContext || {},
+        )
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('; ')}`,
+        created_at: new Date(),
+      }).catch((error) => {
+        console.log('Error in insertChatMessage: ', error);
+        showErrorToast(
+          'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can',
+        );
       });
+      console.log('Inserting new session with initial data: ', data);
+      return db
+        .insertUserSessions(data)
+        .then((userIds) => {
+          if (userIds[0] && setUserSessionId) setUserSessionId(userIds[0]);
+          return userIds[0]; // Return the userId, just in case setUserSessionId is not fast enough
+        })
+        .catch((error) => {
+          console.error('[!] error creating user session -> ', error);
+          setErrorMessage({
+            title: 'Failed to create session',
+            message: 'Oops, that should not have happened. Please try again.',
+          });
+          throw error; // Re-throw the error to be caught by the caller
+        });
+    }
+    return undefined; // Return undefined if no sessionId was provided
   }
 
   useEffect(() => {
+    console.log('[i] User context: ', userContext);
     if (
       userContext &&
       !threadIdRef.current &&
       !createThreadInProgressRef.current &&
-      !isAskAi  // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
-                // Also, AskAI doesn't use the userContext, so this should never be triggered (unless maybe on page load?), but just for clarity we put it here anyway.
+      !isAskAi // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
+      // Also, AskAI doesn't use the userContext, so this should never be triggered (unless maybe on page load?), but just for clarity we put it here anyway.
     ) {
       const userName = getUserNameFromContext(userContext);
 
@@ -265,7 +266,7 @@ export default function Chat({
         sessionIds && sessionIds.length ? sessionIds[0] : undefined,
         user ? user : 'id',
         userName,
-        userContext
+        userContext,
       ).then((threadSessionId) => {
         handleSubmit(undefined, true, threadSessionId);
       });
@@ -275,7 +276,7 @@ export default function Chat({
   const handleSubmit = async (
     e?: React.FormEvent,
     isAutomatic?: boolean,
-    userSessionIdFromThread?: string
+    userSessionIdFromThread?: string,
   ) => {
     if (e) {
       e.preventDefault();
@@ -287,7 +288,7 @@ export default function Chat({
       addMessage({
         role: messages.length % 2 === 0 ? 'user' : 'assistant',
         content:
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
       });
       setIsLoading(false);
       return;
@@ -299,7 +300,7 @@ export default function Chat({
 
       if (!messageText && !isAutomatic) return;
 
-      const chatHistoryWithoutQuery = messages
+      const chatHistoryWithoutQuery = messages;
 
       if (!isAutomatic || isAskAi) {
         addMessage({ role: 'user', content: messageText });
@@ -313,7 +314,9 @@ export default function Chat({
       }
 
       if (userSessionId && !isAutomatic && !isAskAi) {
-        console.log(`[i] Inserting chat message for user session ${userSessionId}`);
+        console.log(
+          `[i] Inserting chat message for user session ${userSessionId}`,
+        );
         db.insertChatMessage({
           thread_id: threadIdRef.current,
           role: 'user',
@@ -322,7 +325,7 @@ export default function Chat({
         }).catch((error) => {
           console.log('Error in insertChatMessage: ', error);
           showErrorToast(
-            'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can'
+            'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can',
           );
         });
       }
@@ -350,14 +353,14 @@ export default function Chat({
           content: answer,
         });
       } else {
-        
         const messageData = {
           threadId: threadIdRef.current,
           messageText,
-          assistantId: assistantId,
+          sessionId: sessionIds?.[0] || '',
         };
-        
-        gpt.handleGenerateAnswer(messageData)
+
+        llama
+          .handleGenerateAnswer(messageData)
           .then((answer) => {
             setIsLoading(false);
             const now = new Date();
@@ -371,17 +374,20 @@ export default function Chat({
                   created_at: now,
                 }),
                 userSessionId || userSessionIdFromThread
-                  ? db.updateUserSession(userSessionId || userSessionIdFromThread!, {
-                    last_edit: now,
-                  })
+                  ? db.updateUserSession(
+                      userSessionId || userSessionIdFromThread!,
+                      {
+                        last_edit: now,
+                      },
+                    )
                   : Promise.resolve(),
               ]).catch((error) => {
                 console.log(
                   'Error storing answer or updating last edit: ',
-                  error
+                  error,
                 );
                 showErrorToast(
-                  `Uhm; there should be an answer, but we couldn't store it. It won't show up in the summary, but everything else should be fine. Please continue.`
+                  `Uhm; there should be an answer, but we couldn't store it. It won't show up in the summary, but everything else should be fine. Please continue.`,
                 );
               });
             }
@@ -395,6 +401,41 @@ export default function Chat({
     } catch (error) {
       console.error(error);
       showErrorToast(`Sorry, we failed to answer... Please try again.`);
+    }
+  };
+
+  const handleParticipantSuggestion = async () => {
+    if (!threadIdRef.current || isParticipantSuggestionLoading) return;
+
+    setIsParticipantSuggestionLoading(true);
+    try {
+      const response = await fetch('/api/participant-suggestion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          threadId: threadIdRef.current,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate participant suggestion');
+      }
+
+      const data = await response.json();
+
+      setFormData({ messageText: data.content });
+
+      // Focus the textarea
+      textareaRef.current?.focus();
+    } catch (error) {
+      console.error('Error generating participant suggestion:', error);
+      showErrorToast(
+        'Failed to generate participant suggestion. Please try again.',
+      );
+    } finally {
+      setIsParticipantSuggestionLoading(false);
     }
   };
 
@@ -456,6 +497,32 @@ export default function Chat({
         className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''} sticky bottom-0`}
         onSubmit={handleSubmit}
       >
+        <div className="flex justify-end mb-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleParticipantSuggestion}
+            disabled={
+              isLoading ||
+              isParticipantSuggestionLoading ||
+              !threadIdRef.current
+            }
+            className="flex items-center gap-2"
+          >
+            {isParticipantSuggestionLoading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Sparkles size={16} />
+            )}
+            <span>
+              {isParticipantSuggestionLoading
+                ? 'Generating...'
+                : 'AI Suggestion'}
+            </span>
+          </Button>
+        </div>
+
         <div className="relative">
           <Textarea
             name="messageText"
