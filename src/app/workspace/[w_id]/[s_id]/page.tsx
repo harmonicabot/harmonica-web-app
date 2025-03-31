@@ -16,7 +16,7 @@ export default async function WorkspaceSessionResult({
   const visibilityConfig: ResultTabsVisibilityConfig = {
     showSummary: true,
     showSessionRecap: false,
-    showParticipants: true,
+    showResponses: true,
     showCustomInsights: true,
     showChat: true,
     allowCustomInsightsEditing: true,

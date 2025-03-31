@@ -20,7 +20,7 @@ async function SessionDataLoader({
   isPublicAccess,
   visibilityConfig: defaultVisibilityConfig = {
     showSummary: true,
-    showParticipants: true,
+    showResponses: true,
     showCustomInsights: true,
     showChat: true,
     allowCustomInsightsEditing: true,
