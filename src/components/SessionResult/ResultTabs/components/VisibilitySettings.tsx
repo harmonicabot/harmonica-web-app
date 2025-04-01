@@ -67,7 +67,6 @@ export function VisibilitySettings({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuLabel>Configure View Settings</DropdownMenuLabel>
-        <div className='ml-2 text-sm italic'>Change what visitors can see</div>
         <DropdownMenuSeparator />
         
         <div className="p-4 space-y-4">
@@ -82,10 +81,10 @@ export function VisibilitySettings({
             />
           </div>
           <div className="text-xs text-gray-500 italic mb-2">
-            When public, anyone with the link can view without logging in
+            When public, anyone with the link can view
           </div>
           <DropdownMenuSeparator />
-      
+          <div className='text-sm italic'>Control what visitors can see:</div>
           <div className="flex items-center justify-between space-x-2">
             <label htmlFor="summary" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Show Summary
@@ -111,13 +110,13 @@ export function VisibilitySettings({
           )}
 
           <div className="flex items-center justify-between space-x-2">
-            <label htmlFor="participants" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Show Participants
+            <label htmlFor="responses" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Show Responses
             </label>
             <Switch
-              id="participants"
-              checked={config.showParticipants}
-              onCheckedChange={() => toggleSetting('showParticipants')}
+              id="responses"
+              checked={config.showResponses}
+              onCheckedChange={() => toggleSetting('showResponses')}
             />
           </div>
 

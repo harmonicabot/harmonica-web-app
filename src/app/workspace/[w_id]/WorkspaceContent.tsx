@@ -22,7 +22,7 @@ import { Switch } from '@/components/ui/switch';
 // Default visibility configuration for workspaces
 const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
   showSummary: true,
-  showParticipants: true,
+  showResponses: true,
   showCustomInsights: true,
   showChat: true,
   showSimScore: true,

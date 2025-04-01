@@ -25,7 +25,7 @@ export default async function SessionResult({
 
   const visibilityConfig: ResultTabsVisibilityConfig = {
     showSummary: true,
-    showParticipants: true,
+    showResponses: true,
     showCustomInsights: true,
     showChat: true,
     allowCustomInsightsEditing: true,

@@ -45,7 +45,7 @@ export interface ResultTabsProps {
 
 const defaultVisibilityConfig: ResultTabsVisibilityConfig = {
   showSummary: true,
-  showParticipants: true,
+  showResponses: true,
   showCustomInsights: true,
   showSimScore: true,
   showChat: true,
@@ -130,7 +130,7 @@ export default function ResultTabs({
   };
 
   const [activeTab, setActiveTab] = useState(
-    hostData.some((data) => data.summary) || !visibilityConfig.showParticipants
+    hostData.some((data) => data.summary) || !visibilityConfig.showResponses
       ? 'SUMMARY'
       : 'RESPONSES'
   );
@@ -354,7 +354,7 @@ export default function ResultTabs({
                 Summary
               </TabsTrigger>
             )}
-            {(visibilityConfig.showParticipants || hasMinimumRole('editor')) && (
+            {(visibilityConfig.showResponses || hasMinimumRole('editor')) && (
               <TabsTrigger className="ms-0" value="RESPONSES">
                 Responses
               </TabsTrigger>

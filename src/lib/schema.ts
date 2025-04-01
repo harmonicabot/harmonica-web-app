@@ -90,7 +90,7 @@ export interface WorkspacesTable {
 export interface ResultTabsVisibilityConfig {
   showSummary?: boolean;
   showSessionRecap?: boolean;
-  showParticipants?: boolean;
+  showResponses?: boolean;
   showCustomInsights?: boolean;
   showSimScore?: boolean;
   showChat?: boolean;
