@@ -28,7 +28,10 @@ function SessionRow({ session, workspaceId }: { session: HostSession; workspaceI
       </TableCell>
       
       <TableCell>
-        {new Date(session.start_time).toLocaleDateString()}
+        {new Intl.DateTimeFormat(undefined, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }).format(new Date(session.start_time))}
       </TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-2">
@@ -80,7 +83,10 @@ function WorkspaceRow({ workspace }: { workspace: WorkspaceWithSessions }) {
           </Badge>
         </TableCell>
         <TableCell>
-          {new Date(workspace.created_at).toLocaleDateString()}
+          {new Intl.DateTimeFormat(undefined, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }).format(new Date(workspace.created_at))}
         </TableCell>
         <TableCell className="text-right">
           <div className="flex justify-end gap-2">
