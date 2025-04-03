@@ -2,7 +2,14 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, ExternalLink, Settings, ChevronRight, ChevronDown } from 'lucide-react';
+import {
+  ExternalLink,
+  ChevronRight,
+  ChevronDown,
+  MoreHorizontal,
+  Trash2,
+  Share2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { TableCell, TableRow } from '@/components/ui/table';
@@ -11,9 +18,24 @@ import { useState } from 'react';
 import { HostSession } from '@/lib/schema';
 import { WorkspaceWithSessions } from './page';
 import { encryptId } from '@/lib/encryptionUtils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { deleteWorkspace } from './actions';
+import ShareSettings from '@/components/ShareSettings';
 
-function SessionRow({ session, workspaceId }: { session: HostSession; workspaceId: string }) {
-  console.log("SessionStats: ", session)
+function SessionRow({
+  session,
+  workspaceId,
+}: {
+  session: HostSession;
+  workspaceId: string;
+}) {
+  console.log('SessionStats: ', session);
   return (
     <TableRow className="bg-muted/50">
       <TableCell className="font-medium pl-12">
@@ -22,11 +44,14 @@ function SessionRow({ session, workspaceId }: { session: HostSession; workspaceI
         </Link>
       </TableCell>
       <TableCell>
-        <Badge variant="outline" className={session.active ? "bg-lime-100 text-lime-900" : ""}>
-          {session.active ? "Active" : "Finished"}
+        <Badge
+          variant="outline"
+          className={session.active ? 'bg-lime-100 text-lime-900' : ''}
+        >
+          {session.active ? 'Active' : 'Finished'}
         </Badge>
       </TableCell>
-      
+
       <TableCell>
         {new Intl.DateTimeFormat(undefined, {
           dateStyle: 'medium',
@@ -49,15 +74,23 @@ function SessionRow({ session, workspaceId }: { session: HostSession; workspaceI
 
 function WorkspaceRow({ workspace }: { workspace: WorkspaceWithSessions }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  console.log("Workspace details: ", workspace)
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+
+  const handleDelete = async () => {
+    const workspaceId = workspace.id;
+    console.log('Deleting workspace: ', workspaceId);
+    await deleteWorkspace(workspaceId);
+  };
+
+  console.log('Workspace details: ', workspace);
   return (
     <>
       <TableRow className="group">
         <TableCell className="font-medium">
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="h-6 w-6 p-0 hover:bg-transparent"
               onClick={() => setIsExpanded(!isExpanded)}
             >
@@ -84,9 +117,9 @@ function WorkspaceRow({ workspace }: { workspace: WorkspaceWithSessions }) {
         </TableCell>
         <TableCell>
           {new Intl.DateTimeFormat(undefined, {
-          dateStyle: 'medium',
-          timeStyle: 'short',
-        }).format(new Date(workspace.created_at))}
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          }).format(new Date(workspace.created_at))}
         </TableCell>
         <TableCell className="text-right">
           <div className="flex justify-end gap-2">
@@ -96,27 +129,53 @@ function WorkspaceRow({ workspace }: { workspace: WorkspaceWithSessions }) {
                 <span className="sr-only">Open</span>
               </Button>
             </Link>
-            {/* <Link href={`/workspace/${workspace.id}/settings`}>
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4" />
-                <span className="sr-only">Settings</span>
-              </Button>
-            </Link> */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button aria-haspopup="true" size="icon" variant="ghost">
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsShareDialogOpen(true)}>
+                  <Share2 className="mr-2 h-4 w-4" />
+                  <span>Share</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </TableCell>
       </TableRow>
-      {isExpanded && workspace.sessions && workspace.sessions.map((session) => (
-        <SessionRow 
-          key={session.id} 
-          session={session} 
-          workspaceId={workspace.id}
+      {isExpanded &&
+        workspace.sessions &&
+        workspace.sessions.map((session) => (
+          <SessionRow
+            key={session.id}
+            session={session}
+            workspaceId={workspace.id}
+          />
+        ))}
+      {isShareDialogOpen && (
+        <ShareSettings 
+          resourceId={workspace.id} 
+          resourceType='WORKSPACE'
+          initialIsOpen={isShareDialogOpen}
+          onClose={() => setIsShareDialogOpen(false)}
         />
-      ))}
+      )}
     </>
   );
 }
 
-export function WorkspacesTable({ workspaces }: { workspaces: WorkspaceWithSessions[] }) {
+export function WorkspacesTable({
+  workspaces,
+}: {
+  workspaces: WorkspaceWithSessions[];
+}) {
   const tableHeaders = [
     {
       label: 'Workspace',
@@ -156,4 +215,4 @@ export function WorkspacesTable({ workspaces }: { workspaces: WorkspaceWithSessi
       </CardContent>
     </Card>
   );
-} 
+}

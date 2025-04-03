@@ -3,7 +3,7 @@
 import ResultTabs from '@/components/SessionResult/ResultTabs';
 import WorkspaceHero from '@/components/workspace/WorkspaceHero';
 import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
-import ShareWorkspace from '@/components/workspace/ShareWorkspace';
+import ShareSettings from '@/components/ShareSettings';
 import { NewWorkspace, ResultTabsVisibilityConfig, Workspace } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
@@ -105,7 +105,7 @@ export default function WorkspaceContent({
         />
         {!loadingUserInfo && hasMinimumRole('owner') && (
           <div className="flex items-center gap-4 self-end mt-4">
-            <ShareWorkspace workspaceId={workspaceId} />
+            <ShareSettings resourceId={workspaceId} resourceType="WORKSPACE" />
           </div>
         )}
       </div>
