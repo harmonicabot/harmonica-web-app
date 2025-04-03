@@ -90,7 +90,7 @@ export async function getHostSessionById(
   sessionId: string
 ): Promise<s.HostSession> {
   const db = await dbPromise;
-  console.log('ID: ', sessionId);
+  console.log('Get Host Session Details for ID: ', sessionId);
   try {
     return await db
       .selectFrom(hostTableName)
