@@ -20,3 +20,19 @@ export async function linkSessionsToWorkspace(workspaceId: string, sessionIds: s
     throw new Error('Failed to link sessions to workspace');
   }
 }
+
+export async function unlinkSessionFromWorkspace(
+  workspaceId: string, 
+  sessionId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const result = await db.removeWorkspaceSessionLink(workspaceId, sessionId);
+    return { success: result };
+  } catch (error) {
+    console.error('Error unlinking session from workspace:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+}

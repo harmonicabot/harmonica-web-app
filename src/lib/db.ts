@@ -1193,6 +1193,32 @@ export async function createWorkspaceSessionLink(
 }
 
 /**
+ * Removes a link between a workspace and a session
+ */
+export async function removeWorkspaceSessionLink(
+  workspaceId: string,
+  sessionId: string
+): Promise<boolean> {
+  const db = await dbPromise;
+
+  try {
+    // Delete the link from the workspace_sessions table
+    const result = await db
+      .deleteFrom(workspaceSessionsTableName)
+      .where('workspace_id', '=', workspaceId)
+      .where('session_id', '=', sessionId)
+      .execute();
+
+    // Check if any rows were affected by the delete operation
+    return result.length > 0;
+  } catch (error) {
+    console.error('Error removing workspace-session link:', error);
+    throw error;
+  }
+}
+
+
+/**
  * Fetches all available sessions that could be linked to a workspace
  * (This would typically be sessions the user has access to)
  */

@@ -15,7 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { linkSessionsToWorkspace } from '@/lib/workspaceActions';
+import { linkSessionsToWorkspace, unlinkSessionFromWorkspace } from '@/lib/workspaceActions';
+import { useToast } from '@/hooks/use-toast';
 
 interface SessionInsightsGridProps {
   hostSessions: HostSession[];
@@ -35,12 +36,14 @@ export default function SessionInsightsGrid({
   availableSessions = [],
 }: SessionInsightsGridProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
   const [isLinking, setIsLinking] = useState(false);
+  const [localHostSessions, setLocalHostSessions] = useState<HostSession[]>(hostSessions);
 
   // Filter out sessions that are already in the workspace
   const sessionsToLink = availableSessions.filter(
-    session => !hostSessions.some(hostSession => hostSession.id === session.id)
+    session => !localHostSessions.some(hostSession => hostSession.id === session.id)
   );
 
   const handleCreateSession = () => {
@@ -66,10 +69,42 @@ export default function SessionInsightsGrid({
       router.refresh(); // Refresh the page to show the newly linked sessions
     } catch (error) {
       console.error('Failed to link sessions:', error);
-      // You might want to add error handling UI here
+      toast({
+        title: "Error",
+        description: "Failed to link sessions to workspace",
+        variant: "destructive"
+      });
     } finally {
       setIsLinking(false);
       setSelectedSessions([]);
+    }
+  };
+  
+  const handleRemoveSession = async (sessionId: string) => {
+    try {
+      // First update the local state for immediate UI feedback
+      setLocalHostSessions(prev => prev.filter(session => session.id !== sessionId));
+      
+      // Then perform the actual unlinking in the database
+      await unlinkSessionFromWorkspace(workspaceId, sessionId);
+      
+      toast({
+        title: "Session removed",
+        description: "The session has been removed from this workspace",
+      });
+      
+      // Optionally refresh the page to ensure data consistency
+      // router.refresh();
+    } catch (error) {
+      console.error('Failed to remove session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove session from workspace",
+        variant: "destructive"
+      });
+      
+      // Revert the local state change if the operation failed
+      setLocalHostSessions(hostSessions);
     }
   };
   
@@ -81,7 +116,7 @@ export default function SessionInsightsGrid({
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Host Sessions cards at the top */}
-          {hostSessions.map((hostData) => (
+          {localHostSessions.map((hostData) => (
             <SessionSummaryCard
               key={hostData.id}
               hostData={hostData}
@@ -91,6 +126,7 @@ export default function SessionInsightsGrid({
               workspace_id={workspaceId}
               id={hostData.id}
               usePublicAccess={isPublicAccess}
+              onRemove={showEdit ? handleRemoveSession : undefined}
             />
           ))}
           
