@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Share2, Loader2, X, UserCog } from 'lucide-react';
+import { Share2, Loader2, X, UserCog, Copy, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@auth0/nextjs-auth0/client';
@@ -55,6 +55,7 @@ export default function ShareSettings({
   const [isOpen, setIsOpen] = useState(initialIsOpen || false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('invite');
+  const [copied, setCopied] = useState(false);
 
   // Permissions and invitations state
   const [userAndRole, setUserAndRole] = useState<UserAndRole[]>([]);
@@ -323,7 +324,6 @@ export default function ShareSettings({
       )}
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-
           <DialogTitle>Share {resourceType.toLocaleLowerCase()}</DialogTitle>
         </DialogHeader>
 
@@ -363,7 +363,6 @@ export default function ShareSettings({
                       Viewer (can view and participate)
                     </SelectItem>
                     <SelectItem value="editor">
-
                       Editor (can modify {resourceType.toLocaleLowerCase()})
                     </SelectItem>
                   </SelectContent>
@@ -396,7 +395,10 @@ export default function ShareSettings({
                 pendingInvitations.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <UserCog className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                  <p>No users have access to this {resourceType.toLocaleLowerCase()} yet.</p>
+                  <p>
+                    No users have access to this{' '}
+                    {resourceType.toLocaleLowerCase()} yet.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -514,28 +516,57 @@ export default function ShareSettings({
           </TabsContent>
         </Tabs>
 
-        <DialogFooter className="mt-6">
-          <Button
-            variant="outline"
-            className="mr-2"
-            onClick={() => setIsOpen(false)}
-            disabled={isSubmitting || isLoadingPermissions}
-          >
-            Close
-          </Button>
+        <DialogFooter>
+          <div className="mt-6 w-full flex justify-between items-center">
+            <div className="flex mr-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `${window.location.origin}/${
+                      resourceType === 'WORKSPACE' ? 'workspace' : 'sessions'
+                    }/${resourceId}`
+                  );
+                  setCopied(true);
+                }}
+              >
+                {copied ? (
+                  <>
+                    <Check className="text-green-600 w-4 h-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy URL
+                  </>
+                )}
+              </Button>
+            </div>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                className="mr-2"
+                onClick={() => setIsOpen(false)}
+                disabled={isSubmitting || isLoadingPermissions}
+              >
+                Close
+              </Button>
 
-          {activeTab === 'invite' && (
-            <Button onClick={handleInvite} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                'Send Invites'
+              {activeTab === 'invite' && (
+                <Button onClick={handleInvite} disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    'Send Invites'
+                  )}
+                </Button>
               )}
-            </Button>
-          )}
+            </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
