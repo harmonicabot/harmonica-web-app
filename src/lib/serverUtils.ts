@@ -133,7 +133,7 @@ export async function hasSessionAccess(sessionId: string): Promise<boolean> {
 // Create a summary for a single session
 export async function createSummary(sessionId: string) {
   const summary = await generateMultiSessionSummary([sessionId]);
-
+  console.log('Generated summary:', summary);
   await db.updateHostSession(sessionId, {
     summary: summary.toString(),
     last_edit: new Date(),

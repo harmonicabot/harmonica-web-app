@@ -3,7 +3,7 @@ import { getLLM } from '@/lib/modelConfig';
 import { getPromptInstructions } from '@/lib/promptsCache';
 
 export async function generateMultiSessionSummary(sessionIds: string[]) {
-  // console.log('[i] Generating multi-session summary for sessions:', sessionIds);
+  console.log('[i] Generating multi-session summary for sessions:', sessionIds);
   try {
     // Get session context and objective data for all sessions
     const sessionsData = await Promise.all(

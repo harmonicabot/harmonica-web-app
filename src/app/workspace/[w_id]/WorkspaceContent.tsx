@@ -3,21 +3,19 @@
 import ResultTabs from '@/components/SessionResult/ResultTabs';
 import WorkspaceHero from '@/components/workspace/WorkspaceHero';
 import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
-import ShareWorkspace from '@/components/workspace/ShareWorkspace';
-import { NewWorkspace, ResultTabsVisibilityConfig, Workspace } from '@/lib/schema';
+import ShareSettings from '@/components/ShareSettings';
+import {
+  NewWorkspace,
+  ResultTabsVisibilityConfig,
+  Workspace,
+} from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import { updateWorkspaceDetails } from './actions';
 import { useEffect, useState } from 'react';
 import { ExtendedWorkspaceData } from '@/lib/types';
-import { Label } from '@/components/ui/label';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Switch } from '@/components/ui/switch';
+import * as db from '@/lib/db';
+import { useRouter } from 'next/navigation';
 
 // Default visibility configuration for workspaces
 const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
@@ -41,6 +39,7 @@ export default function WorkspaceContent({
   workspaceId,
   isPublicAccess = false,
 }: WorkspaceContentProps) {
+  const router = useRouter();
   const initialWorkspaceData = extendedWorkspaceData?.workspace;
   const [workspaceData, setWorkspaceData] = useState<Workspace | NewWorkspace>(
     initialWorkspaceData
@@ -60,6 +59,20 @@ export default function WorkspaceContent({
       ...updates,
     }));
   };
+
+  const handleDelete = async () => {
+    if (
+      confirm(
+        `Are you sure you want to delete this workspace?`
+      )
+    ) {
+      await db.updateWorkspace(workspaceId, { status: 'deleted' }).then(() => {
+        console.log("Marked for deletion, redirecting to dashboard")
+        router.replace('/');
+      });
+    }
+    return false;
+  }
 
   // For public access, we show a more limited view
   const visibilityConfig = isPublicAccess
@@ -81,7 +94,7 @@ export default function WorkspaceContent({
     const tempWorkspaceData: Workspace | NewWorkspace = {
       ...workspaceData,
       status: 'active',
-    }
+    };
     await updateWorkspaceDetails(workspaceId, tempWorkspaceData);
   };
 
@@ -105,7 +118,7 @@ export default function WorkspaceContent({
         />
         {!loadingUserInfo && hasMinimumRole('owner') && (
           <div className="flex items-center gap-4 self-end mt-4">
-            <ShareWorkspace workspaceId={workspaceId} />
+            <ShareSettings resourceId={workspaceId} resourceType="WORKSPACE" />
           </div>
         )}
       </div>
@@ -145,11 +158,21 @@ Here are some questions you might want to ask:
         showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
         availableSessions={extendedWorkspaceData.availableSessions}
       />
-      {!exists && workspaceData && (
-        <Button className="mt-4" onClick={submitNewWorkspace}>
-          Create Workspace
-        </Button>
-      )}
+      <div className="flex justify-between mt-4">
+        {!exists && workspaceData && (
+          <Button onClick={submitNewWorkspace}>
+            Create Workspace
+          </Button>
+        )}
+        {hasMinimumRole('owner') && (
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+          >
+            Delete Workspace
+          </Button>
+        )}
+      </div>
     </>
   );
 }
