@@ -42,6 +42,12 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
     if (!workspaceData) {
       throw new Error('Workspace not found'); // This should never happen; but in order to make typescript happy...
     }
+    if (workspaceData.status == 'deleted') {
+      // The workspace was marked for deletion, but hasn't actually been deleted. Let's do that now.
+      await db.deleteWorkspace(workspaceId);
+      console.log("Deleting ", workspaceId);
+      throw new Error('Workspace has been removed.');
+    }
     
     const availableSessions = await getAllAvailableSessionIds();
 

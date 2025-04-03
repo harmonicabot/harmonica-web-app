@@ -46,8 +46,23 @@ const sessionCache = cache(async () => {
       ]);
 
       // Get ALL workspace IDs
-      const allWorkspaces = await db.getAllWorkspaces();
-      
+      let allWorkspaces = await db.getAllWorkspaces();
+
+      // Find workspaces marked for deletion
+      const workspacesToDelete = allWorkspaces.filter(wspace => wspace.status === 'deleted');
+
+      // Delete them
+      if (workspacesToDelete.length > 0) {
+        console.log(`Deleting ${workspacesToDelete.length} workspaces marked as 'deleted'`);
+        await Promise.all(workspacesToDelete.map(workspace => 
+          db.deleteWorkspace(workspace.id)
+        ));
+      }
+
+      // Filter out the deleted workspaces from the list
+      allWorkspaces = allWorkspaces.filter(wspace => wspace.status !== 'deleted');
+
+
       // Get sessions for each workspace
       const workspaceAndSessionsIds: Record<string, string[]> = Object.fromEntries(
         await Promise.all(
