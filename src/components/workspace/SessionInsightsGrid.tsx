@@ -4,7 +4,7 @@ import { HostSession, UserSession } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
 import { LinkIcon, Pencil, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,7 @@ export default function SessionInsightsGrid({
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
   const [isLinking, setIsLinking] = useState(false);
   const [localHostSessions, setLocalHostSessions] = useState<HostSession[]>(hostSessions);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Filter out sessions that are already in the workspace
   const sessionsToLink = availableSessions.filter(
@@ -66,6 +67,8 @@ export default function SessionInsightsGrid({
     setIsLinking(true);
     try {
       await linkSessionsToWorkspace(workspaceId, selectedSessions);
+      console.log("Refreshing after linking");
+      setDialogOpen(false);
       router.refresh(); // Refresh the page to show the newly linked sessions
     } catch (error) {
       console.error('Failed to link sessions:', error);
@@ -80,6 +83,10 @@ export default function SessionInsightsGrid({
     }
   };
   
+  useEffect(() => {
+    setLocalHostSessions(hostSessions);
+  }, [hostSessions]);
+
   const handleRemoveSession = async (sessionId: string) => {
     try {
       // First update the local state for immediate UI feedback
@@ -150,8 +157,8 @@ export default function SessionInsightsGrid({
               </Card>
 
               {/* Link Existing Session Card */}
-              <Dialog>
-                <DialogTrigger asChild>
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
                   <Card className="border-2 border-dashed border-gray-300 hover:border-primary cursor-pointer transition-colors">
                     <CardContent className="flex flex-col items-center justify-center p-6 min-h-[200px] space-y-4">
                       <div className="p-3 rounded-full bg-primary/10">
