@@ -48,6 +48,10 @@ const dbPromise = (async () => {
   return db;
 })();
 
+export async function getDbInstance() {
+  return await dbPromise;
+}
+
 export async function getHostSessions(
   columns: (keyof s.HostSessionsTable)[],
   page: number = 1,

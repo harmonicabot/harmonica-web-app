@@ -30,7 +30,8 @@ If the discussion gets off track, gently redirect it back to the main topic. If 
 4. Maintain participant anonymity in all responses
 5. Structure your analysis with clear sections and bullet points
 
-Your summaries should be comprehensive yet concise, focusing on actionable insights while protecting privacy.`,
+Your summaries should be comprehensive yet concise, focusing on actionable insights while protecting privacy.
+Return your response in markdown format.`,
 
   EXTRACT_PROMPT: `You are a data extraction assistant that formats conversation data according to specific instructions. Always return valid JSON without markdown formatting or code blocks.`,
 

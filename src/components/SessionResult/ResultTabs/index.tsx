@@ -294,7 +294,7 @@ export default function ResultTabs({
                       key={session.id}
                       className="flex justify-between items-center p-2 border rounded hover:bg-gray-50"
                     >
-                      <Link href={`/sessions/${encryptId(session.id)}`} className="flex-1">
+                      <Link href={`/workspace/${resourceId}/${encryptId(session.id)}`} className="flex-1">
                         <div className='flex justify-between items-center'>
 
                         <span>{session.topic || 'Untitled Session'}</span>

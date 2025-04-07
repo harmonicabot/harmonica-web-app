@@ -53,6 +53,7 @@ export default function SessionResultSummary({
     if (isWorkspace && workspaceId) {
       db.getWorkspaceSummary(workspaceId!).then((summary) => {
         if (summary) {
+          console.log(summary)
           setSummary(summary);
         } else {
           triggerSummaryUpdate();

@@ -1,27 +1,29 @@
-import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
+import * as db from '@/lib/db';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } },
 ) {
   try {
-    const {
-      rows: [prompt],
-    } = await sql`
-      SELECT 
-        p.id,
-        p.prompt_type,
-        p.description,
-        p.active,
-        p.created_at,
-        p.updated_at,
-        pt.name as type_name,
-        pt.description as type_description
-      FROM prompts p
-      JOIN prompt_type pt ON p.prompt_type = pt.id
-      WHERE p.id = ${params.id}
-    `;
+    const dbInstance = await db.getDbInstance();
+    
+    const prompt = await dbInstance
+      .selectFrom('prompts as p')
+      .innerJoin('prompt_type as pt', 'p.prompt_type', 'pt.id')
+      .select([
+        'p.id',
+        'p.prompt_type',
+        'p.instructions',
+        'p.active',
+        'p.created_at',
+        'p.updated_at',
+        'pt.id as type_id',
+        'pt.name as type_name',
+        'pt.description as type_description',
+      ])
+      .where('p.id', '=', params.id)
+      .executeTakeFirst();
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt not found' }, { status: 404 });
@@ -49,34 +51,41 @@ export async function PUT(
     const { id } = params;
     const { prompt_type, instructions, active } = await request.json();
 
+    const dbInstance = await db.getDbInstance();
+
     // If setting this prompt to active, first deactivate any other active prompts of the same type
     if (active) {
-      await sql`
-        UPDATE prompts
-        SET active = false
-        WHERE prompt_type = ${prompt_type}
-          AND id != ${id}
-          AND active = true
-      `;
+      await dbInstance
+        .updateTable('prompts')
+        .set({ active: false })
+        .where('prompt_type', '=', prompt_type)
+        .where('id', '!=', id)
+        .where('active', '=', true)
+        .execute();
     }
 
     // Update the prompt in the database
-    const { rows } = await sql`
-      UPDATE prompts
-      SET 
-        prompt_type = ${prompt_type},
-        instructions = ${instructions},
-        active = ${active},
-        updated_at = NOW()
-      WHERE id = ${id}
-      RETURNING *
-    `;
+    const updatedPrompt = await dbInstance
+      .updateTable('prompts')
+      .set({
+        prompt_type,
+        instructions,
+        active,
+        updated_at: new Date(),
+      })
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirst();
 
-    if (rows.length === 0) {
+    if (!updatedPrompt) {
       return NextResponse.json({ error: 'Prompt not found' }, { status: 404 });
     }
 
-    return NextResponse.json(rows[0]);
+    return NextResponse.json({
+      ...updatedPrompt,
+      created_at: updatedPrompt.created_at?.toISOString(),
+      updated_at: updatedPrompt.updated_at?.toISOString(),
+    });
   } catch (error) {
     console.error('Error updating prompt:', error);
     return NextResponse.json(
@@ -91,13 +100,15 @@ export async function DELETE(
   { params }: { params: { id: string } },
 ) {
   try {
-    const { rowCount } = await sql`
-      DELETE FROM prompts 
-      WHERE id = ${params.id}
-      RETURNING id
-    `;
+    const dbInstance = await db.getDbInstance();
+    
+    const deletedPrompt = await dbInstance
+      .deleteFrom('prompts')
+      .where('id', '=', params.id)
+      .returningAll()
+      .executeTakeFirst();
 
-    if (rowCount === 0) {
+    if (!deletedPrompt) {
       return NextResponse.json({ error: 'Prompt not found' }, { status: 404 });
     }
 
