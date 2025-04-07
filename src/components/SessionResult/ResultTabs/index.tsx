@@ -15,7 +15,7 @@ import {
   UserSession,
 } from '@/lib/schema';
 import { OpenAIMessage } from '@/lib/types';
-import { CirclePlusIcon, Pencil } from 'lucide-react';
+import { CirclePlusIcon } from 'lucide-react';
 import { CustomResponseCard } from './components/CustomResponseCard';
 import { TabContent } from './components/TabContent';
 import { useCustomResponses } from './hooks/useCustomResponses';
@@ -30,6 +30,8 @@ import {
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
 import { SimScoreTab } from './SimScoreTab';
+import Link from 'next/link';
+import { encryptId } from '@/lib/encryptionUtils';
 
 export interface ResultTabsProps {
   hostData: HostSession[];
@@ -139,11 +141,7 @@ export default function ResultTabs({
     useState(hasNewMessages);
 
   // // For new workspaces, we'll show a placeholder instead of the "no replies" message
-  if (
-    !hasAnyIncludedUserMessages &&
-    !draft &&
-    !hasMinimumRole('editor')
-  ) {
+  if (!hasAnyIncludedUserMessages && !draft && !hasMinimumRole('editor')) {
     return (
       <Card className="w-full">
         <CardContent className="text-center">
@@ -274,40 +272,69 @@ export default function ResultTabs({
         </TabContent>
 
         <TabContent value="RESPONSES">
-          <SessionParticipantsTable
+          {!isWorkspace ? (
+            <SessionParticipantsTable
               sessionId={resourceId}
               userData={userData}
               onIncludeInSummaryChange={updateIncludedInAnalysisList}
             />
+          ) : (
+            <Card>
+              <CardContent className="py-4">
+                <h3 className="text-lg font-medium mb-2">
+                  Individual Session Responses
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Responses are available in individual sessions. Please visit
+                  each session to view participant responses.
+                </p>
+                <div className="space-y-2">
+                  {hostData.map((session) => (
+                    <div
+                      key={session.id}
+                      className="flex justify-between items-center p-2 border rounded hover:bg-gray-50"
+                    >
+                      <Link href={`/workspace/${resourceId}/${encryptId(session.id)}`} className="flex-1">
+                        <div className='flex justify-between items-center'>
+
+                        <span>{session.topic || 'Untitled Session'}</span>
+                        <span className="ml-2 text-sm text-gray-500">
+                          ({userData.filter(
+                            (uData) => uData.session_id === session.id
+                          ).length
+                        }{' '}responses)
+                        </span>
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabContent>
 
         <TabContent value="CUSTOM">
           {responses.length > 0 ? (
-              responses.map((response) => (
-                <CustomResponseCard
-                  key={response.id}
-                  response={response}
-                  onRemove={
-                    !loadingUserInfo && hasMinimumRole('editor')
-                      ? removeResponse
-                      : null
-                  }
-                />
-              ))
-            ) : (
-              <Card>
-                <CardContent>
-                  No custom insights have been added yet
-                </CardContent>
-              </Card>
-            )}
+            responses.map((response) => (
+              <CustomResponseCard
+                key={response.id}
+                response={response}
+                onRemove={
+                  !loadingUserInfo && hasMinimumRole('editor')
+                    ? removeResponse
+                    : null
+                }
+              />
+            ))
+          ) : (
+            <Card>
+              <CardContent>No custom insights have been added yet</CardContent>
+            </Card>
+          )}
         </TabContent>
         <TabContent value="SIMSCORE">
-          <SimScoreTab
-            userData={userData}
-            hostData={hostData[0]}
-            resourceId={resourceId}
-          />
+          <SimScoreTab userData={userData} resourceId={resourceId} />
         </TabContent>
 
         <div className="mt-4 flex justify-end">
@@ -331,7 +358,7 @@ export default function ResultTabs({
       <div className="flex justify-between items-center w-full">
         <div className="flex items-center">
           <TabsList>
-            {(visibilityConfig.showSummary  || hasMinimumRole('editor')) && (
+            {(visibilityConfig.showSummary || hasMinimumRole('editor')) && (
               <TabsTrigger
                 className="ms-0"
                 value="SUMMARY"
@@ -359,21 +386,22 @@ export default function ResultTabs({
                 Responses
               </TabsTrigger>
             )}
-            {(visibilityConfig.showCustomInsights || hasMinimumRole('editor')) && (
-                <TabsTrigger className="ms-0" value="CUSTOM">
-                  Custom Insights
-                </TabsTrigger>
-              )}
+            {(visibilityConfig.showCustomInsights ||
+              hasMinimumRole('editor')) && (
+              <TabsTrigger className="ms-0" value="CUSTOM">
+                Custom Insights
+              </TabsTrigger>
+            )}
             {(visibilityConfig.showSimScore || hasMinimumRole('editor')) && (
-                <TabsTrigger className="ms-0" value="SIMSCORE">
-                  SimScore Ranking
-                </TabsTrigger>
-              )}
+              <TabsTrigger className="ms-0" value="SIMSCORE">
+                SimScore Ranking
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 
         {/* View Settings button in the top right, same line as tabs */}
-        {(hasMinimumRole('editor')) && (
+        {hasMinimumRole('editor') && (
           <div className="flex-shrink-0">
             <VisibilitySettings
               config={visibilityConfig}
@@ -397,7 +425,10 @@ export default function ResultTabs({
             {visibilityConfig.showChat && (
               <>
                 <ResizableHandle withHandle className="mx-2 mt-4" />
-                <ResizablePanel className="overflow-auto mt-4 gap-4" defaultSize={34}>
+                <ResizablePanel
+                  className="overflow-auto mt-4 gap-4"
+                  defaultSize={34}
+                >
                   {draft ? (
                     <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
                       <div className="text-center space-y-4 max-w-md">

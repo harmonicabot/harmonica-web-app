@@ -133,7 +133,7 @@ export interface UsersTable {
 }
 
 export type PromptsTable = {
-  id: string;
+  id: Generated<string>;
   prompt_type: string;
   instructions: string;
   active: boolean;

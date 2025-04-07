@@ -52,10 +52,15 @@ export default function SessionResultSummary({
     // if (isWorkspace) triggerSummaryUpdate();
     if (isWorkspace && workspaceId) {
       db.getWorkspaceSummary(workspaceId!).then((summary) => {
-        setSummary(summary);
+        if (summary) {
+          console.log(summary)
+          setSummary(summary);
+        } else {
+          triggerSummaryUpdate();
+        }
       });
     }
-  }, []);
+  }, [isWorkspace, workspaceId]);
 
   return (
     <>
@@ -75,7 +80,7 @@ export default function SessionResultSummary({
         content={summary}
         isExpanded={isExpandedSummary}
         onExpandedChange={setIsExpandedSummary}
-        showRefreshButton={newSummaryContentAvailable}
+        showRefreshButton={newSummaryContentAvailable || !summary}
         onRefresh={triggerSummaryUpdate}
         isUpdating={isUpdating}
         loading={!summary}
