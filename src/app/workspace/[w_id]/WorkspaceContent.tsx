@@ -116,7 +116,7 @@ export default function WorkspaceContent({
           isEditable={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
           onUpdate={handleWorkspaceUpdate}
         />
-        {!loadingUserInfo && hasMinimumRole('owner') && (
+        {!loadingUserInfo && hasMinimumRole('editor') && (
           <div className="flex items-center gap-4 self-end mt-4">
             <ShareSettings resourceId={workspaceId} resourceType="WORKSPACE" />
           </div>

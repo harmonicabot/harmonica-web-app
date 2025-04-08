@@ -2,7 +2,6 @@ import { SessionData } from '@/lib/hooks/useSessionData';
 import SessionResultHeader, { SessionStatus } from '@/components/SessionResult/SessionResultHeader';
 import SessionResultsOverview from '@/components/SessionResult/SessionResultsOverview';
 import SessionResultsSection from '@/components/SessionResult/SessionResultsSection';
-import ErrorPage from '@/components/Error';
 import { OpenAIMessage } from '@/lib/types';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
 
