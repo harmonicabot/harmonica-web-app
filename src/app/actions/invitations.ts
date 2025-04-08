@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { createInvitation, getInvitationsByResource } from '@/lib/db';
-import { sendWorkspaceInvitation } from '@/lib/emailService';
+import { sendInvitation } from '@/lib/emailService';
 
 // Validate the request data
 const invitationSchema = z.object({
@@ -82,7 +82,7 @@ export async function createAndSendInvitations(formData: FormData | Record<strin
       }
       
       // Send invitation email
-      const emailSent = await sendWorkspaceInvitation(invitation);
+      const emailSent = await sendInvitation(invitation);
       if (emailSent) {
         results.successful.push(email);
       } else {
