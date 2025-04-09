@@ -62,7 +62,6 @@ const sessionCache = cache(async () => {
       // Filter out the deleted workspaces from the list
       allWorkspaces = allWorkspaces.filter(wspace => wspace.status !== 'deleted');
 
-
       // Get sessions for each workspace
       const workspaceAndSessionsIds: Record<string, string[]> = Object.fromEntries(
         await Promise.all(

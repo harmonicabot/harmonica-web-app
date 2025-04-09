@@ -1252,7 +1252,7 @@ export async function getAvailableSessionsForUser(userId: string) {
   }
 }
 
-export type PromptWithType = s.PromptsTable & { type_name: string };
+export type PromptWithType = s.Prompt & { type_name: string };
 
 // Cached function to get active prompt by type with default fallback
 export const getActivePromptByType = cache(
