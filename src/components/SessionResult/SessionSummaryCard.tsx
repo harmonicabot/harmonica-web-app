@@ -12,14 +12,12 @@ export default function SessionSummaryCard({
   userData,
   workspace_id,
   id,
-  usePublicAccess,
   onRemove
 }: {
   hostData: HostSession
   userData: UserSession[]
   workspace_id: string
   id: string
-  usePublicAccess: boolean
   onRemove?: (sessionId: string) => void
 }) {
   const handleRemove = (e: React.MouseEvent) => {
@@ -46,7 +44,7 @@ export default function SessionSummaryCard({
           <X className="h-4 w-4" />
         </Button>
       )}
-      <Link href={`/workspace/${workspace_id}/${encryptId(id)}${usePublicAccess ? '?access=public' : ''}`}>
+      <Link href={`/workspace/${workspace_id}/${encryptId(id)}`}>
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle className="flex justify-between items-center">
