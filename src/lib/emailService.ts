@@ -70,11 +70,11 @@ export async function sendInvitation(invitation: Invitation): Promise<boolean> {
     const appUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.harmonica.chat';
     switch (invitation.resource_type) {
       case "WORKSPACE":
-        title = getWorkspaceTitle(id);
+        title = await getWorkspaceTitle(id);
         url = `${appUrl}/workspace/${id}`;
         break;
       case "SESSION":
-        title = getSessionTitle(id);
+        title = await getSessionTitle(id);
         url = `${appUrl}/sessions/${id}`;
         break;
       default:
@@ -85,7 +85,7 @@ export async function sendInvitation(invitation: Invitation): Promise<boolean> {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px 8px 0 0;">
-          <img src="${appUrl}/harmonica.svg" alt="Harmonica Logo" style="height: 40px;" />
+          <img src="${appUrl}/harmonica.png" alt="Harmonica Logo" style="height: 40px;" />
         </div>
         <div style="padding: 20px; border: 1px solid #e0e0e0; border-radius: 0 0 8px 8px;">
           <h2>You've been invited to join a workspace</h2>

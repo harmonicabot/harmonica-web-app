@@ -22,7 +22,6 @@ interface SessionInsightsGridProps {
   hostSessions: HostSession[];
   userData: UserSession[];
   workspaceId: string;
-  isPublicAccess?: boolean;
   showEdit?: boolean;
   availableSessions?: Pick<HostSession, 'id' | 'topic' | 'start_time'>[];
 }
@@ -31,7 +30,6 @@ export default function SessionInsightsGrid({
   hostSessions,
   userData,
   workspaceId,
-  isPublicAccess = false,
   showEdit = false,
   availableSessions = [],
 }: SessionInsightsGridProps) {
@@ -132,7 +130,6 @@ export default function SessionInsightsGrid({
               )}
               workspace_id={workspaceId}
               id={hostData.id}
-              usePublicAccess={isPublicAccess}
               onRemove={showEdit ? handleRemoveSession : undefined}
             />
           ))}
