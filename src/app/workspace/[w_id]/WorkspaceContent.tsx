@@ -31,13 +31,13 @@ const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
 interface WorkspaceContentProps {
   extendedWorkspaceData: ExtendedWorkspaceData;
   workspaceId: string;
-  isPublicAccess?: boolean;
+  isPublicAccess_deprecated?: boolean;
 }
 
 export default function WorkspaceContent({
   extendedWorkspaceData,
   workspaceId,
-  isPublicAccess = false,
+  isPublicAccess_deprecated = false,
 }: WorkspaceContentProps) {
   const router = useRouter();
   const initialWorkspaceData = extendedWorkspaceData?.workspace;
@@ -75,7 +75,7 @@ export default function WorkspaceContent({
   }
 
   // For public access, we show a more limited view
-  const visibilityConfig = isPublicAccess
+  const visibilityConfig = isPublicAccess_deprecated
     ? {
         showSummary: true,
         showParticipants: false,
@@ -86,7 +86,7 @@ export default function WorkspaceContent({
       }
     : defaultWorkspaceVisibilityConfig;
 
-  const { hasMinimumRole, loading: loadingUserInfo } =
+  const { hasMinimumRole, loading: loadingUserInfo, isPublic } =
     usePermissions(workspaceId);
 
   const submitNewWorkspace = async () => {
@@ -134,7 +134,7 @@ export default function WorkspaceContent({
             workspaceData?.visibility_settings || visibilityConfig
           }
           sessionIds={extendedWorkspaceData.sessionIds}
-          isPublic={workspaceData?.is_public}
+          isPublic={isPublic}
           chatEntryMessage={{
             role: 'assistant',
             content: `Welcome to ${
@@ -154,7 +154,7 @@ Here are some questions you might want to ask:
         hostSessions={extendedWorkspaceData.hostSessions}
         userData={extendedWorkspaceData.userData}
         workspaceId={workspaceId}
-        isPublicAccess={isPublicAccess}
+        isPublicAccess={isPublicAccess_deprecated}
         showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
         availableSessions={extendedWorkspaceData.availableSessions}
       />

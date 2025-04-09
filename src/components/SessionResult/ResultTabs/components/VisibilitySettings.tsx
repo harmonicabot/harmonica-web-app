@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { removeResourcePermission, updateResourcePermission } from 'app/actions/permissions';
 
 interface VisibilitySettingsProps {
@@ -32,7 +32,11 @@ export function VisibilitySettings({
   resourceId,
 }: VisibilitySettingsProps) {
   const [localIsPublic, setLocalIsPublic] = useState(isPublic);
-
+  
+  useEffect(() => {
+    setLocalIsPublic(isPublic);
+  }, [isPublic]);
+  
   const toggleSetting = (key: keyof ResultTabsVisibilityConfig) => {
     onChange({
       ...config,
@@ -46,9 +50,9 @@ export function VisibilitySettings({
     try {
       console.log(`Toggling public status for ${isWorkspace ? 'workspace' : 'session'} ${resourceId}: isPublic:`, checked);
       if (checked) {
-        updateResourcePermission(resourceId, 'public', 'viewer', isWorkspace ? 'WORKSPACE' : 'SESSION');
+        await updateResourcePermission(resourceId, 'public', 'viewer', isWorkspace ? 'WORKSPACE' : 'SESSION');
       } else {
-        removeResourcePermission(resourceId, 'public', isWorkspace ? 'WORKSPACE' : 'SESSION');
+        await removeResourcePermission(resourceId, 'public', isWorkspace ? 'WORKSPACE' : 'SESSION');
       }
     } catch (error) {
       console.error('Error toggling public status:', error);

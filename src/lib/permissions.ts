@@ -17,6 +17,7 @@ export type Role = PermissionsTable['role'];
 export function usePermissions(resourceId: string) {
   const [role, setRole] = useState<Role>('none');
   const [loading, setLoading] = useState(true);
+  const [isPublic, setIsPublic] = useState(false);
   const { user, isLoading } = useUser();
 
   useEffect(() => {
@@ -50,6 +51,8 @@ export function usePermissions(resourceId: string) {
         // Then check for general rights (e.g. public access) of 'all users' for this resource
         // TODO: Ultimately we'd probably also want to cross-check with a 'groups' database for more fine-grained controll...
         const publicPermission = await db.getPermission(resourceId, 'public');
+        setIsPublic(!!publicPermission && publicPermission.role !== 'none');
+        
         if (publicPermission && !hasMinimumRole(role, publicPermission.role)) {
           role = publicPermission.role
         }
@@ -59,6 +62,7 @@ export function usePermissions(resourceId: string) {
       } catch (error) {
         console.error('Permission check failed:', error);
         setRole('none');
+        setIsPublic(false);
       } finally {
         setLoading(false);
       }
@@ -72,12 +76,14 @@ export function usePermissions(resourceId: string) {
   }
 
   function hasMinimumRole(currentRole: Role, requiredRole: Role): boolean {
+    console.log('Checking role:', currentRole, requiredRole);
     return ROLE_HIERARCHY[currentRole] >= ROLE_HIERARCHY[requiredRole];
   }
 
   return {
     role,
     loading,
+    isPublic,
     hasMinimumRole: (requiredRole: Role) => hasMinimumRole(role, requiredRole),
     compareRole: (otherRole: Role) => compareRoles(role, otherRole)
   };
