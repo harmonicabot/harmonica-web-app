@@ -19,10 +19,10 @@ export default function SessionResultHeader({ topic, status }: SessionResultHead
       </h1>
       <Badge 
         variant="outline" 
-        className={"hidden md:block " +
+        className={"hidden md:flex items-center justify-center ms-4 " +
           (status === SessionStatus.REPORT_SENT 
-          ? "text-purple-900 bg-purple-100 ms-4"
-          : "bg-lime-100 text-lime-900 ms-4")
+          ? "text-purple-900 bg-purple-100"
+          : "bg-lime-100 text-lime-900")
         }
       >
         {status === SessionStatus.REPORT_SENT ? 'Finished' : 'Active'}
