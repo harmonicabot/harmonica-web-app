@@ -9,8 +9,6 @@ import {
 import { Analytics } from '@vercel/analytics/react';
 import Providers from 'app/(dashboard)/providers';
 import { Footer } from '../Footer';
-import { footerConfigs } from '../footerConfig';
-
 
 export default function WorkspaceLayout({
   children,
