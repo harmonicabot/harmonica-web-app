@@ -4,6 +4,8 @@ import { UserProfile } from '@auth0/nextjs-auth0/client';
 import { generateMultiSessionSummary } from './summaryMultiSession';
 import { getSession } from "@auth0/nextjs-auth0";
 import { NewUser } from "./schema";
+import { NewHostSession } from './schema';
+import { updateResourcePermission } from 'app/actions/permissions';
 
 export async function isAdmin(user: UserProfile) {
   console.log('Admin IDs: ', process.env.ADMIN_ID);
@@ -153,4 +155,60 @@ export async function createMultiSessionSummary(
     last_modified: new Date(),
   });
   return summary;
+}
+
+export async function cloneSession(sessionId: string): Promise<string | null> {
+  try {
+    // Get the session to clone
+    const sessionToClone = await db.getHostSessionById(sessionId);
+    
+    if (!sessionToClone) {
+      console.error(`Session with ID ${sessionId} not found`);
+      return null;
+    }
+    
+    // Get current user for permissions
+    const session = await getSession();
+    const userSub = session?.user?.sub;
+    
+    if (!userSub) {
+      console.warn('No user ID found when cloning session');
+      return null;
+    }
+    
+    // Create a new session with the cloned data
+    const newSessionData: NewHostSession = {
+      active: true, // inactive = finished; 'draft' = 
+      num_sessions: 0,
+      num_finished: 0,
+      prompt: sessionToClone.prompt,
+      assistant_id: sessionToClone.assistant_id,
+      template_id: sessionToClone.template_id,
+      summary_assistant_id: sessionToClone.summary_assistant_id,
+      topic: `${sessionToClone.topic} (Copy)`,
+      final_report_sent: false,
+      start_time: new Date(),
+      goal: sessionToClone.goal,
+      critical: sessionToClone.critical,
+      context: sessionToClone.context,
+      prompt_summary: sessionToClone.prompt_summary,
+      questions: sessionToClone.questions ? JSON.stringify(sessionToClone.questions) as unknown as JSON : undefined,
+      is_public: false
+    };
+    
+    // Create the new session
+    const newSessionIds = await db.insertHostSessions(newSessionData);
+    if (!newSessionIds || newSessionIds.length === 0) {
+      throw new Error('Failed to create new session');
+    }
+    const newSessionId = newSessionIds[0];
+    
+    // Set the current user as the owner of the new session
+    await updateResourcePermission(newSessionId, userSub, 'owner', 'SESSION');
+    
+    return newSessionId;
+  } catch (error) {
+    console.error('Error cloning session:', error);
+    return null;
+  }
 }

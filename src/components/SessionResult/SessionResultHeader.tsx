@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { updateHostSession } from '@/lib/db';
 import { useSessionStore } from '@/stores/SessionStore';
 import { usePermissions } from '@/lib/permissions';
+import { SessionStatus } from '@/lib/clientUtils';
 
 interface SessionResultHeaderProps {
   sessionId: string;
   topic: string;
-  status: 'Active' | 'Finished';
+  status: SessionStatus;
 }
 
 export default function SessionResultHeader({ 
@@ -106,16 +107,18 @@ export default function SessionResultHeader({
           </div>
         )}
       </div>
-      <Badge 
-        variant="outline" 
-        className={"hidden md:flex items-center justify-center ms-4 " +
-          (status === 'Finished' 
-          ? "text-purple-900 bg-purple-100"
-          : "bg-lime-100 text-lime-900")
-        }
-      >
-        {status}
-      </Badge>
+      <Badge
+          variant="outline"
+          className={`capitalize hidden md:flex items-center justify-center ms-4 ${
+            status === SessionStatus.ACTIVE
+              ? 'bg-lime-100 text-lime-900'
+              : status === SessionStatus.DRAFT
+                ? 'bg-purple-100 text-purple-900'
+                : '' // Finished, remain white
+          }`}
+        >
+          {status}
+        </Badge>
     </div>
   );
 }
