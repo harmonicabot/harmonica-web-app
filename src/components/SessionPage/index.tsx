@@ -1,5 +1,5 @@
 import { SessionData } from '@/lib/hooks/useSessionData';
-import SessionResultHeader, { SessionStatus } from '@/components/SessionResult/SessionResultHeader';
+import SessionResultHeader from '@/components/SessionResult/SessionResultHeader';
 import SessionResultsOverview from '@/components/SessionResult/SessionResultsOverview';
 import SessionResultsSection from '@/components/SessionResult/SessionResultsSection';
 import { OpenAIMessage } from '@/lib/types';
@@ -23,9 +23,10 @@ export default function SessionPage({
   return (
     <div className="p-4 md:p-8">
       <SessionResultHeader
+        sessionId={hostData.id}
         topic={hostData.topic}
         status={
-          !hostData.active ? SessionStatus.REPORT_SENT : SessionStatus.ACTIVE
+          !hostData.active ? 'Finished' : 'Active'
         }
       />
       <SessionResultsOverview
