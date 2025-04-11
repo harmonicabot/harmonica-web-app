@@ -4,6 +4,7 @@ import SessionResultsOverview from '@/components/SessionResult/SessionResultsOve
 import SessionResultsSection from '@/components/SessionResult/SessionResultsSection';
 import { OpenAIMessage } from '@/lib/types';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
+import { calculateStatus, SessionStatus } from '@/lib/clientUtils';
 
 interface SessionPageProps {
   data: SessionData;
@@ -20,18 +21,22 @@ export default function SessionPage({
 }: SessionPageProps) {
   const { hostData, usersWithChat, stats } = data;
 
+  const status = !hostData.active || hostData.final_report_sent
+      ? SessionStatus.FINISHED
+      : stats.totalUsers === 0
+      ? SessionStatus.DRAFT
+      : SessionStatus.ACTIVE;
+
   return (
     <div className="p-4 md:p-8">
       <SessionResultHeader
         sessionId={hostData.id}
         topic={hostData.topic}
-        status={
-          !hostData.active ? 'Finished' : 'Active'
-        }
+        status={status}
       />
       <SessionResultsOverview
         id={hostData.id}
-        active={hostData.active}
+        status={status}
         startTime={hostData.start_time}
         numSessions={stats.totalUsers}
         completedSessions={stats.finishedUsers}
