@@ -41,18 +41,6 @@ export default function SessionResultStatus({
           </p>
         </CardContent>
       </Card>
-      <Card className="flex-grow">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-md">Participants</CardTitle>
-            <User className="w-4 h-4 text-muted-foreground" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p><span className="font-medium">{numSessions}</span> <span className="text-yellow-800">Started</span></p>
-          <p><span className="font-medium">{completedSessions}</span> <span className="text-lime-800">Completed</span></p>
-        </CardContent>
-      </Card>
     </div>
   );
 }
