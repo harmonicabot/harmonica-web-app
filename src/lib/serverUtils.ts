@@ -2,8 +2,8 @@
 import * as db from './db';
 import { UserProfile } from '@auth0/nextjs-auth0/client';
 import { generateMultiSessionSummary } from './summaryMultiSession';
-import { getSession } from "@auth0/nextjs-auth0";
-import { NewUser } from "./schema";
+import { getSession } from '@auth0/nextjs-auth0';
+import { NewUser } from './schema';
 
 export async function isAdmin(user: UserProfile) {
   console.log('Admin IDs: ', process.env.ADMIN_ID);
@@ -23,7 +23,7 @@ export async function syncCurrentUser(): Promise<boolean> {
     }
 
     const { sub, email, name, picture } = session.user;
-    
+
     if (!sub) {
       console.log('Missing required user ID (sub)');
       return false;
@@ -32,12 +32,12 @@ export async function syncCurrentUser(): Promise<boolean> {
     // Handle case where email might be in the name field
     let userEmail = email;
     let userName = name;
-    
+
     // If email is missing but name contains an email format, use name as email
     if (!userEmail && userName && userName.includes('@')) {
       userEmail = userName;
     }
-    
+
     if (!userEmail) {
       console.log('Missing required email data');
       return false;
@@ -49,6 +49,7 @@ export async function syncCurrentUser(): Promise<boolean> {
       email: userEmail,
       name: userName || undefined,
       avatar_url: picture || undefined,
+      subscription_status: 'FREE',
     };
 
     const result = await db.upsertUser(userData);
@@ -77,23 +78,29 @@ export async function getCurrentUserId(): Promise<string | null> {
  * @param workspaceId The workspace ID to check access for
  * @returns True if the user has access, false otherwise
  */
-export async function hasWorkspaceAccess(workspaceId: string): Promise<boolean> {
+export async function hasWorkspaceAccess(
+  workspaceId: string,
+): Promise<boolean> {
   try {
     const userId = await getCurrentUserId();
     if (!userId) return false;
-    
+
     // Check direct permission
     const permission = await db.getPermission(workspaceId, userId, 'WORKSPACE');
     if (permission) return true;
-    
+
     // Check global permission
     const globalPermission = await db.getPermission('global', userId);
     if (globalPermission) return true;
-    
+
     // Check public access
-    const publicPermission = await db.getPermission(workspaceId, 'public', 'WORKSPACE');
+    const publicPermission = await db.getPermission(
+      workspaceId,
+      'public',
+      'WORKSPACE',
+    );
     if (publicPermission) return true;
-    
+
     return false;
   } catch (error) {
     console.error('Error checking workspace access:', error);
@@ -110,19 +117,23 @@ export async function hasSessionAccess(sessionId: string): Promise<boolean> {
   try {
     const userId = await getCurrentUserId();
     if (!userId) return false;
-    
+
     // Check direct permission
     const permission = await db.getPermission(sessionId, userId, 'SESSION');
     if (permission) return true;
-    
+
     // Check public access
-    const publicPermission = await db.getPermission(sessionId, 'public', 'SESSION');
+    const publicPermission = await db.getPermission(
+      sessionId,
+      'public',
+      'SESSION',
+    );
     if (publicPermission) return true;
 
     // Check global permission
     const globalPermission = await db.getPermission('global', userId);
     if (globalPermission) return true;
-    
+
     return false;
   } catch (error) {
     console.error('Error checking session access:', error);

@@ -15,8 +15,11 @@ import {
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { linkSessionsToWorkspace, unlinkSessionFromWorkspace } from '@/lib/workspaceActions';
-import { useToast } from '@/hooks/use-toast';
+import {
+  linkSessionsToWorkspace,
+  unlinkSessionFromWorkspace,
+} from '@/lib/workspaceActions';
+import { useToast } from 'hooks/use-toast';
 
 interface SessionInsightsGridProps {
   hostSessions: HostSession[];
@@ -37,12 +40,14 @@ export default function SessionInsightsGrid({
   const { toast } = useToast();
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
   const [isLinking, setIsLinking] = useState(false);
-  const [localHostSessions, setLocalHostSessions] = useState<HostSession[]>(hostSessions);
+  const [localHostSessions, setLocalHostSessions] =
+    useState<HostSession[]>(hostSessions);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Filter out sessions that are already in the workspace
   const sessionsToLink = availableSessions.filter(
-    session => !localHostSessions.some(hostSession => hostSession.id === session.id)
+    (session) =>
+      !localHostSessions.some((hostSession) => hostSession.id === session.id),
   );
 
   const handleCreateSession = () => {
@@ -52,35 +57,35 @@ export default function SessionInsightsGrid({
   };
 
   const handleSessionSelection = (sessionId: string) => {
-    setSelectedSessions(prev => 
+    setSelectedSessions((prev) =>
       prev.includes(sessionId)
-        ? prev.filter(id => id !== sessionId)
-        : [...prev, sessionId]
+        ? prev.filter((id) => id !== sessionId)
+        : [...prev, sessionId],
     );
   };
 
   const handleLinkSessions = async () => {
     if (selectedSessions.length === 0) return;
-    
+
     setIsLinking(true);
     try {
       await linkSessionsToWorkspace(workspaceId, selectedSessions);
-      console.log("Refreshing after linking");
+      console.log('Refreshing after linking');
       setDialogOpen(false);
       router.refresh(); // Refresh the page to show the newly linked sessions
     } catch (error) {
       console.error('Failed to link sessions:', error);
       toast({
-        title: "Error",
-        description: "Failed to link sessions to workspace",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to link sessions to workspace',
+        variant: 'destructive',
       });
     } finally {
       setIsLinking(false);
       setSelectedSessions([]);
     }
   };
-  
+
   useEffect(() => {
     setLocalHostSessions(hostSessions);
   }, [hostSessions]);
@@ -88,31 +93,33 @@ export default function SessionInsightsGrid({
   const handleRemoveSession = async (sessionId: string) => {
     try {
       // First update the local state for immediate UI feedback
-      setLocalHostSessions(prev => prev.filter(session => session.id !== sessionId));
-      
+      setLocalHostSessions((prev) =>
+        prev.filter((session) => session.id !== sessionId),
+      );
+
       // Then perform the actual unlinking in the database
       await unlinkSessionFromWorkspace(workspaceId, sessionId);
-      
+
       toast({
-        title: "Session removed",
-        description: "The session has been removed from this workspace",
+        title: 'Session removed',
+        description: 'The session has been removed from this workspace',
       });
-      
+
       // Optionally refresh the page to ensure data consistency
       // router.refresh();
     } catch (error) {
       console.error('Failed to remove session:', error);
       toast({
-        title: "Error",
-        description: "Failed to remove session from workspace",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to remove session from workspace',
+        variant: 'destructive',
       });
-      
+
       // Revert the local state change if the operation failed
       setLocalHostSessions(hostSessions);
     }
   };
-  
+
   return (
     <Card className="mt-4 relative group">
       <CardHeader>
@@ -126,17 +133,17 @@ export default function SessionInsightsGrid({
               key={hostData.id}
               hostData={hostData}
               userData={userData.filter(
-                (user) => user.session_id === hostData.id
+                (user) => user.session_id === hostData.id,
               )}
               workspace_id={workspaceId}
               id={hostData.id}
               onRemove={showEdit ? handleRemoveSession : undefined}
             />
           ))}
-          
-          {showEdit &&
+
+          {showEdit && (
             <>
-              <Card 
+              <Card
                 className="border-2 border-dashed border-gray-300 hover:border-primary cursor-pointer transition-colors"
                 onClick={handleCreateSession}
               >
@@ -155,7 +162,7 @@ export default function SessionInsightsGrid({
 
               {/* Link Existing Session Card */}
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
+                <DialogTrigger asChild>
                   <Card className="border-2 border-dashed border-gray-300 hover:border-primary cursor-pointer transition-colors">
                     <CardContent className="flex flex-col items-center justify-center p-6 min-h-[200px] space-y-4">
                       <div className="p-3 rounded-full bg-primary/10">
@@ -178,22 +185,34 @@ export default function SessionInsightsGrid({
                   </DialogHeader>
                   <div className="py-4">
                     {sessionsToLink.length === 0 ? (
-                      <p className="text-center text-gray-500">No available sessions yet. Create one first.</p>
+                      <p className="text-center text-gray-500">
+                        No available sessions yet. Create one first.
+                      </p>
                     ) : (
                       <div className="space-y-4 max-h-[300px] overflow-y-auto">
-                        {sessionsToLink.map(session => (
-                          <div key={session.id} className="flex items-start space-x-2">
-                            <Checkbox 
-                              id={session.id} 
+                        {sessionsToLink.map((session) => (
+                          <div
+                            key={session.id}
+                            className="flex items-start space-x-2"
+                          >
+                            <Checkbox
+                              id={session.id}
                               checked={selectedSessions.includes(session.id)}
-                              onCheckedChange={() => handleSessionSelection(session.id)}
+                              onCheckedChange={() =>
+                                handleSessionSelection(session.id)
+                              }
                             />
                             <div className="grid gap-1.5">
-                              <Label htmlFor={session.id} className="font-medium">
+                              <Label
+                                htmlFor={session.id}
+                                className="font-medium"
+                              >
                                 {session.topic}
                               </Label>
                               <p className="text-sm text-gray-500">
-                                {new Date(session.start_time).toLocaleDateString()}
+                                {new Date(
+                                  session.start_time,
+                                ).toLocaleDateString()}
                               </p>
                             </div>
                           </div>
@@ -205,8 +224,8 @@ export default function SessionInsightsGrid({
                     <DialogClose asChild>
                       <Button variant="outline">Cancel</Button>
                     </DialogClose>
-                    <Button 
-                      onClick={handleLinkSessions} 
+                    <Button
+                      onClick={handleLinkSessions}
                       disabled={selectedSessions.length === 0 || isLinking}
                     >
                       {isLinking ? 'Linking...' : 'Link Selected Sessions'}
@@ -215,7 +234,7 @@ export default function SessionInsightsGrid({
                 </DialogContent>
               </Dialog>
             </>
-          }
+          )}
         </div>
       </CardContent>
     </Card>
