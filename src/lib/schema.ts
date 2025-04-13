@@ -65,7 +65,7 @@ export interface CustomResponsesTable {
   position: number;
   session_id: string; // Could also be workspace_id!
   content: string;
-  response_type: string;  // Which table this is going to be in
+  response_type: string; // Which table this is going to be in
   created_at: Generated<Date>;
 }
 
@@ -130,6 +130,11 @@ export interface UsersTable {
   last_login: Generated<Date>;
   created_at: Generated<Date>;
   metadata?: JSON;
+  // Subscription fields
+  subscription_status: 'FREE' | 'PRO' | 'ENTERPRISE';
+  subscription_id?: string;
+  subscription_period_end?: Date;
+  stripe_customer_id?: string;
 }
 
 export type PromptsTable = {
@@ -177,6 +182,9 @@ export type PromptUpdate = Updateable<PromptsTable>;
 export type PromptType = Selectable<PromptTypesTable>;
 export type NewPromptType = Insertable<PromptTypesTable>;
 export type PromptTypeUpdate = Updateable<PromptTypesTable>;
+
+// Also add this type for better type safety
+export type SubscriptionTier = 'FREE' | 'PRO' | 'ENTERPRISE';
 
 export async function createDbInstance<T extends Record<string, any>>() {
   try {

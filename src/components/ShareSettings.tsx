@@ -21,7 +21,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Share2, Loader2, X, UserCog, Copy, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from 'hooks/use-toast';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { createAndSendInvitations } from '../app/actions/invitations';
 import {
@@ -60,7 +60,7 @@ export default function ShareSettings({
   // Permissions and invitations state
   const [userAndRole, setUserAndRole] = useState<UserAndRole[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<Invitation[]>(
-    []
+    [],
   );
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
@@ -99,7 +99,7 @@ export default function ShareSettings({
               // Fallback values if data isn't available
               email: p.email || 'Unknown',
               name: p.name || 'User ' + p.id.substring(0, 8),
-            }))
+            })),
           );
         }
 
@@ -190,7 +190,7 @@ export default function ShareSettings({
 
   const handleUpdatePermission = async (
     userId: string,
-    newRole: 'admin' | 'owner' | 'editor' | 'viewer' | 'none'
+    newRole: 'admin' | 'owner' | 'editor' | 'viewer' | 'none',
   ) => {
     setUpdatingUserId(userId);
     try {
@@ -198,7 +198,7 @@ export default function ShareSettings({
         resourceId,
         userId,
         newRole,
-        resourceType
+        resourceType,
       );
 
       if (!result.success) {
@@ -207,7 +207,7 @@ export default function ShareSettings({
 
       // Update local state optimistically
       setUserAndRole(
-        userAndRole.map((p) => (p.id === userId ? { ...p, role: newRole } : p))
+        userAndRole.map((p) => (p.id === userId ? { ...p, role: newRole } : p)),
       );
 
       toast({
@@ -247,7 +247,7 @@ export default function ShareSettings({
       const result = await removeResourcePermission(
         resourceId,
         userId,
-        resourceType
+        resourceType,
       );
 
       if (!result.success) {
@@ -288,7 +288,7 @@ export default function ShareSettings({
 
       // Update local state optimistically
       setPendingInvitations(
-        pendingInvitations.filter((inv) => inv.id !== invitationId)
+        pendingInvitations.filter((inv) => inv.id !== invitationId),
       );
 
       toast({
@@ -481,7 +481,7 @@ export default function ShareSettings({
                               </span>
                               <span className="text-xs text-gray-500 ml-2">
                                 {new Date(
-                                  invitation.created_at
+                                  invitation.created_at,
                                 ).toLocaleDateString()}
                               </span>
                             </div>
@@ -525,7 +525,7 @@ export default function ShareSettings({
                   navigator.clipboard.writeText(
                     `${window.location.origin}/${
                       resourceType === 'WORKSPACE' ? 'workspace' : 'sessions'
-                    }/${resourceId}`
+                    }/${resourceId}`,
                   );
                   setCopied(true);
                 }}

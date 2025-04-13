@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { updatePromptType } from './api';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from 'hooks/use-toast';
 
 interface Props {
   promptType: { id: string; name: string; description: string } | null;
