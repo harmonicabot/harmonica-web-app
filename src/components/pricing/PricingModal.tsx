@@ -37,7 +37,7 @@ const plans = [
       'Priority support',
       'Advanced integrations',
     ],
-    productId: process.env.STRIPE_PRO_PRODUCT_ID,
+    productId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
     highlight: true,
   },
   {
@@ -75,20 +75,32 @@ export function PricingModal({
 
   console.log('Current subscription status:', { status, subscription_id });
 
-  const handleUpgrade = async (productId: string | null) => {
-    if (!productId) return;
+  const handleUpgrade = async (priceId: string | null) => {
+    console.log('handleUpgrade called with priceId:', priceId);
+    if (!priceId) {
+      console.error('No Price ID provided for upgrade.');
+      return;
+    }
 
     try {
+      console.log('Attempting to create Stripe session...');
       const session = await createStripeSession({
         userId,
-        productId,
+        priceId: priceId,
         returnUrl: window.location.href,
         metadata: {
           userId: userId,
           planType: 'PRO',
         },
       });
-      window.location.href = session.url;
+      console.log('Stripe session created:', session);
+
+      if (session?.url) {
+        console.log('Redirecting to Stripe:', session.url);
+        window.location.href = session.url;
+      } else {
+        console.error('Failed to get Stripe session URL.');
+      }
     } catch (error) {
       console.error('Error creating checkout session:', error);
     }
@@ -156,9 +168,12 @@ export function PricingModal({
                 {plan.name === 'Pro' ? (
                   <Button
                     className="w-full"
-                    onClick={() =>
-                      handleUpgrade(process.env.STRIPE_PRO_PRODUCT_ID!)
-                    }
+                    onClick={() => {
+                      const proPriceId =
+                        process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
+                      console.log('Pro Price ID from env:', proPriceId);
+                      handleUpgrade(proPriceId!);
+                    }}
                     disabled={status === 'PRO'}
                   >
                     {status === 'PRO' ? 'Current Plan' : 'Upgrade to Pro'}
