@@ -6,31 +6,42 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function createStripeSession({
   userId,
-  productId,
+  priceId,
   returnUrl,
   metadata,
 }: {
   userId: string;
-  productId: string;
+  priceId: string;
   returnUrl: string;
   metadata?: Record<string, string>;
 }) {
-  const session = await stripe.checkout.sessions.create({
-    line_items: [{ price: productId, quantity: 1 }],
-    mode: 'payment',
-    success_url: `${returnUrl}?success=true`,
-    cancel_url: `${returnUrl}?canceled=true`,
-    metadata: {
-      userId,
-      ...metadata,
-    },
-    payment_intent_data: {
+  console.log('[Server] createStripeSession called with:', {
+    userId,
+    priceId,
+    returnUrl,
+    metadata,
+  });
+  try {
+    const session = await stripe.checkout.sessions.create({
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: 'subscription',
+      success_url: `${returnUrl}?success=true`,
+      cancel_url: `${returnUrl}?canceled=true`,
       metadata: {
         userId,
         ...metadata,
       },
-    },
-  });
-
-  return { url: session.url as string };
+      subscription_data: {
+        metadata: {
+          userId,
+          ...metadata,
+        },
+      },
+    });
+    console.log('[Server] Stripe session created successfully:', session.id);
+    return { url: session.url as string };
+  } catch (error) {
+    console.error('[Server] Error creating Stripe session:', error);
+    throw error;
+  }
 }

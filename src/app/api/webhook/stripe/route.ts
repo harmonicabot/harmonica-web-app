@@ -80,8 +80,8 @@ export async function POST(req: Request) {
       //     break;
       //   }
 
-      case 'charge.succeeded': {
-        const charge = event.data.object as Stripe.Charge;
+      case 'customer.subscription.created': {
+        const charge = event.data.object as Stripe.Subscription;
 
         // local testing
         // const charge = {
@@ -115,7 +115,6 @@ export async function POST(req: Request) {
         console.log('[Payment Success]', {
           userId: charge.metadata.userId,
           chargeId: charge.id,
-          amount: charge.amount,
           customer: charge.customer,
         });
         break;
