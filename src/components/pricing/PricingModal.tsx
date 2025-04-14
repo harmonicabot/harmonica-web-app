@@ -93,6 +93,7 @@ export function PricingModal({
           planType: 'PRO',
         },
       });
+
       console.log('Stripe session created:', session);
 
       if (session?.url) {
