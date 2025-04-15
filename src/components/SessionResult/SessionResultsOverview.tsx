@@ -36,11 +36,12 @@ export default function SessionResultsOverview({
         numSessions={numSessions}
         completedSessions={completedSessions}
       />
-      {status != SessionStatus.FINISHED && showShare && (
+      {showShare && (
         <SessionResultParticipants
           sessionId={id}
           numSessions={numSessions}
           completedSessions={completedSessions}
+          isFinished={status === SessionStatus.FINISHED}
         />
       )}
     </div>

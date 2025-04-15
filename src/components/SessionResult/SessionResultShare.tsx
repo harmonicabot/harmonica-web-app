@@ -15,12 +15,14 @@ interface SessionResultShareProps {
   sessionId: string;
   numSessions: number
   completedSessions: number
+  isFinished: boolean
 }
 
 export default function SessionResultParticipants({
   sessionId,
   numSessions,
-  completedSessions
+  completedSessions,
+  isFinished
 }: SessionResultShareProps) {
   const [url, setUrl] = useState('');
   const [urlDomainOnly, setUrlDomainOnly] = useState('');
@@ -62,7 +64,7 @@ export default function SessionResultParticipants({
           <div className="flex justify-between">
             <div className="invite">
               <h2 className="font-bold mb-2">
-                {'Get the link to participate:'}
+                {isFinished ? 'This session is finished' : 'Invite others to participate:'}
               </h2>
               <p className="text-sm mb-2">
                 <a href={url} target="_blank">

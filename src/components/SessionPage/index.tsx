@@ -40,7 +40,7 @@ export default function SessionPage({
         startTime={hostData.start_time}
         numSessions={stats.totalUsers}
         completedSessions={stats.finishedUsers}
-        showShare={showShare && hostData.active}
+        showShare={showShare}
       />
       <SessionResultsSection
         hostData={hostData}
