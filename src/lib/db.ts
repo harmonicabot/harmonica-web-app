@@ -313,18 +313,20 @@ export async function getNumUsersAndMessages(sessionIds: string[]) {
       `${hostTableName}.id as sessionId`,
       `${userTableName}.id as userId`,
       `${userTableName}.active`,
+      `${userTableName}.include_in_summary`,
       fn.count(`${messageTableName}.id`).as('message_count'),
     ])
     .groupBy([
       `${hostTableName}.id`,
       `${userTableName}.id`,
       `${userTableName}.active`,
+      `${userTableName}.include_in_summary`,
     ])
     .execute();
 
   const stats: Record<
     string,
-    Record<string, { num_messages: number; finished: boolean }>
+    Record<string, { num_messages: number; finished: boolean; includedInSummary: boolean }>
   > = {};
 
   for (const row of result) {
@@ -335,6 +337,7 @@ export async function getNumUsersAndMessages(sessionIds: string[]) {
       stats[row.sessionId][row.userId] = {
         num_messages: Number(row.message_count),
         finished: !row.active,
+        includedInSummary: row.include_in_summary || false,
       };
     }
   }
