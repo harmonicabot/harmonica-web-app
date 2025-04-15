@@ -8,7 +8,7 @@ import * as db from '@/lib/db';
 import { createSummary } from '@/lib/serverUtils';
 import { cloneSession } from '@/lib/serverUtils';
 import { useRouter } from 'next/navigation';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'hooks/use-toast';
 import { encryptId } from '@/lib/encryptionUtils';
 
 interface SessionResultControlsProps {

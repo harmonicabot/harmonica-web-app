@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cloneSession } from '@/lib/serverUtils';
 import { useRouter } from 'next/navigation';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'hooks/use-toast';
 import { SessionStatus } from '@/lib/clientUtils';
 
 export function Session({
