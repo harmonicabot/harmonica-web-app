@@ -1,7 +1,7 @@
 'use client';
 import { SessionStatus } from '@/lib/clientUtils';
 import SessionResultControls from './SessionResultControls';
-import SessionResultShare from './SessionResultShare';
+import SessionResultParticipants from './SessionResultShare';
 import SessionResultStatus from './SessionResultStatus';
 import { usePermissions } from '@/lib/permissions';
 
@@ -11,16 +11,15 @@ export default function SessionResultsOverview({
   startTime,
   numSessions,
   completedSessions,
-  showShare = true
+  showShare = true,
 }: {
   id: string;
   status: SessionStatus;
   startTime: Date;
   numSessions: number;
   completedSessions: number;
-  showShare?: boolean
-  }) {
-
+  showShare?: boolean;
+}) {
   const { hasMinimumRole, loading } = usePermissions(id);
   return (
     <div className="flex flex-col md:flex-row gap-4">
@@ -37,7 +36,13 @@ export default function SessionResultsOverview({
         numSessions={numSessions}
         completedSessions={completedSessions}
       />
-      {status != SessionStatus.FINISHED && showShare && <SessionResultShare sessionId={id} />}
+      {status != SessionStatus.FINISHED && showShare && (
+        <SessionResultParticipants
+          sessionId={id}
+          numSessions={numSessions}
+          completedSessions={completedSessions}
+        />
+      )}
     </div>
   );
 }

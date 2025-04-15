@@ -13,10 +13,14 @@ import { QRCodeCanvas } from 'qrcode.react';
 
 interface SessionResultShareProps {
   sessionId: string;
+  numSessions: number
+  completedSessions: number
 }
 
-export default function SessionResultShare({
+export default function SessionResultParticipants({
   sessionId,
+  numSessions,
+  completedSessions
 }: SessionResultShareProps) {
   const [url, setUrl] = useState('');
   const [urlDomainOnly, setUrlDomainOnly] = useState('');
@@ -49,8 +53,8 @@ export default function SessionResultShare({
             <CardTitle className="text-md">Participants</CardTitle>
             <div className='flex gap-2 items-center'>
               <User className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium">{1}</span> <span className="text-yellow-800">Started</span>
-              <span className="font-medium">{11}</span> <span className="text-lime-800">Completed</span>
+              <span className="font-medium">{numSessions}</span> <span className="text-yellow-800">Started</span>
+              <span className="font-medium">{completedSessions}</span> <span className="text-lime-800">Completed</span>
             </div>
           </div>
         </CardHeader>
