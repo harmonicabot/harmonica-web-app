@@ -8,7 +8,7 @@ import * as llama from 'app/api/llamaUtils';
 import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
 import { ChatMessage } from './ChatMessage';
 import { Send } from './icons';
-import { useUser } from '@auth0/nextjs-auth0/client';
+import { UserProfile, useUser } from '@auth0/nextjs-auth0/client';
 import { Message } from '@/lib/schema';
 import ErrorPage from './Error';
 import { getUserNameFromContext } from '@/lib/clientUtils';
@@ -149,7 +149,7 @@ export default function Chat({
   async function createThread(
     context: OpenAIMessageWithContext | undefined,
     sessionId: string | undefined,
-    user: any,
+    user: UserProfile | string,
     userName?: string,
     userContext?: Record<string, string>,
   ): Promise<string | undefined> {
@@ -204,10 +204,12 @@ export default function Chat({
     console.log(`[i] Created threadId ${threadId} for session ${sessionId}`);
     threadIdRef.current = threadId;
 
+    const userId = typeof user === 'string' ? user + '_' + crypto.randomUUID() : user.sub || 'unknown';
+
     if (sessionId) {
       const data = {
         session_id: sessionId,
-        user_id: userName + '_' + crypto.randomUUID(),
+        user_id: userId,
         user_name: userName,
         thread_id: threadId,
         active: true,

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import Link from 'next/link';
-import { CreditCard, LogIn, User2 } from 'lucide-react';
+import { Cog, CreditCard, LogIn, User2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { PricingModal } from './pricing/PricingModal';
 import { useSubscription } from 'hooks/useSubscription';
@@ -125,6 +125,10 @@ export default function User() {
             <DropdownMenuSeparator />
             {getSubscriptionMenuItem()}
             <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <Cog className="h-4 w-4 mr-2" />
+              <a href="/profile">Settings</a>
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <a href="/api/auth/logout" className="text-red-600">
                 Sign Out
