@@ -15,18 +15,12 @@ export async function createStripeSession({
   returnUrl: string;
   metadata?: Record<string, string>;
 }) {
-  console.log('[Server] createStripeSession called with:', {
-    userId,
-    priceId,
-    returnUrl,
-    metadata,
-  });
   try {
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
-      success_url: `${returnUrl}?success=true`,
-      cancel_url: `${returnUrl}?canceled=true`,
+      success_url: `${returnUrl}?stripe_success=true`,
+      cancel_url: `${returnUrl}?stripe_canceled=true`,
       metadata: {
         userId,
         ...metadata,
