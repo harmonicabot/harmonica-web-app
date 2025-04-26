@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { FooterConfig } from './footer';
 import { Check, ImageIcon, Pencil, Save, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { usePermissions } from '@/lib/permissions';
+// import { usePermissions } from '@/lib/permissions';
 import { uploadLogo } from 'actions/upload-logo';
 import { footerConfigs } from './footerConfig';
 
@@ -15,17 +15,20 @@ export function Footer({ workspaceId }: { workspaceId: string }) {
     footerConfigs[workspaceId] = newConfig
     // ... update the config in the file... ?
   }
-  const { loading, hasMinimumRole, role } = usePermissions(workspaceId)
-  const [isEditable, setIsEditable] = useState(false);
+  // const { loading, hasMinimumRole, role } = usePermissions(workspaceId)
+  // const [isEditable, setIsEditable] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedConfig, setEditedConfig] = useState<FooterConfig>(config);
 
-  useEffect(() => {
-    const checkEditable = async () => {
-      setIsEditable(hasMinimumRole('editor'));
-    };
-    checkEditable();
-  }, [workspaceId, loading, role]);
+  const isEditable = false;
+  // We don't want the footer to be editable any more, 
+  // at least not until we changed it to be an edit modal and fixed bugs.
+  // useEffect(() => {
+  //   const checkEditable = async () => {
+  //     setIsEditable(hasMinimumRole('editor'));
+  //   };
+  //   checkEditable();
+  // }, [workspaceId, loading, role]);
 
   useEffect(() => {
     if (!isEditing) {
