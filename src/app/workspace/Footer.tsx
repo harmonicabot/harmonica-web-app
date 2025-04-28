@@ -319,7 +319,7 @@ export function Footer({ workspaceId }: { workspaceId: string }) {
           <div>
             <h3 className="font-semibold text-lg mb-4">
               <EditableContent 
-                value="Participating Institutions" 
+                value="Company" 
                 onChange={() => {}} 
                 className="font-semibold"
               />
@@ -470,9 +470,7 @@ export function Footer({ workspaceId }: { workspaceId: string }) {
                 </div>
               )}
               <div className="mt-4">
-                <h4 className="font-medium mb-2">Contact</h4>
-                <p className="text-sm text-gray-600">
-                  Email:{' '}
+                
                   {isEditing ? (
                     <EditableContent
                       value={editedConfig.contact.email}
@@ -496,7 +494,6 @@ export function Footer({ workspaceId }: { workspaceId: string }) {
                       />
                     </>
                   )}
-                </p>
               </div>
             </div>
           </div>
