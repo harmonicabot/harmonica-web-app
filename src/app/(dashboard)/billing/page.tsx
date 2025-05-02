@@ -2,14 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Loader2,
   CreditCard,
@@ -25,44 +18,14 @@ import { format } from 'date-fns';
 import { createStripeSession } from '@/lib/stripe';
 import { PlanCards } from '@/components/pricing/PlanCards';
 
+// Add env variable
+const STRIPE_BILLING_PORTAL = process.env.NEXT_PUBLIC_STRIPE_BILLING_PORTAL;
+
 export default function BillingPage() {
   const { user } = useUser();
   const { status, isActive, expiresAt, isLoading } = useSubscription();
   const { toast } = useToast();
   const [isCreatingSession, setIsCreatingSession] = useState(false);
-
-  // Create a Stripe portal session for various management actions
-  const createStripePortalSession = async (returnPath: string) => {
-    if (!user?.sub) return;
-    setIsCreatingSession(true);
-    try {
-      const response = await fetch('/api/stripe/create-portal-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          returnUrl: `${window.location.origin}/billing`,
-        }),
-      });
-
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('Failed to get portal URL');
-      }
-    } catch (error) {
-      console.error('Error creating portal session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to open Stripe portal. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsCreatingSession(false);
-    }
-  };
 
   // Handle upgrade to Pro
   const handleUpgrade = async (priceId: string | undefined) => {
@@ -169,34 +132,34 @@ export default function BillingPage() {
                   <>
                     <Button
                       variant="outline"
-                      onClick={() => createStripePortalSession('billing')}
-                      disabled={isCreatingSession}
+                      onClick={() =>
+                        window.open(STRIPE_BILLING_PORTAL, '_blank')
+                      }
+                      disabled={!STRIPE_BILLING_PORTAL}
                     >
                       <Receipt className="h-4 w-4 mr-2" />
-                      {isCreatingSession ? 'Please wait...' : 'Billing Portal'}
+                      Billing Portal
                     </Button>
                     <Button
                       variant="outline"
                       onClick={() =>
-                        createStripePortalSession('update_payment')
+                        window.open(STRIPE_BILLING_PORTAL, '_blank')
                       }
-                      disabled={isCreatingSession}
+                      disabled={!STRIPE_BILLING_PORTAL}
                     >
                       <CreditCard className="h-4 w-4 mr-2" />
-                      {isCreatingSession
-                        ? 'Please wait...'
-                        : 'Update Payment Method'}
+                      Update Payment Method
                     </Button>
                     <Button
                       variant="outline"
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => createStripePortalSession('cancel')}
-                      disabled={isCreatingSession}
+                      onClick={() =>
+                        window.open(STRIPE_BILLING_PORTAL, '_blank')
+                      }
+                      disabled={!STRIPE_BILLING_PORTAL}
                     >
                       <XCircle className="h-4 w-4 mr-2" />
-                      {isCreatingSession
-                        ? 'Please wait...'
-                        : 'Cancel Subscription'}
+                      Cancel Subscription
                     </Button>
                   </>
                 ) : null}

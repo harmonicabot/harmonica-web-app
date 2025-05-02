@@ -39,3 +39,23 @@ export async function createStripeSession({
     throw error;
   }
 }
+
+export async function createStripePortalSession({
+  customerId,
+  returnUrl,
+}: {
+  customerId: string;
+  returnUrl: string;
+}) {
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl,
+    });
+    console.log('[Server] Stripe portal session created:', session.id);
+    return { url: session.url };
+  } catch (error) {
+    console.error('[Server] Error creating portal session:', error);
+    throw error;
+  }
+}

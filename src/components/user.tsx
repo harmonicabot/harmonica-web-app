@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import Link from 'next/link';
-import { CreditCard, LogIn, User2 } from 'lucide-react';
+import { CreditCard, LogIn, User2, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { PricingModal } from './pricing/PricingModal';
 import { useSubscription } from 'hooks/useSubscription';
@@ -35,18 +35,26 @@ export default function User() {
   const [showPricing, setShowPricing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCanceled, setShowCanceled] = useState(false);
+  const [showCanceledSubscription, setShowCanceledSubscription] =
+    useState(false);
   const { status, isActive, expiresAt, isLoading } = useSubscription();
+
+  const STRIPE_BILLING_PORTAL = process.env.NEXT_PUBLIC_STRIPE_BILLING_PORTAL;
 
   // Check URL parameters on component mount
   useEffect(() => {
     setShowSuccess(searchParams.get('stripe_success') === 'true');
     setShowCanceled(searchParams.get('stripe_canceled') === 'true');
+    setShowCanceledSubscription(
+      searchParams.get('subscription_canceled') === 'true',
+    );
   }, [searchParams]);
 
   // Handle modal closes and cleanup URL
   const handleModalClose = () => {
     setShowSuccess(false);
     setShowCanceled(false);
+    setShowCanceledSubscription(false);
     // Clean up URL parameters
     router.replace(window.location.pathname);
   };
@@ -64,23 +72,35 @@ export default function User() {
 
     if (status === 'PRO') {
       return (
-        <DropdownMenuItem>
-          <CreditCard className="h-4 w-4 mr-2" />
-          Pro Plan (Active)
-          {expiresAt && (
-            <span className="ml-2 text-xs text-muted-foreground">
-              Expires {format(expiresAt, 'MMM d, yyyy')}
-            </span>
-          )}
+        <DropdownMenuItem asChild>
+          <Link
+            href="/billing"
+            className="flex items-center justify-between w-full hover:bg-accent hover:text-accent-foreground"
+          >
+            <div className="flex items-center">
+              <CreditCard className="h-4 w-4 mr-2" />
+              Pro Plan (Active)
+            </div>
+            {expiresAt && (
+              <span className="text-xs text-muted-foreground">
+                Expires {format(expiresAt, 'MMM d, yyyy')}
+              </span>
+            )}
+          </Link>
         </DropdownMenuItem>
       );
     }
 
     if (status === 'FREE') {
       return (
-        <DropdownMenuItem onClick={() => setShowPricing(true)}>
-          <CreditCard className="h-4 w-4 mr-2" />
-          <span className="text-primary">Upgrade to Pro</span>
+        <DropdownMenuItem asChild>
+          <Link
+            href="/billing"
+            className="flex items-center w-full hover:bg-accent hover:text-accent-foreground"
+          >
+            <CreditCard className="h-4 w-4 mr-2" />
+            <span className="text-primary">Upgrade to Pro</span>
+          </Link>
         </DropdownMenuItem>
       );
     }
@@ -125,6 +145,12 @@ export default function User() {
             <DropdownMenuSeparator />
             {getSubscriptionMenuItem()}
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/settings" className="flex items-center">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <a href="/api/auth/logout" className="text-red-600">
                 Sign Out
@@ -226,6 +252,45 @@ export default function User() {
                 }}
               >
                 Try Again
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Subscription Canceled Modal */}
+        <Dialog open={showCanceledSubscription} onOpenChange={handleModalClose}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3 text-2xl">
+                <XCircle className="h-8 w-8 text-red-500" />
+                Subscription Canceled
+              </DialogTitle>
+              <DialogDescription className="pt-4 space-y-3">
+                <p className="text-base">
+                  Your subscription has been canceled. You'll continue to have
+                  access to Pro features until the end of your current billing
+                  period.
+                </p>
+                <div className="bg-muted p-4 rounded-lg space-y-2">
+                  <h4 className="font-medium">Want to stay Pro?</h4>
+                  <p className="text-sm">
+                    You can reactivate your subscription anytime before it
+                    expires to keep your Pro benefits.
+                  </p>
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-3">
+              <Button variant="secondary" onClick={handleModalClose}>
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  handleModalClose();
+                  window.open(STRIPE_BILLING_PORTAL, '_blank');
+                }}
+              >
+                Reactivate Subscription
               </Button>
             </div>
           </DialogContent>
