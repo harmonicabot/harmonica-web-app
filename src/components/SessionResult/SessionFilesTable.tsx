@@ -17,10 +17,20 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { getSessionFiles, deleteSessionFile } from 'actions/session-files';
-import { FileText, Trash2, ExternalLink, FileIcon } from 'lucide-react';
+import { FileText, Trash2, ExternalLink } from 'lucide-react';
 import { useToast } from 'hooks/use-toast';
 import { format } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 
 interface SessionFile {
   id: number;
@@ -42,12 +52,16 @@ export default function SessionFilesTable({
   const [files, setFiles] = useState<SessionFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const [fileToDelete, setFileToDelete] = useState<SessionFile | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const loadFiles = async () => {
     setIsLoading(true);
     try {
-      const sessionFiles = await getSessionFiles(sessionId);
-      setFiles(sessionFiles);
+      const response = await fetch(`/api/sessions/${sessionId}/files`);
+      if (!response.ok) throw new Error('Failed to fetch session files');
+      const data = await response.json();
+      setFiles(data.files || []);
     } catch (error) {
       toast({
         title: 'Error loading files',
@@ -63,13 +77,12 @@ export default function SessionFilesTable({
     loadFiles();
   }, [sessionId, refreshTrigger]);
 
-  const handleDeleteFile = async (fileId: number, fileUrl: string) => {
-    if (!confirm('Are you sure you want to delete this file?')) {
-      return;
-    }
-
+  const handleDeleteFile = async (fileId: number) => {
     try {
-      await deleteSessionFile(fileId, fileUrl);
+      const response = await fetch(`/api/sessions/${sessionId}/files?fileId=${fileId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete file');
       toast({
         title: 'File deleted',
         description: 'The file has been deleted successfully',
@@ -95,6 +108,14 @@ export default function SessionFilesTable({
     if (fileType.includes('json')) return '📋';
     if (fileType.includes('text')) return '📝';
     return '📎';
+  };
+
+  const getFriendlyFileType = (fileType: string) => {
+    if (fileType === 'application/pdf') return 'PDF';
+    if (fileType === 'application/json') return 'JSON';
+    if (fileType === 'text/plain') return 'Text';
+    // Add more mappings as needed
+    return fileType;
   };
 
   return (
@@ -138,8 +159,7 @@ export default function SessionFilesTable({
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    {file.file_type.split('/')[1]?.toUpperCase() ||
-                      file.file_type}
+                    {getFriendlyFileType(file.file_type)}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {formatFileSize(file.file_size)}
@@ -156,14 +176,43 @@ export default function SessionFilesTable({
                       >
                         <ExternalLink className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => handleDeleteFile(file.id, file.file_url)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-500 hover:text-red-700"
+                            onClick={() => setFileToDelete(file)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete file?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete <b>{fileToDelete?.file_name}</b>? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel
+                              onClick={() => setFileToDelete(null)}
+                            >
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                if (fileToDelete) {
+                                  await handleDeleteFile(fileToDelete.id);
+                                  setFileToDelete(null);
+                                }
+                              }}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>

@@ -40,6 +40,7 @@ interface Databases {
   [usersTableName]: s.UsersTable;
   [promptsTableName]: s.PromptsTable;
   [promptTypesTableName]: s.PromptTypesTable;
+  session_files: s.SessionFilesTable;
 }
 
 const dbPromise = (async () => {
