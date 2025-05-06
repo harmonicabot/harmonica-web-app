@@ -114,6 +114,7 @@ export default function WorkspaceContent({
           initialUseGradient={workspaceData?.useGradient}
           isEditable={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
           onUpdate={handleWorkspaceUpdate}
+          openEditModal={true}
         />
         {!loadingUserInfo && hasMinimumRole('editor') && (
           <div className="flex items-center gap-4 self-end mt-4">
