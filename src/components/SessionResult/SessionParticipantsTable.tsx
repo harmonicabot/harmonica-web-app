@@ -11,6 +11,8 @@ import SortableTable, { TableHeaderData } from '../SortableTable';
 import { UserSession } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
 import GenerateResponsesModal from './GenerateResponsesModal';
+import ImportResponsesModal from './ImportResponsesModal';
+import SessionFilesTable from './SessionFilesTable';
 
 export type ParticipantsTableData = {
   userName: string;
@@ -30,7 +32,9 @@ export default function SessionParticipantsTable({
   userData: UserSession[];
   onIncludeInSummaryChange: (userId: string, included: boolean) => void;
 }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [fileRefreshTrigger, setFileRefreshTrigger] = useState(0);
 
   const dateSorter = (sortDirection: string, a: string, b: string) => {
     return sortDirection === 'asc'
@@ -80,38 +84,67 @@ export default function SessionParticipantsTable({
     );
   };
 
+  const handleFileUploaded = () => {
+    setFileRefreshTrigger((prev) => prev + 1);
+  };
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-xl">Participants</CardTitle>
-          <CardDescription>
-            View participants progress and transcripts
-          </CardDescription>
-        </div>
-        <Button variant="default" onClick={() => setIsModalOpen(true)}>
-          Generate Responses
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {userData.length === 0 ? (
-          <div className="text-center text-gray-500">
-            No participants have joined this session yet
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-xl">Participants</CardTitle>
+            <CardDescription>
+              View participants progress and transcripts
+            </CardDescription>
           </div>
-        ) : (
-          <SortableTable
-            tableHeaders={tableHeaders}
-            getTableRow={getTableRow}
-            data={sortableData}
-            defaultSort={{ column: 'updatedDate', direction: 'desc' }}
-          />
-        )}
-      </CardContent>
-      <GenerateResponsesModal
-        isOpen={isModalOpen}
-        onOpenChange={setIsModalOpen}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="bg-white"
+              onClick={() => setIsImportModalOpen(true)}
+            >
+              Import Responses
+            </Button>
+            <Button
+              variant="default"
+              onClick={() => setIsGenerateModalOpen(true)}
+            >
+              Generate Responses
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {userData.length === 0 ? (
+            <div className="text-center text-gray-500">
+              No participants have joined this session yet
+            </div>
+          ) : (
+            <SortableTable
+              tableHeaders={tableHeaders}
+              getTableRow={getTableRow}
+              data={sortableData}
+              defaultSort={{ column: 'updatedDate', direction: 'desc' }}
+            />
+          )}
+        </CardContent>
+        <GenerateResponsesModal
+          isOpen={isGenerateModalOpen}
+          onOpenChange={setIsGenerateModalOpen}
+          sessionId={sessionId}
+        />
+        <ImportResponsesModal
+          isOpen={isImportModalOpen}
+          onOpenChange={setIsImportModalOpen}
+          sessionId={sessionId}
+          onFileUploaded={handleFileUploaded}
+        />
+      </Card>
+
+      <SessionFilesTable
         sessionId={sessionId}
+        refreshTrigger={fileRefreshTrigger}
       />
-    </Card>
+    </>
   );
 }
