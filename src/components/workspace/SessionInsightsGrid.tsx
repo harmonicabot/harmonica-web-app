@@ -126,7 +126,7 @@ export default function SessionInsightsGrid({
         <h2 className="text-2xl font-semibold">Individual Session Insights</h2>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-auto-fit gap-4">
           {/* Host Sessions cards at the top */}
           {localHostSessions.map((hostData) => (
             <SessionSummaryCard
