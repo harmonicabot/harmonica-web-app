@@ -6,8 +6,8 @@ import { WorkspaceUpdate } from '@/lib/schema';
 
 export async function updateWorkspaceDetails(id: string, data: WorkspaceUpdate) {
   try {
-    await db.updateWorkspace(id, data);
-    return { success: true };
+    const workspaceOrNull = await db.upsertWorkspace(id, data);
+    return { success: workspaceOrNull != null };
   } catch (error) {
     console.error('Error updating workspace details:', error);
     return { success: false, error: 'Failed to update workspace details' };

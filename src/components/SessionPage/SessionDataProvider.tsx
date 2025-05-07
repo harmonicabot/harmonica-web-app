@@ -35,11 +35,12 @@ async function SessionDataLoader({
     const baseConfig = data.visibilitySettings || defaultVisibilityConfig;
     
     // For public access, we show a more limited view
-    const finalVisibilityConfig = isPublicAccess
+    const finalVisibilityConfig: ResultTabsVisibilityConfig = isPublicAccess
       ? {
           showSummary: true,
-          showParticipants: false,
+          showResponses: false,
           showCustomInsights: true,
+          showSimScore: false,
           showChat: true,
           allowCustomInsightsEditing: false,
           showSessionRecap: true,

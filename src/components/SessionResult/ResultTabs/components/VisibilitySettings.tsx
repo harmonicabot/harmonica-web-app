@@ -12,7 +12,10 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
 import { useEffect, useState } from 'react';
-import { removeResourcePermission, updateResourcePermission } from 'app/actions/permissions';
+import {
+  removeResourcePermission,
+  updateResourcePermission,
+} from 'app/actions/permissions';
 
 interface VisibilitySettingsProps {
   config: ResultTabsVisibilityConfig;
@@ -23,36 +26,50 @@ interface VisibilitySettingsProps {
   resourceId: string;
 }
 
-export function VisibilitySettings({ 
-  config, 
-  onChange, 
-  isWorkspace = false, 
-  className, 
-  isPublic = false, 
+export function VisibilitySettings({
+  config,
+  onChange,
+  isWorkspace = false,
+  className,
+  isPublic = false,
   resourceId,
 }: VisibilitySettingsProps) {
   const [localIsPublic, setLocalIsPublic] = useState(isPublic);
-  
+
   useEffect(() => {
     setLocalIsPublic(isPublic);
   }, [isPublic]);
-  
+
   const toggleSetting = (key: keyof ResultTabsVisibilityConfig) => {
     onChange({
       ...config,
       [key]: !config[key],
     });
   };
-  
+
   const handlePublicToggle = async (checked: boolean) => {
     // Update local state immediately for UI feedback
-    setLocalIsPublic(checked);    
+    setLocalIsPublic(checked);
     try {
-      console.log(`Toggling public status for ${isWorkspace ? 'workspace' : 'session'} ${resourceId}: isPublic:`, checked);
+      console.log(
+        `Toggling public status for ${
+          isWorkspace ? 'workspace' : 'session'
+        } ${resourceId}: isPublic:`,
+        checked
+      );
       if (checked) {
-        await updateResourcePermission(resourceId, 'public', 'viewer', isWorkspace ? 'WORKSPACE' : 'SESSION');
+        await updateResourcePermission(
+          resourceId,
+          'public',
+          'viewer',
+          isWorkspace ? 'WORKSPACE' : 'SESSION'
+        );
       } else {
-        await removeResourcePermission(resourceId, 'public', isWorkspace ? 'WORKSPACE' : 'SESSION');
+        await removeResourcePermission(
+          resourceId,
+          'public',
+          isWorkspace ? 'WORKSPACE' : 'SESSION'
+        );
       }
     } catch (error) {
       console.error('Error toggling public status:', error);
@@ -72,10 +89,13 @@ export function VisibilitySettings({
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuLabel>Configure View Settings</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        
+
         <div className="p-4 space-y-4">
           <div className="flex items-center justify-between space-x-2">
-            <label htmlFor="public-access" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <label
+              htmlFor="public-access"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
               Public Access
             </label>
             <Switch
@@ -88,9 +108,12 @@ export function VisibilitySettings({
             When public, anyone with the link can view
           </div>
           <DropdownMenuSeparator />
-          <div className='text-sm italic'>Control what visitors can see:</div>
+          <div className="text-sm italic">Control what visitors can see:</div>
           <div className="flex items-center justify-between space-x-2">
-            <label htmlFor="summary" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <label
+              htmlFor="summary"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
               Show Summary
             </label>
             <Switch
@@ -99,10 +122,13 @@ export function VisibilitySettings({
               onCheckedChange={() => toggleSetting('showSummary')}
             />
           </div>
-          
+
           {!isWorkspace && (
             <div className="flex items-center justify-between space-x-2">
-              <label htmlFor="recap" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              <label
+                htmlFor="recap"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
                 Show Session Recap
               </label>
               <Switch
@@ -113,30 +139,45 @@ export function VisibilitySettings({
             </div>
           )}
 
-          <div className="flex items-center justify-between space-x-2">
-            <label htmlFor="responses" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Show Responses
-            </label>
-            <Switch
-              id="responses"
-              checked={config.showResponses}
-              onCheckedChange={() => toggleSetting('showResponses')}
-            />
-          </div>
+          {!isWorkspace &&  // Disabled for workspaces, we show 'sessions' instead, always.
+            <div className="flex items-center justify-between space-x-2">
+              <label
+                htmlFor="responses"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Show Responses
+              </label>
+              <Switch
+                id="responses"
+                checked={config.showResponses}
+                onCheckedChange={() => toggleSetting('showResponses')}
+              />
+            </div>
+}
 
-          <div className="flex items-center justify-between space-x-2">
-            <label htmlFor="insights" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Show Custom Insights
-            </label>
-            <Switch
-              id="insights"
-              checked={config.showCustomInsights}
-              onCheckedChange={() => toggleSetting('showCustomInsights')}
-            />
-          </div>
+          {!isWorkspace &&  // Disabled for workspaces for now
+            <div className="flex items-center justify-between space-x-2">
+              <label
+                htmlFor="insights"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Show Custom Insights
+              </label>
+              <Switch
+                id="insights"
+                checked={config.showCustomInsights}
+                onCheckedChange={() => toggleSetting('showCustomInsights')}
+              />
+            </div>
+          }
 
+          {/* Disable SimScore, it's not working well enough.
+          
           <div className="flex items-center justify-between space-x-2">
-            <label htmlFor="insights" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <label
+              htmlFor="insights"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
               Show SimScore
             </label>
             <Switch
@@ -144,10 +185,13 @@ export function VisibilitySettings({
               checked={config.showSimScore}
               onCheckedChange={() => toggleSetting('showSimScore')}
             />
-          </div>
+          </div> */}
 
           <div className="flex items-center justify-between space-x-2">
-            <label htmlFor="chat" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <label
+              htmlFor="chat"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
               Show Chat
             </label>
             <Switch
@@ -157,18 +201,25 @@ export function VisibilitySettings({
             />
           </div>
 
-          <div className="flex items-center justify-between space-x-2">
-            <label htmlFor="edit-insights" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Allow Editing Insights
-            </label>
-            <Switch
-              id="edit-insights"
-              checked={config.allowCustomInsightsEditing}
-              onCheckedChange={() => toggleSetting('allowCustomInsightsEditing')}
-            />
-          </div>
+          {!isWorkspace &&
+            <div className="flex items-center justify-between space-x-2">
+              <label
+                htmlFor="edit-insights"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Allow Editing Insights
+              </label>
+              <Switch
+                id="edit-insights"
+                checked={config.allowCustomInsightsEditing}
+                onCheckedChange={() =>
+                  toggleSetting('allowCustomInsightsEditing')
+                }
+              />
+            </div>
+          }
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
-} 
+}

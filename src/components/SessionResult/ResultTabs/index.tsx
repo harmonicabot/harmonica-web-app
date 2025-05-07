@@ -32,6 +32,7 @@ import {
 import { SimScoreTab } from './SimScoreTab';
 import Link from 'next/link';
 import { encryptId } from '@/lib/encryptionUtils';
+import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 
 export interface ResultTabsProps {
   hostData: HostSession[];
@@ -43,13 +44,14 @@ export interface ResultTabsProps {
   chatEntryMessage?: OpenAIMessage;
   visibilityConfig: ResultTabsVisibilityConfig;
   isPublic?: boolean;
+  children?: React.ReactNode;
 }
 
 const defaultVisibilityConfig: ResultTabsVisibilityConfig = {
   showSummary: true,
   showResponses: true,
   showCustomInsights: true,
-  showSimScore: true,
+  showSimScore: false,
   showChat: true,
   allowCustomInsightsEditing: true,
   showSessionRecap: true,
@@ -66,9 +68,13 @@ export default function ResultTabs({
   sessionIds = [],
   isPublic = false,
   draft = false, // Whether this is a new workspace / session
+  children,
 }: ResultTabsProps & { showEdit?: boolean; draft?: boolean }) {
   const { hasMinimumRole, loading: loadingUserInfo } =
-    usePermissions(resourceId);
+  usePermissions(resourceId);
+  
+  const simScoreEnabled = false; // SimScore isn't working well right now
+  const customInsightsEnabled = !isWorkspace; // Disabled for workspaces for now
 
   // Custom hook for managing AI responses
   const { responses, addResponse, removeResponse } =
@@ -134,6 +140,8 @@ export default function ResultTabs({
   const [activeTab, setActiveTab] = useState(
     hostData.some((data) => data.summary) || !visibilityConfig.showResponses
       ? 'SUMMARY'
+      : isWorkspace && children
+      ? 'SESSIONS'
       : 'RESPONSES'
   );
 
@@ -183,7 +191,7 @@ export default function ResultTabs({
 
   // Shared content renderer
   const renderLeftContent = (isMobile = false) => {
-    // Placeholder content for new workspaces
+    // Placeholder content for workspaces or sessions that are in the process of being created
     if (draft) {
       return (
         <div className={cn('overflow-auto h-full', isMobile ? 'w-full' : '')}>
@@ -213,20 +221,26 @@ export default function ResultTabs({
               </div>
             </Card>
           </TabContent>
-          <TabContent value="RESPONSES">
-            <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
-              <div className="text-center space-y-4 max-w-md">
-                <h3 className="text-2xl font-semibold text-gray-700">
-                  Participant Responses
-                </h3>
-                <p className="text-gray-500">
-                  Here you will see transcripts of each respondant. You can
-                  choose who can see these transcripts in the{' '}
-                  <i>View Settings</i>.
-                </p>
-              </div>
-            </Card>
-          </TabContent>
+          {isWorkspace && children ? (
+            <TabContent value="SESSIONS">
+              <>{children}</>
+            </TabContent>
+          ) : (
+            <TabContent value="RESPONSES">
+              <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
+                <div className="text-center space-y-4 max-w-md">
+                  <h3 className="text-2xl font-semibold text-gray-700">
+                    Participant Responses
+                  </h3>
+                  <p className="text-gray-500">
+                    Here you will see transcripts of each respondant. You can
+                    choose who can see these transcripts in the{' '}
+                    <i>View Settings</i>.
+                  </p>
+                </div>
+              </Card>
+            </TabContent>
+          )}
           <TabContent value="SIMSCORE">
             <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
               <div className="text-center space-y-4 max-w-md">
@@ -245,7 +259,6 @@ export default function ResultTabs({
       );
     }
 
-    // Normal content for existing workspaces
     return (
       <div className={cn('overflow-auto', isMobile ? 'w-full' : '')}>
         <TabContent value="SUMMARY">
@@ -271,48 +284,21 @@ export default function ResultTabs({
           )}
         </TabContent>
 
-        <TabContent value="RESPONSES">
-          {!isWorkspace ? (
+        {!isWorkspace &&
+          <TabContent value="RESPONSES">
             <SessionParticipantsTable
               sessionId={resourceId}
               userData={userData}
               onIncludeInSummaryChange={updateIncludedInAnalysisList}
             />
-          ) : (
-            <Card>
-              <CardContent className="py-4">
-                <h3 className="text-lg font-medium mb-2">
-                  Individual Session Responses
-                </h3>
-                <p className="text-sm text-gray-500 mb-4">
-                  Responses are available in individual sessions. Please visit
-                  each session to view participant responses.
-                </p>
-                <div className="space-y-2">
-                  {hostData.map((session) => (
-                    <div
-                      key={session.id}
-                      className="flex justify-between items-center p-2 border rounded hover:bg-gray-50"
-                    >
-                      <Link href={`/workspace/${resourceId}/${encryptId(session.id)}`} className="flex-1">
-                        <div className='flex justify-between items-center'>
+          </TabContent>
+        }
 
-                        <span>{session.topic || 'Untitled Session'}</span>
-                        <span className="ml-2 text-sm text-gray-500">
-                          ({userData.filter(
-                            (uData) => uData.session_id === session.id
-                          ).length
-                        }{' '}responses)
-                        </span>
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabContent>
+        {children &&
+          <TabContent value="SESSIONS">
+            {children}
+          </TabContent>
+        }
 
         <TabContent value="CUSTOM">
           {responses.length > 0 ? (
@@ -381,18 +367,24 @@ export default function ResultTabs({
                 Summary
               </TabsTrigger>
             )}
-            {(visibilityConfig.showResponses || hasMinimumRole('editor')) && (
+            {(!isWorkspace && (visibilityConfig.showResponses || hasMinimumRole('editor'))) && (
               <TabsTrigger className="ms-0" value="RESPONSES">
                 Responses
               </TabsTrigger>
             )}
-            {(visibilityConfig.showCustomInsights ||
-              hasMinimumRole('editor')) && (
+            {isWorkspace && children && ( // Todo: Add visibility settings for this if ever needed
+              <TabsTrigger className="ms-0" value="SESSIONS">
+                Sessions
+              </TabsTrigger>
+            )}
+            {(customInsightsEnabled && (
+              visibilityConfig.showCustomInsights ||
+              hasMinimumRole('editor'))) && (
               <TabsTrigger className="ms-0" value="CUSTOM">
                 Custom Insights
               </TabsTrigger>
             )}
-            {(visibilityConfig.showSimScore || hasMinimumRole('editor')) && (
+            {(simScoreEnabled && (visibilityConfig.showSimScore || hasMinimumRole('editor'))) && (
               <TabsTrigger className="ms-0" value="SIMSCORE">
                 SimScore Ranking
               </TabsTrigger>

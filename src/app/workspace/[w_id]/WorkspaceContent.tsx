@@ -2,7 +2,6 @@
 
 import ResultTabs from '@/components/SessionResult/ResultTabs';
 import WorkspaceHero from '@/components/workspace/WorkspaceHero';
-import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 import ShareSettings from '@/components/ShareSettings';
 import {
   NewWorkspace,
@@ -16,14 +15,15 @@ import { useEffect, useState } from 'react';
 import { ExtendedWorkspaceData } from '@/lib/types';
 import * as db from '@/lib/db';
 import { useRouter } from 'next/navigation';
+import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 
 // Default visibility configuration for workspaces
 const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
   showSummary: true,
   showResponses: true,
-  showCustomInsights: true,
+  showCustomInsights: false,
   showChat: true,
-  showSimScore: true,
+  showSimScore: false,
   allowCustomInsightsEditing: true,
   showSessionRecap: true,
 };
@@ -76,26 +76,17 @@ export default function WorkspaceContent({
     usePermissions(workspaceId);
 
   // For public access, we show a more limited view
-  const visibilityConfig = isPublic
+  const visibilityConfig: ResultTabsVisibilityConfig = isPublic
     ? {
         showSummary: true,
-        showParticipants: false,
-        showCustomInsights: true,
+        showResponses: false,
+        showCustomInsights: false,
+        showSimScore: false,
         showChat: true,
         allowCustomInsightsEditing: false,
         showSessionRecap: true,
       }
     : defaultWorkspaceVisibilityConfig;
-
-
-  const submitNewWorkspace = async () => {
-    console.log('Saving workspace: ', workspaceData);
-    const tempWorkspaceData: Workspace | NewWorkspace = {
-      ...workspaceData,
-      status: 'active',
-    };
-    await updateWorkspaceDetails(workspaceId, tempWorkspaceData);
-  };
 
   const exists = extendedWorkspaceData.exists;
 
@@ -146,22 +137,18 @@ Here are some questions you might want to ask:
           }}
           showEdit={!loadingUserInfo && hasMinimumRole('owner')}
           draft={!exists}
-        />
+        >
+          <SessionInsightsGrid
+            hostSessions={extendedWorkspaceData.hostSessions}
+            userData={extendedWorkspaceData.userData}
+            workspaceId={workspaceId}
+            showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
+            availableSessions={extendedWorkspaceData.availableSessions}
+          />
+          </ResultTabs>
       </div>
 
-      <SessionInsightsGrid
-        hostSessions={extendedWorkspaceData.hostSessions}
-        userData={extendedWorkspaceData.userData}
-        workspaceId={workspaceId}
-        showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
-        availableSessions={extendedWorkspaceData.availableSessions}
-      />
-      <div className="flex justify-between mt-4">
-        {!exists && workspaceData && (
-          <Button onClick={submitNewWorkspace}>
-            Create Workspace
-          </Button>
-        )}
+      <div className="flex justify-end mt-4">
         {hasMinimumRole('owner') && (
           <Button
             variant="destructive"
