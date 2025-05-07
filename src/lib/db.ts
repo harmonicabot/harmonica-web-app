@@ -639,6 +639,72 @@ export async function updateWorkspace(
   }
 }
 
+/**
+ * Updates an existing workspace or creates a new one if it doesn't exist
+ * @param id The ID of the workspace to update or create
+ * @param data The workspace data to update or create with
+ * @returns The updated or created workspace, or null if the operation failed
+ */
+export async function upsertWorkspace(
+  id: string,
+  data: s.WorkspaceUpdate & Partial<s.NewWorkspace>,
+): Promise<s.Workspace | null> {
+  try {
+    const db = await dbPromise;
+    
+    // First check if the workspace exists
+    const existingWorkspace = await db
+      .selectFrom('workspaces')
+      .select('id')
+      .where('id', '=', id)
+      .executeTakeFirst();
+    
+    if (existingWorkspace) {
+      // Workspace exists, update it
+      return await db
+        .updateTable('workspaces')
+        .set(data)
+        .where('id', '=', id)
+        .returningAll()
+        .executeTakeFirst() || null;
+    } else {
+      // Workspace doesn't exist, create it
+      // Make sure we have all required fields for a new workspace
+      const newWorkspace: s.NewWorkspace = {
+        id, // Use the provided ID
+        title: data.title || 'Untitled Workspace',
+        description: data.description || '',
+        is_public: data.is_public !== undefined ? data.is_public : false,
+        status: data.status || 'draft',
+        created_at: new Date(),
+        ...data, // Include any other fields from data
+      };
+      
+      const result = await db
+        .insertInto('workspaces')
+        .values(newWorkspace)
+        .returningAll()
+        .executeTakeFirst();
+      
+      if (result) {
+        // Set permissions for the current user
+        const session = await authGetSession();
+        const userSub = session?.user?.sub;
+        
+        if (userSub) {
+          await setPermission(id, 'owner', 'WORKSPACE', userSub);
+        }
+      }
+      
+      return result || null;
+    }
+  } catch (error) {
+    console.error('Error upserting workspace:', error);
+    return null;
+  }
+}
+
+
 export async function deleteWorkspace(id: string): Promise<boolean> {
   try {
     const db = await dbPromise;

@@ -157,12 +157,7 @@ Here are some questions you might want to ask:
         showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
         availableSessions={extendedWorkspaceData.availableSessions}
       />
-      <div className="flex justify-between mt-4">
-        {!exists && workspaceData && (
-          <Button onClick={submitNewWorkspace}>
-            Create Workspace
-          </Button>
-        )}
+      <div className="flex justify-end mt-4">
         {hasMinimumRole('owner') && (
           <Button
             variant="destructive"
