@@ -577,11 +577,12 @@ export async function hasWorkspace(id: string): Promise<boolean> {
   try {
     const db = await dbPromise;
     const result = await db
-      .selectFrom('workspaces')
-      .select('id')
-      .where('id', '=', id)
-      .executeTakeFirst();
-
+    .selectFrom('workspaces')
+    .select('id')
+    .where('id', '=', id)
+    .executeTakeFirst();
+    
+    console.log(`Does workspace ${id} exist? `, result !== undefined);
     return result !== undefined;
   } catch (error) {
     console.error('Error checking workspace existence:', error);

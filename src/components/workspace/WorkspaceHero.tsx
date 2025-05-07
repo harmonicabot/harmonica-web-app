@@ -28,7 +28,6 @@ interface WorkspaceHeroProps {
   initialGradientTo?: string;
   initialUseGradient?: boolean;
   onUpdate?: (updates: any) => void;
-  openEditModal?: boolean;
 }
 
 export default function WorkspaceHero({
@@ -43,13 +42,12 @@ export default function WorkspaceHero({
   initialGradientTo,
   initialUseGradient,
   onUpdate,
-  openEditModal = false,
 }: WorkspaceHeroProps) {
   const [bannerImage, setBannerImage] = useState<string | undefined>(bannerImageUrl);
   const [gradientFrom, setGradientFrom] = useState(initialGradientFrom);
   const [gradientTo, setGradientTo] = useState(initialGradientTo);
   const [useGradient, setUseGradient] = useState(initialUseGradient);
-  const [isEditing, setIsEditing] = useState(isEditable && openEditModal);
+  const [isEditing, setIsEditing] = useState(isEditable && !exists);
   const [values, setValues] = useState({ title, description, location });
   
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -112,7 +110,8 @@ export default function WorkspaceHero({
         bannerImage: finalBannerImage, // This will be either undefined, existing URL, or newly uploaded URL
         gradientFrom,
         gradientTo,
-        useGradient
+        useGradient,
+        status: 'active'
       };
 
       
