@@ -143,7 +143,7 @@ export default function SessionInsightsGrid({
 
           {showEdit && (
             <>
-              <Card
+              {/* <Card
                 className="border-2 border-dashed border-gray-300 hover:border-primary cursor-pointer transition-colors"
                 onClick={handleCreateSession}
               >
@@ -158,7 +158,7 @@ export default function SessionInsightsGrid({
                     </p>
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
 
               {/* Link Existing Session Card */}
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
