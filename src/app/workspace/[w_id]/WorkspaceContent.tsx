@@ -124,7 +124,6 @@ export default function WorkspaceContent({
             workspaceData?.visibility_settings || visibilityConfig
           }
           sessionIds={extendedWorkspaceData.sessionIds}
-          isPublic={isPublic}
           chatEntryMessage={{
             role: 'assistant',
             content: `Welcome to ${

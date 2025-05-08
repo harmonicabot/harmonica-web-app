@@ -800,6 +800,31 @@ export async function getWorkspacesForSession(sessionId: string): Promise<Pick<s
 }
 
 // Permissions operations
+export async function getRoleForUser(
+  resourceId: string,
+  userId: string,
+  resourceType?: 'SESSION' | 'WORKSPACE',
+): Promise<{ role: Role } | null> {
+  try {
+    const db = await dbPromise;
+    let query = db
+      .selectFrom(permissionsTableName)
+      .select('role')
+      .where('resource_id', '=', resourceId)
+      .where('user_id', '=', userId);
+
+    if (resourceType) {
+      query = query.where('resource_type', '=', resourceType);
+    }
+
+    const result = await query.executeTakeFirst();
+    return result || null;
+  } catch (error) {
+    console.error('Error getting permission:', error);
+    return null;
+  }
+}
+
 export async function getPermissions(
   resourceId: string,
   resourceType?: 'SESSION' | 'WORKSPACE',
@@ -807,7 +832,7 @@ export async function getPermissions(
   try {
     const db = await dbPromise;
     let query = db
-      .selectFrom('permissions')
+      .selectFrom(permissionsTableName)
       .select(['user_id', 'role'])
       .where('resource_id', '=', resourceId);
 
@@ -841,7 +866,7 @@ export async function setPermission(
     }
     const db = await dbPromise;
     await db
-      .insertInto('permissions')
+      .insertInto(permissionsTableName)
       .values({
         resource_id: resourceId,
         user_id: userId || 'anonymous',
@@ -859,31 +884,6 @@ export async function setPermission(
   } catch (error) {
     console.error('Error setting permission:', error);
     return false;
-  }
-}
-
-export async function getPermission(
-  resourceId: string,
-  userId: string,
-  resourceType?: 'SESSION' | 'WORKSPACE',
-): Promise<{ role: Role } | null> {
-  try {
-    const db = await dbPromise;
-    let query = db
-      .selectFrom('permissions')
-      .select('role')
-      .where('resource_id', '=', resourceId)
-      .where('user_id', '=', userId);
-
-    if (resourceType) {
-      query = query.where('resource_type', '=', resourceType);
-    }
-
-    const result = await query.executeTakeFirst();
-    return result || null;
-  } catch (error) {
-    console.error('Error getting permission:', error);
-    return null;
   }
 }
 

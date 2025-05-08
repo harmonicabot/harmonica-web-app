@@ -19,6 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Globe } from 'lucide-react';
 import { Share2, Loader2, X, UserCog, Copy, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from 'hooks/use-toast';
@@ -30,7 +32,7 @@ import {
   removeResourcePermission,
   cancelInvitation,
 } from '../app/actions/permissions';
-import { Role } from '@/lib/permissions';
+import { Role, usePermissions } from '@/lib/permissions';
 import { Invitation, PermissionsTable, User } from '@/lib/schema';
 
 interface ShareSettingProps {
@@ -48,6 +50,9 @@ export default function ShareSettings({
   initialIsOpen,
   onClose,
 }: ShareSettingProps) {
+
+  const {loading, isPublic} = usePermissions(resourceId);
+
   // Invitation form state
   const [emails, setEmails] = useState('');
   const [role, setRole] = useState('viewer');
@@ -56,11 +61,13 @@ export default function ShareSettings({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('invite');
   const [copied, setCopied] = useState(false);
+  const [publicCopied, setPublicCopied] = useState(false);
+  const [localIsPublic, setLocalIsPublic] = useState(!loading && isPublic);
 
   // Permissions and invitations state
   const [userAndRole, setUserAndRole] = useState<UserAndRole[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<Invitation[]>(
-    [],
+    []
   );
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
@@ -86,6 +93,65 @@ export default function ShareSettings({
     }
   }, [isOpen, activeTab, resourceId]);
 
+  useEffect(() => {
+    if (!loading) {
+      setLocalIsPublic(isPublic);
+    }
+  }, [isPublic, loading]);
+
+  const handlePublicToggle = async (checked: boolean) => {
+    // Update local state immediately for UI feedback
+    setLocalIsPublic(checked);
+    try {
+      console.log(
+        `Toggling public status for ${resourceType} ${resourceId}: isPublic:`,
+        checked
+      );
+      if (checked) {
+        await updateResourcePermission(
+          resourceId,
+          'public',
+          'viewer',
+          resourceType
+        );
+      } else {
+        await removeResourcePermission(resourceId, 'public', resourceType);
+      }
+      toast({
+        title: checked ? 'Made Public' : 'Made Private',
+        description: checked
+          ? `This ${resourceType.toLowerCase()} is now publicly accessible with the link.`
+          : `This ${resourceType.toLowerCase()} is now private.`,
+      });
+    } catch (error) {
+      console.error('Error toggling public status:', error);
+      // Revert local state on error
+      setLocalIsPublic(!checked);
+      toast({
+        title: 'Error',
+        description: `Failed to change public access setting.`,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const getPublicUrl = () => {
+    return `${window.location.origin}/${
+      resourceType === 'WORKSPACE' ? 'workspace' : 'sessions'
+    }/${resourceId}?access=public`;
+  };
+
+  const copyToClipboard = (url: string, isPublicUrl: boolean = false) => {
+    navigator.clipboard.writeText(url);
+    if (isPublicUrl) {
+      setPublicCopied(true);
+      setTimeout(() => setPublicCopied(false), 2000);
+    } else {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   const fetchPermissions = async () => {
     setIsLoadingPermissions(true);
     try {
@@ -99,7 +165,7 @@ export default function ShareSettings({
               // Fallback values if data isn't available
               email: p.email || 'Unknown',
               name: p.name || 'User ' + p.id.substring(0, 8),
-            })),
+            }))
           );
         }
 
@@ -190,7 +256,7 @@ export default function ShareSettings({
 
   const handleUpdatePermission = async (
     userId: string,
-    newRole: 'admin' | 'owner' | 'editor' | 'viewer' | 'none',
+    newRole: 'admin' | 'owner' | 'editor' | 'viewer' | 'none'
   ) => {
     setUpdatingUserId(userId);
     try {
@@ -198,7 +264,7 @@ export default function ShareSettings({
         resourceId,
         userId,
         newRole,
-        resourceType,
+        resourceType
       );
 
       if (!result.success) {
@@ -207,7 +273,7 @@ export default function ShareSettings({
 
       // Update local state optimistically
       setUserAndRole(
-        userAndRole.map((p) => (p.id === userId ? { ...p, role: newRole } : p)),
+        userAndRole.map((p) => (p.id === userId ? { ...p, role: newRole } : p))
       );
 
       toast({
@@ -247,7 +313,7 @@ export default function ShareSettings({
       const result = await removeResourcePermission(
         resourceId,
         userId,
-        resourceType,
+        resourceType
       );
 
       if (!result.success) {
@@ -288,7 +354,7 @@ export default function ShareSettings({
 
       // Update local state optimistically
       setPendingInvitations(
-        pendingInvitations.filter((inv) => inv.id !== invitationId),
+        pendingInvitations.filter((inv) => inv.id !== invitationId)
       );
 
       toast({
@@ -326,6 +392,51 @@ export default function ShareSettings({
         <DialogHeader>
           <DialogTitle>Share {resourceType.toLocaleLowerCase()}</DialogTitle>
         </DialogHeader>
+
+        <div className="border rounded-md p-4 mb-4">
+          <div className="flex items-center justify-between space-x-2 mb-2">
+            <div className="flex items-center">
+              <Globe className="w-4 h-4 mr-2 text-blue-500" />
+              <label
+                htmlFor="public-access"
+                className="text-sm font-medium leading-none"
+              >
+                Public Access
+              </label>
+            </div>
+            <Switch
+              id="public-access"
+              checked={localIsPublic}
+              onCheckedChange={handlePublicToggle}
+              disabled={loading}
+            />
+          </div>
+          <p className="text-xs text-gray-500 mb-3">
+            When public, anyone with the link can view this{' '}
+            {resourceType.toLowerCase()}.
+          </p>
+
+          {localIsPublic && (
+            <div className="mt-2 flex items-center space-x-2">
+              <Input
+                value={getPublicUrl()}
+                readOnly
+                className="text-xs bg-gray-50"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(getPublicUrl(), true)}
+              >
+                {publicCopied ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
           <TabsList className="grid w-full grid-cols-2">
@@ -481,7 +592,7 @@ export default function ShareSettings({
                               </span>
                               <span className="text-xs text-gray-500 ml-2">
                                 {new Date(
-                                  invitation.created_at,
+                                  invitation.created_at
                                 ).toLocaleDateString()}
                               </span>
                             </div>
@@ -518,31 +629,6 @@ export default function ShareSettings({
 
         <DialogFooter>
           <div className="mt-6 w-full flex justify-between items-center">
-            <div className="flex mr-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  navigator.clipboard.writeText(
-                    `${window.location.origin}/${
-                      resourceType === 'WORKSPACE' ? 'workspace' : 'sessions'
-                    }/${resourceId}`,
-                  );
-                  setCopied(true);
-                }}
-              >
-                {copied ? (
-                  <>
-                    <Check className="text-green-600 w-4 h-4 mr-2" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy URL
-                  </>
-                )}
-              </Button>
-            </div>
             <div className="flex space-x-2">
               <Button
                 variant="outline"
