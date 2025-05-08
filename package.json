@@ -16,6 +16,7 @@
     "@llamaindex/anthropic": "^0.3.4",
     "@llamaindex/google": "^0.2.5",
     "@neondatabase/serverless": "^0.10.1",
+    "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-checkbox": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-dropdown-menu": "^2.1.1",
