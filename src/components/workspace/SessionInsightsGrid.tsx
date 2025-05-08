@@ -77,7 +77,7 @@ export default function SessionInsightsGrid({
       console.error('Failed to link sessions:', error);
       toast({
         title: 'Error',
-        description: 'Failed to link sessions to workspace',
+        description: 'Failed to link sessions to project',
         variant: 'destructive',
       });
     } finally {
@@ -102,7 +102,7 @@ export default function SessionInsightsGrid({
 
       toast({
         title: 'Session removed',
-        description: 'The session has been removed from this workspace',
+        description: 'The session has been removed from this project',
       });
 
       // Optionally refresh the page to ensure data consistency
@@ -111,7 +111,7 @@ export default function SessionInsightsGrid({
       console.error('Failed to remove session:', error);
       toast({
         title: 'Error',
-        description: 'Failed to remove session from workspace',
+        description: 'Failed to remove session from project',
         variant: 'destructive',
       });
 
@@ -173,7 +173,7 @@ export default function SessionInsightsGrid({
                           Link Existing Session
                         </h3>
                         <p className="text-sm text-gray-500">
-                          Connect an existing session to this workspace
+                          Connect an existing session to this project
                         </p>
                       </div>
                     </CardContent>

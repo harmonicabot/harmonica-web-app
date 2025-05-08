@@ -127,7 +127,7 @@ export default function WorkspaceHero({
 
       await updateWorkspaceDetails(workspaceId, updateData);
     } catch (error) {
-      console.error('Error updating workspace:', error);
+      console.error('Error updating project:', error);
     }
     setIsEditing(false);
   };
@@ -159,11 +159,11 @@ export default function WorkspaceHero({
         onClick={() => !exists && isEditable && setIsEditing(true)}
       >
         <h1 className="text-4xl font-bold mb-4">
-          {values.title || (!exists && 'Add Workspace Title')}
+          {values.title || (!exists && 'Add Project Title')}
         </h1>
         <p className="text-xl mb-4">
           {values.description ||
-            (!exists && 'Add a description for your workspace')}
+            (!exists && 'Add a description for your project')}
         </p>
         {(values.location || !exists) && (
           <div className="flex items-center gap-2 text-blue-100">
@@ -179,7 +179,7 @@ export default function WorkspaceHero({
     <Dialog open={isEditing} onOpenChange={setIsEditing}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Edit Workspace Details</DialogTitle>
+          <DialogTitle>Edit Project Details</DialogTitle>
         </DialogHeader>
         <div className="space-y-6 py-4">
           <div className="space-y-2">
@@ -190,7 +190,7 @@ export default function WorkspaceHero({
               onChange={(e) =>
                 setValues((prev) => ({ ...prev, title: e.target.value }))
               }
-              placeholder="Enter workspace title"
+              placeholder="Enter project title"
             />
           </div>
           <div className="space-y-2">
@@ -204,7 +204,7 @@ export default function WorkspaceHero({
                   description: e.target.value,
                 }))
               }
-              placeholder="Enter workspace description"
+              placeholder="Enter project description"
             />
           </div>
           <div className="space-y-2">

@@ -133,7 +133,7 @@ function WorkspaceRow({ workspace }: { workspace: WorkspaceWithSessions }) {
 
   const handleDelete = async () => {
     const workspaceId = workspace.id;
-    console.log('Deleting workspace: ', workspaceId);
+    console.log('Deleting project: ', workspaceId);
     await deleteWorkspace(workspaceId);
   };
 
@@ -237,7 +237,7 @@ export function WorkspacesTable({
 }) {
   const tableHeaders = [
     {
-      label: 'Workspace',
+      label: 'Project',
       sortKey: 'title',
       className: 'cursor-pointer',
     },
