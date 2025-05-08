@@ -1,7 +1,7 @@
 'use server';
 
 import * as db from "@/lib/db";
-import { linkSessionsToWorkspace } from "@/lib/workspaceActions";
+import { linkSessionsToWorkspace, unlinkSessionFromWorkspace } from "@/lib/workspaceActions";
 import { getSession } from "@auth0/nextjs-auth0";
 
 export async function getAvailableWorkspaces() {
@@ -42,6 +42,19 @@ export async function addSessionToWorkspaces(sessionId: string, workspaceIds: st
     return { 
       success: false, 
       message: error instanceof Error ? error.message : "Failed to add session to workspaces" 
+    };
+  }
+}
+
+export async function removeSessionFromWorkspace(workspaceId: string, sessionId: string) {
+  try {
+    const result = await unlinkSessionFromWorkspace(workspaceId, sessionId);
+    return result;
+  } catch (error) {
+    console.error("Error removing session from workspace:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Failed to remove session from workspace" 
     };
   }
 }
