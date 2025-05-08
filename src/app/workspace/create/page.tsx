@@ -118,10 +118,10 @@ export default function CreateWorkspace() {
                 <Upload className="w-12 h-12 opacity-50 group-hover:opacity-100 transition-opacity" />
                 <div className="text-center">
                   <h2 className="text-2xl font-semibold mb-2">
-                    {title || 'Add Workspace Details'}
+                    {title || 'Add Project Details'}
                   </h2>
                   <p className="text-gray-300">
-                    {description || 'Click to upload a banner image and set workspace details'}
+                    {description || 'Click to upload a banner image and set project details'}
                   </p>
                 </div>
               </div>
@@ -130,7 +130,7 @@ export default function CreateWorkspace() {
         </DialogTrigger>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Workspace Details</DialogTitle>
+            <DialogTitle>Project Details</DialogTitle>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="space-y-2">
@@ -139,7 +139,7 @@ export default function CreateWorkspace() {
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter workspace title"
+                placeholder="Enter project title"
               />
             </div>
             <div className="space-y-2">
@@ -148,7 +148,7 @@ export default function CreateWorkspace() {
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Enter workspace description"
+                placeholder="Enter project description"
               />
             </div>
             <Tabs defaultValue={useGradient ? "gradient" : "image"} className="w-full">
@@ -244,7 +244,7 @@ export default function CreateWorkspace() {
       <Card className="mt-8">
         <CardHeader>
           <h2 className="text-2xl font-semibold">Background Information</h2>
-          <p className="text-sm text-gray-500">Add context and supporting documents for this workspace</p>
+          <p className="text-sm text-gray-500">Add context and supporting documents for this project</p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-12 gap-6">
@@ -254,7 +254,7 @@ export default function CreateWorkspace() {
                 id="backgroundText"
                 value={backgroundText}
                 onChange={(e) => setBackgroundText(e.target.value)}
-                placeholder="Add any relevant background information or context for this workspace..."
+                placeholder="Add any relevant background information or context for this project..."
                 className="h-[120px] resize-none"
               />
             </div>
@@ -337,7 +337,7 @@ export default function CreateWorkspace() {
                 <div className="text-center">
                   <h3 className="font-semibold mb-2">Link Existing Session</h3>
                   <p className="text-sm text-gray-500">
-                    Connect an existing session to this workspace
+                    Connect an existing session to this project
                   </p>
                 </div>
               </CardContent>
@@ -349,7 +349,7 @@ export default function CreateWorkspace() {
       {/* Action Buttons */}
       <div className="mt-8 flex justify-end space-x-4">
         <Button variant="outline">Cancel</Button>
-        <Button>Create Workspace</Button>
+        <Button>Create Project</Button>
       </div>
     </div>
   );

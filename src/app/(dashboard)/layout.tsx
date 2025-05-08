@@ -6,7 +6,7 @@ import {
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator,
+  BreadcrumbChevronSeparator,
 } from '@/components/ui/breadcrumb';
 import { Analytics } from '@vercel/analytics/react';
 import User from '../../components/user';
@@ -51,7 +51,7 @@ function DashboardBreadcrumb() {
             <Link href="#">Sessions</Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
-        <BreadcrumbSeparator />
+        <BreadcrumbChevronSeparator />
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
             <Link href="/billing">Billing</Link>

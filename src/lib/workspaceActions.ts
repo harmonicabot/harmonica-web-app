@@ -10,7 +10,7 @@ export async function linkSessionsToWorkspace(workspaceId: string, sessionIds: s
     // Create entries in the WorkspaceSessionsTable for each session
     const results = await Promise.all(
       sessionIds.map(sessionId => 
-        db.createWorkspaceSessionLink(workspaceId, sessionId)
+        db.addSessionToWorkspace(workspaceId, sessionId)
       )
     );
     
@@ -26,7 +26,7 @@ export async function unlinkSessionFromWorkspace(
   sessionId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const result = await db.removeWorkspaceSessionLink(workspaceId, sessionId);
+    const result = await db.removeSessionFromWorkspace(workspaceId, sessionId);
     return { success: result };
   } catch (error) {
     console.error('Error unlinking session from workspace:', error);

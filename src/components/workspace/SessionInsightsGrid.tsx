@@ -77,7 +77,7 @@ export default function SessionInsightsGrid({
       console.error('Failed to link sessions:', error);
       toast({
         title: 'Error',
-        description: 'Failed to link sessions to workspace',
+        description: 'Failed to link sessions to project',
         variant: 'destructive',
       });
     } finally {
@@ -102,7 +102,7 @@ export default function SessionInsightsGrid({
 
       toast({
         title: 'Session removed',
-        description: 'The session has been removed from this workspace',
+        description: 'The session has been removed from this project',
       });
 
       // Optionally refresh the page to ensure data consistency
@@ -111,7 +111,7 @@ export default function SessionInsightsGrid({
       console.error('Failed to remove session:', error);
       toast({
         title: 'Error',
-        description: 'Failed to remove session from workspace',
+        description: 'Failed to remove session from project',
         variant: 'destructive',
       });
 
@@ -126,7 +126,7 @@ export default function SessionInsightsGrid({
         <h2 className="text-2xl font-semibold">Individual Session Insights</h2>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-auto-fit gap-4">
           {/* Host Sessions cards at the top */}
           {localHostSessions.map((hostData) => (
             <SessionSummaryCard
@@ -143,7 +143,7 @@ export default function SessionInsightsGrid({
 
           {showEdit && (
             <>
-              <Card
+              {/* <Card
                 className="border-2 border-dashed border-gray-300 hover:border-primary cursor-pointer transition-colors"
                 onClick={handleCreateSession}
               >
@@ -158,7 +158,7 @@ export default function SessionInsightsGrid({
                     </p>
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
 
               {/* Link Existing Session Card */}
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -173,7 +173,7 @@ export default function SessionInsightsGrid({
                           Link Existing Session
                         </h3>
                         <p className="text-sm text-gray-500">
-                          Connect an existing session to this workspace
+                          Connect an existing session to this project
                         </p>
                       </div>
                     </CardContent>

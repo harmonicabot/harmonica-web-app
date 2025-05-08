@@ -61,7 +61,7 @@ export default function WorkspaceContent({
   const handleDelete = async () => {
     if (
       confirm(
-        `Are you sure you want to delete this workspace?`
+        `Are you sure you want to delete this project?`
       )
     ) {
       await db.updateWorkspace(workspaceId, { status: 'deleted' }).then(() => {
@@ -128,7 +128,7 @@ export default function WorkspaceContent({
           chatEntryMessage={{
             role: 'assistant',
             content: `Welcome to ${
-              workspaceData?.title || 'this workspace'
+              workspaceData?.title || 'this project'
             }! I'm here to help you understand the learnings across the linked discussions.
 
 Here are some questions you might want to ask:
@@ -154,7 +154,7 @@ Here are some questions you might want to ask:
             variant="destructive"
             onClick={handleDelete}
           >
-            Delete Workspace
+            Delete Project
           </Button>
         )}
       </div>
