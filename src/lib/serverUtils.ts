@@ -83,24 +83,24 @@ export async function hasWorkspaceAccess(
   workspaceId: string,
 ): Promise<boolean> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) return false;
-
-    // Check direct permission
-    const permission = await db.getPermission(workspaceId, userId, 'WORKSPACE');
-    if (permission) return true;
-
-    // Check global permission
-    const globalPermission = await db.getPermission('global', userId);
-    if (globalPermission) return true;
-
     // Check public access
-    const publicPermission = await db.getPermission(
+    const publicPermission = await db.getRoleForUser(
       workspaceId,
       'public',
       'WORKSPACE',
     );
     if (publicPermission) return true;
+
+    const userId = await getCurrentUserId();
+    if (!userId) return false;
+
+    // Check direct permission
+    const permission = await db.getRoleForUser(workspaceId, userId, 'WORKSPACE');
+    if (permission) return true;
+
+    // Check global permission
+    const globalPermission = await db.getRoleForUser('global', userId);
+    if (globalPermission) return true;
 
     return false;
   } catch (error) {
@@ -120,11 +120,11 @@ export async function hasSessionAccess(sessionId: string): Promise<boolean> {
     if (!userId) return false;
 
     // Check direct permission
-    const permission = await db.getPermission(sessionId, userId, 'SESSION');
+    const permission = await db.getRoleForUser(sessionId, userId, 'SESSION');
     if (permission) return true;
 
     // Check public access
-    const publicPermission = await db.getPermission(
+    const publicPermission = await db.getRoleForUser(
       sessionId,
       'public',
       'SESSION',
@@ -132,7 +132,7 @@ export async function hasSessionAccess(sessionId: string): Promise<boolean> {
     if (publicPermission) return true;
 
     // Check global permission
-    const globalPermission = await db.getPermission('global', userId);
+    const globalPermission = await db.getRoleForUser('global', userId);
     if (globalPermission) return true;
 
     return false;

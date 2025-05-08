@@ -30,9 +30,6 @@ import {
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
 import { SimScoreTab } from './SimScoreTab';
-import Link from 'next/link';
-import { encryptId } from '@/lib/encryptionUtils';
-import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 
 export interface ResultTabsProps {
   hostData: HostSession[];
@@ -43,7 +40,6 @@ export interface ResultTabsProps {
   sessionIds?: string[];
   chatEntryMessage?: OpenAIMessage;
   visibilityConfig: ResultTabsVisibilityConfig;
-  isPublic?: boolean;
   children?: React.ReactNode;
 }
 
@@ -66,7 +62,6 @@ export default function ResultTabs({
   visibilityConfig: initialConfig = defaultVisibilityConfig,
   chatEntryMessage,
   sessionIds = [],
-  isPublic = false,
   draft = false, // Whether this is a new workspace / session
   children,
 }: ResultTabsProps & { showEdit?: boolean; draft?: boolean }) {
@@ -399,7 +394,6 @@ export default function ResultTabs({
               config={visibilityConfig}
               onChange={handleVisibilityChange}
               isWorkspace={isWorkspace}
-              isPublic={isPublic}
               resourceId={resourceId}
             />
           </div>

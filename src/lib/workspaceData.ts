@@ -6,7 +6,7 @@ import { hasWorkspaceAccess } from './serverUtils';
 
 export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedWorkspaceData> {
   try {
-    console.log("Fetching initial wroject data for workspace ", workspaceId);
+    console.log("Fetching initial project data for workspace ", workspaceId);
     // First, check whether this workspace exists at all. If not, add a 'draft' mode with the current user as the owner:
     const workspaceExists = await db.hasWorkspace(workspaceId);
     if (!workspaceExists) {
