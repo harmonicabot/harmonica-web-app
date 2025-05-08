@@ -54,7 +54,7 @@ export default function SessionSummaryCard({
           <X className="h-4 w-4" />
         </Button>
       )}
-      <Link href={`/workspace/${workspace_id}/${encryptId(id)}`}>
+      <Link href={`/sessions/${encryptId(id)}`}>
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle className="flex justify-between items-center">

@@ -25,21 +25,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { cloneSession } from '@/lib/serverUtils';
 import { useRouter } from 'next/navigation';
 import { toast } from 'hooks/use-toast';
 import { SessionStatus } from '@/lib/clientUtils';
-import { addSessionToWorkspaces, getAvailableWorkspaces } from '@/lib/sessionWorkspaceActions';
+import { AddToProjectDialog } from '@/components/AddToProjectDialog';
 
 export function Session({
   session,
@@ -52,9 +42,6 @@ export function Session({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
   const [showProjectDialog, setShowProjectDialog] = useState(false);
-  const [availableWorkspaces, setAvailableWorkspaces] = useState<{ id: string; title: string }[]>([]);
-  const [selectedWorkspaces, setSelectedWorkspaces] = useState<string[]>([]);
-  const [isAddingToProject, setIsAddingToProject] = useState(false);
   const router = useRouter();
 
   const handleDelete = async () => {
@@ -108,71 +95,8 @@ export function Session({
     }
   };
 
-  const handleWorkspaceSelection = (workspaceId: string) => {
-    setSelectedWorkspaces((prev) =>
-      prev.includes(workspaceId)
-        ? prev.filter((id) => id !== workspaceId)
-        : [...prev, workspaceId]
-    );
-  };
-
-  const loadWorkspaces = async () => {
-    try {
-      const workspaces = await getAvailableWorkspaces();
-      setAvailableWorkspaces(workspaces);
-    } catch (error) {
-      console.error('Error loading workspaces:', error);
-      toast({
-        title: 'Failed to load projects',
-        description: 'An error occurred while loading your projects.',
-        variant: 'destructive',
-      });
-    }
-  };
-
   const addToProject = async () => {
     setShowProjectDialog(true);
-    await loadWorkspaces();
-  };
-
-  const handleAddToProjects = async () => {
-    if (selectedWorkspaces.length === 0) {
-      toast({
-        title: 'No projects selected',
-        description: 'Please select at least one project to add the session to.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsAddingToProject(true);
-    try {
-      const result = await addSessionToWorkspaces(session.id, selectedWorkspaces);
-      
-      if (result.success) {
-        toast({
-          title: 'Session added to projects',
-          description: `The session has been added to ${result.count} project${result.count !== 1 ? 's' : ''}.`,
-        });
-        setShowProjectDialog(false);
-        setSelectedWorkspaces([]);
-      } else {
-        toast({
-          title: 'Failed to add session to projects',
-          description: result.message || 'An error occurred while adding the session to the projects.',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Error adding session to projects:', error);
-      toast({
-        title: 'Failed to add session to projects',
-        description: 'An error occurred while adding the session to the projects.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsAddingToProject(false);
-    }
   };
 
   return (
@@ -259,57 +183,7 @@ export function Session({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <Dialog open={showProjectDialog} onOpenChange={setShowProjectDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Session to Projects</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            {availableWorkspaces.length === 0 ? (
-              <p className="text-center text-gray-500">
-                No available projects yet. Create a project first.
-              </p>
-            ) : (
-              <div className="space-y-4 max-h-[300px] overflow-y-auto">
-                {availableWorkspaces.map((workspace) => (
-                  <div
-                    key={workspace.id}
-                    className="flex items-start space-x-2"
-                  >
-                    <Checkbox
-                      id={workspace.id}
-                      checked={selectedWorkspaces.includes(workspace.id)}
-                      onCheckedChange={() =>
-                        handleWorkspaceSelection(workspace.id)
-                      }
-                    />
-                    <div className="grid gap-1.5">
-                      <Label
-                        htmlFor={workspace.id}
-                        className="font-medium"
-                      >
-                        {workspace.title}
-                      </Label>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="flex justify-end gap-2">
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button
-              onClick={handleAddToProjects}
-              disabled={selectedWorkspaces.length === 0 || isAddingToProject}
-            >
-              {isAddingToProject ? 'Adding...' : 'Add to Selected Projects'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AddToProjectDialog sessionId={session.id} open={showProjectDialog} onOpenChange={setShowProjectDialog}/>
     </TableRow>
   );
 }

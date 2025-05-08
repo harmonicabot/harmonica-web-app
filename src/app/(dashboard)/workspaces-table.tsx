@@ -75,7 +75,7 @@ function SessionRow({
   return (
     <TableRow className="bg-muted/50">
       <TableCell className="font-medium pl-12">
-        <Link href={`/workspace/${workspaceId}/${encryptId(session.id)}`}>
+        <Link href={`/sessions/${encryptId(session.id)}`}>
           <div className="font-medium">{session.topic}</div>
         </Link>
       </TableCell>
@@ -96,7 +96,7 @@ function SessionRow({
       </TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-2">
-          <Link href={`/workspace/${workspaceId}/${encryptId(session.id)}`}>
+          <Link href={`/sessions/${encryptId(session.id)}`}>
             <Button variant="outline" size="sm">
               <ExternalLink className="h-4 w-4" />
               <span className="sr-only">Open</span>

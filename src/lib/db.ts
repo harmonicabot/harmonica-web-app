@@ -726,7 +726,7 @@ export async function addSessionToWorkspace(
   try {
     const db = await dbPromise;
     await db
-      .insertInto('workspace_sessions')
+      .insertInto(workspaceSessionsTableName)
       .values({ workspace_id: workspaceId, session_id: sessionId })
       .execute();
 
@@ -744,7 +744,7 @@ export async function removeSessionFromWorkspace(
   try {
     const db = await dbPromise;
     await db
-      .deleteFrom('workspace_sessions')
+      .deleteFrom(workspaceSessionsTableName)
       .where('workspace_id', '=', workspaceId)
       .where('session_id', '=', sessionId)
       .execute();
@@ -770,6 +770,31 @@ export async function getWorkspaceSessionIds(
     return results.map((r) => r.session_id);
   } catch (error) {
     console.error('Error getting workspace sessions:', error);
+    return [];
+  }
+}
+
+export async function getWorkspacesForSession(sessionId: string): Promise<Pick<s.Workspace, 'id' | 'title'>[]> {
+  console.log(`Getting workspaces for `, sessionId)
+  try {
+    const db = await dbPromise;
+    const workspaces = await db
+      .selectFrom(workspaceTableName)
+      .innerJoin(
+        workspaceSessionsTableName,
+        `${workspaceSessionsTableName}.workspace_id`,
+        `${workspaceTableName}.id`
+      )
+      .where(`${workspaceSessionsTableName}.session_id`, '=', sessionId)
+      .select([
+        `${workspaceTableName}.id`,
+        `${workspaceTableName}.title`
+      ])
+      .execute();
+    
+    return workspaces;
+  } catch (error) {
+    console.error("Error getting workspaces for session:", error);
     return [];
   }
 }
@@ -1231,68 +1256,6 @@ export async function getUsersWithPermissionsForResource(
   } catch (error) {
     console.error('Error getting users with permissions:', error);
     return [];
-  }
-}
-
-/**
- * Creates a link between a workspace and a session
- */
-export async function createWorkspaceSessionLink(
-  workspaceId: string,
-  sessionId: string,
-) {
-  const db = await dbPromise;
-
-  try {
-    // Check if the link already exists to avoid duplicates
-    const existingLink = await db
-      .selectFrom(workspaceSessionsTableName)
-      .select(['workspace_id', 'session_id'])
-      .where('workspace_id', '=', workspaceId)
-      .where('session_id', '=', sessionId)
-      .executeTakeFirst();
-
-    if (existingLink) {
-      return existingLink; // Link already exists
-    }
-
-    // Create the new link
-    return await db
-      .insertInto(workspaceSessionsTableName)
-      .values({
-        workspace_id: workspaceId,
-        session_id: sessionId,
-      })
-      .returningAll()
-      .executeTakeFirst();
-  } catch (error) {
-    console.error('Error creating workspace-session link:', error);
-    throw error;
-  }
-}
-
-/**
- * Removes a link between a workspace and a session
- */
-export async function removeWorkspaceSessionLink(
-  workspaceId: string,
-  sessionId: string,
-): Promise<boolean> {
-  const db = await dbPromise;
-
-  try {
-    // Delete the link from the workspace_sessions table
-    const result = await db
-      .deleteFrom(workspaceSessionsTableName)
-      .where('workspace_id', '=', workspaceId)
-      .where('session_id', '=', sessionId)
-      .execute();
-
-    // Check if any rows were affected by the delete operation
-    return result.length > 0;
-  } catch (error) {
-    console.error('Error removing workspace-session link:', error);
-    throw error;
   }
 }
 
