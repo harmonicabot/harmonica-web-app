@@ -98,6 +98,7 @@ export default function ShareSettings({
     }
   }, [isPublic, loading]);
 
+  const resourceTypeName = resourceType === 'WORKSPACE' ? 'Project' : 'Session';
   const handlePublicToggle = async (checked: boolean) => {
     // Update local state immediately for UI feedback
     setLocalIsPublic(checked);
@@ -119,8 +120,8 @@ export default function ShareSettings({
       toast({
         title: checked ? 'Made Public' : 'Made Private',
         description: checked
-          ? `This ${resourceType.toLowerCase()} is now publicly accessible with the link.`
-          : `This ${resourceType.toLowerCase()} is now private.`,
+          ? `This ${resourceTypeName.toLocaleLowerCase()} is now publicly accessible with the link.`
+          : `This ${resourceTypeName.toLocaleLowerCase()} is now private.`,
       });
     } catch (error) {
       console.error('Error toggling public status:', error);
@@ -173,7 +174,7 @@ export default function ShareSettings({
       console.error('Error fetching permissions:', error);
       toast({
         title: 'Error',
-        description: `Failed to load ${resourceType.toLocaleLowerCase()} members`,
+        description: `Failed to load ${resourceTypeName.toLocaleLowerCase()} members`,
         variant: 'destructive',
       });
     } finally {
@@ -296,7 +297,7 @@ export default function ShareSettings({
       toast({
         title: 'Cannot Remove Self',
 
-        description: `You cannot remove your own access to this ${resourceType.toLocaleLowerCase()}.`,
+        description: `You cannot remove your own access to this ${resourceTypeName.toLocaleLowerCase()}.`,
         variant: 'destructive',
       });
       return;
@@ -320,7 +321,7 @@ export default function ShareSettings({
       toast({
         title: 'User Removed',
 
-        description: `User has been removed from the ${resourceType.toLocaleLowerCase()}.`,
+        description: `User has been removed from the ${resourceTypeName.toLocaleLowerCase()}.`,
       });
     } catch (error) {
       console.error('Error removing user:', error);
@@ -384,7 +385,7 @@ export default function ShareSettings({
       )}
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Share {resourceType === 'WORKSPACE' ? 'Project' : 'Session'}</DialogTitle>
+          <DialogTitle>Share {resourceTypeName}</DialogTitle>
         </DialogHeader>
 
         <div className="border rounded-md p-4 mb-4">
@@ -407,7 +408,7 @@ export default function ShareSettings({
           </div>
           <p className="text-xs text-gray-500 mb-3">
             When public, anyone with the link can view this{' '}
-            {resourceType.toLowerCase()}.
+            {resourceTypeName.toLocaleLowerCase()}.
           </p>
 
           {localIsPublic && (
@@ -468,13 +469,13 @@ export default function ShareSettings({
                       Viewer (can view and participate)
                     </SelectItem>
                     <SelectItem value="editor">
-                      Editor (can modify {resourceType.toLocaleLowerCase()})
+                      Editor (can modify {resourceTypeName.toLocaleLowerCase()})
                     </SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500">
                   Viewers can participate in sessions. Editors can also modify
-                  the {resourceType.toLocaleLowerCase()}.
+                  the {resourceTypeName.toLocaleLowerCase()}.
                 </p>
               </div>
               <div className="space-y-2">
@@ -502,7 +503,7 @@ export default function ShareSettings({
                   <UserCog className="h-12 w-12 mx-auto mb-2 text-gray-400" />
                   <p>
                     No users have access to this{' '}
-                    {resourceType.toLocaleLowerCase()} yet.
+                    {resourceTypeName.toLocaleLowerCase()} yet.
                   </p>
                 </div>
               ) : (
