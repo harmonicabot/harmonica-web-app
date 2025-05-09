@@ -142,6 +142,10 @@ export function Session({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={addToProject}>
+              <FolderPlus className="mr-2 h-4 w-4" />
+              Add to Project
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleClone} disabled={isCloning}>
               <Copy className="mr-2 h-4 w-4" />
               Clone
@@ -153,10 +157,6 @@ export function Session({
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={addToProject}>
-              <FolderPlus className="mr-2 h-4 w-4" />
-              Add to Project
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
