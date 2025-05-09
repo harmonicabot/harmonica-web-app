@@ -4,14 +4,13 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { encryptId } from '@/lib/encryptionUtils';
 import Link from 'next/link';
 import { User, UserCheck } from '@/components/icons';
-
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Copy, Trash2, FolderPlus } from 'lucide-react';
+import { MoreHorizontal, Copy, Trash2, FolderPlus, Share2 } from 'lucide-react';
 import { deleteSession } from './actions';
 import { SessionTableData } from './sessions-table';
 import { useState } from 'react';
@@ -30,6 +29,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'hooks/use-toast';
 import { SessionStatus } from '@/lib/clientUtils';
 import { AddToProjectDialog } from '@/components/AddToProjectDialog';
+import ShareSettings from '@/components/ShareSettings';
 
 export function Session({
   session,
@@ -42,6 +42,7 @@ export function Session({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
   const [showProjectDialog, setShowProjectDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const router = useRouter();
 
   const handleDelete = async () => {
@@ -142,6 +143,14 @@ export function Session({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
+              <Share2 className="mr-2 h-4 w-4" />
+              <span>Share</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={addToProject}>
+              <FolderPlus className="mr-2 h-4 w-4" />
+              Add to Project
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleClone} disabled={isCloning}>
               <Copy className="mr-2 h-4 w-4" />
               Clone
@@ -154,13 +163,17 @@ export function Session({
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={addToProject}>
-              <FolderPlus className="mr-2 h-4 w-4" />
-              Add to Project
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
+      {showShareDialog && (
+        <ShareSettings
+          resourceId={session.id}
+          resourceType="SESSION"
+          initialIsOpen={showShareDialog}
+          onClose={() => setShowShareDialog(false)}
+        />
+      )}
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
@@ -183,7 +196,11 @@ export function Session({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <AddToProjectDialog sessionId={session.id} open={showProjectDialog} onOpenChange={setShowProjectDialog}/>
+      <AddToProjectDialog
+        sessionId={session.id}
+        open={showProjectDialog}
+        onOpenChange={setShowProjectDialog}
+      />
     </TableRow>
   );
 }

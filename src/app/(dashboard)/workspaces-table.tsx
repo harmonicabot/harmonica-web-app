@@ -40,10 +40,11 @@ function SessionRow({
   onRemove: (sessionId: string) => void;
 }) {
   const [isRemoving, setIsRemoving] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   const handleRemoveSession = async () => {
     if (isRemoving) return;
-    
+
     setIsRemoving(true);
     try {
       const result = await removeSessionFromWorkspace(workspaceId, session.id);
@@ -56,7 +57,8 @@ function SessionRow({
       } else {
         toast({
           title: 'Failed to remove session',
-          description: result.error || 'An error occurred while removing the session.',
+          description:
+            result.error || 'An error occurred while removing the session.',
           variant: 'destructive',
         });
       }
@@ -96,7 +98,11 @@ function SessionRow({
       </TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-2">
-          <Link href={`/sessions/${encryptId(session.id)}`}>
+          <Link
+            href={`/sessions/${encryptId(session.id)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <Button variant="outline" size="sm">
               <ExternalLink className="h-4 w-4" />
               <span className="sr-only">Open</span>
@@ -110,8 +116,12 @@ function SessionRow({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem 
-                onClick={handleRemoveSession} 
+              <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
+                <Share2 className="mr-2 h-4 w-4" />
+                <span>Share</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleRemoveSession}
                 disabled={isRemoving}
                 className="text-red-600"
               >
@@ -122,13 +132,21 @@ function SessionRow({
           </DropdownMenu>
         </div>
       </TableCell>
+      {showShareDialog && (
+        <ShareSettings
+          resourceId={session.id}
+          resourceType="SESSION"
+          initialIsOpen={showShareDialog}
+          onClose={() => setShowShareDialog(false)}
+        />
+      )}
     </TableRow>
   );
 }
 
 function WorkspaceRow({ workspace }: { workspace: WorkspaceWithSessions }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const [localSessions, setLocalSessions] = useState(workspace.sessions);
 
   const handleDelete = async () => {
@@ -138,7 +156,9 @@ function WorkspaceRow({ workspace }: { workspace: WorkspaceWithSessions }) {
   };
 
   const handleRemoveSession = (sessionId: string) => {
-    setLocalSessions(prev => prev.filter(session => session.id !== sessionId));
+    setLocalSessions((prev) =>
+      prev.filter((session) => session.id !== sessionId)
+    );
   };
 
   return (
@@ -181,7 +201,11 @@ function WorkspaceRow({ workspace }: { workspace: WorkspaceWithSessions }) {
         </TableCell>
         <TableCell className="text-right">
           <div className="flex justify-end gap-2">
-            <Link href={`/workspace/${workspace.id}`}>
+            <Link
+              href={`/workspace/${workspace.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <Button variant="outline" size="sm">
                 <ExternalLink className="h-4 w-4" />
                 <span className="sr-only">Open</span>
@@ -195,11 +219,14 @@ function WorkspaceRow({ workspace }: { workspace: WorkspaceWithSessions }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setIsShareDialogOpen(true)}>
+                <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
                   <Share2 className="mr-2 h-4 w-4" />
                   <span>Share</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+                <DropdownMenuItem
+                  onClick={handleDelete}
+                  className="text-red-600"
+                >
                   <Trash2 className="mr-2 h-4 w-4" />
                   <span>Delete</span>
                 </DropdownMenuItem>
@@ -218,12 +245,12 @@ function WorkspaceRow({ workspace }: { workspace: WorkspaceWithSessions }) {
             onRemove={handleRemoveSession}
           />
         ))}
-      {isShareDialogOpen && (
-        <ShareSettings 
-          resourceId={workspace.id} 
-          resourceType='WORKSPACE'
-          initialIsOpen={isShareDialogOpen}
-          onClose={() => setIsShareDialogOpen(false)}
+      {showShareDialog && (
+        <ShareSettings
+          resourceId={workspace.id}
+          resourceType="WORKSPACE"
+          initialIsOpen={showShareDialog}
+          onClose={() => setShowShareDialog(false)}
         />
       )}
     </>
