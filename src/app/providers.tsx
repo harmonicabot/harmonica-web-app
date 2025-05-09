@@ -34,8 +34,8 @@ function InvitationProcessor() {
 
           if (result.success && result.processed > 0) {
             toast({
-              title: 'Invitations Accepted',
-              description: `You've been granted access to ${result.processed} shared space(s).`,
+              title: `Invitation${result.processed > 1 ? 's' : ''} Accepted`,
+              description: `You've been granted access to ${result.processed} shared space${result.processed > 1 ? 's' : ''}.`,
               duration: 5000,
             });
           }
