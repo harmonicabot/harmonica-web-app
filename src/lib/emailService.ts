@@ -90,14 +90,14 @@ export async function sendInvitation(invitation: Invitation): Promise<boolean> {
           <img src="${appUrl}/harmonica.png" alt="Harmonica Logo" style="height: 40px;" />
         </div>
         <div style="padding: 20px; border: 1px solid #e0e0e0; border-radius: 0 0 8px 8px;">
-          <h2>You've been invited to join a ${type.toLocaleUpperCase}</h2>
+          <h2>You've been invited to join a ${type}</h2>
           <p>Hello,</p>
           <p>You've been invited to join the <strong>${title}</strong> ${type} on Harmonica with <strong>${invitation.role}</strong> access.</p>
           ${invitation.message ? `<p>Message from the inviter: "${invitation.message}"</p>` : ''}
           <p>To access this ${type}, simply log in to Harmonica using this email address.</p>
           <p style="margin: 25px 0;">
             <a href="${url}" style="background-color: #0070f3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">
-              View ${type.toLocaleUpperCase}
+              View ${type}
             </a>
           </p>
           <p style="color: #666; font-size: 0.9em;">If you don't have a Harmonica account yet, you'll need to sign up first using this same email address, and you'll automatically get access to the ${type}.</p>
