@@ -51,8 +51,7 @@ export default function ShareSettings({
   initialIsOpen,
   onClose,
 }: ShareSettingProps) {
-
-  const {loading, isPublic} = usePermissions(resourceId);
+  const { loading, isPublic } = usePermissions(resourceId);
 
   // Invitation form state
   const [emails, setEmails] = useState('');
@@ -61,8 +60,7 @@ export default function ShareSettings({
   const [isOpen, setIsOpen] = useState(initialIsOpen || false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('invite');
-  const [copied, setCopied] = useState(false);
-  const [publicCopied, setPublicCopied] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
   const [localIsPublic, setLocalIsPublic] = useState(!loading && isPublic);
 
   // Permissions and invitations state
@@ -137,20 +135,15 @@ export default function ShareSettings({
   };
 
   const getPublicUrl = () => {
-    return `${window.location.origin}/${
-      resourceType === 'WORKSPACE' ? 'workspace' : 'sessions'
-    }/${encryptId(resourceId)}?access=public`;
+    const resourcePath = resourceType === 'WORKSPACE' ? 'workspace' : 'sessions';
+    const urlId = resourceType === 'WORKSPACE' ? resourceId : encryptId(resourceId);
+    return `${window.location.origin}/${resourcePath}/${urlId}?access=public`;
   };
 
-  const copyToClipboard = (url: string, isPublicUrl: boolean = false) => {
+  const copyToClipboard = (url: string) => {
     navigator.clipboard.writeText(url);
-    if (isPublicUrl) {
-      setPublicCopied(true);
-      setTimeout(() => setPublicCopied(false), 2000);
-    } else {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    setUrlCopied(true);
+    setTimeout(() => setUrlCopied(false), 2000);
   };
 
   const fetchPermissions = async () => {
@@ -391,7 +384,7 @@ export default function ShareSettings({
       )}
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Share {resourceType.toLocaleLowerCase()}</DialogTitle>
+          <DialogTitle>Share {resourceType === 'WORKSPACE' ? 'Project' : 'Session'}</DialogTitle>
         </DialogHeader>
 
         <div className="border rounded-md p-4 mb-4">
@@ -427,9 +420,9 @@ export default function ShareSettings({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => copyToClipboard(getPublicUrl(), true)}
+                onClick={() => copyToClipboard(getPublicUrl())}
               >
-                {publicCopied ? (
+                {urlCopied ? (
                   <Check className="h-4 w-4 text-green-600" />
                 ) : (
                   <Copy className="h-4 w-4" />
