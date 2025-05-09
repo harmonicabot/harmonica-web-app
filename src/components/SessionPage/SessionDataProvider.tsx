@@ -8,7 +8,6 @@ import { ResultTabsVisibilityConfig } from '@/lib/schema';
 interface SessionDataProviderProps {
   sessionId: string;
   workspaceId?: string;
-  isPublicAccess?: boolean;
   visibilityConfig?: ResultTabsVisibilityConfig;
   showShare?: boolean;
   chatEntryMessage?: OpenAIMessage;
@@ -17,7 +16,6 @@ interface SessionDataProviderProps {
 async function SessionDataLoader({
   sessionId,
   workspaceId,
-  isPublicAccess,
   visibilityConfig: defaultVisibilityConfig = {
     showSummary: true,
     showResponses: true,
@@ -29,28 +27,15 @@ async function SessionDataLoader({
   ...props
 }: SessionDataProviderProps) {
   try {
-    const data = await fetchSessionData(sessionId, workspaceId, isPublicAccess);
+    const data = await fetchSessionData(sessionId, workspaceId);
     
     // Use persisted settings if available, otherwise use defaults
-    const baseConfig = data.visibilitySettings || defaultVisibilityConfig;
+    const visibilityConfig = data.visibilitySettings || defaultVisibilityConfig;
     
-    // For public access, we show a more limited view
-    const finalVisibilityConfig: ResultTabsVisibilityConfig = isPublicAccess
-      ? {
-          showSummary: true,
-          showResponses: false,
-          showCustomInsights: true,
-          showSimScore: false,
-          showChat: true,
-          allowCustomInsightsEditing: false,
-          showSessionRecap: true,
-        }
-      : baseConfig;
-
     return (
       <SessionPage
         data={data}
-        visibilityConfig={finalVisibilityConfig}
+        visibilityConfig={visibilityConfig}
         {...props}
       />
     );
