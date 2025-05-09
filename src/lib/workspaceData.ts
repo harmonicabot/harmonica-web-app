@@ -2,7 +2,7 @@ import * as db from '@/lib/db';
 import { ExtendedWorkspaceData } from '@/lib/types';
 import { getSession } from '@auth0/nextjs-auth0';
 import { NewWorkspace } from './schema';
-import { hasWorkspaceAccess } from './serverUtils';
+import { hasAccessToResource } from './serverUtils';
 
 export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedWorkspaceData> {
   try {
@@ -33,7 +33,7 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
     }
 
     // Check if user has access to this workspace
-    const hasAccess = await hasWorkspaceAccess(workspaceId);
+    const hasAccess = await hasAccessToResource(workspaceId);
     if (!hasAccess) {
       throw new Error('Access denied: You do not have permission to view this Project');
     }

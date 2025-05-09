@@ -75,19 +75,18 @@ export async function getCurrentUserId(): Promise<string | null> {
 }
 
 /**
- * Check if current user has access to a workspace
- * @param workspaceId The workspace ID to check access for
+ * Check if current user has access to a session or workspace
+ * @param resourceId The session or workspace ID to check access for
  * @returns True if the user has access, false otherwise
  */
-export async function hasWorkspaceAccess(
-  workspaceId: string,
+export async function hasAccessToResource(
+  resourceId: string,
 ): Promise<boolean> {
   try {
     // Check public access
     const publicPermission = await db.getRoleForUser(
-      workspaceId,
+      resourceId,
       'public',
-      'WORKSPACE',
     );
     if (publicPermission) return true;
 
@@ -95,7 +94,7 @@ export async function hasWorkspaceAccess(
     if (!userId) return false;
 
     // Check direct permission
-    const permission = await db.getRoleForUser(workspaceId, userId, 'WORKSPACE');
+    const permission = await db.getRoleForUser(resourceId, userId);
     if (permission) return true;
 
     // Check global permission
@@ -104,40 +103,7 @@ export async function hasWorkspaceAccess(
 
     return false;
   } catch (error) {
-    console.error('Error checking workspace access:', error);
-    return false;
-  }
-}
-
-/**
- * Check if current user has access to a session
- * @param sessionId The session ID to check access for
- * @returns True if the user has access, false otherwise
- */
-export async function hasSessionAccess(sessionId: string): Promise<boolean> {
-  try {
-    const userId = await getCurrentUserId();
-    if (!userId) return false;
-
-    // Check direct permission
-    const permission = await db.getRoleForUser(sessionId, userId, 'SESSION');
-    if (permission) return true;
-
-    // Check public access
-    const publicPermission = await db.getRoleForUser(
-      sessionId,
-      'public',
-      'SESSION',
-    );
-    if (publicPermission) return true;
-
-    // Check global permission
-    const globalPermission = await db.getRoleForUser('global', userId);
-    if (globalPermission) return true;
-
-    return false;
-  } catch (error) {
-    console.error('Error checking session access:', error);
+    console.error(`Error checking access for resource ${resourceId}:`, error);
     return false;
   }
 }

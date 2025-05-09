@@ -34,6 +34,7 @@ import {
 } from '../app/actions/permissions';
 import { Role, usePermissions } from '@/lib/permissions';
 import { Invitation, PermissionsTable, User } from '@/lib/schema';
+import { encryptId } from '@/lib/encryptionUtils';
 
 interface ShareSettingProps {
   resourceId: string;
@@ -138,7 +139,7 @@ export default function ShareSettings({
   const getPublicUrl = () => {
     return `${window.location.origin}/${
       resourceType === 'WORKSPACE' ? 'workspace' : 'sessions'
-    }/${resourceId}?access=public`;
+    }/${encryptId(resourceId)}?access=public`;
   };
 
   const copyToClipboard = (url: string, isPublicUrl: boolean = false) => {

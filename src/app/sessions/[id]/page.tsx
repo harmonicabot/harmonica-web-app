@@ -3,6 +3,7 @@ import { getGeneratedMetadata } from 'app/api/metadata';
 import { decryptId } from '@/lib/encryptionUtils';
 import SessionDataProvider from '@/components/SessionPage/SessionDataProvider';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
+import { access } from 'fs';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 60; // in seconds
@@ -16,10 +17,8 @@ export async function generateMetadata(
 
 export default async function SessionResult({
   params,
-  searchParams,
 }: {
   params: { id: string };
-  searchParams?: { access?: string };
 }) {
   const decryptedId = decryptId(params.id);
 
@@ -34,7 +33,6 @@ export default async function SessionResult({
   return (
     <SessionDataProvider
       sessionId={decryptedId}
-      isPublicAccess={searchParams?.access === 'public'}
       showShare={true}
       visibilityConfig={visibilityConfig}
     />
