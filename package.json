@@ -16,6 +16,7 @@
     "@llamaindex/anthropic": "^0.3.4",
     "@llamaindex/google": "^0.2.5",
     "@neondatabase/serverless": "^0.10.1",
+    "@qdrant/js-client-rest": "^1.14.0",
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-checkbox": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.2",
@@ -65,6 +66,7 @@
     "swr": "^2.2.5",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
     "ws": "^8.18.0",
     "zod": "^3.23.8",
     "zustand": "^4.5.4"

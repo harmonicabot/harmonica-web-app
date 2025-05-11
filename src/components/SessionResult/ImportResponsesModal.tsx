@@ -18,6 +18,7 @@ import { Loader2, Upload } from 'lucide-react';
 import { useToast } from 'hooks/use-toast';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { processFileForQdrant } from 'actions/process-file';
 
 type FilePurpose = 'TRANSCRIPT' | 'KNOWLEDGE';
 
@@ -86,19 +87,25 @@ export default function ImportResponsesModal({
 
       const uploadResult = await uploadFile(formData);
 
-      // Read file content for analysis if it's a transcript
+      // Read file content for analysis and Qdrant storage
       let fileContent: string | undefined;
-      if (filePurpose === 'TRANSCRIPT') {
-        try {
-          fileContent = await readFileContent(file);
-        } catch (error) {
-          console.error('Error reading file content:', error);
-          toast({
-            title: 'Warning',
-            description: 'Could not read file content for analysis',
-            variant: 'destructive',
-          });
-        }
+      try {
+        fileContent = await readFileContent(file);
+
+        // Process and store in Qdrant
+        await processFileForQdrant({
+          sessionId,
+          fileContent,
+          fileName: file.name,
+          filePurpose,
+        });
+      } catch (error) {
+        console.error('Error processing file:', error);
+        toast({
+          title: 'Warning',
+          description: 'Could not process file content for analysis',
+          variant: 'destructive',
+        });
       }
 
       // Save file metadata to database
@@ -166,7 +173,9 @@ export default function ImportResponsesModal({
             <Label>File Purpose</Label>
             <RadioGroup
               value={filePurpose}
-              onValueChange={(value: string) => setFilePurpose(value as FilePurpose)}
+              onValueChange={(value: string) =>
+                setFilePurpose(value as FilePurpose)
+              }
               className="flex flex-col space-y-1"
             >
               <div className="flex items-center space-x-2">
