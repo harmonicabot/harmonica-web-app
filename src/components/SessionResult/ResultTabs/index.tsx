@@ -30,6 +30,7 @@ import {
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
 import { SimScoreTab } from './SimScoreTab';
+import SessionFilesTable from '../SessionFilesTable';
 
 export interface ResultTabsProps {
   hostData: HostSession[];
@@ -51,6 +52,7 @@ const defaultVisibilityConfig: ResultTabsVisibilityConfig = {
   showChat: true,
   allowCustomInsightsEditing: true,
   showSessionRecap: true,
+  showKnowledge: true,
 };
 
 export default function ResultTabs({
@@ -66,8 +68,8 @@ export default function ResultTabs({
   children,
 }: ResultTabsProps & { showEdit?: boolean; draft?: boolean }) {
   const { hasMinimumRole, loading: loadingUserInfo } =
-  usePermissions(resourceId);
-  
+    usePermissions(resourceId);
+
   const simScoreEnabled = false; // SimScore isn't working well right now
   const customInsightsEnabled = !isWorkspace; // Disabled for workspaces for now
 
@@ -87,7 +89,7 @@ export default function ResultTabs({
   // Participant Ids that should be included in the _summary_ and _simscore_ analysis
   const updateIncludedInAnalysisList = (
     userSessionId: string,
-    included: boolean
+    included: boolean,
   ) => {
     const includedIds = userData
       .filter((user) => user.include_in_summary)
@@ -114,14 +116,14 @@ export default function ResultTabs({
 
   const hasAnyIncludedUserMessages = useMemo(
     () => userIdsIncludedInSummary.length > 0,
-    [userIdsIncludedInSummary]
+    [userIdsIncludedInSummary],
   );
 
   const [visibilityConfig, setVisibilityConfig] = useState(initialConfig);
 
   // Save visibility settings when they change
   const handleVisibilityChange = async (
-    newConfig: ResultTabsVisibilityConfig
+    newConfig: ResultTabsVisibilityConfig,
   ) => {
     console.log('Updating visibility config: ', newConfig);
     setVisibilityConfig(newConfig);
@@ -136,8 +138,8 @@ export default function ResultTabs({
     hostData.some((data) => data.summary) || !visibilityConfig.showResponses
       ? 'SUMMARY'
       : isWorkspace && children
-      ? 'SESSIONS'
-      : 'RESPONSES'
+        ? 'SESSIONS'
+        : 'RESPONSES',
   );
 
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
@@ -250,6 +252,11 @@ export default function ResultTabs({
               </div>
             </Card>
           </TabContent>
+          {!isWorkspace && (
+            <TabContent value="KNOWLEDGE">
+              <SessionFilesTable sessionId={resourceId} />
+            </TabContent>
+          )}
         </div>
       );
     }
@@ -279,7 +286,7 @@ export default function ResultTabs({
           )}
         </TabContent>
 
-        {!isWorkspace &&
+        {!isWorkspace && (
           <TabContent value="RESPONSES">
             <SessionParticipantsTable
               sessionId={resourceId}
@@ -287,13 +294,9 @@ export default function ResultTabs({
               onIncludeInSummaryChange={updateIncludedInAnalysisList}
             />
           </TabContent>
-        }
+        )}
 
-        {children &&
-          <TabContent value="SESSIONS">
-            {children}
-          </TabContent>
-        }
+        {children && <TabContent value="SESSIONS">{children}</TabContent>}
 
         <TabContent value="CUSTOM">
           {responses.length > 0 ? (
@@ -318,6 +321,12 @@ export default function ResultTabs({
           <SimScoreTab userData={userData} resourceId={resourceId} />
         </TabContent>
 
+        {!isWorkspace && (
+          <TabContent value="KNOWLEDGE">
+            <SessionFilesTable sessionId={resourceId} />
+          </TabContent>
+        )}
+
         <div className="mt-4 flex justify-end">
           <ExportButton
             content={responses.map((r) => r.content).join('\n\n---\n\n')}
@@ -340,50 +349,40 @@ export default function ResultTabs({
         <div className="flex items-center">
           <TabsList>
             {(visibilityConfig.showSummary || hasMinimumRole('editor')) && (
-              <TabsTrigger
-                className="ms-0"
-                value="SUMMARY"
-                onClick={() =>
-                  hostData.some((data) => data.summary)
-                    ? undefined
-                    : () => {
-                        if (isWorkspace) {
-                          createMultiSessionSummary(
-                            hostData.map((data) => data.id),
-                            resourceId
-                          );
-                        } else {
-                          createSummary(resourceId);
-                        }
-                        setInitialUserIds(userIdsIncludedInSummary);
-                      }
-                }
-              >
+              <TabsTrigger className="ms-0" value="SUMMARY">
                 Summary
               </TabsTrigger>
             )}
-            {(!isWorkspace && (visibilityConfig.showResponses || hasMinimumRole('editor'))) && (
-              <TabsTrigger className="ms-0" value="RESPONSES">
-                Responses
-              </TabsTrigger>
-            )}
-            {isWorkspace && children && ( // Todo: Add visibility settings for this if ever needed
+            {!isWorkspace &&
+              (visibilityConfig.showResponses || hasMinimumRole('editor')) && (
+                <TabsTrigger className="ms-0" value="RESPONSES">
+                  Responses
+                </TabsTrigger>
+              )}
+            {!isWorkspace &&
+              (visibilityConfig.showKnowledge || hasMinimumRole('editor')) && (
+                <TabsTrigger className="ms-0" value="KNOWLEDGE">
+                  Knowledge
+                </TabsTrigger>
+              )}
+            {isWorkspace && children && (
               <TabsTrigger className="ms-0" value="SESSIONS">
                 Sessions
               </TabsTrigger>
             )}
-            {(customInsightsEnabled && (
-              visibilityConfig.showCustomInsights ||
-              hasMinimumRole('editor'))) && (
-              <TabsTrigger className="ms-0" value="CUSTOM">
-                Custom Insights
-              </TabsTrigger>
-            )}
-            {(simScoreEnabled && (visibilityConfig.showSimScore || hasMinimumRole('editor'))) && (
-              <TabsTrigger className="ms-0" value="SIMSCORE">
-                SimScore Ranking
-              </TabsTrigger>
-            )}
+            {customInsightsEnabled &&
+              (visibilityConfig.showCustomInsights ||
+                hasMinimumRole('editor')) && (
+                <TabsTrigger className="ms-0" value="CUSTOM">
+                  Custom Insights
+                </TabsTrigger>
+              )}
+            {simScoreEnabled &&
+              (visibilityConfig.showSimScore || hasMinimumRole('editor')) && (
+                <TabsTrigger className="ms-0" value="SIMSCORE">
+                  SimScore Ranking
+                </TabsTrigger>
+              )}
           </TabsList>
         </div>
 
