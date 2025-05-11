@@ -12,7 +12,6 @@ import { UserSession } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
 import GenerateResponsesModal from './GenerateResponsesModal';
 import ImportResponsesModal from './ImportResponsesModal';
-import SessionFilesTable from './SessionFilesTable';
 
 export type ParticipantsTableData = {
   userName: string;
@@ -34,7 +33,6 @@ export default function SessionParticipantsTable({
 }) {
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [fileRefreshTrigger, setFileRefreshTrigger] = useState(0);
 
   const dateSorter = (sortDirection: string, a: string, b: string) => {
     return sortDirection === 'asc'
@@ -84,10 +82,6 @@ export default function SessionParticipantsTable({
     );
   };
 
-  const handleFileUploaded = () => {
-    setFileRefreshTrigger((prev) => prev + 1);
-  };
-
   return (
     <>
       <Card>
@@ -130,14 +124,8 @@ export default function SessionParticipantsTable({
           isOpen={isImportModalOpen}
           onOpenChange={setIsImportModalOpen}
           sessionId={sessionId}
-          onFileUploaded={handleFileUploaded}
         />
       </Card>
-
-      <SessionFilesTable
-        sessionId={sessionId}
-        refreshTrigger={fileRefreshTrigger}
-      />
     </>
   );
 }

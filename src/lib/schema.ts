@@ -95,6 +95,7 @@ export interface ResultTabsVisibilityConfig {
   showSimScore?: boolean;
   showChat?: boolean;
   allowCustomInsightsEditing?: boolean;
+  showKnowledge?: boolean;
 }
 
 // Mapping of which sessions belong to which workspaces

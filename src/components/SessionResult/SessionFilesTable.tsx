@@ -17,7 +17,18 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { FileText, Trash2, ExternalLink, Users, MessageSquare, Hash, Plus, Upload, Tag } from 'lucide-react';
+import {
+  FileText,
+  Trash2,
+  ExternalLink,
+  Users,
+  MessageSquare,
+  Hash,
+  Plus,
+  Upload,
+  Tag,
+  Loader2,
+} from 'lucide-react';
 import { useToast } from 'hooks/use-toast';
 import { format } from 'date-fns';
 import {
@@ -87,9 +98,12 @@ export default function SessionFilesTable({
 
   const handleDeleteFile = async (fileId: number) => {
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/files?fileId=${fileId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `/api/sessions/${sessionId}/files?fileId=${fileId}`,
+        {
+          method: 'DELETE',
+        },
+      );
       if (!response.ok) throw new Error('Failed to delete file');
       toast({
         title: 'File deleted',
@@ -149,7 +163,8 @@ export default function SessionFilesTable({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete file?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <b>{fileToDelete?.file_name}</b>? This action cannot be undone.
+              Are you sure you want to delete <b>{fileToDelete?.file_name}</b>?
+              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -181,7 +196,7 @@ export default function SessionFilesTable({
         </div>
         {renderFileActions(file)}
       </div>
-      
+
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-4 text-sm">
           <div className="flex items-center text-muted-foreground">
@@ -197,12 +212,12 @@ export default function SessionFilesTable({
             <span>{file.metadata?.key_topics?.length || 0} topics</span>
           </div>
         </div>
-        
+
         {file.metadata?.key_topics && file.metadata.key_topics.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {file.metadata.key_topics.map((topic, index) => (
-              <Badge 
-                key={index} 
+              <Badge
+                key={index}
                 variant="outline"
                 className="text-xs font-normal text-muted-foreground bg-transparent hover:bg-muted/50"
               >
@@ -236,8 +251,12 @@ export default function SessionFilesTable({
     </TableRow>
   );
 
-  const transcriptFiles = files.filter(file => file.file_purpose === 'TRANSCRIPT');
-  const knowledgeFiles = files.filter(file => file.file_purpose === 'KNOWLEDGE' || !file.file_purpose);
+  const transcriptFiles = files.filter(
+    (file) => file.file_purpose === 'TRANSCRIPT',
+  );
+  const knowledgeFiles = files.filter(
+    (file) => file.file_purpose === 'KNOWLEDGE' || !file.file_purpose,
+  );
 
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-12 px-4">
@@ -260,7 +279,8 @@ export default function SessionFilesTable({
       </div>
       <h3 className="text-lg font-semibold mb-2">No files uploaded yet</h3>
       <p className="text-muted-foreground text-center mb-6 max-w-sm">
-        Upload transcripts or knowledge files to keep track of important information and insights from your session.
+        Upload transcripts or knowledge files to keep track of important
+        information and insights from your session.
       </p>
       <Button onClick={() => setIsImportModalOpen(true)} size="lg">
         <Upload className="mr-2 h-5 w-5" />
@@ -286,28 +306,40 @@ export default function SessionFilesTable({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="text-center py-4">Loading files...</div>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
         ) : files.length === 0 ? (
           <EmptyState />
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-muted/50 rounded-lg">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Total Files</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Files
+                </p>
                 <p className="text-2xl font-bold">{files.length}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Total Size</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Size
+                </p>
                 <p className="text-2xl font-bold">
-                  {formatFileSize(files.reduce((acc, file) => acc + file.file_size, 0))}
+                  {formatFileSize(
+                    files.reduce((acc, file) => acc + file.file_size, 0),
+                  )}
                 </p>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Transcripts</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Transcripts
+                </p>
                 <p className="text-2xl font-bold">{transcriptFiles.length}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Knowledge Files</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Knowledge Files
+                </p>
                 <p className="text-2xl font-bold">{knowledgeFiles.length}</p>
               </div>
             </div>
@@ -318,7 +350,7 @@ export default function SessionFilesTable({
                 {transcriptFiles.map(renderTranscriptFile)}
               </div>
             )}
-            
+
             {knowledgeFiles.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-3">Knowledge Files</h3>
@@ -326,9 +358,15 @@ export default function SessionFilesTable({
                   <TableHeader>
                     <TableRow>
                       <TableHead>File</TableHead>
-                      <TableHead className="hidden md:table-cell">Type</TableHead>
-                      <TableHead className="hidden md:table-cell">Size</TableHead>
-                      <TableHead className="hidden md:table-cell">Uploaded</TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Type
+                      </TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Size
+                      </TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Uploaded
+                      </TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
