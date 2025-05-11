@@ -1489,6 +1489,8 @@ export async function insertFileMetadata(data: {
   file_size: number;
   file_url: string;
   uploaded_by: string;
+  metadata?: JSON;
+  file_purpose?: 'TRANSCRIPT' | 'KNOWLEDGE';
 }) {
   const db = await dbPromise;
   const result = await db

@@ -196,6 +196,8 @@ export interface SessionFilesTable {
   uploaded_by: string;
   uploaded_at: Generated<Date>;
   is_deleted: Generated<boolean>;
+  metadata?: JSON;
+  file_purpose?: 'TRANSCRIPT' | 'KNOWLEDGE';
 }
 
 export async function createDbInstance<T extends Record<string, any>>() {

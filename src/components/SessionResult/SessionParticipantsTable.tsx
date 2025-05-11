@@ -100,13 +100,6 @@ export default function SessionParticipantsTable({
           </div>
           <div className="flex gap-2">
             <Button
-              variant="outline"
-              className="bg-white"
-              onClick={() => setIsImportModalOpen(true)}
-            >
-              Import Responses
-            </Button>
-            <Button
               variant="default"
               onClick={() => setIsGenerateModalOpen(true)}
             >
