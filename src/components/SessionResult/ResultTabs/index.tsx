@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/resizable';
 import { SimScoreTab } from './SimScoreTab';
 import SessionFilesTable from '../SessionFilesTable';
+import { PromptSettings } from './components/PromptSettings';
 
 export interface ResultTabsProps {
   hostData: HostSession[];
@@ -144,6 +145,37 @@ export default function ResultTabs({
 
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
     useState(hasNewMessages);
+
+  const handlePromptChange = async (
+    newPrompt: string,
+    type: 'facilitation' | 'summary',
+  ) => {
+    try {
+      console.log('Updating prompt:', { type, newPrompt });
+
+      const updateData =
+        type === 'facilitation'
+          ? { prompt: newPrompt }
+          : { prompt_summary: newPrompt };
+
+      console.log('Update data:', updateData);
+
+      await db.updateHostSession(resourceId, updateData);
+
+      // Update the local state
+      if (hostData[0]) {
+        if (type === 'facilitation') {
+          hostData[0].prompt = newPrompt;
+        } else {
+          hostData[0].prompt_summary = newPrompt;
+        }
+        console.log('Updated hostData:', hostData[0]);
+      }
+    } catch (error) {
+      console.error('Failed to update prompt:', error);
+      throw error;
+    }
+  };
 
   // // For new workspaces, we'll show a placeholder instead of the "no replies" message
   if (!hasAnyIncludedUserMessages && !draft && !hasMinimumRole('editor')) {
@@ -388,13 +420,21 @@ export default function ResultTabs({
 
         {/* View Settings button in the top right, same line as tabs */}
         {hasMinimumRole('editor') && (
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 flex items-center">
             <VisibilitySettings
               config={visibilityConfig}
               onChange={handleVisibilityChange}
               isWorkspace={isWorkspace}
               resourceId={resourceId}
             />
+            {!isWorkspace && hostData[0] && (
+              <PromptSettings
+                sessionId={resourceId}
+                currentPrompt={hostData[0].prompt || ''}
+                summaryPrompt={hostData[0].prompt_summary || ''}
+                onPromptChange={handlePromptChange}
+              />
+            )}
           </div>
         )}
       </div>
