@@ -31,7 +31,6 @@ export function VisibilitySettings({
   className,
   resourceId,
 }: VisibilitySettingsProps) {
-
   const toggleSetting = (key: keyof ResultTabsVisibilityConfig) => {
     onChange({
       ...config,
@@ -83,7 +82,7 @@ export function VisibilitySettings({
             </div>
           )}
 
-          {!isWorkspace &&  // Disabled for workspaces, we show 'sessions' instead, always.
+          {!isWorkspace && ( // Disabled for workspaces, we show 'sessions' instead, always.
             <div className="flex items-center justify-between space-x-2">
               <label
                 htmlFor="responses"
@@ -97,9 +96,9 @@ export function VisibilitySettings({
                 onCheckedChange={() => toggleSetting('showResponses')}
               />
             </div>
-}
+          )}
 
-          {!isWorkspace &&  // Disabled for workspaces for now
+          {!isWorkspace && ( // Disabled for workspaces for now
             <div className="flex items-center justify-between space-x-2">
               <label
                 htmlFor="insights"
@@ -113,7 +112,7 @@ export function VisibilitySettings({
                 onCheckedChange={() => toggleSetting('showCustomInsights')}
               />
             </div>
-          }
+          )}
 
           {/* Disable SimScore, it's not working well enough.
           
@@ -145,7 +144,7 @@ export function VisibilitySettings({
             />
           </div>
 
-          {!isWorkspace &&
+          {!isWorkspace && (
             <div className="flex items-center justify-between space-x-2">
               <label
                 htmlFor="edit-insights"
@@ -161,7 +160,7 @@ export function VisibilitySettings({
                 }
               />
             </div>
-          }
+          )}
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
