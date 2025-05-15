@@ -95,6 +95,7 @@ export interface ResultTabsVisibilityConfig {
   showSimScore?: boolean;
   showChat?: boolean;
   allowCustomInsightsEditing?: boolean;
+  showKnowledge?: boolean;
 }
 
 // Mapping of which sessions belong to which workspaces
@@ -185,6 +186,20 @@ export type PromptTypeUpdate = Updateable<PromptTypesTable>;
 
 // Also add this type for better type safety
 export type SubscriptionTier = 'FREE' | 'PRO' | 'ENTERPRISE';
+
+export interface SessionFilesTable {
+  id: Generated<number>;
+  session_id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  file_url: string;
+  uploaded_by: string;
+  uploaded_at: Generated<Date>;
+  is_deleted: Generated<boolean>;
+  metadata?: JSON;
+  file_purpose?: 'TRANSCRIPT' | 'KNOWLEDGE';
+}
 
 export async function createDbInstance<T extends Record<string, any>>() {
   try {

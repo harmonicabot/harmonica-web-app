@@ -40,6 +40,7 @@ interface Databases {
   [usersTableName]: s.UsersTable;
   [promptsTableName]: s.PromptsTable;
   [promptTypesTableName]: s.PromptTypesTable;
+  session_files: s.SessionFilesTable;
 }
 
 const dbPromise = (async () => {
@@ -326,7 +327,10 @@ export async function getNumUsersAndMessages(sessionIds: string[]) {
 
   const stats: Record<
     string,
-    Record<string, { num_messages: number; finished: boolean; includedInSummary: boolean }>
+    Record<
+      string,
+      { num_messages: number; finished: boolean; includedInSummary: boolean }
+    >
   > = {};
 
   for (const row of result) {
@@ -1476,4 +1480,47 @@ export async function removeUserSubscription(userId: string): Promise<void> {
     console.error('Error removing user subscription:', error);
     throw error;
   }
+}
+
+export async function insertFileMetadata(data: {
+  session_id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  file_url: string;
+  uploaded_by: string;
+  metadata?: JSON;
+  file_purpose?: 'TRANSCRIPT' | 'KNOWLEDGE';
+}) {
+  const db = await dbPromise;
+  const result = await db
+    .insertInto('session_files')
+    .values(data)
+    .returning('id')
+    .executeTakeFirst();
+  return result;
+}
+
+export async function getSessionFiles(sessionId: string) {
+  const db = await dbPromise;
+  return db
+    .selectFrom('session_files')
+    .where('session_id', '=', sessionId)
+    .where('is_deleted', '=', false)
+    .selectAll()
+    .orderBy('uploaded_at', 'desc')
+    .execute();
+}
+
+export async function updateSessionFile(
+  fileId: number,
+  data: { is_deleted: boolean },
+) {
+  const db = await dbPromise;
+  return db
+    .updateTable('session_files')
+    .set(data)
+    .where('id', '=', fileId)
+    .returning('id')
+    .executeTakeFirst();
 }

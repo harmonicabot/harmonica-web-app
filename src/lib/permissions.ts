@@ -71,7 +71,7 @@ export function usePermissions(resourceId: string) {
   }, [resourceId, user, isLoading]);
 
   function hasMinimumRole(currentRole: Role, requiredRole: Role): boolean {
-    console.log('Checking role:', currentRole, requiredRole);
+    // console.log('Checking role:', currentRole, requiredRole);
     return ROLE_HIERARCHY[currentRole] >= ROLE_HIERARCHY[requiredRole];
   }
 
