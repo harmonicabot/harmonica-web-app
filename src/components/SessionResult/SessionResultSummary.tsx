@@ -87,7 +87,7 @@ return (
     )}
     {showSummaryContent ? (
       <ExpandableWithExport
-        title="Session Summary"
+        title={isProject ? "Project Summary" : "Session Summary"}
         content={summary}
         isExpanded={isExpandedSummary}
         onExpandedChange={setIsExpandedSummary}
