@@ -472,7 +472,7 @@ export default function ShareSettings({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {initialIsOpen === undefined && (
         <DialogTrigger asChild>
-          <Button variant="outline">
+          <Button>
             <Share2 className="w-4 h-4 mr-2" />
             Share
           </Button>
