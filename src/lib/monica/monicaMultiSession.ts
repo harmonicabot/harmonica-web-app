@@ -3,6 +3,7 @@ import * as db from '@/lib/db';
 import { Gemini } from '@llamaindex/google';
 import { OpenAIMessage } from '../types';
 import { getPromptInstructions } from '../promptsCache';
+import { getSessionContent } from './qdrantQuery';
 
 export async function generateMultiSessionAnswer(
   sessionIds: string[],
@@ -162,6 +163,13 @@ ${contextData?.critical ? `Key Points: ${contextData?.critical}` : ''}`,
             .join('\n\n')}`
         : '';
 
+    // Get Qdrant content for single session
+    let qdrantContent = null;
+    if (sessionIds.length === 1) {
+      console.log(`[i] Single session detected (${sessionIds[0]})`);
+      qdrantContent = await getSessionContent(sessionIds[0], query);
+    }
+
     const userPrompt = `
 ### Sessions Context:
 ${mergedContext}
@@ -171,6 +179,8 @@ ${messagesContent}
 
 ${chatHistoryForPrompt}
 
+${qdrantContent?.TRANSCRIPT ? `### Relevant Transcript Content:\n${qdrantContent.TRANSCRIPT}\n\n` : ''}
+${qdrantContent?.KNOWLEDGE ? `### Relevant Knowledge Content:\n${qdrantContent.KNOWLEDGE}\n\n` : ''}
 ### Question: ${query}
 `;
     console.log('[i] User prompt length: ', userPrompt.length);

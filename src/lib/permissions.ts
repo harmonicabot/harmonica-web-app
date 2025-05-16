@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import * as db from '@/lib/db';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { PermissionsTable } from '@/lib/schema';
@@ -79,9 +79,19 @@ export function usePermissions(resourceId: string) {
     return ROLE_HIERARCHY[currentRole] >= ROLE_HIERARCHY[newRole] ? currentRole : newRole;
   }
 
+  // Memoize the hasMinimumRole function so that it doesn't get recreated on every render
+  const hasMinimumRoleCallback = useCallback(
+    (requiredRole: Role) => {
+      const hasMinimumRole = ROLE_HIERARCHY[role] >= ROLE_HIERARCHY[requiredRole];
+      console.log(`Is ${role} at least ${requiredRole}?`, hasMinimumRole);
+      return hasMinimumRole;
+    },
+    [role] // Only recreate when role changes
+  );
+
   return {
     loading,
     isPublic,
-    hasMinimumRole: (requiredRole: Role) => hasMinimumRole(role, requiredRole),
+    hasMinimumRole: hasMinimumRoleCallback
   };
 }

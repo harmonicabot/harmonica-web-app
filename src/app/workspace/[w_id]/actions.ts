@@ -14,6 +14,17 @@ export async function updateWorkspaceDetails(id: string, data: WorkspaceUpdate) 
   }
 }
 
+export async function deleteWorkspace(id: string) {
+  try {
+    // We can only 'soft delete' the workspace; if we _totally_ delete it it would just immediately be recreated because of the... mechanism.
+    // Instead, we mark it here for deletion, then the next time fetchWorkspaceData is called (often immediately) it will be 'properly' deleted. 
+    await db.updateWorkspace(id, { status: 'deleted' })
+  } catch (error) {
+    console.error('Error deleting workspace:', error);
+    return { success: false, error: 'Failed to delete workspace' };
+  }
+}
+
 export async function uploadBanner(
   formData: FormData
 ) {

@@ -17,6 +17,10 @@ import { saveFileMetadata } from 'actions/save-file-metadata';
 import { Loader2, Upload } from 'lucide-react';
 import { useToast } from 'hooks/use-toast';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { processFileForQdrant } from 'actions/process-file';
+
+type FilePurpose = 'TRANSCRIPT' | 'KNOWLEDGE';
 
 export default function ImportResponsesModal({
   isOpen,
@@ -31,6 +35,7 @@ export default function ImportResponsesModal({
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [filePurpose, setFilePurpose] = useState<FilePurpose>('KNOWLEDGE');
   const { toast } = useToast();
   const { user } = useUser();
 
@@ -38,6 +43,18 @@ export default function ImportResponsesModal({
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     }
+  };
+
+  const readFileContent = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        resolve(content);
+      };
+      reader.onerror = (e) => reject(e);
+      reader.readAsText(file);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,6 +87,27 @@ export default function ImportResponsesModal({
 
       const uploadResult = await uploadFile(formData);
 
+      // Read file content for analysis and Qdrant storage
+      let fileContent: string | undefined;
+      try {
+        fileContent = await readFileContent(file);
+
+        // Process and store in Qdrant
+        await processFileForQdrant({
+          sessionId,
+          fileContent,
+          fileName: file.name,
+          filePurpose,
+        });
+      } catch (error) {
+        console.error('Error processing file:', error);
+        toast({
+          title: 'Warning',
+          description: 'Could not process file content for analysis',
+          variant: 'destructive',
+        });
+      }
+
       // Save file metadata to database
       await saveFileMetadata({
         sessionId,
@@ -78,6 +116,8 @@ export default function ImportResponsesModal({
         fileSize: file.size,
         fileUrl: uploadResult.url,
         uploadedBy: user?.sub,
+        filePurpose,
+        fileContent,
       });
 
       toast({
@@ -88,6 +128,7 @@ export default function ImportResponsesModal({
       // Close the modal and reset state
       onOpenChange(false);
       setFile(null);
+      setFilePurpose('KNOWLEDGE'); // Reset to default
 
       // Refresh the file list
       if (onFileUploaded) {
@@ -126,6 +167,35 @@ export default function ImportResponsesModal({
               onChange={handleFileChange}
             />
             <p className="text-sm text-muted-foreground">Max file size: 10MB</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>File Purpose</Label>
+            <RadioGroup
+              value={filePurpose}
+              onValueChange={(value: string) =>
+                setFilePurpose(value as FilePurpose)
+              }
+              className="flex flex-col space-y-1"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="KNOWLEDGE" id="knowledge" />
+                <Label htmlFor="knowledge" className="font-normal">
+                  Knowledge File
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="TRANSCRIPT" id="transcript" />
+                <Label htmlFor="transcript" className="font-normal">
+                  Transcript
+                </Label>
+              </div>
+            </RadioGroup>
+            <p className="text-sm text-muted-foreground">
+              {filePurpose === 'TRANSCRIPT'
+                ? 'Transcript files will be analyzed for participants, messages, and key topics.'
+                : 'Knowledge files are stored as reference materials.'}
+            </p>
           </div>
 
           {file && (

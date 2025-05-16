@@ -58,7 +58,10 @@ export default function SessionResultsSection({
     <>
       {!loading && hasMinimumRole('editor') && (
         <div className="flex w-full justify-end mt-4 -mb-14">
-          <ShareSettings resourceId={hostData.id} resourceType="SESSION"/>
+          <ShareSettings 
+            resourceId={hostData.id} 
+            resourceType="SESSION"
+          />
         </div>
       )}
       <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>

@@ -20,7 +20,14 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Globe } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Globe, Settings } from 'lucide-react';
 import { Share2, Loader2, X, UserCog, Copy, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from 'hooks/use-toast';
@@ -32,8 +39,12 @@ import {
   removeResourcePermission,
   cancelInvitation,
 } from '../app/actions/permissions';
+import { 
+  getVisibilitySettings,
+  updateVisibilitySettings
+} from '../app/actions/visibility-settings';
 import { Role, usePermissions } from '@/lib/permissions';
-import { Invitation, PermissionsTable, User } from '@/lib/schema';
+import { Invitation, PermissionsTable, User, ResultTabsVisibilityConfig } from '@/lib/schema';
 import { encryptId } from '@/lib/encryptionUtils';
 
 interface ShareSettingProps {
@@ -49,7 +60,7 @@ export default function ShareSettings({
   resourceId,
   resourceType,
   initialIsOpen,
-  onClose,
+  onClose
 }: ShareSettingProps) {
   const { loading, isPublic } = usePermissions(resourceId);
 
@@ -60,8 +71,24 @@ export default function ShareSettings({
   const [isOpen, setIsOpen] = useState(initialIsOpen || false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('invite');
+  const isWorkspace = resourceType === 'WORKSPACE';
   const [urlCopied, setUrlCopied] = useState(false);
   const [localIsPublic, setLocalIsPublic] = useState(!loading && isPublic);
+  
+  // Local visibility state management
+  const [localVisibilityConfig, setLocalVisibilityConfig] = useState<ResultTabsVisibilityConfig>(
+    { // Defaults:
+      showSummary: true,
+      showResponses: resourceType === 'SESSION', 
+      showCustomInsights: resourceType === 'SESSION',
+      showSimScore: false,
+      showChat: true,
+      allowCustomInsightsEditing: true,
+      showSessionRecap: true,
+      showKnowledge: resourceType === 'WORKSPACE',
+    }
+  );
+  const [isLoadingVisibility, setIsLoadingVisibility] = useState(false);
 
   // Permissions and invitations state
   const [userAndRole, setUserAndRole] = useState<UserAndRole[]>([]);
@@ -85,20 +112,88 @@ export default function ShareSettings({
     }
   };
 
-  // Fetch existing permissions when dialog opens
+  // Fetch existing permissions and visibility settings when dialog opens
   useEffect(() => {
-    if (isOpen && activeTab === 'manage') {
+    if (isOpen) {
       fetchPermissions();
+      fetchVisibilitySettings();
     }
-  }, [isOpen, activeTab, resourceId]);
+  }, [isOpen, resourceId]);
 
   useEffect(() => {
     if (!loading) {
       setLocalIsPublic(isPublic);
     }
   }, [isPublic, loading]);
+  
+  // Function to fetch visibility settings from the server
+  const fetchVisibilitySettings = async () => {
+    setIsLoadingVisibility(true);
+    try {
+      const result = await getVisibilitySettings(resourceId, resourceType);
+      
+      if (result.success && result.visibilityConfig) {
+        setLocalVisibilityConfig(result.visibilityConfig);
+      } else {
+        throw new Error(result.error || 'Failed to fetch visibility settings');
+      }
+    } catch (error) {
+      console.error('Error fetching visibility settings:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load display settings',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingVisibility(false);
+    }
+  };
 
   const resourceTypeName = resourceType === 'WORKSPACE' ? 'Project' : 'Session';
+  
+  // Handler for visibility toggle changes
+  const handleVisibilityToggle = async (key: keyof ResultTabsVisibilityConfig) => {
+    if (!localVisibilityConfig) return;
+    
+    // Create updated config
+    const updatedConfig = {
+      ...localVisibilityConfig,
+      [key]: !localVisibilityConfig[key],
+    };
+    
+    // Store original config for rollback
+    const originalConfig = { ...localVisibilityConfig };
+    
+    // Update local state immediately for UI feedback
+    setLocalVisibilityConfig(updatedConfig);
+    
+    try {
+      // Save to database using server action
+      const result = await updateVisibilitySettings(resourceId, updatedConfig, resourceType);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update display settings');
+      }
+      
+      // Show success toast
+      toast({
+        title: 'Settings Updated',
+        description: 'Display settings have been saved',
+      });
+    } catch (error) {
+      console.error('Error updating visibility settings:', error);
+      
+      // Revert local state on error
+      setLocalVisibilityConfig(originalConfig);
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to update display settings',
+        variant: 'destructive',
+      });
+    }
+  };
+  
   const handlePublicToggle = async (checked: boolean) => {
     // Update local state immediately for UI feedback
     setLocalIsPublic(checked);
@@ -377,7 +472,7 @@ export default function ShareSettings({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {initialIsOpen === undefined && (
         <DialogTrigger asChild>
-          <Button variant="outline">
+          <Button>
             <Share2 className="w-4 h-4 mr-2" />
             Share
           </Button>
@@ -434,9 +529,10 @@ export default function ShareSettings({
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="invite">Invite Users</TabsTrigger>
             <TabsTrigger value="manage">Manage Access</TabsTrigger>
+            <TabsTrigger value="visibility">Content Display</TabsTrigger>
           </TabsList>
 
           <TabsContent value="invite" className="mt-4">
@@ -491,6 +587,112 @@ export default function ShareSettings({
             </div>
           </TabsContent>
 
+          <TabsContent value="visibility" className="mt-4">
+            <div className="space-y-4">
+              {isLoadingVisibility ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              ) : (
+                <>
+                  <div className="text-sm italic mb-4">Control which content is displayed to visitors:</div>
+                  
+                  <div className="flex items-center justify-between space-x-2">
+                    <label
+                      htmlFor="summary"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Show Summary
+                    </label>
+                    <Switch
+                      id="summary"
+                      checked={localVisibilityConfig?.showSummary}
+                      onCheckedChange={() => handleVisibilityToggle('showSummary')}
+                    />
+                  </div>
+                  
+                  {!isWorkspace && (
+                    <div className="flex items-center justify-between space-x-2">
+                      <label
+                        htmlFor="recap"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Show Session Recap
+                      </label>
+                      <Switch
+                        id="recap"
+                        checked={localVisibilityConfig?.showSessionRecap}
+                        onCheckedChange={() => handleVisibilityToggle('showSessionRecap')}
+                      />
+                    </div>
+                  )}
+                  
+                  {!isWorkspace && (
+                    <div className="flex items-center justify-between space-x-2">
+                      <label
+                        htmlFor="responses"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Show Responses
+                      </label>
+                      <Switch
+                        id="responses"
+                        checked={localVisibilityConfig?.showResponses}
+                        onCheckedChange={() => handleVisibilityToggle('showResponses')}
+                      />
+                    </div>
+                  )}
+                  
+                  {!isWorkspace && (
+                    <div className="flex items-center justify-between space-x-2">
+                      <label
+                        htmlFor="insights"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Show Custom Insights
+                      </label>
+                      <Switch
+                        id="insights"
+                        checked={localVisibilityConfig?.showCustomInsights}
+                        onCheckedChange={() => handleVisibilityToggle('showCustomInsights')}
+                      />
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between space-x-2">
+                    <label
+                      htmlFor="chat"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Show Chat
+                    </label>
+                    <Switch
+                      id="chat"
+                      checked={localVisibilityConfig?.showChat}
+                      onCheckedChange={() => handleVisibilityToggle('showChat')}
+                    />
+                  </div>
+                  
+                  {!isWorkspace && (
+                    <div className="flex items-center justify-between space-x-2">
+                      <label
+                        htmlFor="edit-insights"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Allow Editing Insights
+                      </label>
+                      <Switch
+                        id="edit-insights"
+                        checked={localVisibilityConfig?.allowCustomInsightsEditing}
+                        onCheckedChange={() => handleVisibilityToggle('allowCustomInsightsEditing')}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </TabsContent>
+          
           <TabsContent value="manage" className="mt-4">
             <div className="space-y-4">
               {isLoadingPermissions ? (
