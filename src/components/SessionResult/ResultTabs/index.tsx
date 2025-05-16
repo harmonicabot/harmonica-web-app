@@ -202,7 +202,7 @@ export default function ResultTabs({
               key={response.id}
               response={response}
               onRemove={
-                !loadingUserInfo && hasMinimumRole('editor')
+                !loadingUserInfo && (hasMinimumRole('editor') || visibilityConfig.allowCustomInsightsEditing)
                   ? removeResponse
                   : null
               }
@@ -298,7 +298,7 @@ export default function ResultTabs({
       message.role === 'assistant' &&
       key > 0 &&
       !loadingUserInfo &&
-      hasMinimumRole('editor') &&
+      (hasMinimumRole('editor') || visibilityConfig.allowCustomInsightsEditing) &&
       !isProject
     ) {
       return (
