@@ -115,7 +115,7 @@ return (
     ) : !showAnyContent && (
       <Card>
         <CardContent className="py-4">
-          Not enough responses to show a summary
+          Nothing here yet ¯\_(ツ)_/¯
         </CardContent>
       </Card>
     )}
