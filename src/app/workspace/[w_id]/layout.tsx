@@ -1,23 +1,11 @@
-import Link from 'next/link';
-
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-} from '@/components/ui/breadcrumb';
 import { Analytics } from '@vercel/analytics/react';
 import Providers from 'app/(dashboard)/providers';
-import { Footer } from '../Footer';
 
 export default function WorkspaceLayout({
   children,
-  params
 }: {
     children: React.ReactNode;
-    params: { w_id: string }
   }) {
-  const workspaceId = params.w_id;
 
   return (
     <Providers>
@@ -28,7 +16,6 @@ export default function WorkspaceLayout({
           </div>
         </div>
       </div>
-      <Footer workspaceId={workspaceId}/>
       <Analytics />
     </Providers>
   );
