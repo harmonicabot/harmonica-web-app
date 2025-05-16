@@ -87,31 +87,34 @@ export default function ResultTabs({
 
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
     useState(hasNewMessages);
-  
+
   // Participant Ids that should be included in the _summary_ and _simscore_ analysis
-  const updateIncludedInAnalysisList = useCallback((userSessionId: string, included: boolean) => {
-    const includedIds = userData
-      .filter((user) => user.include_in_summary)
-      .map((user) => user.id);
-    if (included) {
-      includedIds.push(userSessionId);
-    } else {
-      includedIds.splice(includedIds.indexOf(userSessionId), 1);
-    }
-    setUpdatedUserIds(includedIds);
-    db.updateUserSession(userSessionId, {
-      include_in_summary: included,
-    });
-    userData.find((user) => user.id === userSessionId)!.include_in_summary =
-      included;
+  const updateIncludedInAnalysisList = useCallback(
+    (userSessionId: string, included: boolean) => {
+      const includedIds = userData
+        .filter((user) => user.include_in_summary)
+        .map((user) => user.id);
+      if (included) {
+        includedIds.push(userSessionId);
+      } else {
+        includedIds.splice(includedIds.indexOf(userSessionId), 1);
+      }
+      setUpdatedUserIds(includedIds);
+      db.updateUserSession(userSessionId, {
+        include_in_summary: included,
+      });
+      userData.find((user) => user.id === userSessionId)!.include_in_summary =
+        included;
 
-    // Compare arrays ignoring order
-    const haveIncludedUsersChanged =
-      includedIds.length !== initialUserIds.length ||
-      !includedIds.every((id) => initialUserIds.includes(id));
+      // Compare arrays ignoring order
+      const haveIncludedUsersChanged =
+        includedIds.length !== initialUserIds.length ||
+        !includedIds.every((id) => initialUserIds.includes(id));
 
-    setNewSummaryContentAvailable(hasNewMessages || haveIncludedUsersChanged);
-  }, [userData, setUpdatedUserIds, initialUserIds, hasNewMessages]);
+      setNewSummaryContentAvailable(hasNewMessages || haveIncludedUsersChanged);
+    },
+    [userData, setUpdatedUserIds, initialUserIds, hasNewMessages],
+  );
 
   const hasAnyIncludedUserMessages = useMemo(
     () => userIdsIncludedInSummary.length > 0,
@@ -120,13 +123,16 @@ export default function ResultTabs({
 
   // Define available tabs and their visibility conditions in one place
   const availableTabs = useMemo(() => {
-    console.log('Computing available tabs!')
+    console.log('Computing available tabs!');
     return [
       {
         id: 'SUMMARY',
         label: 'Summary',
-        isVisible: visibilityConfig.showSummary || visibilityConfig.showSessionRecap || hasMinimumRole('editor'),
-        content:
+        isVisible:
+          visibilityConfig.showSummary ||
+          visibilityConfig.showSessionRecap ||
+          hasMinimumRole('editor'),
+        content: (
           <SessionResultSummary
             hostData={hostData}
             isProject={isProject}
@@ -137,14 +143,19 @@ export default function ResultTabs({
               setInitialUserIds(userIdsIncludedInSummary);
               setNewSummaryContentAvailable(false);
             }}
-            showSummary={(hasMinimumRole('editor') || visibilityConfig.showSummary) ?? true}
+            showSummary={
+              (hasMinimumRole('editor') || visibilityConfig.showSummary) ?? true
+            }
             showSessionRecap={visibilityConfig.showSessionRecap ?? true}
           />
+        ),
       },
       {
         id: 'RESPONSES',
         label: 'Responses',
-        isVisible: !isProject && (visibilityConfig.showResponses || hasMinimumRole('editor')),
+        isVisible:
+          !isProject &&
+          (visibilityConfig.showResponses || hasMinimumRole('editor')),
         content: draft ? (
           <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
             <div className="text-center space-y-4 max-w-md">
@@ -169,7 +180,9 @@ export default function ResultTabs({
       {
         id: 'KNOWLEDGE',
         label: 'Knowledge',
-        isVisible: !isProject && (visibilityConfig.showKnowledge || hasMinimumRole('editor')),
+        isVisible:
+          !isProject &&
+          (visibilityConfig.showKnowledge || hasMinimumRole('editor')),
         content: <SessionFilesTable sessionId={resourceId} />,
       },
       {
@@ -181,7 +194,9 @@ export default function ResultTabs({
       {
         id: 'CUSTOM',
         label: 'Custom Insights',
-        isVisible: customInsightsEnabled && (visibilityConfig.showCustomInsights || hasMinimumRole('editor')),
+        isVisible:
+          customInsightsEnabled &&
+          (visibilityConfig.showCustomInsights || hasMinimumRole('editor')),
         content: draft ? (
           <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
             <div className="text-center space-y-4 max-w-md">
@@ -199,7 +214,9 @@ export default function ResultTabs({
               key={response.id}
               response={response}
               onRemove={
-                !loadingUserInfo && (hasMinimumRole('editor') || visibilityConfig.allowCustomInsightsEditing)
+                !loadingUserInfo &&
+                (hasMinimumRole('editor') ||
+                  visibilityConfig.allowCustomInsightsEditing)
                   ? removeResponse
                   : null
               }
@@ -214,7 +231,9 @@ export default function ResultTabs({
       {
         id: 'SIMSCORE',
         label: 'SimScore Ranking',
-        isVisible: simScoreEnabled && (visibilityConfig.showSimScore || hasMinimumRole('editor')), // SimScore disabled
+        isVisible:
+          simScoreEnabled &&
+          (visibilityConfig.showSimScore || hasMinimumRole('editor')), // SimScore disabled
         content: draft ? (
           <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
             <div className="text-center space-y-4 max-w-md">
@@ -223,8 +242,8 @@ export default function ResultTabs({
               </h3>
               <p className="text-gray-500">
                 Statements from participants will be analyzed, semantically
-                compared and ranked. You can control content visibility in
-                the <i>{'Share > Content Display'}</i> section.
+                compared and ranked. You can control content visibility in the{' '}
+                <i>{'Share > Content Display'}</i> section.
               </p>
             </div>
           </Card>
@@ -234,17 +253,17 @@ export default function ResultTabs({
       },
     ];
   }, [
-    hasMinimumRole, 
+    hasMinimumRole,
     hasAnyIncludedUserMessages,
     newSummaryContentAvailable,
     userIdsIncludedInSummary,
-    responses
+    responses,
   ]);
 
   // Get visible tabs
-  const visibleTabs = useMemo(() =>
-    availableTabs.filter(tab => tab.isVisible),
-    [availableTabs]
+  const visibleTabs = useMemo(
+    () => availableTabs.filter((tab) => tab.isVisible),
+    [availableTabs],
   );
 
   // Set initial active tab to the first visible tab
@@ -295,7 +314,8 @@ export default function ResultTabs({
       message.role === 'assistant' &&
       key > 0 &&
       !loadingUserInfo &&
-      (hasMinimumRole('editor') || visibilityConfig.allowCustomInsightsEditing) &&
+      (hasMinimumRole('editor') ||
+        visibilityConfig.allowCustomInsightsEditing) &&
       !isProject
     ) {
       return (
@@ -321,7 +341,10 @@ export default function ResultTabs({
 
   // If all tabs are disabled, or no replies are available yet, show some empty message.
   // (For new workspaces, we'll show a placeholder instead of this)
-  if (visibleTabs.length === 0 || (!hasAnyIncludedUserMessages && !draft && !hasMinimumRole('editor'))) {
+  if (
+    visibleTabs.length === 0 ||
+    (!hasAnyIncludedUserMessages && !draft && !hasMinimumRole('editor'))
+  ) {
     return (
       <Card className="w-full">
         <CardContent className="text-center">
@@ -340,25 +363,13 @@ export default function ResultTabs({
       <div className="flex justify-between items-center w-full">
         <div className="flex items-center">
           <TabsList>
-            {visibleTabs.map(tab => (
+            {visibleTabs.map((tab) => (
               <TabsTrigger key={tab.id} className="ms-0" value={tab.id}>
                 {tab.label}
               </TabsTrigger>
             ))}
           </TabsList>
         </div>
-
-        {/* Prompt Settings button in the top right, same line as tabs */}
-        {hasMinimumRole('editor') && !isProject && hostData[0] && (
-          <div className="flex-shrink-0 flex items-center">
-            <PromptSettings
-              sessionId={resourceId}
-              currentPrompt={hostData[0].prompt || ''}
-              summaryPrompt={hostData[0].prompt_summary || ''}
-              onPromptChange={handlePromptChange}
-            />
-          </div>
-        )}
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 w-full">
@@ -368,17 +379,19 @@ export default function ResultTabs({
             <ResizablePanel defaultSize={66}>
               <div className="overflow-auto">
                 {/* Render the active tab content */}
-                {visibleTabs.map(tab => (
+                {visibleTabs.map((tab) => (
                   <TabContent key={tab.id} value={tab.id}>
                     {tab.content}
                   </TabContent>
                 ))}
-                
+
                 {/* Export button for custom insights */}
                 {activeTab === 'CUSTOM' && responses.length > 0 && (
                   <div className="mt-4 flex justify-end">
                     <ExportButton
-                      content={responses.map((r) => r.content).join('\n\n---\n\n')}
+                      content={responses
+                        .map((r) => r.content)
+                        .join('\n\n---\n\n')}
                       className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
                     >
                       Export All Insights
@@ -429,12 +442,12 @@ export default function ResultTabs({
         <div className="md:hidden w-full flex flex-col gap-4">
           {/* Render the active tab content for mobile */}
           <div className="w-full">
-            {visibleTabs.map(tab => (
+            {visibleTabs.map((tab) => (
               <TabContent key={tab.id} value={tab.id}>
                 {tab.content}
               </TabContent>
             ))}
-            
+
             {/* Export button for custom insights on mobile */}
             {activeTab === 'CUSTOM' && responses.length > 0 && (
               <div className="mt-4 flex justify-end">
@@ -447,7 +460,7 @@ export default function ResultTabs({
               </div>
             )}
           </div>
-          
+
           {visibilityConfig.showChat && (
             <div className="w-full">
               {draft ? (

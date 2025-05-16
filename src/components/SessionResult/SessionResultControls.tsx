@@ -10,28 +10,54 @@ import { cloneSession } from '@/lib/serverUtils';
 import { useRouter } from 'next/navigation';
 import { toast } from 'hooks/use-toast';
 import { encryptId } from '@/lib/encryptionUtils';
+import { PromptSettings } from './ResultTabs/components/PromptSettings';
 
 interface SessionResultControlsProps {
   id: string;
   isFinished: boolean;
   readyToGetSummary: boolean;
+  currentPrompt?: string;
+  summaryPrompt?: string;
 }
 
 export default function SessionResultControls({
   id,
   isFinished,
   readyToGetSummary,
+  currentPrompt = '',
+  summaryPrompt = '',
 }: SessionResultControlsProps) {
   const [loadSummary, setLoadSummary] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
   const router = useRouter();
+
+  const handlePromptChange = async (
+    newPrompt: string,
+    type: 'facilitation' | 'summary',
+  ) => {
+    try {
+      const updateData =
+        type === 'facilitation'
+          ? { prompt: newPrompt }
+          : { prompt_summary: newPrompt };
+
+      await db.updateHostSession(id, updateData);
+    } catch (error) {
+      console.error('Failed to update prompt:', error);
+      toast({
+        title: 'Failed to update prompt',
+        description: 'An error occurred while updating the prompt.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const finishSession = async () => {
     await db.deactivateHostSession(id);
   };
 
   const reopenSession = async () => {
-    console.log('Reopening session')
+    console.log('Reopening session');
     await db.updateHostSession(id, { active: true });
   };
 
@@ -81,7 +107,7 @@ export default function SessionResultControls({
       <CardContent>
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={() => isFinished ? reopenSession() : finishSession()}
+            onClick={() => (isFinished ? reopenSession() : finishSession())}
             disabled={loadSummary || isCloning}
           >
             {isFinished ? 'Reopen' : 'Finish'}
@@ -92,7 +118,7 @@ export default function SessionResultControls({
               onClick={updateSummary}
               disabled={loadSummary || isCloning}
             >
-              Update Summary
+              Refresh Summary
               {loadSummary && (
                 <LoaderCircle className="ml-2 w-4 h-4 animate-spin" />
               )}
@@ -111,6 +137,12 @@ export default function SessionResultControls({
             )}
             Clone Session
           </Button>
+          <PromptSettings
+            sessionId={id}
+            currentPrompt={currentPrompt}
+            summaryPrompt={summaryPrompt}
+            onPromptChange={handlePromptChange}
+          />
         </div>
       </CardContent>
     </Card>

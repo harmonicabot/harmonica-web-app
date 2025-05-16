@@ -11,7 +11,6 @@ import { MessageSquare, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import * as db from '@/lib/db';
 
 interface PromptSettingsProps {
   sessionId: string;
@@ -65,9 +64,9 @@ export function PromptSettings({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="ml-2">
+        <Button variant="outline">
           <MessageSquare className="h-4 w-4 mr-2" />
-          AI Prompts
+          Edit Prompts
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[800px] h-[80vh] max-h-[800px]">
