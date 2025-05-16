@@ -9,12 +9,8 @@ import {
   Workspace,
 } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
-import { Button } from '@/components/ui/button';
-import { updateWorkspaceDetails } from './actions';
 import { useEffect, useState } from 'react';
 import { ExtendedWorkspaceData } from '@/lib/types';
-import * as db from '@/lib/db';
-import { useRouter } from 'next/navigation';
 import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 
 // Default visibility configuration for workspaces
@@ -37,7 +33,6 @@ export default function WorkspaceContent({
   extendedWorkspaceData,
   workspaceId,
 }: WorkspaceContentProps) {
-  const router = useRouter();
   const initialWorkspaceData = extendedWorkspaceData?.workspace;
   const [workspaceData, setWorkspaceData] = useState<Workspace | NewWorkspace>(
     initialWorkspaceData
@@ -57,20 +52,6 @@ export default function WorkspaceContent({
       ...updates,
     }));
   };
-
-  const handleDelete = async () => {
-    if (
-      confirm(
-        `Are you sure you want to delete this project?`
-      )
-    ) {
-      await db.updateWorkspace(workspaceId, { status: 'deleted' }).then(() => {
-        console.log("Marked for deletion, redirecting to dashboard")
-        router.replace('/');
-      });
-    }
-    return false;
-  }
 
   const { hasMinimumRole, loading: loadingUserInfo, isPublic } =
     usePermissions(workspaceId);
@@ -103,7 +84,7 @@ export default function WorkspaceContent({
           initialGradientFrom={workspaceData?.gradientFrom}
           initialGradientTo={workspaceData?.gradientTo}
           initialUseGradient={workspaceData?.useGradient}
-          isEditable={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
+          isEditable={!exists || (!loadingUserInfo && hasMinimumRole('editor'))}
           onUpdate={handleWorkspaceUpdate}
         />
         {!loadingUserInfo && hasMinimumRole('editor') && (
@@ -148,17 +129,6 @@ Here are some questions you might want to ask:
             availableSessions={extendedWorkspaceData.availableSessions}
           />
           </ResultTabs>
-      </div>
-
-      <div className="flex justify-end mt-4">
-        {hasMinimumRole('owner') && (
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-          >
-            Delete Project
-          </Button>
-        )}
       </div>
     </>
   );

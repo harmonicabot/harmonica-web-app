@@ -12,9 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useState, useCallback } from 'react';
-import { updateWorkspaceDetails } from 'app/workspace/[w_id]/actions';
+import { deleteWorkspace, updateWorkspaceDetails } from 'app/workspace/[w_id]/actions';
 import { useDropzone } from 'react-dropzone';
-import { Workspace, WorkspaceUpdate } from '@/lib/schema';
+import { WorkspaceUpdate } from '@/lib/schema';
+import { useRouter } from 'next/navigation';
 
 interface WorkspaceHeroProps {
   workspaceId: string;
@@ -53,6 +54,7 @@ export default function WorkspaceHero({
   const [values, setValues] = useState({ title, description, location });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const router = useRouter();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -131,6 +133,18 @@ export default function WorkspaceHero({
     }
     setIsEditing(false);
   };
+
+  const handleDelete = async () => {
+    if (
+      confirm(
+        `Are you sure you want to delete this project?`
+      )
+    ) {
+      await deleteWorkspace(workspaceId)
+      router.replace('/');
+    }
+    return false;
+  }
 
   const content = (
     <div
@@ -313,11 +327,18 @@ export default function WorkspaceHero({
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsEditing(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave}>Save Changes</Button>
+          <div className="flex justify-between">
+            <div className="flex">
+                <Button variant="destructive" onClick={handleDelete}>
+                  Delete Project
+                </Button>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsEditing(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave}>Save Changes</Button>
+            </div>
           </div>
         </div>
       </DialogContent>
