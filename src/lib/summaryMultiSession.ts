@@ -115,7 +115,7 @@ ${sessionsData[sessionIndex]?.critical ? `Key Points: ${sessionsData[sessionInde
 ${messagesContent}
 `;
 
-    const summaryPrompt = await getPromptInstructions('SUMMARY_PROMPT');
+    const summaryPrompt = await getPromptInstructions('PROJECT_SUMMARY_PROMPT');
 
     const response = await chatEngine.chat({
       messages: [

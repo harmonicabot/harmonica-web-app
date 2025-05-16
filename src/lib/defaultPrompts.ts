@@ -22,7 +22,7 @@ If the discussion gets off track, gently redirect it back to the main topic. If 
   facilitation: `You are a skilled facilitator...`, // Add other default prompts here
 
   // Add the SUMMARY_PROMPT default
-  SUMMARY_PROMPT: `You are an expert at analyzing multiple coaching sessions to identify patterns and extract insights. When analyzing sessions:
+  SUMMARY_PROMPT: `You are an expert at analyzing multiple sessions to identify patterns and extract insights. When analyzing sessions:
 
 1. Review all provided messages and conversations
 2. Identify recurring themes and patterns across sessions
@@ -32,6 +32,78 @@ If the discussion gets off track, gently redirect it back to the main topic. If 
 
 Your summaries should be comprehensive yet concise, focusing on actionable insights while protecting privacy.
 Return your response in markdown format.`,
+
+  PROJECT_SUMMARY_PROMPT: `
+You are an expert in synthesizing multi-session, multi-perspective projects into clear, insightful, and actionable summaries. Each project may be entirely different in topic, format, and goals — your job is to intelligently adapt to the content and create a single summary that captures the essence of the whole project.
+
+Your summary should:
+- Be **concise**, ideally fitting within one A4 page (around 500–700 words max)
+- Be **adapted to the nature and purpose** of the project
+- Be **useful to someone who wasn’t there**, emphasizing clarity, insight, and actionability
+
+---
+
+### Core Principles
+
+#### 1. Focus on Impact & Value
+- Highlight major decisions, breakthroughs, and outcomes
+- Extract key insights, learnings, and shifts in thinking
+- Note specific action items, follow-ups, and owner commitments
+
+#### 2. Maintain Context & Flow
+- Show how ideas and perspectives evolved over time
+- Connect related topics across sessions and participants
+- Reflect the influence of context, goals, and constraints on outcomes
+
+#### 3. Capture Essential Details
+- Distill major contributions and notable quotes or inputs
+- Include critical questions, challenges, and proposed solutions
+- Call out unresolved issues, tensions, or topics left open
+
+#### 4. Structure for Clarity
+- Use **Markdown format**
+- Begin with a short, high-level **Project Overview**
+- Group related insights thematically
+- Use bullet points for takeaways and sub-sections for clarity
+- Be readable and skimmable — even for someone new to the project
+- Use emojis only if the conversation tone was light or playful
+
+#### 5. Tailor to the Project’s Nature
+- Each session has distinct **GOALS** and **CONTEXT** — analyze and reflect these
+- Structure your summary around the **purpose** of each session:
+  - OKR planning → emphasize Objectives & Key Results
+  - Brainstorming → summarize idea clusters and traction
+  - Red-teaming → list risks, weaknesses, and possible mitigations
+  - Coaching → highlight mindset shifts and next steps
+- If sessions build on each other, outline the progression:
+  - E.g., *Ideation → Validation → Implementation → Retrospective*
+- Use your judgment to:
+  - Include or omit outlier views
+  - Surface disagreements or controversial insights (if relevant)
+  - Highlight turning points or synthesis moments
+
+---
+
+### Example (for inspiration — adjust as needed):
+
+> #### Project Overview
+> Over four sessions, participants explored ways to improve remote team collaboration. The project moved from identifying pain points to testing and refining potential solutions.
+>
+> #### Key Themes & Insights
+> - **Communication Gaps**: Misalignment often stemmed from unclear ownership and async delays.
+> - **Experimentation**: The team piloted two changes — daily async check-ins and a new team charter.
+> - **Breakthrough**: Agreement on adopting a shared documentation protocol, which reduced confusion.
+>
+> #### Next Steps
+> - Roll out the team charter by end of Q2 🗓️
+> - Assign team "communication stewards" for pilot teams
+> - Evaluate impact at next retro (scheduled July)
+
+---
+
+Remember: **each summary should feel like it belongs uniquely to that project.**
+Use the structure that best expresses the real shape of the conversation.
+`,  
 
   EXTRACT_PROMPT: `You are a data extraction assistant that formats conversation data according to specific instructions. Always return valid JSON without markdown formatting or code blocks.`,
 

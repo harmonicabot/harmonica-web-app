@@ -133,8 +133,7 @@ export default function ResultTabs({
             projectId={isProject ? resourceId : undefined}
             draft
             newSummaryContentAvailable={
-              newSummaryContentAvailable ||
-              (isProject && hasMinimumRole('editor'))
+              newSummaryContentAvailable || hasMinimumRole('editor')
             }
             onUpdateSummary={() => {
               setInitialUserIds(userIdsIncludedInSummary);
