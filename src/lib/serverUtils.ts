@@ -110,7 +110,7 @@ export async function hasAccessToResource(
 
 // Create a summary for a single session
 export async function createSummary(sessionId: string) {
-  const summary = await generateMultiSessionSummary([sessionId]);
+  const summary = await generateMultiSessionSummary([sessionId], 'SUMMARY_PROMPT');
   console.log('Generated summary:', summary);
   await db.updateHostSession(sessionId, {
     summary: summary.toString(),
@@ -124,7 +124,7 @@ export async function createMultiSessionSummary(
   sessionIds: string[],
   workspaceId: string,
 ) {
-  const summary = await generateMultiSessionSummary(sessionIds);
+  const summary = await generateMultiSessionSummary(sessionIds, 'PROJECT_SUMMARY_PROMPT');
 
   await db.updateWorkspace(workspaceId, {
     summary: summary.toString(),

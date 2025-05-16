@@ -2,7 +2,7 @@ import * as db from '@/lib/db';
 import { getLLM } from '@/lib/modelConfig';
 import { getPromptInstructions } from '@/lib/promptsCache';
 
-export async function generateMultiSessionSummary(sessionIds: string[]) {
+export async function generateMultiSessionSummary(sessionIds: string[], promptInstructions: string) {
   console.log('[i] Generating multi-session summary for sessions:', sessionIds);
   try {
     // Get session context and objective data for all sessions
@@ -115,7 +115,7 @@ ${sessionsData[sessionIndex]?.critical ? `Key Points: ${sessionsData[sessionInde
 ${messagesContent}
 `;
 
-    const summaryPrompt = await getPromptInstructions('SUMMARY_PROMPT');
+    const summaryPrompt = await getPromptInstructions(promptInstructions);
 
     const response = await chatEngine.chat({
       messages: [
