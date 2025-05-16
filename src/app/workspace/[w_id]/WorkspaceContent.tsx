@@ -108,7 +108,10 @@ export default function WorkspaceContent({
         />
         {!loadingUserInfo && hasMinimumRole('editor') && (
           <div className="flex items-center gap-4 self-end mt-4">
-            <ShareSettings resourceId={workspaceId} resourceType="WORKSPACE" />
+            <ShareSettings 
+              resourceId={workspaceId} 
+              resourceType="WORKSPACE" 
+            />
           </div>
         )}
       </div>
