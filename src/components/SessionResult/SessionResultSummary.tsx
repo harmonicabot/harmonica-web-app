@@ -1,9 +1,11 @@
+'use client'
 import { HostSession } from '@/lib/schema';
 import { useEffect, useState } from 'react';
 import { createMultiSessionSummary, createSummary } from '@/lib/serverUtils';
 import { ExpandableWithExport } from './ExpandableWithExport';
 import * as db from '@/lib/db';
 import { Card, CardContent } from '../ui/card';
+import { usePermissions } from '@/lib/permissions';
 
 interface SessionResultSummaryProps {
   hostData: HostSession[];
@@ -33,6 +35,9 @@ export default function SessionResultSummary({
     isProject ? '' : hostData[0]?.summary || '',
   );
 
+  const resourceId: string = isProject ? projectId! : hostData[0].id;
+  const { hasMinimumRole } = usePermissions(resourceId);
+
   const triggerSummaryUpdate = () => {
     setIsUpdating(true);
     if (isProject) {
@@ -54,7 +59,6 @@ export default function SessionResultSummary({
   };
 
   useEffect(() => {
-    // if (isWorkspace) triggerSummaryUpdate();
     if (isProject && projectId && !draft) {
       db.getWorkspaceSummary(projectId!).then((summary) => {
         if (summary) {
@@ -91,7 +95,7 @@ return (
         content={summary}
         isExpanded={isExpandedSummary}
         onExpandedChange={setIsExpandedSummary}
-        showRefreshButton={newSummaryContentAvailable || !summary}
+        showRefreshButton={newSummaryContentAvailable || !summary || hasMinimumRole('editor')}
         onRefresh={triggerSummaryUpdate}
         isUpdating={isUpdating}
         loading={!summary}
