@@ -69,19 +69,19 @@ export function PromptSettings({
           Edit Prompts
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[800px] h-[80vh] max-h-[800px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[800px] h-[80vh] max-h-[800px] flex flex-col p-4">
+        <DialogHeader className="pb-2">
           <DialogTitle className="text-xl font-semibold">
             AI Prompt Settings
           </DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4 h-full">
+        <div className="flex-1 flex flex-col min-h-0">
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
-            className="w-full"
+            className="flex-1 flex flex-col min-h-0"
           >
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 mb-2">
               <TabsTrigger
                 value="facilitation"
                 className="flex items-center gap-2"
@@ -95,38 +95,49 @@ export function PromptSettings({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="facilitation" className="mt-4">
-              <div className="grid gap-2 flex-1">
-                <Label htmlFor="facilitation-prompt" className="text-base">
-                  Facilitation Prompt
-                </Label>
-                <Textarea
-                  id="facilitation-prompt"
-                  value={facilitationPrompt}
-                  onChange={(e) => setFacilitationPrompt(e.target.value)}
-                  className="min-h-[500px] text-base p-4 font-mono"
-                  placeholder="Enter your facilitation prompt..."
-                />
-              </div>
-            </TabsContent>
+            <div className="flex-1 flex flex-col min-h-0">
+              <TabsContent
+                value="facilitation"
+                className="flex-1 flex flex-col min-h-0 data-[state=inactive]:hidden"
+              >
+                <div className="flex-1 flex flex-col min-h-0">
+                  <Label
+                    htmlFor="facilitation-prompt"
+                    className="text-base mb-1"
+                  >
+                    Facilitation Prompt
+                  </Label>
+                  <Textarea
+                    id="facilitation-prompt"
+                    value={facilitationPrompt}
+                    onChange={(e) => setFacilitationPrompt(e.target.value)}
+                    className="flex-1 text-base p-4 font-mono resize-none"
+                    placeholder="Enter your facilitation prompt..."
+                  />
+                </div>
+              </TabsContent>
 
-            <TabsContent value="summary" className="mt-4">
-              <div className="grid gap-2 flex-1">
-                <Label htmlFor="summary-prompt" className="text-base">
-                  Summary Prompt
-                </Label>
-                <Textarea
-                  id="summary-prompt"
-                  value={summaryPromptText}
-                  onChange={(e) => setSummaryPromptText(e.target.value)}
-                  className="min-h-[500px] text-base p-4 font-mono"
-                  placeholder="Enter your summary prompt..."
-                />
-              </div>
-            </TabsContent>
+              <TabsContent
+                value="summary"
+                className="flex-1 flex flex-col min-h-0 data-[state=inactive]:hidden"
+              >
+                <div className="flex-1 flex flex-col min-h-0">
+                  <Label htmlFor="summary-prompt" className="text-base mb-1">
+                    Summary Prompt
+                  </Label>
+                  <Textarea
+                    id="summary-prompt"
+                    value={summaryPromptText}
+                    onChange={(e) => setSummaryPromptText(e.target.value)}
+                    className="flex-1 text-base p-4 font-mono resize-none"
+                    placeholder="Enter your summary prompt..."
+                  />
+                </div>
+              </TabsContent>
+            </div>
           </Tabs>
 
-          <div className="flex justify-end gap-2 mt-4">
+          <div className="flex justify-end gap-2 mt-2">
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancel
             </Button>
