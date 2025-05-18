@@ -172,15 +172,19 @@ export async function upsertHostSession(
 export async function updateHostSession(
   id: string,
   data: s.HostSessionUpdate,
-): Promise<void> {
+): Promise<s.HostSession> {
   const db = await dbPromise;
   try {
     console.log('Updating host session with id:', id, ' with data:', data);
-    await db
+    const result = await db
       .updateTable(hostTableName)
       .set(data as any)
       .where('id', '=', id)
-      .execute();
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    console.log('Updated host session result:', result);
+    return result;
   } catch (error) {
     console.error('Error updating host session:', error);
     throw error;
@@ -581,11 +585,11 @@ export async function hasWorkspace(id: string): Promise<boolean> {
   try {
     const db = await dbPromise;
     const result = await db
-    .selectFrom('workspaces')
-    .select('id')
-    .where('id', '=', id)
-    .executeTakeFirst();
-    
+      .selectFrom('workspaces')
+      .select('id')
+      .where('id', '=', id)
+      .executeTakeFirst();
+
     console.log(`Does workspace ${id} exist? `, result !== undefined);
     return result !== undefined;
   } catch (error) {
@@ -656,22 +660,24 @@ export async function upsertWorkspace(
 ): Promise<s.Workspace | null> {
   try {
     const db = await dbPromise;
-    
+
     // First check if the workspace exists
     const existingWorkspace = await db
       .selectFrom('workspaces')
       .select('id')
       .where('id', '=', id)
       .executeTakeFirst();
-    
+
     if (existingWorkspace) {
       // Workspace exists, update it
-      return await db
-        .updateTable('workspaces')
-        .set(data)
-        .where('id', '=', id)
-        .returningAll()
-        .executeTakeFirst() || null;
+      return (
+        (await db
+          .updateTable('workspaces')
+          .set(data)
+          .where('id', '=', id)
+          .returningAll()
+          .executeTakeFirst()) || null
+      );
     } else {
       // Workspace doesn't exist, create it
       // Make sure we have all required fields for a new workspace
@@ -684,23 +690,23 @@ export async function upsertWorkspace(
         created_at: new Date(),
         ...data, // Include any other fields from data
       };
-      
+
       const result = await db
         .insertInto('workspaces')
         .values(newWorkspace)
         .returningAll()
         .executeTakeFirst();
-      
+
       if (result) {
         // Set permissions for the current user
         const session = await authGetSession();
         const userSub = session?.user?.sub;
-        
+
         if (userSub) {
           await setPermission(id, 'owner', 'WORKSPACE', userSub);
         }
       }
-      
+
       return result || null;
     }
   } catch (error) {
@@ -708,7 +714,6 @@ export async function upsertWorkspace(
     return null;
   }
 }
-
 
 export async function deleteWorkspace(id: string): Promise<boolean> {
   try {
@@ -778,8 +783,10 @@ export async function getWorkspaceSessionIds(
   }
 }
 
-export async function getWorkspacesForSession(sessionId: string): Promise<Pick<s.Workspace, 'id' | 'title'>[]> {
-  console.log(`Getting workspaces for `, sessionId)
+export async function getWorkspacesForSession(
+  sessionId: string,
+): Promise<Pick<s.Workspace, 'id' | 'title'>[]> {
+  console.log(`Getting workspaces for `, sessionId);
   try {
     const db = await dbPromise;
     const workspaces = await db
@@ -787,18 +794,15 @@ export async function getWorkspacesForSession(sessionId: string): Promise<Pick<s
       .innerJoin(
         workspaceSessionsTableName,
         `${workspaceSessionsTableName}.workspace_id`,
-        `${workspaceTableName}.id`
+        `${workspaceTableName}.id`,
       )
       .where(`${workspaceSessionsTableName}.session_id`, '=', sessionId)
-      .select([
-        `${workspaceTableName}.id`,
-        `${workspaceTableName}.title`
-      ])
+      .select([`${workspaceTableName}.id`, `${workspaceTableName}.title`])
       .execute();
-    
+
     return workspaces;
   } catch (error) {
-    console.error("Error getting workspaces for session:", error);
+    console.error('Error getting workspaces for session:', error);
     return [];
   }
 }
