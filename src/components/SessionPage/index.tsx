@@ -20,6 +20,7 @@ export default function SessionPage({
   chatEntryMessage,
 }: SessionPageProps) {
   const { hostData, usersWithChat, stats } = data;
+  console.log('Host session data:', hostData); // Add logging to verify the data
 
   const status =
     !hostData.active || hostData.final_report_sent
@@ -44,6 +45,7 @@ export default function SessionPage({
         showShare={showShare}
         currentPrompt={hostData.prompt}
         summaryPrompt={hostData.prompt_summary}
+        crossPollination={hostData.cross_pollination}
       />
       <SessionResultsSection
         hostData={hostData}

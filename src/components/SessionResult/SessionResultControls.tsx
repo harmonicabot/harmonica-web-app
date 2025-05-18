@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoaderCircle, Settings, Copy } from 'lucide-react';
+import { LoaderCircle, Settings, Copy, InfoIcon } from 'lucide-react';
 import * as db from '@/lib/db';
 import { createSummary } from '@/lib/serverUtils';
 import { cloneSession } from '@/lib/serverUtils';
@@ -11,6 +11,13 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'hooks/use-toast';
 import { encryptId } from '@/lib/encryptionUtils';
 import { PromptSettings } from './ResultTabs/components/PromptSettings';
+import { Switch } from '@/components/ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface SessionResultControlsProps {
   id: string;
@@ -18,6 +25,7 @@ interface SessionResultControlsProps {
   readyToGetSummary: boolean;
   currentPrompt?: string;
   summaryPrompt?: string;
+  crossPollination?: boolean;
 }
 
 export default function SessionResultControls({
@@ -26,9 +34,12 @@ export default function SessionResultControls({
   readyToGetSummary,
   currentPrompt = '',
   summaryPrompt = '',
+  crossPollination = true,
 }: SessionResultControlsProps) {
   const [loadSummary, setLoadSummary] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
+  const [localCrossPollination, setLocalCrossPollination] =
+    useState(crossPollination);
   const router = useRouter();
 
   const handlePromptChange = async (
@@ -47,6 +58,36 @@ export default function SessionResultControls({
       toast({
         title: 'Failed to update prompt',
         description: 'An error occurred while updating the prompt.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleCrossPollination = async (checked: boolean) => {
+    try {
+      // Update local state immediately for responsive UI
+      setLocalCrossPollination(checked);
+
+      // Update database
+      await db.updateHostSession(id, { cross_pollination: checked });
+
+      // Show success toast
+      toast({
+        title: 'Cross-pollination setting updated',
+        description: checked
+          ? "Participants can now see each other's responses"
+          : "Participants can no longer see each other's responses",
+      });
+
+      // Refresh the page to ensure all components reflect the new state
+      router.refresh();
+    } catch (error) {
+      // Revert local state on error
+      setLocalCrossPollination(!checked);
+      console.error('Failed to update cross-pollination:', error);
+      toast({
+        title: 'Failed to update setting',
+        description: 'An error occurred while updating cross-pollination.',
         variant: 'destructive',
       });
     }
@@ -104,7 +145,7 @@ export default function SessionResultControls({
           <Settings className="w-4 h-4 text-muted-foreground" />
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={() => (isFinished ? reopenSession() : finishSession())}
@@ -120,7 +161,7 @@ export default function SessionResultControls({
             >
               Refresh Summary
               {loadSummary && (
-                <LoaderCircle className="ml-2 w-4 h-4 animate-spin" />
+                <LoaderCircle className="ml-2 h-4 w-4 animate-spin" />
               )}
             </Button>
           )}
@@ -131,9 +172,9 @@ export default function SessionResultControls({
             disabled={isCloning}
           >
             {isCloning ? (
-              <LoaderCircle className="mr-2 w-4 h-4 animate-spin" />
+              <LoaderCircle className="mr-2 w-4 w-4 animate-spin" />
             ) : (
-              <Copy className="mr-2 w-4 h-4" />
+              <Copy className="mr-2 h-4 w-4" />
             )}
             Clone Session
           </Button>
@@ -142,6 +183,29 @@ export default function SessionResultControls({
             currentPrompt={currentPrompt}
             summaryPrompt={summaryPrompt}
             onPromptChange={handlePromptChange}
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Cross Pollination</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <InfoIcon className="h-4 w-4 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[300px]">
+                <p>
+                  Enable cross-pollination to allow participants to see and
+                  build upon each other's responses. This feature promotes
+                  collaborative thinking and can lead to more diverse and
+                  innovative ideas.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <Switch
+            checked={localCrossPollination}
+            onCheckedChange={handleCrossPollination}
           />
         </div>
       </CardContent>
