@@ -100,13 +100,15 @@ export async function generateSession(config: SessionConfig) {
 
     while (turnCount < config.maxTurns) {
       // Generate question using GPT utils with last user message
-      const questionResponse = await llama.handleGenerateAnswer({
-        threadId,
-        messageText: lastUserMessage,
-        sessionId: config.sessionId,
-        systemPrompt: userContextPrompt,
-        crossPollination: true,
-      });
+      const questionResponse = await llama.handleGenerateAnswer(
+        {
+          threadId,
+          messageText: lastUserMessage,
+          sessionId: config.sessionId,
+          systemPrompt: userContextPrompt,
+        },
+        true,
+      );
 
       // Store AI question
       await db.insertChatMessage({
