@@ -19,6 +19,7 @@ import { useToast } from 'hooks/use-toast';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { processFileForQdrant } from 'actions/process-file';
+import { extractTextFromPDF } from 'actions/pdf-processor';
 
 type FilePurpose = 'TRANSCRIPT' | 'KNOWLEDGE';
 
@@ -46,6 +47,13 @@ export default function ImportResponsesModal({
   };
 
   const readFileContent = async (file: File): Promise<string> => {
+    if (file.type === 'application/pdf') {
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const pdfData = Array.from(uint8Array);
+      return extractTextFromPDF(pdfData);
+    }
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -81,49 +89,66 @@ export default function ImportResponsesModal({
     setIsUploading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('sessionId', sessionId);
+      if (file.type === 'application/pdf') {
+        // For PDFs, extract text and process with Qdrant
+        const fileContent = await readFileContent(file);
 
-      const uploadResult = await uploadFile(formData);
-
-      // Read file content for analysis and Qdrant storage
-      let fileContent: string | undefined;
-      try {
-        fileContent = await readFileContent(file);
-
-        // Process and store in Qdrant
+        // Process extracted text with Qdrant
         await processFileForQdrant({
           sessionId,
           fileContent,
           fileName: file.name,
           filePurpose,
         });
-      } catch (error) {
-        console.error('Error processing file:', error);
+
+        // Save metadata without file URL since we don't store PDFs
+        await saveFileMetadata({
+          sessionId,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          fileUrl: '', // No URL since we don't store PDFs
+          uploadedBy: user?.sub,
+          filePurpose,
+          fileContent,
+        });
+
         toast({
-          title: 'Warning',
-          description: 'Could not process file content for analysis',
-          variant: 'destructive',
+          title: 'PDF processed successfully',
+          description: 'Text has been extracted and processed.',
+        });
+      } else {
+        // For other files, upload and process as before
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('sessionId', sessionId);
+
+        const uploadResult = await uploadFile(formData);
+        const fileContent = await readFileContent(file);
+
+        await processFileForQdrant({
+          sessionId,
+          fileContent,
+          fileName: file.name,
+          filePurpose,
+        });
+
+        await saveFileMetadata({
+          sessionId,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          fileUrl: uploadResult.url,
+          uploadedBy: user?.sub,
+          filePurpose,
+          fileContent,
+        });
+
+        toast({
+          title: 'File uploaded successfully',
+          description: `${file.name} has been uploaded and processed.`,
         });
       }
-
-      // Save file metadata to database
-      await saveFileMetadata({
-        sessionId,
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        fileUrl: uploadResult.url,
-        uploadedBy: user?.sub,
-        filePurpose,
-        fileContent,
-      });
-
-      toast({
-        title: 'File uploaded successfully',
-        description: `${file.name} has been uploaded and will be processed.`,
-      });
 
       // Close the modal and reset state
       onOpenChange(false);
