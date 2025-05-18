@@ -2,30 +2,24 @@
 
 import ResultTabs from '@/components/SessionResult/ResultTabs';
 import WorkspaceHero from '@/components/workspace/WorkspaceHero';
-import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
-import ShareWorkspace from '@/components/workspace/ShareWorkspace';
-import { NewWorkspace, ResultTabsVisibilityConfig, Workspace } from '@/lib/schema';
+import ShareSettings from '@/components/ShareSettings';
+import {
+  NewWorkspace,
+  ResultTabsVisibilityConfig,
+  Workspace,
+} from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
-import { Button } from '@/components/ui/button';
-import { updateWorkspaceDetails } from './actions';
 import { useEffect, useState } from 'react';
 import { ExtendedWorkspaceData } from '@/lib/types';
-import { Label } from '@/components/ui/label';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Switch } from '@/components/ui/switch';
+import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 
 // Default visibility configuration for workspaces
 const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
   showSummary: true,
-  showParticipants: true,
-  showCustomInsights: true,
+  showResponses: true,
+  showCustomInsights: false,
   showChat: true,
-  showSimScore: true,
+  showSimScore: false,
   allowCustomInsightsEditing: true,
   showSessionRecap: true,
 };
@@ -33,13 +27,11 @@ const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
 interface WorkspaceContentProps {
   extendedWorkspaceData: ExtendedWorkspaceData;
   workspaceId: string;
-  isPublicAccess?: boolean;
 }
 
 export default function WorkspaceContent({
   extendedWorkspaceData,
   workspaceId,
-  isPublicAccess = false,
 }: WorkspaceContentProps) {
   const initialWorkspaceData = extendedWorkspaceData?.workspace;
   const [workspaceData, setWorkspaceData] = useState<Workspace | NewWorkspace>(
@@ -61,29 +53,21 @@ export default function WorkspaceContent({
     }));
   };
 
+  const { hasMinimumRole, loading: loadingUserInfo, isPublic } =
+    usePermissions(workspaceId);
+
   // For public access, we show a more limited view
-  const visibilityConfig = isPublicAccess
+  const visibilityConfig: ResultTabsVisibilityConfig = isPublic
     ? {
         showSummary: true,
-        showParticipants: false,
-        showCustomInsights: true,
+        showResponses: false,
+        showCustomInsights: false,
+        showSimScore: false,
         showChat: true,
         allowCustomInsightsEditing: false,
         showSessionRecap: true,
       }
     : defaultWorkspaceVisibilityConfig;
-
-  const { hasMinimumRole, loading: loadingUserInfo } =
-    usePermissions(workspaceId);
-
-  const submitNewWorkspace = async () => {
-    console.log('Saving workspace: ', workspaceData);
-    const tempWorkspaceData: Workspace | NewWorkspace = {
-      ...workspaceData,
-      status: 'active',
-    }
-    await updateWorkspaceDetails(workspaceId, tempWorkspaceData);
-  };
 
   const exists = extendedWorkspaceData.exists;
 
@@ -100,12 +84,15 @@ export default function WorkspaceContent({
           initialGradientFrom={workspaceData?.gradientFrom}
           initialGradientTo={workspaceData?.gradientTo}
           initialUseGradient={workspaceData?.useGradient}
-          isEditable={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
+          isEditable={!exists || (!loadingUserInfo && hasMinimumRole('editor'))}
           onUpdate={handleWorkspaceUpdate}
         />
-        {!loadingUserInfo && hasMinimumRole('owner') && (
+        {!loadingUserInfo && hasMinimumRole('editor') && (
           <div className="flex items-center gap-4 self-end mt-4">
-            <ShareWorkspace workspaceId={workspaceId} />
+            <ShareSettings 
+              resourceId={workspaceId} 
+              resourceType="WORKSPACE" 
+            />
           </div>
         )}
       </div>
@@ -121,11 +108,10 @@ export default function WorkspaceContent({
             workspaceData?.visibility_settings || visibilityConfig
           }
           sessionIds={extendedWorkspaceData.sessionIds}
-          isPublic={workspaceData?.is_public}
           chatEntryMessage={{
             role: 'assistant',
             content: `Welcome to ${
-              workspaceData?.title || 'this workspace'
+              workspaceData?.title || 'this project'
             }! I'm here to help you understand the learnings across the linked discussions.
 
 Here are some questions you might want to ask:
@@ -134,22 +120,16 @@ Here are some questions you might want to ask:
           }}
           showEdit={!loadingUserInfo && hasMinimumRole('owner')}
           draft={!exists}
-        />
+        >
+          <SessionInsightsGrid
+            hostSessions={extendedWorkspaceData.hostSessions}
+            userData={extendedWorkspaceData.userData}
+            workspaceId={workspaceId}
+            showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
+            availableSessions={extendedWorkspaceData.availableSessions}
+          />
+          </ResultTabs>
       </div>
-
-      <SessionInsightsGrid
-        hostSessions={extendedWorkspaceData.hostSessions}
-        userData={extendedWorkspaceData.userData}
-        workspaceId={workspaceId}
-        isPublicAccess={isPublicAccess}
-        showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
-        availableSessions={extendedWorkspaceData.availableSessions}
-      />
-      {!exists && workspaceData && (
-        <Button className="mt-4" onClick={submitNewWorkspace}>
-          Create Workspace
-        </Button>
-      )}
     </>
   );
 }

@@ -1,7 +1,6 @@
 import 'server-only';
 import * as db from './db';
 import { cache } from 'react';
-import { sql } from '@vercel/postgres';
 import { DEFAULT_PROMPTS } from './defaultPrompts';
 
 export type Prompt = {
@@ -37,6 +36,7 @@ export const getPromptInstructions = cache(
       console.log(`[ERROR] No default prompt available for type ${typeId}`);
     }
 
+    console.log(`[INFO] Using prompt: ${prompt?.instructions || defaultPrompt} for type ${typeId}`);
     return prompt?.instructions || defaultPrompt || '';
   },
 );

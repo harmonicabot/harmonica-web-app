@@ -34,6 +34,7 @@ export interface HostSessionsTable {
   questions?: JSON;
   is_public: boolean;
   visibility_settings?: ResultTabsVisibilityConfig;
+  cross_pollination: Generated<boolean>; // Default to true
 }
 
 export interface UserSessionsTable {
@@ -65,7 +66,7 @@ export interface CustomResponsesTable {
   position: number;
   session_id: string; // Could also be workspace_id!
   content: string;
-  response_type: string;  // Which table this is going to be in
+  response_type: string; // Which table this is going to be in
   created_at: Generated<Date>;
 }
 
@@ -81,7 +82,7 @@ export interface WorkspacesTable {
   gradientFrom?: string;
   gradientTo?: string;
   useGradient?: boolean;
-  status: 'active' | 'draft';
+  status: 'active' | 'draft' | 'deleted';
   created_at: Generated<Date>;
   last_modified: Generated<Date>;
   visibility_settings?: ResultTabsVisibilityConfig;
@@ -90,11 +91,12 @@ export interface WorkspacesTable {
 export interface ResultTabsVisibilityConfig {
   showSummary?: boolean;
   showSessionRecap?: boolean;
-  showParticipants?: boolean;
+  showResponses?: boolean;
   showCustomInsights?: boolean;
   showSimScore?: boolean;
   showChat?: boolean;
   allowCustomInsightsEditing?: boolean;
+  showKnowledge?: boolean;
 }
 
 // Mapping of which sessions belong to which workspaces
@@ -130,10 +132,15 @@ export interface UsersTable {
   last_login: Generated<Date>;
   created_at: Generated<Date>;
   metadata?: JSON;
+  // Subscription fields
+  subscription_status: 'FREE' | 'PRO' | 'ENTERPRISE';
+  subscription_id?: string;
+  subscription_period_end?: Date;
+  stripe_customer_id?: string;
 }
 
 export type PromptsTable = {
-  id: string;
+  id: Generated<string>;
   prompt_type: string;
   instructions: string;
   active: boolean;
@@ -177,6 +184,23 @@ export type PromptUpdate = Updateable<PromptsTable>;
 export type PromptType = Selectable<PromptTypesTable>;
 export type NewPromptType = Insertable<PromptTypesTable>;
 export type PromptTypeUpdate = Updateable<PromptTypesTable>;
+
+// Also add this type for better type safety
+export type SubscriptionTier = 'FREE' | 'PRO' | 'ENTERPRISE';
+
+export interface SessionFilesTable {
+  id: Generated<number>;
+  session_id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  file_url: string;
+  uploaded_by: string;
+  uploaded_at: Generated<Date>;
+  is_deleted: Generated<boolean>;
+  metadata?: JSON;
+  file_purpose?: 'TRANSCRIPT' | 'KNOWLEDGE';
+}
 
 export async function createDbInstance<T extends Record<string, any>>() {
   try {

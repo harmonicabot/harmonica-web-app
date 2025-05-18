@@ -48,7 +48,30 @@ const sessionCache = cache(async () => {
       ]);
 
       // Get ALL workspace IDs
-      const allWorkspaces = await db.getAllWorkspaces();
+
+      let allWorkspaces = await db.getAllWorkspaces();
+
+      // Find workspaces marked for deletion
+      const workspacesToDelete = allWorkspaces.filter(
+        (wspace) => wspace.status === 'deleted',
+      );
+
+      // Delete them
+      if (workspacesToDelete.length > 0) {
+        console.log(
+          `Deleting ${workspacesToDelete.length} workspaces marked as 'deleted'`,
+        );
+        await Promise.all(
+          workspacesToDelete.map((workspace) =>
+            db.deleteWorkspace(workspace.id),
+          ),
+        );
+      }
+
+      // Filter out the deleted workspaces from the list
+      allWorkspaces = allWorkspaces.filter(
+        (wspace) => wspace.status !== 'deleted',
+      );
 
       // Get sessions for each workspace
       const workspaceAndSessionsIds: Record<string, string[]> =
@@ -175,7 +198,7 @@ export default async function Dashboard() {
           <div className="space-y-1">
             <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
             <p className="text-sm text-muted-foreground">
-              Manage your sessions and workspaces
+              Manage your sessions and projects
             </p>
           </div>
           <div className="flex items-center space-x-2">
@@ -194,7 +217,7 @@ export default async function Dashboard() {
             )}
           </TabsTrigger>
           <TabsTrigger value="workspaces" className="flex items-center gap-2">
-            Workspaces
+            Projects
             <span className="ml-2 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
               {workspacesWithSessions.length}
             </span>
@@ -219,7 +242,7 @@ export default async function Dashboard() {
           ) : (
             <Card>
               <CardContent className="flex items-center justify-center py-6">
-                <CreateWorkspaceButton text="Create Your First Workspace" />
+                <CreateWorkspaceButton text="Create Your First Project" />
               </CardContent>
             </Card>
           )}
@@ -242,11 +265,7 @@ function CreateSessionButton({ text = 'Create Session' }: { text?: string }) {
   );
 }
 
-function CreateWorkspaceButton({
-  text = 'Create Workspace',
-}: {
-  text?: string;
-}) {
+function CreateWorkspaceButton({ text = 'Create Project' }: { text?: string }) {
   const workspaceId = `wsp_${Math.random().toString(36).substring(2, 14)}`;
   const link = `/workspace/${workspaceId}`;
   return (

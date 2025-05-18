@@ -1,6 +1,9 @@
 import { HostSession, Message, UserSession } from '@/lib/schema';
 import * as db from '@/lib/db';
-import { analyzeWithSimScore, extractDataFromUserMessages } from 'app/api/exportUtils';
+import {
+  analyzeWithSimScore,
+  extractDataFromUserMessages,
+} from 'app/api/exportUtils';
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,7 +35,10 @@ export default function ExportSection({
     setIsExportPopupVisible(true);
     setExportInProgress(true);
 
-    const response = await extractDataFromUserMessages(userData, exportInstructions);
+    const response = await extractDataFromUserMessages(
+      userData,
+      exportInstructions,
+    );
 
     const blob = new Blob([JSON.stringify(JSON.parse(response), null, 2)], {
       type: 'application/json',
@@ -42,7 +48,7 @@ export default function ExportSection({
 
     setExportInProgress(false);
     setIsExportPopupVisible(false);
-  };  
+  };
 
   const exportAllData = async () => {
     const allMessages = await db.getAllMessagesForUsersSorted(userData);
@@ -51,7 +57,7 @@ export default function ExportSection({
       const user_name = user.user_name;
       const introString = `Use it in communication. Don't ask it again. Start the session.\n`;
       const messagesForOneUser = allMessages.filter(
-        (msg) => msg.thread_id === user.thread_id
+        (msg) => msg.thread_id === user.thread_id,
       );
       if (messagesForOneUser.length === 0) return;
       if (messagesForOneUser[0].content.includes(introString)) {
@@ -85,7 +91,7 @@ export default function ExportSection({
 
   function concatenateMessages(messagesFromOneUser: Message[]) {
     messagesFromOneUser.sort(
-      (a, b) => a.created_at.getTime() - b.created_at.getTime()
+      (a, b) => a.created_at.getTime() - b.created_at.getTime(),
     );
     return messagesFromOneUser
       .map((message) => `${message.role} : ${message.content}`)
@@ -109,7 +115,7 @@ export default function ExportSection({
   const rankWithSimScore = async () => {
     setIsExportPopupVisible(true);
     setExportInProgress(true);
-    const sampleObject = [{ author_id: 'user_name', idea: 'idea1' }]
+    const sampleObject = [{ author_id: 'user_name', idea: 'idea1' }];
     const adjustedExportInstructions = `${exportInstructions}
 \n!IMPORTANT! Use the following JSON schema. 
 If specified, group different subject areas and their ideas together.\n
@@ -117,33 +123,39 @@ If specified, group different subject areas and their ideas together.\n
 ${JSON.stringify(sampleObject, null, 2)};
 \`\`\`\n
 ONLY include plain JSON in your reply, without any backticks, markdown formatting, or explanations!`;
-    const extractedData = await extractDataFromUserMessages(userData, adjustedExportInstructions);
-    console.log("Extracted Data: ", extractedData)
-    const analyzed = await analyzeWithSimScore(extractedData).catch(error => console.log('Sorry, there was an error! ', error));
+    const extractedData = await extractDataFromUserMessages(
+      userData,
+      adjustedExportInstructions,
+    );
+    console.log('Extracted Data: ', extractedData);
+    const analyzed = await analyzeWithSimScore(extractedData).catch((error) =>
+      console.log('Sorry, there was an error! ', error),
+    );
     console.log('Simscore-analyzed data: ', analyzed);
-    
+
     if (analyzed) {
       // Format the SimScore results as an OpenAIMessage
       const simScoreMessage: OpenAIMessage = {
         role: 'assistant',
-        content: `## SimScore Analysis Results\n\n${analyzed}`
+        content: `## SimScore Analysis Results\n\n${analyzed}`,
       };
-      
+
       // Add to Custom Insights using the hook
       addResponse(simScoreMessage);
     }
-    
+
     setExportInProgress(false);
     setIsExportPopupVisible(false);
     return analyzed;
-  }
-
+  };
 
   const { hasMinimumRole, loading } = usePermissions(id);
 
   return (
     <>
-      <Button className={className} onClick={handleShowExportPopup}>Export Session Details</Button>
+      <Button className={className} onClick={handleShowExportPopup}>
+        Export Session Details
+      </Button>
       {isExportPopupVisible && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-purple-100 border-purple-200 p-8 rounded-lg w-4/5 md:w-3/5 lg:w-1/2 flex flex-col">
@@ -179,12 +191,12 @@ ONLY include plain JSON in your reply, without any backticks, markdown formattin
                     </>
                   ) : (
                     <div className="flex justify-between items-center">
-                        <Button type="submit">Submit</Button>
-                        <Button onClick={rankWithSimScore}>Rank with SimScore</Button>
-                      {!loading && hasMinimumRole('owner') && <Button onClick={exportAllData} variant="ghost">
-                        {' Export All '} 
+                      <Button type="submit">Submit</Button>
+                      {!loading && hasMinimumRole('owner') && (
+                        <Button onClick={exportAllData} variant="ghost">
+                          {' Export All '}
                         </Button>
-                      }
+                      )}
                     </div>
                   )}
                 </form>

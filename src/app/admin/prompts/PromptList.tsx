@@ -59,6 +59,7 @@ export function PromptList({ showOnlyActive }: PromptListProps) {
   }, [prompts, showOnlyActive]);
 
   const formatDate = (dateString: string) => {
+    console.log('Formatting date:', dateString);
     return format(new Date(dateString), 'MMM d, yyyy HH:mm');
   };
 

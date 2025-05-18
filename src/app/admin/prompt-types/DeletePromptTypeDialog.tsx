@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { deletePromptType } from './api';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from 'hooks/use-toast';
 
 interface Props {
   promptType: { id: string; name: string } | null;

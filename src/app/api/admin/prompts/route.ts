@@ -1,31 +1,20 @@
-import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
+import * as db from '@/lib/db';
+import { NewPrompt } from '@/lib/schema';
 
 export async function GET() {
   try {
-    const { rows: prompts } = await sql`
-      SELECT 
-        p.id,
-        p.prompt_type,
-        p.instructions,
-        p.active,
-        p.created_at,
-        p.updated_at,
-        pt.id as type_id,
-        pt.name as type_name,
-        pt.description as type_description
-      FROM prompts p
-      JOIN prompt_type pt ON p.prompt_type = pt.id
-      ORDER BY p.created_at DESC
-    `;
+    // Use the existing getAllPrompts function from db.ts
+    const prompts = await db.getAllPrompts();
+    console.log('Fetched prompts:', prompts);
+    // Format the dates for JSON response
+    const formattedPrompts = prompts.map(prompt => ({
+      ...prompt,
+      created_at: prompt.created_at || new Date(),
+      updated_at: prompt.updated_at || new Date(),
+    }));
 
-    return NextResponse.json(
-      prompts.map((prompt) => ({
-        ...prompt,
-        created_at: prompt.created_at?.toISOString(),
-        updated_at: prompt.updated_at?.toISOString(),
-      })),
-    );
+    return NextResponse.json(formattedPrompts);
   } catch (error) {
     console.error('Failed to fetch prompts:', error);
     return NextResponse.json(
@@ -38,8 +27,10 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { prompt_type, instructions, active = true } = body;
-
+    // Explicitly type and convert the values
+    const prompt_type: string = String(body.prompt_type);
+    const instructions: string = String(body.instructions);
+    const active: boolean = body.active === undefined ? true : Boolean(body.active);
     if (!prompt_type) {
       return NextResponse.json(
         { error: 'Prompt type is required' },
@@ -47,42 +38,49 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get the database instance
+    const dbInstance = await db.getDbInstance();
+
     // Deactivate other prompts of the same type if this one will be active
     if (active) {
-      await sql`
-        UPDATE prompts 
-        SET active = false 
-        WHERE prompt_type = ${prompt_type} 
-        AND active = true
-      `;
+      await dbInstance
+        .updateTable('prompts')
+        .set({ active: false })
+        .where('prompt_type', '=', prompt_type)
+        .where('active', '=', true)
+        .execute();
     }
 
-    // Create the new prompt
-    const {
-      rows: [result],
-    } = await sql`
-      INSERT INTO prompts (prompt_type, instructions, active)
-      VALUES (${prompt_type}, ${instructions}, ${active})
-      RETURNING id, prompt_type, instructions, active, created_at, updated_at
-    `;
+    const values: NewPrompt = {
+      prompt_type,
+      instructions,
+      active,
+    };
 
-    const {
-      rows: [completeResult],
-    } = await sql`
-      SELECT 
-        p.id,
-        p.prompt_type,
-        p.instructions,
-        p.active,
-        p.created_at,
-        p.updated_at,
-        pt.id as type_id,
-        pt.name as type_name,
-        pt.description as type_description
-      FROM prompts p
-      JOIN prompt_type pt ON p.prompt_type = pt.id
-      WHERE p.id = ${result.id}
-    `;
+    // Create the new prompt
+    const result = await dbInstance
+      .insertInto('prompts')
+      .values(values)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    // Get the complete result with type information
+    const completeResult = await dbInstance
+      .selectFrom('prompts as p')
+      .innerJoin('prompt_type as pt', 'p.prompt_type', 'pt.id')
+      .select([
+        'p.id',
+        'p.prompt_type',
+        'p.instructions',
+        'p.active',
+        'p.created_at',
+        'p.updated_at',
+        'pt.id as type_id',
+        'pt.name as type_name',
+        'pt.description as type_description',
+      ])
+      .where('p.id', '=', result.id)
+      .executeTakeFirstOrThrow();
 
     return NextResponse.json({
       ...completeResult,

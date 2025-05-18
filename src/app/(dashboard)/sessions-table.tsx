@@ -6,12 +6,12 @@ import { Key, useEffect, useState } from 'react';
 import SortableTable from '@/components/SortableTable';
 import { HostSession } from '@/lib/schema';
 import * as db from '@/lib/db';
-import { getUserStats } from '@/lib/clientUtils';
+import { getUserStats, SessionStatus } from '@/lib/clientUtils';
 
 export type SessionTableData = {
   id: string;
   topic: string;
-  status: string;
+  status: SessionStatus;
   active: boolean;
   num_sessions: number;
   num_finished: number;
@@ -66,10 +66,10 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
         if (!session || !session.topic) return;
         const status = 
           !session.active || session.final_report_sent
-            ? 'Finished'
+            ? SessionStatus.FINISHED
             : totalUsers === 0
-            ? 'Draft'
-            : 'Active';
+            ? SessionStatus.DRAFT
+            : SessionStatus.ACTIVE;
         const created_on = new Intl.DateTimeFormat(undefined, {
           dateStyle: 'medium',
           timeStyle: 'short',

@@ -25,27 +25,18 @@ export async function generateMetadata({
 
 export default async function Workspace({
   params,
-  searchParams,
 }: {
   params: { w_id: string };
-  searchParams: { access?: string };
 }) {
-  const isPublicAccess = searchParams.access === 'public';
-
+  
   try {
     const data: ExtendedWorkspaceData = await cachedFetchWorkspaceData(params.w_id);
     
-    // If public access is requested but workspace isn't public, show error
-    if (isPublicAccess && data.workspace?.is_public === false) {
-      throw new Error('This workspace is not publicly accessible.');
-    }
-
     return (
       <div className="p-4 md:p-8">
         <WorkspaceContent
           extendedWorkspaceData={data}
           workspaceId={params.w_id}
-          isPublicAccess={isPublicAccess}
         />
       </div>
     );

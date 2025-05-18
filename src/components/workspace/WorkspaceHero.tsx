@@ -12,9 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useState, useCallback } from 'react';
-import { updateWorkspaceDetails } from 'app/workspace/[w_id]/actions';
+import { deleteWorkspace, updateWorkspaceDetails } from 'app/workspace/[w_id]/actions';
 import { useDropzone } from 'react-dropzone';
-import { Workspace, WorkspaceUpdate } from '@/lib/schema';
+import { WorkspaceUpdate } from '@/lib/schema';
+import { useRouter } from 'next/navigation';
 
 interface WorkspaceHeroProps {
   workspaceId: string;
@@ -43,21 +44,24 @@ export default function WorkspaceHero({
   initialUseGradient,
   onUpdate,
 }: WorkspaceHeroProps) {
-  const [bannerImage, setBannerImage] = useState<string | undefined>(bannerImageUrl);
+  const [bannerImage, setBannerImage] = useState<string | undefined>(
+    bannerImageUrl
+  );
   const [gradientFrom, setGradientFrom] = useState(initialGradientFrom);
   const [gradientTo, setGradientTo] = useState(initialGradientTo);
   const [useGradient, setUseGradient] = useState(initialUseGradient);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(isEditable && !exists);
   const [values, setValues] = useState({ title, description, location });
-  
+
   const [imageFile, setImageFile] = useState<File | null>(null);
-  
+  const router = useRouter();
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
       // Store the file for later upload when user confirms
       setImageFile(file);
-      
+
       // Just show a preview
       const reader = new FileReader();
       reader.onload = () => {
@@ -91,12 +95,12 @@ export default function WorkspaceHero({
       // Only upload if we have a new image file
       if (imageFile && !useGradient) {
         // Import is inside the function to maintain client component compatibility
-        const { uploadBanner } = await import('app/workspace/[w_id]/actions'); 
+        const { uploadBanner } = await import('app/workspace/[w_id]/actions');
         // Create form data for upload
         const formData = new FormData();
         formData.append('file', imageFile);
         formData.append('workspaceId', workspaceId);
-        
+
         // Upload the image and get the URL
         finalBannerImage = await uploadBanner(formData);
         console.log('Uploaded image to url:', finalBannerImage);
@@ -110,38 +114,53 @@ export default function WorkspaceHero({
         bannerImage: finalBannerImage, // This will be either undefined, existing URL, or newly uploaded URL
         gradientFrom,
         gradientTo,
-        useGradient
+        useGradient,
+        status: 'active',
       };
 
-      
       // If we got a new URL, update the local state
       if (finalBannerImage && finalBannerImage !== bannerImage) {
         setBannerImage(finalBannerImage);
       }
-      
+
       if (onUpdate) {
         onUpdate(updateData);
       }
-      
+
       await updateWorkspaceDetails(workspaceId, updateData);
     } catch (error) {
-      console.error('Error updating workspace:', error);
+      console.error('Error updating project:', error);
     }
     setIsEditing(false);
   };
 
+  const handleDelete = async () => {
+    if (
+      confirm(
+        `Are you sure you want to delete this project?`
+      )
+    ) {
+      await deleteWorkspace(workspaceId)
+      router.replace('/');
+    }
+    return false;
+  }
+
   const content = (
-    <div 
+    <div
       className="text-white rounded-lg p-8 relative group min-h-[200px]"
       style={bannerStyle}
     >
+      {/* Add a semi-transparent overlay for text readability over light backgrounds */}
+      <div className="absolute inset-0 bg-black/30 rounded-lg"></div>
+
       <div className="absolute top-2 right-2 z-20 flex gap-2">
         {/* Button in the top right corner*/}
-        {isEditable && exists && (
+        {isEditable && (
           <Button
             variant="ghost"
             size="icon"
-            className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/10 hover:bg-white/20"
+            className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/20 hover:bg-white/50"
             onClick={() => setIsEditing(true)}
           >
             <Pencil className="h-4 w-4" />
@@ -150,27 +169,22 @@ export default function WorkspaceHero({
       </div>
 
       <div
-        className={`relative group/edit ${exists ? '' : 'cursor-pointer'}`}
+        className={`relative z-10 group/edit ${exists ? '' : 'cursor-pointer'}`}
         onClick={() => !exists && isEditable && setIsEditing(true)}
       >
-        {!exists && (
-          <div className="absolute -inset-8 hidden group-hover/edit:flex items-center justify-center bg-black/20 rounded transition-all">
-            <Pencil className="w-16 h-16 text-white/50" />
-          </div>
-        )}
         <h1 className="text-4xl font-bold mb-4">
-          {values.title || (!exists && "Add Workspace Title")}
+          {values.title || (!exists && 'Add Project Title')}
         </h1>
         <p className="text-xl mb-4">
-          {values.description || (!exists && "Add a description for your workspace")}
+          {values.description ||
+            (!exists && 'Add a description for your project')}
         </p>
         {(values.location || !exists) && (
           <div className="flex items-center gap-2 text-blue-100">
             <MapPin className="h-5 w-5" />
-            <span>{values.location || (!exists && "Add location")}</span>
+            <span>{values.location || (!exists && 'Add location')}</span>
           </div>
         )}
-
       </div>
     </div>
   );
@@ -179,7 +193,7 @@ export default function WorkspaceHero({
     <Dialog open={isEditing} onOpenChange={setIsEditing}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Edit Workspace Details</DialogTitle>
+          <DialogTitle>Edit Project Details</DialogTitle>
         </DialogHeader>
         <div className="space-y-6 py-4">
           <div className="space-y-2">
@@ -190,7 +204,7 @@ export default function WorkspaceHero({
               onChange={(e) =>
                 setValues((prev) => ({ ...prev, title: e.target.value }))
               }
-              placeholder="Enter workspace title"
+              placeholder="Enter project title"
             />
           </div>
           <div className="space-y-2">
@@ -204,7 +218,7 @@ export default function WorkspaceHero({
                   description: e.target.value,
                 }))
               }
-              placeholder="Enter workspace description"
+              placeholder="Enter project description"
             />
           </div>
           <div className="space-y-2">
@@ -218,15 +232,21 @@ export default function WorkspaceHero({
               placeholder="Enter location or organization"
             />
           </div>
-          
+
           {/* Banner styling options */}
-          <Tabs defaultValue={useGradient ? "gradient" : "image"} className="w-full">
+          <Tabs
+            defaultValue={useGradient ? 'gradient' : 'image'}
+            className="w-full"
+          >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="image" onClick={() => setUseGradient(false)}>
                 <ImageIcon className="w-4 h-4 mr-2" />
                 Image
               </TabsTrigger>
-              <TabsTrigger value="gradient" onClick={() => setUseGradient(true)}>
+              <TabsTrigger
+                value="gradient"
+                onClick={() => setUseGradient(true)}
+              >
                 <div className="w-4 h-4 rounded bg-gradient-to-r from-purple-600 to-purple-400 mr-2" />
                 Gradient
               </TabsTrigger>
@@ -306,12 +326,19 @@ export default function WorkspaceHero({
               />
             </TabsContent>
           </Tabs>
-          
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsEditing(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave}>Save Changes</Button>
+
+          <div className="flex justify-between">
+            <div className="flex">
+                <Button variant="destructive" onClick={handleDelete}>
+                  Delete Project
+                </Button>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsEditing(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave}>Save Changes</Button>
+            </div>
           </div>
         </div>
       </DialogContent>

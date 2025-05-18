@@ -4,17 +4,32 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { encryptId } from '@/lib/encryptionUtils';
 import Link from 'next/link';
 import { User, UserCheck } from '@/components/icons';
-
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Copy, Trash2, FolderPlus, Share2 } from 'lucide-react';
 import { deleteSession } from './actions';
 import { SessionTableData } from './sessions-table';
+import { useState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { cloneSession } from '@/lib/serverUtils';
+import { useRouter } from 'next/navigation';
+import { toast } from 'hooks/use-toast';
+import { SessionStatus } from '@/lib/clientUtils';
+import { AddToProjectDialog } from '@/components/AddToProjectDialog';
+import ShareSettings from '@/components/ShareSettings';
 
 export function Session({
   session,
@@ -23,6 +38,68 @@ export function Session({
   session: SessionTableData;
   onDelete: (sessionId: string) => void;
 }) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCloning, setIsCloning] = useState(false);
+  const [showProjectDialog, setShowProjectDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const router = useRouter();
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteSession(session.id);
+      onDelete(session.id);
+      toast({
+        title: 'Session deleted',
+        description: 'The session has been successfully deleted.',
+      });
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      toast({
+        title: 'Failed to delete session',
+        description: 'An error occurred while deleting the session.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
+  const handleClone = async () => {
+    setIsCloning(true);
+    try {
+      const newSessionId = await cloneSession(session.id);
+      if (newSessionId) {
+        toast({
+          title: 'Session cloned successfully',
+          description: "You'll be redirected to the new session.",
+        });
+        router.push(`/sessions/${encryptId(newSessionId)}`);
+      } else {
+        toast({
+          title: 'Failed to clone session',
+          description: 'An error occurred while cloning the session.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error cloning session:', error);
+      toast({
+        title: 'Failed to clone session',
+        description: 'An error occurred while cloning the session.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCloning(false);
+    }
+  };
+
+  const addToProject = async () => {
+    setShowProjectDialog(true);
+  };
+
   return (
     <TableRow>
       <TableCell className="font-medium text-base">
@@ -32,13 +109,11 @@ export function Session({
         <Badge
           variant="outline"
           className={`capitalize ${
-            session.active &&
-            session.num_sessions > 0 &&
-            session.num_sessions > session.num_finished
+            session.status === SessionStatus.ACTIVE
               ? 'bg-lime-100 text-lime-900'
-              : session.active && session.num_sessions === 0 // Draft
-                ? 'bg-purple-100 text-purple-900'
-                : '' // Finished, remain white
+              : session.status === SessionStatus.DRAFT
+              ? 'bg-purple-100 text-purple-900'
+              : '' // Finished, remain white
           }`}
         >
           {session.status}
@@ -60,45 +135,72 @@ export function Session({
         {session.created_on}
       </TableCell>
       <TableCell>
-        <Link href={`/sessions/${encryptId(session.id)}`}>
-          <Button variant="outline">View</Button>
-        </Link>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button aria-haspopup="true" size="icon" variant="ghost">
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
               <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">Toggle menu</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            {/* <DropdownMenuItem>
-              <form action={() => createNewSession(session)}>
-                <button type="submit">Use for new session</button>
-              </form>
+            <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
+              <Share2 className="mr-2 h-4 w-4" />
+              <span>Share</span>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-            <form action={() => archiveSession(session)}>
-                <button type="submit">Archive</button>
-              </form>
-            </DropdownMenuItem> */}
-            <DropdownMenuItem>
-              <form
-                className="w-full"
-                action={async () => {
-                  if (await deleteSession(session.id)) {
-                    onDelete(session.id);
-                  }
-                }}
-              >
-                <button type="submit" className="w-full text-left">
-                  Delete
-                </button>
-              </form>
+            <DropdownMenuItem onClick={addToProject}>
+              <FolderPlus className="mr-2 h-4 w-4" />
+              Add to Project
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleClone} disabled={isCloning}>
+              <Copy className="mr-2 h-4 w-4" />
+              Clone
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setShowDeleteDialog(true)}
+              className="text-red-600"
+              disabled={isDeleting}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
+      {showShareDialog && (
+        <ShareSettings
+          resourceId={session.id}
+          resourceType="SESSION"
+          initialIsOpen={showShareDialog}
+          onClose={() => setShowShareDialog(false)}
+        />
+      )}
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the session "{session.topic}" and all
+              its data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AddToProjectDialog
+        sessionId={session.id}
+        open={showProjectDialog}
+        onOpenChange={setShowProjectDialog}
+      />
     </TableRow>
   );
 }

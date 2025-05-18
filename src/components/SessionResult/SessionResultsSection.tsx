@@ -13,6 +13,8 @@ import { OpenAIMessage } from '@/lib/types';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
 import { usePathname } from 'next/navigation';
+import ShareSettings from '../ShareSettings';
+
 
 export default function SessionResultsSection({
   hostData,
@@ -28,7 +30,7 @@ export default function SessionResultsSection({
   showShare?: boolean;
   chatEntryMessage?: OpenAIMessage;
 }) {
-  const { hasMinimumRole } = usePermissions(resourceId);
+  const { loading, hasMinimumRole } = usePermissions(resourceId);
   const path = usePathname();
   const hasMessages = userData.length > 0;
   const { hasNewMessages, lastMessage, lastSummaryUpdate } =
@@ -54,6 +56,14 @@ export default function SessionResultsSection({
 
   return (
     <>
+      {!loading && hasMinimumRole('editor') && (
+        <div className="flex w-full justify-end mt-4 -mb-14">
+          <ShareSettings 
+            resourceId={hostData.id} 
+            resourceType="SESSION"
+          />
+        </div>
+      )}
       <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
           <ResultTabs
             hostData={[hostData]}
@@ -62,9 +72,8 @@ export default function SessionResultsSection({
             hasNewMessages={hasNewMessages}
             visibilityConfig={visibilityConfig}
             chatEntryMessage={chatEntryMessage}
-            isPublic={hostData.is_public}
           />
-          {visibilityConfig.showParticipants && hasMinimumRole('editor') && hasMessages && (
+          {visibilityConfig.showResponses && hasMinimumRole('editor') && hasMessages && (
             <ExportSection
               hostData={hostData}
               userData={userData}

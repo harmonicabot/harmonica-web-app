@@ -10,7 +10,7 @@ export async function linkSessionsToWorkspace(workspaceId: string, sessionIds: s
     // Create entries in the WorkspaceSessionsTable for each session
     const results = await Promise.all(
       sessionIds.map(sessionId => 
-        db.createWorkspaceSessionLink(workspaceId, sessionId)
+        db.addSessionToWorkspace(workspaceId, sessionId)
       )
     );
     
@@ -18,5 +18,21 @@ export async function linkSessionsToWorkspace(workspaceId: string, sessionIds: s
   } catch (error) {
     console.error('Error linking sessions to workspace:', error);
     throw new Error('Failed to link sessions to workspace');
+  }
+}
+
+export async function unlinkSessionFromWorkspace(
+  workspaceId: string, 
+  sessionId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const result = await db.removeSessionFromWorkspace(workspaceId, sessionId);
+    return { success: result };
+  } catch (error) {
+    console.error('Error unlinking session from workspace:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
   }
 }
