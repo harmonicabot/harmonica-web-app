@@ -41,9 +41,7 @@ Reply with ONLY "true" if the session should end, or "false" if it should contin
     messages: [{ role: 'user', content: prompt }],
   });
 
-  return (
-    response.toLowerCase().includes('true') || false
-  );
+  return response.toLowerCase().includes('true') || false;
 }
 
 export async function generateSession(config: SessionConfig) {
@@ -107,6 +105,7 @@ export async function generateSession(config: SessionConfig) {
         messageText: lastUserMessage,
         sessionId: config.sessionId,
         systemPrompt: userContextPrompt,
+        crossPollination: true,
       });
 
       // Store AI question
