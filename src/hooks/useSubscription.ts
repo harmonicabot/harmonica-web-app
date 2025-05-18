@@ -8,6 +8,7 @@ interface SubscriptionStatus {
   expiresAt?: Date;
   isLoading: boolean;
   subscription_id?: string;
+  stripe_customer_id?: string;
 }
 
 export function useSubscription(): SubscriptionStatus {
@@ -34,6 +35,7 @@ export function useSubscription(): SubscriptionStatus {
             ? new Date(data.subscription_period_end)
             : undefined,
           subscription_id: data.subscription_id,
+          stripe_customer_id: data.stripe_customer_id,
           isLoading: false,
         });
       } catch (error) {

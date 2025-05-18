@@ -12,19 +12,10 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import { Message } from '@/lib/schema';
 import ErrorPage from './Error';
 import { getUserNameFromContext } from '@/lib/clientUtils';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, Info } from 'lucide-react';
+import { LimitPopup } from './pricing/LimitPopup';
 
-export default function Chat({
-  sessionIds,
-  setUserSessionId,
-  userSessionId,
-  entryMessage,
-  context,
-  placeholderText,
-  userContext,
-  customMessageEnhancement,
-  isAskAi = false,
-}: {
+interface ChatProps {
   sessionIds?: string[];
   setUserSessionId?: (id: string) => void;
   userSessionId?: string;
@@ -37,7 +28,22 @@ export default function Chat({
     message: OpenAIMessage,
     index: number,
   ) => React.ReactNode;
-}) {
+  subscription_status?: 'FREE' | 'PRO' | 'ENTERPRISE';
+  userId?: string;
+}
+
+export default function Chat({
+  sessionIds,
+  setUserSessionId,
+  userSessionId,
+  entryMessage,
+  context,
+  placeholderText,
+  userContext,
+  customMessageEnhancement,
+  isAskAi = false,
+  subscription_status = 'FREE',
+}: ChatProps) {
   const isTesting = false;
   const [errorMessage, setErrorMessage] = useState<{
     title: string;
@@ -64,6 +70,24 @@ export default function Chat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isParticipantSuggestionLoading, setIsParticipantSuggestionLoading] =
     useState(false);
+
+  const [dailyQuestions, setDailyQuestions] = useState(0);
+  const [isLimitPopupOpen, setIsLimitPopupOpen] = useState(false);
+  const [isUpgradeLoading, setIsUpgradeLoading] = useState(false);
+
+  const checkQuestionLimit = () => {
+    // If user has Pro subscription, they don't have limits
+    if (subscription_status === 'PRO') {
+      return true;
+    }
+
+    // Only check limits for free users
+    if (isAskAi && subscription_status === 'FREE' && dailyQuestions >= 3) {
+      setIsLimitPopupOpen(true);
+      return false;
+    }
+    return true;
+  };
 
   useEffect(() => {
     if (messagesEndRef.current && messages.length > 1) {
@@ -282,6 +306,10 @@ export default function Chat({
       e.preventDefault();
     }
 
+    if (!checkQuestionLimit()) {
+      return;
+    }
+
     if (isLoading) return;
     setIsLoading(true);
     if (isTesting) {
@@ -352,6 +380,18 @@ export default function Chat({
           role: 'assistant',
           content: answer,
         });
+
+        // Update usage tracking for Ask AI
+        if (isAskAi && subscription_status === 'FREE') {
+          fetch('/api/usage', {
+            method: 'POST',
+            body: JSON.stringify({ type: 'ASK_AI_QUESTIONS' }),
+          })
+            .then(() => {
+              setDailyQuestions((prev) => prev + 1);
+            })
+            .catch(console.error);
+        }
       } else {
         const messageData = {
           threadId: threadIdRef.current,
@@ -455,6 +495,51 @@ export default function Chat({
     }
   }, []);
 
+  const getQuestionCounter = () => {
+    // Only show counter for free users
+    if (isAskAi && subscription_status === 'FREE') {
+      const remaining = 3 - dailyQuestions;
+      return (
+        <div
+          className={`text-sm ${
+            remaining === 0
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-muted-foreground'
+          } mb-2 pl-2 flex items-center`}
+        >
+          <Info
+            size={16}
+            className={`mr-1 cursor-pointer ${
+              remaining === 0
+                ? 'text-amber-600 dark:text-amber-400'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+            onClick={() => setIsLimitPopupOpen(true)}
+            aria-label="Upgrade to Pro for unlimited questions"
+          />
+          {remaining === 1 ? '1 question' : `${remaining} questions`} remaining
+          today
+          <LimitPopup
+            open={isLimitPopupOpen}
+            onOpenChange={setIsLimitPopupOpen}
+            isLoading={isUpgradeLoading}
+            hitLimit={remaining === 0 ? 'ASK_AI' : undefined}
+          />
+        </div>
+      );
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    if (isAskAi && subscription_status === 'FREE') {
+      fetch('/api/usage?type=ASK_AI_QUESTIONS')
+        .then((res) => res.json())
+        .then((data) => setDailyQuestions(data.count))
+        .catch(console.error);
+    }
+  }, [isAskAi, subscription_status]);
+
   if (errorMessage) {
     return <ErrorPage {...errorMessage} />;
   }
@@ -497,31 +582,34 @@ export default function Chat({
         className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''} sticky bottom-0`}
         onSubmit={handleSubmit}
       >
-        <div className="flex justify-end mb-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleParticipantSuggestion}
-            disabled={
-              isLoading ||
-              isParticipantSuggestionLoading ||
-              !threadIdRef.current
-            }
-            className="flex items-center gap-2"
-          >
-            {isParticipantSuggestionLoading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Sparkles size={16} />
-            )}
-            <span>
-              {isParticipantSuggestionLoading
-                ? 'Generating...'
-                : 'AI Suggestion'}
-            </span>
-          </Button>
-        </div>
+        {getQuestionCounter()}
+        {!isAskAi && (
+          <div className="flex justify-end mb-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleParticipantSuggestion}
+              disabled={
+                isLoading ||
+                isParticipantSuggestionLoading ||
+                !threadIdRef.current
+              }
+              className="flex items-center gap-2"
+            >
+              {isParticipantSuggestionLoading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Sparkles size={16} />
+              )}
+              <span>
+                {isParticipantSuggestionLoading
+                  ? 'Generating...'
+                  : 'AI Suggestion'}
+              </span>
+            </Button>
+          </div>
+        )}
 
         <div className="relative">
           <Textarea

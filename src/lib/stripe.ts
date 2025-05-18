@@ -15,18 +15,12 @@ export async function createStripeSession({
   returnUrl: string;
   metadata?: Record<string, string>;
 }) {
-  console.log('[Server] createStripeSession called with:', {
-    userId,
-    priceId,
-    returnUrl,
-    metadata,
-  });
   try {
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
-      success_url: `${returnUrl}?success=true`,
-      cancel_url: `${returnUrl}?canceled=true`,
+      success_url: `${returnUrl}?stripe_success=true`,
+      cancel_url: `${returnUrl}?stripe_canceled=true`,
       metadata: {
         userId,
         ...metadata,
@@ -42,6 +36,26 @@ export async function createStripeSession({
     return { url: session.url as string };
   } catch (error) {
     console.error('[Server] Error creating Stripe session:', error);
+    throw error;
+  }
+}
+
+export async function createStripePortalSession({
+  customerId,
+  returnUrl,
+}: {
+  customerId: string;
+  returnUrl: string;
+}) {
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl,
+    });
+    console.log('[Server] Stripe portal session created:', session.id);
+    return { url: session.url };
+  } catch (error) {
+    console.error('[Server] Error creating portal session:', error);
     throw error;
   }
 }

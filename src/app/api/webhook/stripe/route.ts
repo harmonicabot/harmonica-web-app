@@ -2,7 +2,6 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { updateUserSubscription, removeUserSubscription } from '@/lib/db';
-import { sendNotification } from 'lib/notifications';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -12,135 +11,125 @@ export async function POST(req: Request) {
     const body = await req.text();
     const signature = headers().get('stripe-signature')!;
 
+    console.log('[Webhook] Received Stripe webhook request');
+
     const event = stripe.webhooks.constructEvent(
       body,
       signature,
       webhookSecret,
     );
 
-    // Log all webhook events
-    console.log('[i] Stripe webhook event received:', {
-      type: event.type,
-      data: event.data.object,
-    });
+    console.log('[Webhook] Event type:', event.type);
+    console.log(
+      '[Webhook] Event data:',
+      JSON.stringify(event.data.object, null, 2),
+    );
 
     switch (event.type) {
-      //   case 'customer.subscription.created':
-      //   case 'customer.subscription.updated': {
-      //     const subscription = event.data.object as Stripe.Subscription & {
-      //       current_period_end: number;
-      //       status: string;
-      //     };
-
-      //     await updateUserSubscription(subscription.metadata.userId, {
-      //       subscription_status:
-      //         subscription.status === 'active' ? 'PRO' : 'FREE',
-      //       subscription_id: subscription.id,
-      //       subscription_period_end: new Date(
-      //         subscription.current_period_end * 1000,
-      //       ),
-      //       stripe_customer_id: subscription.customer as string,
-      //     });
-      //     await sendNotification({
-      //       userId: subscription.metadata.userId,
-      //       title: 'Subscription Updated',
-      //       message: `Your subscription is now ${subscription.status === 'active' ? 'active' : 'inactive'}`,
-      //       type: 'success',
-      //     });
-      //     break;
-      //   }
-
-      //   case 'invoice.payment_failed': {
-      //     const invoice = event.data.object as Stripe.Invoice & {
-      //       subscription: string;
-      //     };
-      //     const subscription = await stripe.subscriptions.retrieve(
-      //       invoice.subscription,
-      //     );
-
-      //     await updateUserSubscription(subscription.metadata.userId, {
-      //       subscription_status: 'FREE',
-      //       subscription_id: subscription.id,
-      //       subscription_period_end: new Date(),
-      //       stripe_customer_id: subscription.customer as string,
-      //     });
-      //     await sendNotification({
-      //       userId: subscription.metadata.userId,
-      //       title: 'Payment Failed',
-      //       message:
-      //         'Your subscription payment has failed. Please update your payment method.',
-      //       type: 'error',
-      //     });
-      //     break;
-      //   }
-
-      //   case 'customer.subscription.deleted': {
-      //     const subscription = event.data.object as Stripe.Subscription;
-      //     await removeUserSubscription(subscription.metadata.userId);
-      //     break;
-      //   }
-
       case 'customer.subscription.created': {
-        const charge = event.data.object as Stripe.Subscription;
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log('[Webhook] Processing subscription:', {
+          id: subscription.id,
+          status: subscription.status,
+          metadata: subscription.metadata,
+          billing_cycle_anchor: subscription.billing_cycle_anchor,
+        });
 
-        // local testing
-        // const charge = {
-        //   ...(event.data.object as Stripe.Charge),
-        //   metadata: {
-        //     ...(event.data.object as Stripe.Charge).metadata,
-        //     userId: 'google-oauth2|108710886764817686070',
-        //   },
-        // };
+        // Calculate end date from billing cycle
+        const endDate = new Date(subscription.billing_cycle_anchor * 1000);
+        endDate.setMonth(endDate.getMonth());
 
-        // Check if we have userId in metadata
-        if (!charge.metadata?.userId) {
-          console.error('[Payment Success] No userId in metadata:', charge);
-          return NextResponse.json(
-            { error: 'Missing userId in charge metadata' },
-            { status: 400 },
-          );
-        }
+        console.log('[Webhook] Calculated end date:', endDate);
 
-        // Calculate subscription end date (1 month from now)
-        const endDate = new Date();
-        endDate.setMonth(endDate.getMonth() + 1);
-
-        await updateUserSubscription(charge.metadata.userId, {
-          subscription_status: 'PRO',
-          subscription_id: charge.id,
+        await updateUserSubscription(subscription.metadata.userId!, {
+          subscription_status:
+            subscription.status === 'active' ? 'PRO' : 'FREE',
+          subscription_id: subscription.id,
           subscription_period_end: endDate,
-          stripe_customer_id: charge.customer as string,
+          stripe_customer_id: subscription.customer as string,
         });
 
-        console.log('[Payment Success]', {
-          userId: charge.metadata.userId,
-          chargeId: charge.id,
-          customer: charge.customer,
-        });
+        console.log(
+          '[Webhook] Updated user subscription for:',
+          subscription.metadata.userId,
+        );
         break;
       }
 
       case 'charge.failed': {
         const charge = event.data.object as Stripe.Charge;
+        console.log('[Webhook] Processing failed charge:', {
+          id: charge.id,
+          metadata: charge.metadata,
+        });
 
         await updateUserSubscription(charge.metadata.userId, {
           subscription_status: 'FREE',
           subscription_period_end: new Date(),
         });
 
-        await sendNotification({
-          userId: charge.metadata.userId,
-          title: 'Payment Failed',
-          message: 'Your payment failed. Please update your payment method.',
-          type: 'error',
+        console.log(
+          '[Webhook] Updated subscription to FREE for:',
+          charge.metadata.userId,
+        );
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log('[Webhook] Processing subscription deletion:', {
+          id: subscription.id,
+          status: subscription.status,
+          metadata: subscription.metadata,
         });
+
+        await removeUserSubscription(subscription.metadata.userId!);
+
+        console.log(
+          '[Webhook] Removed subscription for user:',
+          subscription.metadata.userId,
+        );
+        break;
+      }
+
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription & {
+          current_period_end: number;
+        };
+
+        console.log('[Webhook] Processing subscription update:', {
+          id: subscription.id,
+          status: subscription.status,
+          metadata: subscription.metadata,
+        });
+
+        // Handle cancellation at period end
+        if (subscription.cancel_at_period_end) {
+          console.log('[Webhook] Subscription scheduled for cancellation');
+        }
+
+        // Update subscription status
+        await updateUserSubscription(subscription.metadata.userId!, {
+          subscription_status:
+            subscription.status === 'active' ? 'PRO' : 'FREE',
+          subscription_id: subscription.id,
+          subscription_period_end: new Date(
+            subscription.current_period_end * 1000,
+          ),
+          stripe_customer_id: subscription.customer as string,
+        });
+
+        console.log(
+          '[Webhook] Updated subscription for user:',
+          subscription.metadata.userId,
+        );
         break;
       }
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Stripe webhook error:', error);
+    console.error('[Webhook] Error processing webhook:', error);
     return NextResponse.json(
       { error: 'Webhook handler failed' },
       { status: 400 },

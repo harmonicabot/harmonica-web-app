@@ -1387,11 +1387,16 @@ export async function updateUserSubscription(
 ): Promise<void> {
   try {
     const db = await dbPromise;
-    await db
+    console.log('Updating user subscription:', { userId, data });
+
+    const result = await db
       .updateTable(usersTableName)
       .set(data)
       .where('id', '=', userId)
+      .returning(['subscription_status'])
       .execute();
+
+    console.log('Update result:', result);
   } catch (error) {
     console.error('Error updating user subscription:', error);
     throw error;

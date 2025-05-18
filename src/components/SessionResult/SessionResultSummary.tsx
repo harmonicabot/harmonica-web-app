@@ -3,11 +3,15 @@ import { useEffect, useState } from 'react';
 import { createMultiSessionSummary, createSummary } from '@/lib/serverUtils';
 import { ExpandableWithExport } from './ExpandableWithExport';
 import * as db from '@/lib/db';
+import { Info } from 'lucide-react';
+import { LimitPopup } from '../pricing/LimitPopup';
+import { useSubscription } from 'hooks/useSubscription';
 
 interface SessionResultSummaryProps {
   hostData: HostSession[];
   isWorkspace: boolean;
   workspaceId?: string;
+  numSessions: number;
   newSummaryContentAvailable: boolean;
   onUpdateSummary: () => void;
   showSessionRecap: boolean;
@@ -19,14 +23,19 @@ export default function SessionResultSummary({
   workspaceId,
   newSummaryContentAvailable,
   onUpdateSummary,
+  numSessions,
   showSessionRecap = true,
 }: SessionResultSummaryProps) {
+  const { status: subscription_status } = useSubscription();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExpandedPrompt, setIsExpandedPrompt] = useState(false);
   const [isExpandedSummary, setIsExpandedSummary] = useState(true);
   const [summary, setSummary] = useState(
     isWorkspace ? '' : hostData[0]?.summary || '',
   );
+  const [isLimitPopupOpen, setIsLimitPopupOpen] = useState(false);
+
+  const isLimitReached = subscription_status === 'FREE' && numSessions > 10;
 
   const triggerSummaryUpdate = () => {
     setIsUpdating(true);
@@ -53,7 +62,7 @@ export default function SessionResultSummary({
     if (isWorkspace && workspaceId) {
       db.getWorkspaceSummary(workspaceId!).then((summary) => {
         if (summary) {
-          console.log(summary)
+          console.log(summary);
           setSummary(summary);
         } else {
           triggerSummaryUpdate();
@@ -64,6 +73,22 @@ export default function SessionResultSummary({
 
   return (
     <>
+      {isLimitReached && (
+        <div className="mb-4 flex items-center text-sm text-amber-600 dark:text-amber-400">
+          <Info
+            size={16}
+            className="mr-1 cursor-pointer"
+            onClick={() => setIsLimitPopupOpen(true)}
+            aria-label="Upgrade to Pro for unlimited participants"
+          />
+          Summary limited to 10 participants.
+          <LimitPopup
+            open={isLimitPopupOpen}
+            onOpenChange={setIsLimitPopupOpen}
+            hitLimit="SUMMARY"
+          />
+        </div>
+      )}
       {showSessionRecap && !isWorkspace && hostData[0].prompt_summary && (
         // We don't show this for workspaces (for now); but we might change that in the future
         <div className="mb-4 relative">

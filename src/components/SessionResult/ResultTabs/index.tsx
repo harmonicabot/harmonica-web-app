@@ -86,7 +86,7 @@ export default function ResultTabs({
   // Participant Ids that should be included in the _summary_ and _simscore_ analysis
   const updateIncludedInAnalysisList = (
     userSessionId: string,
-    included: boolean
+    included: boolean,
   ) => {
     const includedIds = userData
       .filter((user) => user.include_in_summary)
@@ -113,14 +113,14 @@ export default function ResultTabs({
 
   const hasAnyIncludedUserMessages = useMemo(
     () => userIdsIncludedInSummary.length > 0,
-    [userIdsIncludedInSummary]
+    [userIdsIncludedInSummary],
   );
 
   const [visibilityConfig, setVisibilityConfig] = useState(initialConfig);
 
   // Save visibility settings when they change
   const handleVisibilityChange = async (
-    newConfig: ResultTabsVisibilityConfig
+    newConfig: ResultTabsVisibilityConfig,
   ) => {
     console.log('Updating visibility config: ', newConfig);
     setVisibilityConfig(newConfig);
@@ -134,7 +134,7 @@ export default function ResultTabs({
   const [activeTab, setActiveTab] = useState(
     hostData.some((data) => data.summary) || !visibilityConfig.showResponses
       ? 'SUMMARY'
-      : 'RESPONSES'
+      : 'RESPONSES',
   );
 
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
@@ -254,6 +254,9 @@ export default function ResultTabs({
               hostData={hostData}
               isWorkspace={isWorkspace}
               workspaceId={isWorkspace ? resourceId : undefined}
+              numSessions={
+                userData.filter((user) => user.include_in_summary).length
+              }
               newSummaryContentAvailable={
                 newSummaryContentAvailable ||
                 (isWorkspace && hasMinimumRole('editor'))
@@ -294,16 +297,21 @@ export default function ResultTabs({
                       key={session.id}
                       className="flex justify-between items-center p-2 border rounded hover:bg-gray-50"
                     >
-                      <Link href={`/workspace/${resourceId}/${encryptId(session.id)}`} className="flex-1">
-                        <div className='flex justify-between items-center'>
-
-                        <span>{session.topic || 'Untitled Session'}</span>
-                        <span className="ml-2 text-sm text-gray-500">
-                          ({userData.filter(
-                            (uData) => uData.session_id === session.id
-                          ).length
-                        }{' '}responses)
-                        </span>
+                      <Link
+                        href={`/workspace/${resourceId}/${encryptId(session.id)}`}
+                        className="flex-1"
+                      >
+                        <div className="flex justify-between items-center">
+                          <span>{session.topic || 'Untitled Session'}</span>
+                          <span className="ml-2 text-sm text-gray-500">
+                            (
+                            {
+                              userData.filter(
+                                (uData) => uData.session_id === session.id,
+                              ).length
+                            }{' '}
+                            responses)
+                          </span>
                         </div>
                       </Link>
                     </div>
@@ -369,7 +377,7 @@ export default function ResultTabs({
                         if (isWorkspace) {
                           createMultiSessionSummary(
                             hostData.map((data) => data.id),
-                            resourceId
+                            resourceId,
                           );
                         } else {
                           createSummary(resourceId);
