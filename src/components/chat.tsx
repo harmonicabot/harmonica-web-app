@@ -24,6 +24,7 @@ export default function Chat({
   userContext,
   customMessageEnhancement,
   isAskAi = false,
+  crossPollination = false,
 }: {
   sessionIds?: string[];
   setUserSessionId?: (id: string) => void;
@@ -33,6 +34,7 @@ export default function Chat({
   placeholderText?: string;
   userContext?: Record<string, string>;
   isAskAi?: boolean;
+  crossPollination?: boolean;
   customMessageEnhancement?: (
     message: OpenAIMessage,
     index: number,
@@ -204,7 +206,10 @@ export default function Chat({
     console.log(`[i] Created threadId ${threadId} for session ${sessionId}`);
     threadIdRef.current = threadId;
 
-    const userId = typeof user === 'string' ? user + '_' + crypto.randomUUID() : user.sub || 'unknown';
+    const userId =
+      typeof user === 'string'
+        ? user + '_' + crypto.randomUUID()
+        : user.sub || 'unknown';
 
     if (sessionId) {
       const data = {
@@ -362,7 +367,10 @@ export default function Chat({
         };
 
         llama
-          .handleGenerateAnswer(messageData)
+          .handleGenerateAnswer(
+            messageData,
+            !isAskAi && sessionIds?.length === 1 && crossPollination,
+          )
           .then((answer) => {
             setIsLoading(false);
             const now = new Date();

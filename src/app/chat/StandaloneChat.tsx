@@ -123,9 +123,7 @@ Please type your name or "anonymous" if you prefer
   }
 
   return (
-    <div
-      className="flex flex-col md:flex-row h-svh bg-purple-50"
-    >
+    <div className="flex flex-col md:flex-row h-svh bg-purple-50">
       <div className="hidden">
         <div data-tf-live="01JB9CRNXPX488VHX879VNF3E6"></div>
         <script src="//embed.typeform.com/next/embed.js"></script>
@@ -158,6 +156,7 @@ Please type your name or "anonymous" if you prefer
                   topic: hostData.topic,
                   assistant_id: hostData.assistant_id,
                   id: hostData.id,
+                  cross_pollination: hostData.cross_pollination,
                 }
               : {}
           }
