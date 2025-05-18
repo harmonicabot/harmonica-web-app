@@ -104,6 +104,7 @@ export default function CreationFlow() {
     goal: '',
     critical: '',
     context: '',
+    crossPollination: true,
   });
 
   const [templateId, setTemplateId] = useState<string | undefined>();
@@ -200,6 +201,7 @@ export default function CreationFlow() {
         prompt_summary: promptSummary,
         is_public: false,
         summary_assistant_id: '',
+        cross_pollination: formData.crossPollination,
         questions: JSON.stringify(
           participantQuestions.map((q) => ({
             id: q.id,
@@ -222,11 +224,11 @@ export default function CreationFlow() {
       document.cookie = `sessionId=${sessionId}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
 
       // Navigate based on mode & whether there's a pending workspace linking action
-      const pendingWorkspaceId = localStorage.getItem('pendingWorkspaceLink');      
+      const pendingWorkspaceId = localStorage.getItem('pendingWorkspaceLink');
       if (pendingWorkspaceId) {
         try {
           // Link the newly created session to the workspace
-          await linkSessionsToWorkspace(pendingWorkspaceId, [sessionId]);        
+          await linkSessionsToWorkspace(pendingWorkspaceId, [sessionId]);
           // Clear the pending link
           localStorage.removeItem('pendingWorkspaceLink');
           // Redirect to the workspace page
@@ -422,7 +424,9 @@ export default function CreationFlow() {
       const { done, value } = await reader.read();
       if (done) break;
       const chunk = decoder.decode(value);
-      console.log(`[i] Chunk: ${JSON.stringify(chunk)}; Initial Value: ${JSON.stringify(value)}`);
+      console.log(
+        `[i] Chunk: ${JSON.stringify(chunk)}; Initial Value: ${JSON.stringify(value)}`,
+      );
       message += chunk;
       // console.log('\nChunk: ', chunk);
       updateStreaming(message);
