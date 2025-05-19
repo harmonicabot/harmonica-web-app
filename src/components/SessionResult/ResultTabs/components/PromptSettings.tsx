@@ -89,10 +89,10 @@ export function PromptSettings({
                 <MessageSquare className="h-4 w-4" />
                 Facilitation Prompt
               </TabsTrigger>
-              <TabsTrigger value="summary" className="flex items-center gap-2">
+              {/* <TabsTrigger value="summary" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Summary Prompt
-              </TabsTrigger>
+              </TabsTrigger> */}
             </TabsList>
 
             <div className="flex-1 flex flex-col min-h-0">
