@@ -52,11 +52,6 @@ function DashboardBreadcrumb() {
           </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbChevronSeparator />
-        <BreadcrumbItem>
-          <BreadcrumbLink asChild>
-            <Link href="/billing">Billing</Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
         {/* <BreadcrumbSeparator />
         <BreadcrumbItem>
           <BreadcrumbPage>All Sessions</BreadcrumbPage>
