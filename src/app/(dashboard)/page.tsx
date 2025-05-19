@@ -203,11 +203,11 @@ export default async function Dashboard() {
           </div>
           <div className="flex items-center space-x-2">
             <CreateSessionButton />
-            {/* <CreateWorkspaceButton /> */}
+            <CreateWorkspaceButton />
           </div>
         </div>
 
-        {/* <TabsList className="mt-6">
+        <TabsList className="mt-6">
           <TabsTrigger value="sessions" className="flex items-center gap-2">
             Sessions
             {hostSessions.length > 0 && (
@@ -222,7 +222,7 @@ export default async function Dashboard() {
               {workspacesWithSessions.length}
             </span>
           </TabsTrigger>
-        </TabsList> */}
+        </TabsList>
 
         <TabsContent value="sessions" className="mt-4">
           {hostSessions.length > 0 ? (
