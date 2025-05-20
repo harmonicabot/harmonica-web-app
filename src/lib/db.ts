@@ -40,6 +40,7 @@ interface Databases {
   [usersTableName]: s.UsersTable;
   [promptsTableName]: s.PromptsTable;
   [promptTypesTableName]: s.PromptTypesTable;
+  session_files: s.SessionFilesTable;
 }
 
 const dbPromise = (async () => {
@@ -171,15 +172,19 @@ export async function upsertHostSession(
 export async function updateHostSession(
   id: string,
   data: s.HostSessionUpdate,
-): Promise<void> {
+): Promise<s.HostSession> {
   const db = await dbPromise;
   try {
     console.log('Updating host session with id:', id, ' with data:', data);
-    await db
+    const result = await db
       .updateTable(hostTableName)
       .set(data as any)
       .where('id', '=', id)
-      .execute();
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    console.log('Updated host session result:', result);
+    return result;
   } catch (error) {
     console.error('Error updating host session:', error);
     throw error;
@@ -326,7 +331,10 @@ export async function getNumUsersAndMessages(sessionIds: string[]) {
 
   const stats: Record<
     string,
-    Record<string, { num_messages: number; finished: boolean; includedInSummary: boolean }>
+    Record<
+      string,
+      { num_messages: number; finished: boolean; includedInSummary: boolean }
+    >
   > = {};
 
   for (const row of result) {
@@ -582,6 +590,7 @@ export async function hasWorkspace(id: string): Promise<boolean> {
       .where('id', '=', id)
       .executeTakeFirst();
 
+    console.log(`Does workspace ${id} exist? `, result !== undefined);
     return result !== undefined;
   } catch (error) {
     console.error('Error checking workspace existence:', error);
@@ -639,6 +648,73 @@ export async function updateWorkspace(
   }
 }
 
+/**
+ * Updates an existing workspace or creates a new one if it doesn't exist
+ * @param id The ID of the workspace to update or create
+ * @param data The workspace data to update or create with
+ * @returns The updated or created workspace, or null if the operation failed
+ */
+export async function upsertWorkspace(
+  id: string,
+  data: s.WorkspaceUpdate & Partial<s.NewWorkspace>,
+): Promise<s.Workspace | null> {
+  try {
+    const db = await dbPromise;
+
+    // First check if the workspace exists
+    const existingWorkspace = await db
+      .selectFrom('workspaces')
+      .select('id')
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (existingWorkspace) {
+      // Workspace exists, update it
+      return (
+        (await db
+          .updateTable('workspaces')
+          .set(data)
+          .where('id', '=', id)
+          .returningAll()
+          .executeTakeFirst()) || null
+      );
+    } else {
+      // Workspace doesn't exist, create it
+      // Make sure we have all required fields for a new workspace
+      const newWorkspace: s.NewWorkspace = {
+        id, // Use the provided ID
+        title: data.title || 'Untitled Workspace',
+        description: data.description || '',
+        is_public: data.is_public !== undefined ? data.is_public : false,
+        status: data.status || 'draft',
+        created_at: new Date(),
+        ...data, // Include any other fields from data
+      };
+
+      const result = await db
+        .insertInto('workspaces')
+        .values(newWorkspace)
+        .returningAll()
+        .executeTakeFirst();
+
+      if (result) {
+        // Set permissions for the current user
+        const session = await authGetSession();
+        const userSub = session?.user?.sub;
+
+        if (userSub) {
+          await setPermission(id, 'owner', 'WORKSPACE', userSub);
+        }
+      }
+
+      return result || null;
+    }
+  } catch (error) {
+    console.error('Error upserting workspace:', error);
+    return null;
+  }
+}
+
 export async function deleteWorkspace(id: string): Promise<boolean> {
   try {
     const db = await dbPromise;
@@ -659,7 +735,7 @@ export async function addSessionToWorkspace(
   try {
     const db = await dbPromise;
     await db
-      .insertInto('workspace_sessions')
+      .insertInto(workspaceSessionsTableName)
       .values({ workspace_id: workspaceId, session_id: sessionId })
       .execute();
 
@@ -677,7 +753,7 @@ export async function removeSessionFromWorkspace(
   try {
     const db = await dbPromise;
     await db
-      .deleteFrom('workspace_sessions')
+      .deleteFrom(workspaceSessionsTableName)
       .where('workspace_id', '=', workspaceId)
       .where('session_id', '=', sessionId)
       .execute();
@@ -707,7 +783,56 @@ export async function getWorkspaceSessionIds(
   }
 }
 
+export async function getWorkspacesForSession(
+  sessionId: string,
+): Promise<Pick<s.Workspace, 'id' | 'title'>[]> {
+  console.log(`Getting workspaces for `, sessionId);
+  try {
+    const db = await dbPromise;
+    const workspaces = await db
+      .selectFrom(workspaceTableName)
+      .innerJoin(
+        workspaceSessionsTableName,
+        `${workspaceSessionsTableName}.workspace_id`,
+        `${workspaceTableName}.id`,
+      )
+      .where(`${workspaceSessionsTableName}.session_id`, '=', sessionId)
+      .select([`${workspaceTableName}.id`, `${workspaceTableName}.title`])
+      .execute();
+
+    return workspaces;
+  } catch (error) {
+    console.error('Error getting workspaces for session:', error);
+    return [];
+  }
+}
+
 // Permissions operations
+export async function getRoleForUser(
+  resourceId: string,
+  userId: string,
+  resourceType?: 'SESSION' | 'WORKSPACE',
+): Promise<{ role: Role } | null> {
+  try {
+    const db = await dbPromise;
+    let query = db
+      .selectFrom(permissionsTableName)
+      .select('role')
+      .where('resource_id', '=', resourceId)
+      .where('user_id', '=', userId);
+
+    if (resourceType) {
+      query = query.where('resource_type', '=', resourceType);
+    }
+
+    const result = await query.executeTakeFirst();
+    return result || null;
+  } catch (error) {
+    console.error('Error getting permission:', error);
+    return null;
+  }
+}
+
 export async function getPermissions(
   resourceId: string,
   resourceType?: 'SESSION' | 'WORKSPACE',
@@ -715,7 +840,7 @@ export async function getPermissions(
   try {
     const db = await dbPromise;
     let query = db
-      .selectFrom('permissions')
+      .selectFrom(permissionsTableName)
       .select(['user_id', 'role'])
       .where('resource_id', '=', resourceId);
 
@@ -749,7 +874,7 @@ export async function setPermission(
     }
     const db = await dbPromise;
     await db
-      .insertInto('permissions')
+      .insertInto(permissionsTableName)
       .values({
         resource_id: resourceId,
         user_id: userId || 'anonymous',
@@ -767,31 +892,6 @@ export async function setPermission(
   } catch (error) {
     console.error('Error setting permission:', error);
     return false;
-  }
-}
-
-export async function getPermission(
-  resourceId: string,
-  userId: string,
-  resourceType?: 'SESSION' | 'WORKSPACE',
-): Promise<{ role: Role } | null> {
-  try {
-    const db = await dbPromise;
-    let query = db
-      .selectFrom('permissions')
-      .select('role')
-      .where('resource_id', '=', resourceId)
-      .where('user_id', '=', userId);
-
-    if (resourceType) {
-      query = query.where('resource_type', '=', resourceType);
-    }
-
-    const result = await query.executeTakeFirst();
-    return result || null;
-  } catch (error) {
-    console.error('Error getting permission:', error);
-    return null;
   }
 }
 
@@ -1168,68 +1268,6 @@ export async function getUsersWithPermissionsForResource(
 }
 
 /**
- * Creates a link between a workspace and a session
- */
-export async function createWorkspaceSessionLink(
-  workspaceId: string,
-  sessionId: string,
-) {
-  const db = await dbPromise;
-
-  try {
-    // Check if the link already exists to avoid duplicates
-    const existingLink = await db
-      .selectFrom(workspaceSessionsTableName)
-      .select(['workspace_id', 'session_id'])
-      .where('workspace_id', '=', workspaceId)
-      .where('session_id', '=', sessionId)
-      .executeTakeFirst();
-
-    if (existingLink) {
-      return existingLink; // Link already exists
-    }
-
-    // Create the new link
-    return await db
-      .insertInto(workspaceSessionsTableName)
-      .values({
-        workspace_id: workspaceId,
-        session_id: sessionId,
-      })
-      .returningAll()
-      .executeTakeFirst();
-  } catch (error) {
-    console.error('Error creating workspace-session link:', error);
-    throw error;
-  }
-}
-
-/**
- * Removes a link between a workspace and a session
- */
-export async function removeWorkspaceSessionLink(
-  workspaceId: string,
-  sessionId: string,
-): Promise<boolean> {
-  const db = await dbPromise;
-
-  try {
-    // Delete the link from the workspace_sessions table
-    const result = await db
-      .deleteFrom(workspaceSessionsTableName)
-      .where('workspace_id', '=', workspaceId)
-      .where('session_id', '=', sessionId)
-      .execute();
-
-    // Check if any rows were affected by the delete operation
-    return result.length > 0;
-  } catch (error) {
-    console.error('Error removing workspace-session link:', error);
-    throw error;
-  }
-}
-
-/**
  * Fetches all available sessions that could be linked to a workspace
  * (This would typically be sessions the user has access to)
  */
@@ -1446,4 +1484,47 @@ export async function removeUserSubscription(userId: string): Promise<void> {
     console.error('Error removing user subscription:', error);
     throw error;
   }
+}
+
+export async function insertFileMetadata(data: {
+  session_id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  file_url: string;
+  uploaded_by: string;
+  metadata?: JSON;
+  file_purpose?: 'TRANSCRIPT' | 'KNOWLEDGE';
+}) {
+  const db = await dbPromise;
+  const result = await db
+    .insertInto('session_files')
+    .values(data)
+    .returning('id')
+    .executeTakeFirst();
+  return result;
+}
+
+export async function getSessionFiles(sessionId: string) {
+  const db = await dbPromise;
+  return db
+    .selectFrom('session_files')
+    .where('session_id', '=', sessionId)
+    .where('is_deleted', '=', false)
+    .selectAll()
+    .orderBy('uploaded_at', 'desc')
+    .execute();
+}
+
+export async function updateSessionFile(
+  fileId: number,
+  data: { is_deleted: boolean },
+) {
+  const db = await dbPromise;
+  return db
+    .updateTable('session_files')
+    .set(data)
+    .where('id', '=', fileId)
+    .returning('id')
+    .executeTakeFirst();
 }

@@ -30,10 +30,12 @@ export interface HostSessionsTable {
   goal: string;
   critical?: string;
   context?: string;
-  prompt_summary: string;
+  prompt_summary: string; // Note: This is NOT the prompt that is used to _generate_ the summary, but a _summarization of the full prompt_ that is displayed to the user. 
+  summary_prompt?: string; // THIS is the prompt used to generate the summary! (if different from the default)
   questions?: JSON;
   is_public: boolean;
   visibility_settings?: ResultTabsVisibilityConfig;
+  cross_pollination: Generated<boolean>; // Default to true
 }
 
 export interface UserSessionsTable {
@@ -85,6 +87,7 @@ export interface WorkspacesTable {
   created_at: Generated<Date>;
   last_modified: Generated<Date>;
   visibility_settings?: ResultTabsVisibilityConfig;
+  summary_prompt?: string;
 }
 
 export interface ResultTabsVisibilityConfig {
@@ -95,6 +98,7 @@ export interface ResultTabsVisibilityConfig {
   showSimScore?: boolean;
   showChat?: boolean;
   allowCustomInsightsEditing?: boolean;
+  showKnowledge?: boolean;
 }
 
 // Mapping of which sessions belong to which workspaces
@@ -185,6 +189,20 @@ export type PromptTypeUpdate = Updateable<PromptTypesTable>;
 
 // Also add this type for better type safety
 export type SubscriptionTier = 'FREE' | 'PRO' | 'ENTERPRISE';
+
+export interface SessionFilesTable {
+  id: Generated<number>;
+  session_id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  file_url: string;
+  uploaded_by: string;
+  uploaded_at: Generated<Date>;
+  is_deleted: Generated<boolean>;
+  metadata?: JSON;
+  file_purpose?: 'TRANSCRIPT' | 'KNOWLEDGE';
+}
 
 export async function createDbInstance<T extends Record<string, any>>() {
   try {

@@ -66,16 +66,18 @@ export async function sendEmail({ to, subject, html, text }: SendEmailOptions): 
 export async function sendInvitation(invitation: Invitation): Promise<boolean> {
   try {
     const id = invitation.resource_id
-    let title, url;
+    let title, url, type;
     const appUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.harmonica.chat';
     switch (invitation.resource_type) {
       case "WORKSPACE":
         title = await getWorkspaceTitle(id);
         url = `${appUrl}/workspace/${id}`;
+        type = 'project';
         break;
       case "SESSION":
         title = await getSessionTitle(id);
         url = `${appUrl}/sessions/${id}`;
+        type = 'session';
         break;
       default:
         throw new Error(`Unsupported resource type: ${invitation.resource_type}`);            
@@ -88,17 +90,17 @@ export async function sendInvitation(invitation: Invitation): Promise<boolean> {
           <img src="${appUrl}/harmonica.png" alt="Harmonica Logo" style="height: 40px;" />
         </div>
         <div style="padding: 20px; border: 1px solid #e0e0e0; border-radius: 0 0 8px 8px;">
-          <h2>You've been invited to join a workspace</h2>
+          <h2>You've been invited to join a ${type}</h2>
           <p>Hello,</p>
-          <p>You've been invited to join the <strong>${title}</strong> workspace on Harmonica with <strong>${invitation.role}</strong> access.</p>
+          <p>You've been invited to join the <strong>${title}</strong> ${type} on Harmonica with <strong>${invitation.role}</strong> access.</p>
           ${invitation.message ? `<p>Message from the inviter: "${invitation.message}"</p>` : ''}
-          <p>To access this workspace, simply log in to Harmonica using this email address.</p>
+          <p>To access this ${type}, simply log in to Harmonica using this email address.</p>
           <p style="margin: 25px 0;">
             <a href="${url}" style="background-color: #0070f3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">
-              View Workspace
+              View ${type}
             </a>
           </p>
-          <p style="color: #666; font-size: 0.9em;">If you don't have a Harmonica account yet, you'll need to sign up first using this same email address, and you'll automatically get access to the workspace.</p>
+          <p style="color: #666; font-size: 0.9em;">If you don't have a Harmonica account yet, you'll need to sign up first using this same email address, and you'll automatically get access to the ${type}.</p>
         </div>
         <div style="text-align: center; color: #666; font-size: 0.8em; margin-top: 20px;">
           <p>© ${new Date().getFullYear()} Harmonica AI. All rights reserved.</p>
@@ -108,11 +110,11 @@ export async function sendInvitation(invitation: Invitation): Promise<boolean> {
     
     return await sendEmail({
       to: invitation.email,
-      subject: `You've been invited to join the ${title} workspace on Harmonica`,
+      subject: `You've been invited to join the ${title} ${type} on Harmonica`,
       html
     });
   } catch (error) {
-    console.error('Error sending workspace invitation email:', error);
+    console.error('Error sending invitation email:', error);
     return false;
   }
 }
@@ -120,7 +122,7 @@ export async function sendInvitation(invitation: Invitation): Promise<boolean> {
 export async function getWorkspaceTitle(id: string) {
   const workspace = await getWorkspaceById(id);
   if (!workspace) {
-    throw new Error('Cannot send invitation - workspace not found');
+    throw new Error('Cannot send invitation - project not found');
   }
   return workspace.title  
 }

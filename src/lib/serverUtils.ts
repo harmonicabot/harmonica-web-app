@@ -1,10 +1,11 @@
 'use server';
 import * as db from './db';
 import { UserProfile } from '@auth0/nextjs-auth0/client';
-import { generateMultiSessionSummary } from './summaryMultiSession';
+import { generateSummary } from './summaryMultiSession';
 import { getSession } from '@auth0/nextjs-auth0';
 import { NewUser, NewHostSession } from './schema';
 import { updateResourcePermission } from 'app/actions/permissions';
+import { getPromptInstructions } from '@/lib/promptsCache';
 
 export async function isAdmin(user: UserProfile) {
   console.log('Admin IDs: ', process.env.ADMIN_ID);
@@ -75,76 +76,48 @@ export async function getCurrentUserId(): Promise<string | null> {
 }
 
 /**
- * Check if current user has access to a workspace
- * @param workspaceId The workspace ID to check access for
+ * Check if current user has access to a session or workspace
+ * @param resourceId The session or workspace ID to check access for
  * @returns True if the user has access, false otherwise
  */
-export async function hasWorkspaceAccess(
-  workspaceId: string,
+export async function hasAccessToResource(
+  resourceId: string,
 ): Promise<boolean> {
   try {
+    // Check public access
+    const publicPermission = await db.getRoleForUser(
+      resourceId,
+      'public',
+    );
+    if (publicPermission) return true;
+
     const userId = await getCurrentUserId();
     if (!userId) return false;
 
     // Check direct permission
-    const permission = await db.getPermission(workspaceId, userId, 'WORKSPACE');
+    const permission = await db.getRoleForUser(resourceId, userId);
     if (permission) return true;
 
     // Check global permission
-    const globalPermission = await db.getPermission('global', userId);
+    const globalPermission = await db.getRoleForUser('global', userId);
     if (globalPermission) return true;
-
-    // Check public access
-    const publicPermission = await db.getPermission(
-      workspaceId,
-      'public',
-      'WORKSPACE',
-    );
-    if (publicPermission) return true;
 
     return false;
   } catch (error) {
-    console.error('Error checking workspace access:', error);
+    console.error(`Error checking access for resource ${resourceId}:`, error);
     return false;
   }
 }
 
-/**
- * Check if current user has access to a session
- * @param sessionId The session ID to check access for
- * @returns True if the user has access, false otherwise
- */
-export async function hasSessionAccess(sessionId: string): Promise<boolean> {
-  try {
-    const userId = await getCurrentUserId();
-    if (!userId) return false;
-
-    // Check direct permission
-    const permission = await db.getPermission(sessionId, userId, 'SESSION');
-    if (permission) return true;
-
-    // Check public access
-    const publicPermission = await db.getPermission(
-      sessionId,
-      'public',
-      'SESSION',
-    );
-    if (publicPermission) return true;
-
-    // Check global permission
-    const globalPermission = await db.getPermission('global', userId);
-    if (globalPermission) return true;
-
-    return false;
-  } catch (error) {
-    console.error('Error checking session access:', error);
-    return false;
-  }
+export async function fetchPromptInstructions(promptName: string) {
+  return await getPromptInstructions(promptName);
 }
 
 // Create a summary for a single session
 export async function createSummary(sessionId: string) {
-  const summary = await generateMultiSessionSummary([sessionId]);
+  const sessionSummaryPrompt = await db.getFromHostSession(sessionId, ['summary_prompt']);
+  const summaryPrompt = sessionSummaryPrompt?.summary_prompt ?? await getPromptInstructions('SUMMARY_PROMPT');
+  const summary = await generateSummary([sessionId], summaryPrompt);
   console.log('Generated summary:', summary);
   await db.updateHostSession(sessionId, {
     summary: summary.toString(),
@@ -158,7 +131,9 @@ export async function createMultiSessionSummary(
   sessionIds: string[],
   workspaceId: string,
 ) {
-  const summary = await generateMultiSessionSummary(sessionIds);
+  const workspace = await db.getWorkspaceById(workspaceId);
+  const summaryPrompt = workspace?.summary_prompt ?? await getPromptInstructions('PROJECT_SUMMARY_PROMPT');
+  const summary = await generateSummary(sessionIds, summaryPrompt);
 
   await db.updateWorkspace(workspaceId, {
     summary: summary.toString(),

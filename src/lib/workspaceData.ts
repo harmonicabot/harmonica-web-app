@@ -2,17 +2,17 @@ import * as db from '@/lib/db';
 import { ExtendedWorkspaceData } from '@/lib/types';
 import { getSession } from '@auth0/nextjs-auth0';
 import { NewWorkspace } from './schema';
-import { hasWorkspaceAccess } from './serverUtils';
+import { hasAccessToResource } from './serverUtils';
 
 export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedWorkspaceData> {
   try {
-    console.log("Fetching initial workspace data for workspace ", workspaceId);
+    console.log("Fetching initial project data for workspace ", workspaceId);
     // First, check whether this workspace exists at all. If not, add a 'draft' mode with the current user as the owner:
     const workspaceExists = await db.hasWorkspace(workspaceId);
     if (!workspaceExists) {
       const draftWorkspace: NewWorkspace = {
         id: workspaceId,
-        title: "New Workspace",
+        title: "New Project",
         status: 'draft',
         gradientFrom: '#6B21A8',
         gradientTo: '#9333EA',
@@ -33,25 +33,25 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
     }
 
     // Check if user has access to this workspace
-    const hasAccess = await hasWorkspaceAccess(workspaceId);
+    const hasAccess = await hasAccessToResource(workspaceId);
     if (!hasAccess) {
-      throw new Error('Access denied: You do not have permission to view this workspace');
+      throw new Error('Access denied: You do not have permission to view this Project');
     }
 
     let workspaceData = await db.getWorkspaceById(workspaceId);
     if (!workspaceData) {
-      throw new Error('Workspace not found'); // This should never happen; but in order to make typescript happy...
+      throw new Error('Project not found'); // This should never happen; but in order to make typescript happy...
     }
     if (workspaceData.status == 'deleted') {
       // The workspace was marked for deletion, but hasn't actually been deleted. Let's do that now.
       await db.deleteWorkspace(workspaceId);
       console.log("Deleting ", workspaceId);
-      throw new Error('Workspace has been removed.');
+      throw new Error('Project has been removed.');
     }
     
     const availableSessions = await getAllAvailableSessionIds();
 
-    console.log(`Found workspace ${workspaceId}!`);
+    console.log(`Found Project ${workspaceId}!`);
     // Fetch all necessary data for existing workspace
     const sessionIds = await db.getWorkspaceSessionIds(workspaceId);
     const [hostSessions, allUserData] = await Promise.all([
@@ -84,10 +84,10 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
       availableSessions,
     };
   } catch (error) {
-    console.error(`Error occurred fetching workspace data: `, error);
+    console.error(`Error occurred fetching Project data: `, error);
     // Check if this is an access denied error
     if (error instanceof Error && error.message.includes('Access denied')) {
-      throw new Error('Access denied: You do not have permission to view this workspace');
+      throw new Error('Access denied: You do not have permission to view this Project');
     }
     throw error; // Re-throw to let the component handle it
   }

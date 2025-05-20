@@ -2,7 +2,6 @@
 
 import ResultTabs from '@/components/SessionResult/ResultTabs';
 import WorkspaceHero from '@/components/workspace/WorkspaceHero';
-import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 import ShareSettings from '@/components/ShareSettings';
 import {
   NewWorkspace,
@@ -10,20 +9,20 @@ import {
   Workspace,
 } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
-import { Button } from '@/components/ui/button';
-import { updateWorkspaceDetails } from './actions';
 import { useEffect, useState } from 'react';
 import { ExtendedWorkspaceData } from '@/lib/types';
+import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
+import { PromptSettings } from '@/components/SessionResult/ResultTabs/components/PromptSettings';
+import { toast } from 'hooks/use-toast';
 import * as db from '@/lib/db';
-import { useRouter } from 'next/navigation';
 
 // Default visibility configuration for workspaces
 const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
   showSummary: true,
   showResponses: true,
-  showCustomInsights: true,
+  showCustomInsights: false,
   showChat: true,
-  showSimScore: true,
+  showSimScore: false,
   allowCustomInsightsEditing: true,
   showSessionRecap: true,
 };
@@ -37,7 +36,6 @@ export default function WorkspaceContent({
   extendedWorkspaceData,
   workspaceId,
 }: WorkspaceContentProps) {
-  const router = useRouter();
   const initialWorkspaceData = extendedWorkspaceData?.workspace;
   const [workspaceData, setWorkspaceData] = useState<Workspace | NewWorkspace>(
     initialWorkspaceData
@@ -58,46 +56,52 @@ export default function WorkspaceContent({
     }));
   };
 
-  const handleDelete = async () => {
-    if (
-      confirm(
-        `Are you sure you want to delete this workspace?`
-      )
-    ) {
-      await db.updateWorkspace(workspaceId, { status: 'deleted' }).then(() => {
-        console.log("Marked for deletion, redirecting to dashboard")
-        router.replace('/');
-      });
-    }
-    return false;
-  }
-
   const { hasMinimumRole, loading: loadingUserInfo, isPublic } =
     usePermissions(workspaceId);
 
   // For public access, we show a more limited view
-  const visibilityConfig = isPublic
+  const visibilityConfig: ResultTabsVisibilityConfig = isPublic
     ? {
         showSummary: true,
-        showParticipants: false,
-        showCustomInsights: true,
+        showResponses: false,
+        showCustomInsights: false,
+        showSimScore: false,
         showChat: true,
         allowCustomInsightsEditing: false,
         showSessionRecap: true,
       }
     : defaultWorkspaceVisibilityConfig;
 
-
-  const submitNewWorkspace = async () => {
-    console.log('Saving workspace: ', workspaceData);
-    const tempWorkspaceData: Workspace | NewWorkspace = {
-      ...workspaceData,
-      status: 'active',
-    };
-    await updateWorkspaceDetails(workspaceId, tempWorkspaceData);
-  };
-
   const exists = extendedWorkspaceData.exists;
+
+  const handlePromptChange = async (newPrompt: string) => {
+    try {
+      const updateData = { summary_prompt: newPrompt };
+  
+      const result = await db.updateWorkspace(workspaceId, updateData);
+      
+      if (result) {
+        // Update local state
+        setWorkspaceData(prev => ({
+          ...prev,
+          summary_prompt: newPrompt
+        }));
+      } else {
+        toast({
+          title: 'Failed to update prompt',
+          description: 'An error occurred while updating the prompt. Changes were not saved.',
+          variant: 'destructive',
+        });  
+      }
+    } catch (error) {
+      console.error('Failed to update prompt:', error);
+      toast({
+        title: 'Failed to update prompt',
+        description: 'An error occurred while updating the prompt.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <>
@@ -112,12 +116,20 @@ export default function WorkspaceContent({
           initialGradientFrom={workspaceData?.gradientFrom}
           initialGradientTo={workspaceData?.gradientTo}
           initialUseGradient={workspaceData?.useGradient}
-          isEditable={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
+          isEditable={!exists || (!loadingUserInfo && hasMinimumRole('editor'))}
           onUpdate={handleWorkspaceUpdate}
         />
         {!loadingUserInfo && hasMinimumRole('editor') && (
           <div className="flex items-center gap-4 self-end mt-4">
-            <ShareSettings resourceId={workspaceId} resourceType="WORKSPACE" />
+            <PromptSettings 
+              isProject={false}
+              summaryPrompt={workspaceData.summary_prompt}
+              onPromptChange={(newPrompt) => handlePromptChange(newPrompt)}
+              />
+            <ShareSettings 
+              resourceId={workspaceId} 
+              resourceType="WORKSPACE" 
+            />
           </div>
         )}
       </div>
@@ -133,11 +145,10 @@ export default function WorkspaceContent({
             workspaceData?.visibility_settings || visibilityConfig
           }
           sessionIds={extendedWorkspaceData.sessionIds}
-          isPublic={isPublic}
           chatEntryMessage={{
             role: 'assistant',
             content: `Welcome to ${
-              workspaceData?.title || 'this workspace'
+              workspaceData?.title || 'this project'
             }! I'm here to help you understand the learnings across the linked discussions.
 
 Here are some questions you might want to ask:
@@ -146,30 +157,15 @@ Here are some questions you might want to ask:
           }}
           showEdit={!loadingUserInfo && hasMinimumRole('owner')}
           draft={!exists}
-        />
-      </div>
-
-      <SessionInsightsGrid
-        hostSessions={extendedWorkspaceData.hostSessions}
-        userData={extendedWorkspaceData.userData}
-        workspaceId={workspaceId}
-        showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
-        availableSessions={extendedWorkspaceData.availableSessions}
-      />
-      <div className="flex justify-between mt-4">
-        {!exists && workspaceData && (
-          <Button onClick={submitNewWorkspace}>
-            Create Workspace
-          </Button>
-        )}
-        {hasMinimumRole('owner') && (
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-          >
-            Delete Workspace
-          </Button>
-        )}
+        >
+          <SessionInsightsGrid
+            hostSessions={extendedWorkspaceData.hostSessions}
+            userData={extendedWorkspaceData.userData}
+            workspaceId={workspaceId}
+            showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
+            availableSessions={extendedWorkspaceData.availableSessions}
+          />
+          </ResultTabs>
       </div>
     </>
   );

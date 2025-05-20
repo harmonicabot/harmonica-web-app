@@ -72,7 +72,7 @@ const BreadcrumbPage = React.forwardRef<
 ))
 BreadcrumbPage.displayName = "BreadcrumbPage"
 
-const BreadcrumbSeparator = ({
+const BreadcrumbChevronSeparator = ({
   children,
   className,
   ...props
@@ -86,7 +86,22 @@ const BreadcrumbSeparator = ({
     {children ?? <ChevronRight />}
   </li>
 )
-BreadcrumbSeparator.displayName = "BreadcrumbSeparator"
+BreadcrumbChevronSeparator.displayName = "BreadcrumbChevronSeparator"
+
+const BreadcrumbBarSeparator = ({
+  className,
+  ...props
+}: React.ComponentProps<"li">) => (
+  <li
+    role="presentation"
+    aria-hidden="true"
+    className={cn("mx-2 text-muted-foreground", className)}
+    {...props}
+  >
+    |
+  </li>
+)
+BreadcrumbBarSeparator.displayName = "BreadcrumbBarSeparator"
 
 const BreadcrumbEllipsis = ({
   className,
@@ -110,6 +125,7 @@ export {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbPage,
-  BreadcrumbSeparator,
+  BreadcrumbChevronSeparator,
+  BreadcrumbBarSeparator,
   BreadcrumbEllipsis,
 }

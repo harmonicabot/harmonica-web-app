@@ -3,12 +3,8 @@
 import Logo from '@/components/ui/logo';
 import User from '@/components/user';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import ENSNavigation from './workspace/[w_id]/ENSNavigation';
 
 export default function Navigation() {
-  const pathname = usePathname();
-  const isENS = pathname.toLowerCase().startsWith('/workspace/ens');
 
   return (
     <nav className="p-4">
@@ -21,11 +17,6 @@ export default function Navigation() {
             <img src="/harmonica.png" alt="Harmonica" className="h-8 w-8" />
           </div>
         </Link>
-        {isENS && (
-          <div className="hidden md:block">
-            <ENSNavigation />
-          </div>
-        )}
         <div className="flex items-center space-x-4">
           <Link
             href="https://oldspeak.notion.site/Help-Center-fcf198f4683b4e3099beddf48971bd40"

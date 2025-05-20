@@ -26,7 +26,7 @@ export function CustomResponseCard({
           </button>
         )}
       </div>
-      <CardContent className="max-h-[80vh] overflow-auto pb-0">
+      <CardContent className="max-h-[80vh] overflow-auto pb-0 mt-4">
         <HRMarkdown content={response.content} />
       </CardContent>
     </Card>

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import Link from 'next/link';
-import { CreditCard, LogIn, User2, Settings } from 'lucide-react';
+import { Cog, CreditCard, LogIn, User2, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { PricingModal } from './pricing/PricingModal';
 import { useSubscription } from 'hooks/useSubscription';

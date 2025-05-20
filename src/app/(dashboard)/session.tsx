@@ -4,14 +4,13 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { encryptId } from '@/lib/encryptionUtils';
 import Link from 'next/link';
 import { User, UserCheck } from '@/components/icons';
-
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Copy, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Copy, Trash2, FolderPlus, Share2 } from 'lucide-react';
 import { deleteSession } from './actions';
 import { SessionTableData } from './sessions-table';
 import { useState } from 'react';
@@ -29,6 +28,8 @@ import { cloneSession } from '@/lib/serverUtils';
 import { useRouter } from 'next/navigation';
 import { toast } from 'hooks/use-toast';
 import { SessionStatus } from '@/lib/clientUtils';
+import { AddToProjectDialog } from '@/components/AddToProjectDialog';
+import ShareSettings from '@/components/ShareSettings';
 
 export function Session({
   session,
@@ -40,6 +41,8 @@ export function Session({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
+  const [showProjectDialog, setShowProjectDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const router = useRouter();
 
   const handleDelete = async () => {
@@ -48,15 +51,15 @@ export function Session({
       await deleteSession(session.id);
       onDelete(session.id);
       toast({
-        title: "Session deleted",
-        description: "The session has been successfully deleted.",
+        title: 'Session deleted',
+        description: 'The session has been successfully deleted.',
       });
     } catch (error) {
       console.error('Error deleting session:', error);
       toast({
-        title: "Failed to delete session",
-        description: "An error occurred while deleting the session.",
-        variant: "destructive",
+        title: 'Failed to delete session',
+        description: 'An error occurred while deleting the session.',
+        variant: 'destructive',
       });
     } finally {
       setIsDeleting(false);
@@ -70,27 +73,31 @@ export function Session({
       const newSessionId = await cloneSession(session.id);
       if (newSessionId) {
         toast({
-          title: "Session cloned successfully",
+          title: 'Session cloned successfully',
           description: "You'll be redirected to the new session.",
         });
         router.push(`/sessions/${encryptId(newSessionId)}`);
       } else {
         toast({
-          title: "Failed to clone session",
-          description: "An error occurred while cloning the session.",
-          variant: "destructive",
+          title: 'Failed to clone session',
+          description: 'An error occurred while cloning the session.',
+          variant: 'destructive',
         });
       }
     } catch (error) {
       console.error('Error cloning session:', error);
       toast({
-        title: "Failed to clone session",
-        description: "An error occurred while cloning the session.",
-        variant: "destructive",
+        title: 'Failed to clone session',
+        description: 'An error occurred while cloning the session.',
+        variant: 'destructive',
       });
     } finally {
       setIsCloning(false);
     }
+  };
+
+  const addToProject = async () => {
+    setShowProjectDialog(true);
   };
 
   return (
@@ -105,8 +112,8 @@ export function Session({
             session.status === SessionStatus.ACTIVE
               ? 'bg-lime-100 text-lime-900'
               : session.status === SessionStatus.DRAFT
-                ? 'bg-purple-100 text-purple-900'
-                : '' // Finished, remain white
+              ? 'bg-purple-100 text-purple-900'
+              : '' // Finished, remain white
           }`}
         >
           {session.status}
@@ -130,20 +137,25 @@ export function Session({
       <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="h-8 w-8 p-0"
-            >
+            <Button variant="ghost" className="h-8 w-8 p-0">
               <span className="sr-only">Open menu</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
+              <Share2 className="mr-2 h-4 w-4" />
+              <span>Share</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={addToProject}>
+              <FolderPlus className="mr-2 h-4 w-4" />
+              Add to Project
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleClone} disabled={isCloning}>
               <Copy className="mr-2 h-4 w-4" />
               Clone
             </DropdownMenuItem>
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => setShowDeleteDialog(true)}
               className="text-red-600"
               disabled={isDeleting}
@@ -154,14 +166,22 @@ export function Session({
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
+      {showShareDialog && (
+        <ShareSettings
+          resourceId={session.id}
+          resourceType="SESSION"
+          initialIsOpen={showShareDialog}
+          onClose={() => setShowShareDialog(false)}
+        />
+      )}
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the session "{session.topic}" and all its data.
-              This action cannot be undone.
+              This will permanently delete the session "{session.topic}" and all
+              its data. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -171,11 +191,16 @@ export function Session({
               disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AddToProjectDialog
+        sessionId={session.id}
+        open={showProjectDialog}
+        onOpenChange={setShowProjectDialog}
+      />
     </TableRow>
   );
 }

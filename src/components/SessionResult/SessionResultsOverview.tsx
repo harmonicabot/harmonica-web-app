@@ -12,6 +12,9 @@ export default function SessionResultsOverview({
   numSessions,
   completedSessions,
   showShare = true,
+  currentPrompt,
+  summaryPrompt,
+  crossPollination,
 }: {
   id: string;
   status: SessionStatus;
@@ -19,6 +22,9 @@ export default function SessionResultsOverview({
   numSessions: number;
   completedSessions: number;
   showShare?: boolean;
+  currentPrompt?: string;
+  summaryPrompt?: string;
+  crossPollination?: boolean;
 }) {
   const { hasMinimumRole, loading } = usePermissions(id);
   return (
@@ -28,6 +34,9 @@ export default function SessionResultsOverview({
           id={id}
           isFinished={status === SessionStatus.FINISHED}
           readyToGetSummary={numSessions > 0}
+          currentPrompt={currentPrompt}
+          summaryPrompt={summaryPrompt}
+          crossPollination={crossPollination}
         />
       )}
       <SessionResultStatus

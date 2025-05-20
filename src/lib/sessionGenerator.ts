@@ -41,9 +41,7 @@ Reply with ONLY "true" if the session should end, or "false" if it should contin
     messages: [{ role: 'user', content: prompt }],
   });
 
-  return (
-    response.toLowerCase().includes('true') || false
-  );
+  return response.toLowerCase().includes('true') || false;
 }
 
 export async function generateSession(config: SessionConfig) {
@@ -102,12 +100,15 @@ export async function generateSession(config: SessionConfig) {
 
     while (turnCount < config.maxTurns) {
       // Generate question using GPT utils with last user message
-      const questionResponse = await llama.handleGenerateAnswer({
-        threadId,
-        messageText: lastUserMessage,
-        sessionId: config.sessionId,
-        systemPrompt: userContextPrompt,
-      });
+      const questionResponse = await llama.handleGenerateAnswer(
+        {
+          threadId,
+          messageText: lastUserMessage,
+          sessionId: config.sessionId,
+          systemPrompt: userContextPrompt,
+        },
+        true,
+      );
 
       // Store AI question
       await db.insertChatMessage({

@@ -1,3 +1,13 @@
+import Link from 'next/link';
+
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbChevronSeparator,
+} from '@/components/ui/breadcrumb';
 import { Analytics } from '@vercel/analytics/react';
 import Providers from './providers';
 import { ClientBreadcrumb } from '@/components/breadcrumb';
@@ -22,5 +32,30 @@ export default function DashboardLayout({
         <Analytics />
       </div>
     </Providers>
+  );
+}
+
+function DashboardBreadcrumb() {
+  return (
+    <Breadcrumb className="hidden md:flex">
+      <BreadcrumbList>
+        {/* <BreadcrumbItem>
+          <BreadcrumbLink asChild>
+            <Link href="#">Dashboard</Link>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator /> */}
+        <BreadcrumbItem>
+          <BreadcrumbLink asChild>
+            <Link href="#">Sessions</Link>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbChevronSeparator />
+        {/* <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbPage>All Sessions</BreadcrumbPage>
+        </BreadcrumbItem> */}
+      </BreadcrumbList>
+    </Breadcrumb>
   );
 }
