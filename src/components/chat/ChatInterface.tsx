@@ -10,6 +10,7 @@ interface ChatInterfaceProps {
     topic?: string;
     assistant_id?: string;
     id?: string;
+    cross_pollination?: boolean;
   };
   userSessionId: string | undefined;
   setUserSessionId: (id: string) => void;
@@ -88,6 +89,7 @@ export const ChatInterface = ({
             userSessionId={userSessionId}
             setUserSessionId={setUserSessionId}
             userContext={userContext}
+            crossPollination={hostData?.cross_pollination ?? false}
           />
         )}
       </div>

@@ -20,12 +20,14 @@ export default function SessionPage({
   chatEntryMessage,
 }: SessionPageProps) {
   const { hostData, usersWithChat, stats } = data;
+  console.log('Host session data:', hostData); // Add logging to verify the data
 
-  const status = !hostData.active || hostData.final_report_sent
+  const status =
+    !hostData.active || hostData.final_report_sent
       ? SessionStatus.FINISHED
       : stats.totalUsers === 0
-      ? SessionStatus.DRAFT
-      : SessionStatus.ACTIVE;
+        ? SessionStatus.DRAFT
+        : SessionStatus.ACTIVE;
 
   return (
     <div className="p-4 md:p-8">
@@ -41,6 +43,9 @@ export default function SessionPage({
         numSessions={stats.totalUsers}
         completedSessions={stats.finishedUsers}
         showShare={showShare}
+        currentPrompt={hostData.prompt}
+        summaryPrompt={hostData.prompt_summary}
+        crossPollination={hostData.cross_pollination}
       />
       <SessionResultsSection
         hostData={hostData}
@@ -52,4 +57,4 @@ export default function SessionPage({
       />
     </div>
   );
-} 
+}

@@ -48,6 +48,7 @@ const sessionCache = cache(async () => {
       ]);
 
       // Get ALL workspace IDs
+
       let allWorkspaces = await db.getAllWorkspaces();
 
       // Find workspaces marked for deletion
@@ -264,11 +265,7 @@ function CreateSessionButton({ text = 'Create Session' }: { text?: string }) {
   );
 }
 
-function CreateWorkspaceButton({
-  text = 'Create Project',
-}: {
-  text?: string;
-}) {
+function CreateWorkspaceButton({ text = 'Create Project' }: { text?: string }) {
   const workspaceId = `wsp_${Math.random().toString(36).substring(2, 14)}`;
   const link = `/workspace/${workspaceId}`;
   return (

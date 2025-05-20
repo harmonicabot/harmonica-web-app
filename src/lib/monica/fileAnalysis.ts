@@ -6,10 +6,14 @@ interface FileAnalysisResult {
   key_topics: string[];
 }
 
-export async function analyzeFileContent(content: string): Promise<FileAnalysisResult> {
-  const chatEngine = getLLM('SMALL', 0.3);
+export async function analyzeFileContent(
+  content: string,
+): Promise<FileAnalysisResult> {
+  try {
+    // Use MAIN model for better analysis
+    const chatEngine = getLLM('MAIN', 0.3);
 
-  const analysisPrompt = `
+    const analysisPrompt = `
 Analyze the following content and extract key information. Return the result in JSON format with the following structure:
 {
   "num_participants": number of unique participants,
@@ -18,15 +22,16 @@ Analyze the following content and extract key information. Return the result in 
 }
 
 Content to analyze:
-${content}
+${content.substring(0, 4000)} // Limit content length to avoid token limits
 `;
 
-  try {
+    console.log('[i] Starting file content analysis');
     const response = await chatEngine.chat({
       messages: [
         {
           role: 'system',
-          content: 'You are a precise content analyzer. Extract key metrics and topics from the provided content. Return only valid JSON.',
+          content:
+            'You are a precise content analyzer. Extract key metrics and topics from the provided content. Return only valid JSON without any markdown formatting.',
         },
         {
           role: 'user',
@@ -35,11 +40,19 @@ ${content}
       ],
     });
 
+    console.log('[i] Raw analysis response:', response);
+
+    // Clean the response - remove markdown code blocks if present
+    const cleanedResponse = response.replace(/```json\n?|\n?```/g, '').trim();
+    console.log('[i] Cleaned response:', cleanedResponse);
+
     // Parse the response as JSON
-    const analysisResult = JSON.parse(response) as FileAnalysisResult;
+    const analysisResult = JSON.parse(cleanedResponse) as FileAnalysisResult;
+    console.log('[i] Parsed analysis result:', analysisResult);
+
     return analysisResult;
   } catch (error) {
-    console.error('Error analyzing file content:', error);
+    console.error('[e] Error analyzing file content:', error);
     // Return default values if analysis fails
     return {
       num_participants: 0,
@@ -47,4 +60,4 @@ ${content}
       key_topics: [],
     };
   }
-} 
+}
