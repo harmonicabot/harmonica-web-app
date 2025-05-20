@@ -1,10 +1,11 @@
 'use server';
 import * as db from './db';
 import { UserProfile } from '@auth0/nextjs-auth0/client';
-import { generateMultiSessionSummary } from './summaryMultiSession';
+import { generateSummary } from './summaryMultiSession';
 import { getSession } from '@auth0/nextjs-auth0';
 import { NewUser, NewHostSession } from './schema';
 import { updateResourcePermission } from 'app/actions/permissions';
+import { getPromptInstructions } from '@/lib/promptsCache';
 
 export async function isAdmin(user: UserProfile) {
   console.log('Admin IDs: ', process.env.ADMIN_ID);
@@ -108,9 +109,15 @@ export async function hasAccessToResource(
   }
 }
 
+export async function fetchPromptInstructions(promptName: string) {
+  return await getPromptInstructions(promptName);
+}
+
 // Create a summary for a single session
 export async function createSummary(sessionId: string) {
-  const summary = await generateMultiSessionSummary([sessionId], 'SUMMARY_PROMPT');
+  const sessionSummaryPrompt = await db.getFromHostSession(sessionId, ['summary_prompt']);
+  const summaryPrompt = sessionSummaryPrompt?.summary_prompt ?? await getPromptInstructions('SUMMARY_PROMPT');
+  const summary = await generateSummary([sessionId], summaryPrompt);
   console.log('Generated summary:', summary);
   await db.updateHostSession(sessionId, {
     summary: summary.toString(),
@@ -124,7 +131,9 @@ export async function createMultiSessionSummary(
   sessionIds: string[],
   workspaceId: string,
 ) {
-  const summary = await generateMultiSessionSummary(sessionIds, 'PROJECT_SUMMARY_PROMPT');
+  const workspace = await db.getWorkspaceById(workspaceId);
+  const summaryPrompt = workspace?.summary_prompt ?? await getPromptInstructions('PROJECT_SUMMARY_PROMPT');
+  const summary = await generateSummary(sessionIds, summaryPrompt);
 
   await db.updateWorkspace(workspaceId, {
     summary: summary.toString(),

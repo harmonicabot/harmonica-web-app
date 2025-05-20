@@ -12,6 +12,9 @@ import { usePermissions } from '@/lib/permissions';
 import { useEffect, useState } from 'react';
 import { ExtendedWorkspaceData } from '@/lib/types';
 import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
+import { PromptSettings } from '@/components/SessionResult/ResultTabs/components/PromptSettings';
+import { toast } from 'hooks/use-toast';
+import * as db from '@/lib/db';
 
 // Default visibility configuration for workspaces
 const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
@@ -71,6 +74,35 @@ export default function WorkspaceContent({
 
   const exists = extendedWorkspaceData.exists;
 
+  const handlePromptChange = async (newPrompt: string) => {
+    try {
+      const updateData = { summary_prompt: newPrompt };
+  
+      const result = await db.updateWorkspace(workspaceId, updateData);
+      
+      if (result) {
+        // Update local state
+        setWorkspaceData(prev => ({
+          ...prev,
+          summary_prompt: newPrompt
+        }));
+      } else {
+        toast({
+          title: 'Failed to update prompt',
+          description: 'An error occurred while updating the prompt. Changes were not saved.',
+          variant: 'destructive',
+        });  
+      }
+    } catch (error) {
+      console.error('Failed to update prompt:', error);
+      toast({
+        title: 'Failed to update prompt',
+        description: 'An error occurred while updating the prompt.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <>
       <div className="flex w-full flex-col">
@@ -89,6 +121,11 @@ export default function WorkspaceContent({
         />
         {!loadingUserInfo && hasMinimumRole('editor') && (
           <div className="flex items-center gap-4 self-end mt-4">
+            <PromptSettings 
+              isProject={false}
+              summaryPrompt={workspaceData.summary_prompt}
+              onPromptChange={(newPrompt) => handlePromptChange(newPrompt)}
+              />
             <ShareSettings 
               resourceId={workspaceId} 
               resourceType="WORKSPACE" 
