@@ -1,3 +1,4 @@
+'use client'
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -11,10 +12,11 @@ import { MessageSquare, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { fetchPromptInstructions } from '@/lib/serverUtils';
 
 interface PromptSettingsProps {
-  sessionId: string;
-  currentPrompt: string;
+  isProject: boolean;
+  sessionFacilitationPrompt?: string; // Not available for projects
   summaryPrompt?: string;
   onPromptChange: (
     newPrompt: string,
@@ -23,30 +25,36 @@ interface PromptSettingsProps {
 }
 
 export function PromptSettings({
-  sessionId,
-  currentPrompt,
-  summaryPrompt = '',
+  isProject,
+  sessionFacilitationPrompt,
+  summaryPrompt,
   onPromptChange,
 }: PromptSettingsProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [facilitationPrompt, setFacilitationPrompt] = useState(currentPrompt);
+  const [facilitationPrompt, setFacilitationPrompt] = useState(sessionFacilitationPrompt);
   const [summaryPromptText, setSummaryPromptText] = useState(summaryPrompt);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('facilitation');
+  const [activeTab, setActiveTab] = useState(sessionFacilitationPrompt ? 'facilitation' : 'summary');
 
   // Update local state when props change
   useEffect(() => {
     if (isOpen) {
-      setFacilitationPrompt(currentPrompt);
-      setSummaryPromptText(summaryPrompt);
+      if (!summaryPrompt) {
+        // Use the default prompt if there isn't a specific one passed in
+        fetchPromptInstructions(isProject ? 'PROJECT_SUMMARY_PROMPT' : 'SUMMARY_PROMPT')
+          .then(setSummaryPromptText);
+      } else {
+        setSummaryPromptText(summaryPrompt!!);
+      }
+      setFacilitationPrompt(sessionFacilitationPrompt);
     }
-  }, [currentPrompt, summaryPrompt, isOpen]);
+  }, [sessionFacilitationPrompt, summaryPrompt, isOpen]);
 
   const handleSave = async () => {
     try {
       setIsSaving(true);
       const promptToSave =
-        activeTab === 'facilitation' ? facilitationPrompt : summaryPromptText;
+        activeTab === 'facilitation' ? facilitationPrompt! : summaryPromptText!;
       const promptType =
         activeTab === 'facilitation' ? 'facilitation' : 'summary';
 
@@ -82,17 +90,19 @@ export function PromptSettings({
             className="flex-1 flex flex-col min-h-0"
           >
             <TabsList className="grid w-full grid-cols-2 mb-2">
-              <TabsTrigger
-                value="facilitation"
-                className="flex items-center gap-2"
-              >
-                <MessageSquare className="h-4 w-4" />
-                Facilitation Prompt
-              </TabsTrigger>
-              {/* <TabsTrigger value="summary" className="flex items-center gap-2">
+              {sessionFacilitationPrompt &&
+                <TabsTrigger
+                  value="facilitation"
+                  className="flex items-center gap-2"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Facilitation Prompt
+                </TabsTrigger>
+              }
+              <TabsTrigger value="summary" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Summary Prompt
-              </TabsTrigger> */}
+              </TabsTrigger>
             </TabsList>
 
             <div className="flex-1 flex flex-col min-h-0">
@@ -122,9 +132,11 @@ export function PromptSettings({
                 className="flex-1 flex flex-col min-h-0 data-[state=inactive]:hidden"
               >
                 <div className="flex-1 flex flex-col min-h-0">
-                  <Label htmlFor="summary-prompt" className="text-base mb-1">
-                    Summary Prompt
-                  </Label>
+                  {sessionFacilitationPrompt && // Wait what? It might be a bit counterintuitive to check the presence of facilitationPrompt, but the point here is that if we _don't_ have one, then we don't need to show a title, because the summary prompt is the only prompt and the 'tabs' are basically the title!
+                    <Label htmlFor="summary-prompt" className="text-base mb-1">
+                      Summary Prompt
+                    </Label>
+                  }
                   <Textarea
                     id="summary-prompt"
                     value={summaryPromptText}

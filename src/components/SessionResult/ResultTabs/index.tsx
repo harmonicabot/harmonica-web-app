@@ -18,7 +18,6 @@ import { CirclePlusIcon } from 'lucide-react';
 import { CustomResponseCard } from './components/CustomResponseCard';
 import { TabContent } from './components/TabContent';
 import { useCustomResponses } from './hooks/useCustomResponses';
-import { cn } from '@/lib/clientUtils';
 import * as db from '@/lib/db';
 import { ExportButton } from '@/components/Export/ExportButton';
 import { usePermissions } from '@/lib/permissions';
@@ -29,7 +28,6 @@ import {
 } from '@/components/ui/resizable';
 import { SimScoreTab } from './SimScoreTab';
 import SessionFilesTable from '../SessionFilesTable';
-import { PromptSettings } from './components/PromptSettings';
 
 export interface ResultTabsProps {
   hostData: HostSession[];

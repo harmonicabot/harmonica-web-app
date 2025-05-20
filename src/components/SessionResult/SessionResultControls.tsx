@@ -50,7 +50,7 @@ export default function SessionResultControls({
       const updateData =
         type === 'facilitation'
           ? { prompt: newPrompt }
-          : { prompt_summary: newPrompt };
+          : { summary_prompt: newPrompt };
 
       await db.updateHostSession(id, updateData);
     } catch (error) {
@@ -179,8 +179,8 @@ export default function SessionResultControls({
             Clone Session
           </Button>
           <PromptSettings
-            sessionId={id}
-            currentPrompt={currentPrompt}
+            isProject={false}
+            sessionFacilitationPrompt={currentPrompt}
             summaryPrompt={summaryPrompt}
             onPromptChange={handlePromptChange}
           />
