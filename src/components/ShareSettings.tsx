@@ -578,52 +578,69 @@ export default function ShareSettings({
           <DialogTitle>Share {resourceTypeName}</DialogTitle>
         </DialogHeader>
 
-        {subscription.status !== 'FREE' && (
-          <div className="border rounded-md p-4 mb-4">
-            <div className="flex items-center justify-between space-x-2 mb-2">
-              <div className="flex items-center">
-                <Globe className="w-4 h-4 mr-2 text-blue-500" />
-                <label
-                  htmlFor="public-access"
-                  className="text-sm font-medium leading-none"
-                >
-                  Public Access
-                </label>
-              </div>
-              <Switch
-                id="public-access"
-                checked={localIsPublic}
-                onCheckedChange={handlePublicToggle}
-                disabled={loading}
-              />
+        <div className="border rounded-md p-4 mb-4">
+          <div className="flex items-center justify-between space-x-2 mb-2">
+            <div className="flex items-center">
+              <Globe className="w-4 h-4 mr-2 text-blue-500" />
+              <label
+                htmlFor="public-access"
+                className="text-sm font-medium leading-none"
+              >
+                Public Access
+                {subscription.status === 'FREE' && (
+                  <span className="ml-2 text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                    Pro Feature
+                  </span>
+                )}
+              </label>
             </div>
-            <p className="text-xs text-gray-500 mb-3">
-              When public, anyone with the link can view this{' '}
-              {resourceTypeName.toLocaleLowerCase()}.
-            </p>
-
-            {localIsPublic && (
-              <div className="mt-2 flex items-center space-x-2">
-                <Input
-                  value={getPublicUrl()}
-                  readOnly
-                  className="text-xs bg-gray-50"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(getPublicUrl())}
-                >
-                  {urlCopied ? (
-                    <Check className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            )}
+            <Switch
+              id="public-access"
+              checked={localIsPublic}
+              onCheckedChange={handlePublicToggle}
+              disabled={loading || subscription.status === 'FREE'}
+            />
           </div>
-        )}
+          <p className="text-xs text-gray-500 mb-3">
+            {subscription.status === 'FREE' 
+              ? "Upgrade to Pro to make your content publicly accessible with a link."
+              : `When public, anyone with the link can view this ${resourceTypeName.toLocaleLowerCase()}.`
+            }
+          </p>
+
+          {localIsPublic && subscription.status !== 'FREE' && (
+            <div className="mt-2 flex items-center space-x-2">
+              <Input
+                value={getPublicUrl()}
+                readOnly
+                className="text-xs bg-gray-50"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(getPublicUrl())}
+              >
+                {urlCopied ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          )}
+          
+          {subscription.status === 'FREE' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2 text-xs"
+              onClick={() => setShowPricing(true)}
+            >
+              Upgrade to Pro
+            </Button>
+          )}
+        </div>
+
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
           <TabsList className="grid w-full grid-cols-3">
