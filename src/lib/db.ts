@@ -57,7 +57,7 @@ export async function getDbInstance() {
 export async function getHostSessions(
   columns: (keyof s.HostSessionsTable)[],
   page: number = 1,
-  pageSize: number = 100,
+  pageSize: number = 200,
 ): Promise<s.HostSession[]> {
   const db = await dbPromise;
   console.log('Calling getHostSessions');
@@ -75,7 +75,7 @@ export async function getHostSessionsForIds(
   ids: string[],
   columns: (keyof s.HostSessionsTable)[],
   page: number = 1,
-  pageSize: number = 100,
+  pageSize: number = 200,
 ): Promise<s.HostSession[]> {
   const db = await dbPromise;
   console.log('Database call to getHostSessions at:', new Date().toISOString());
