@@ -5,20 +5,26 @@ import { createStripeSession } from '@/lib/stripe';
 import { useSubscription } from 'hooks/useSubscription';
 import { PlanCards } from './PlanCards';
 import { useState } from 'react';
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 interface PricingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  userId: string;
 }
 
 export function PricingModal({
   open,
   onOpenChange,
-  userId,
 }: PricingModalProps) {
   const { status } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useUser();
+
+  if (!user || !user.sub) {
+    console.error('User not authenticated or user ID not available.');
+    return null;
+  }
+  const userId = user.sub;
 
   const handleUpgrade = async (priceId: string) => {
     if (!priceId) {
