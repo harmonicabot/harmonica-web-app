@@ -8,7 +8,7 @@ import {
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator,
+  BreadcrumbChevronSeparator,
 } from '@/components/ui/breadcrumb';
 
 export function ClientBreadcrumb() {
@@ -33,7 +33,7 @@ export function ClientBreadcrumb() {
                 <Link href="/">Dashboard</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator />
+            <BreadcrumbChevronSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage>Billing</BreadcrumbPage>
             </BreadcrumbItem>
@@ -48,7 +48,7 @@ export function ClientBreadcrumb() {
                 <Link href="/">Dashboard</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator />
+            <BreadcrumbChevronSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage>Settings</BreadcrumbPage>
             </BreadcrumbItem>
