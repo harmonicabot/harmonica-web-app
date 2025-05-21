@@ -8,6 +8,7 @@ import { getAllChatMessagesInOrder } from '@/lib/db';
 import { ParticipantsTableData } from './SessionParticipantsTable';
 import { Spinner } from '../icons';
 import { Switch } from '../ui/switch';
+import { LockIcon } from 'lucide-react';
 
 export default function ParicipantSessionRow({
   tableData,
@@ -24,11 +25,17 @@ export default function ParicipantSessionRow({
   );
 
   const handleIncludeInSummaryUpdate = async (updatedIncluded: boolean) => {
-    onIncludeChange(userData.id, updatedIncluded);
-    setIncludeInSummary(updatedIncluded);
+    // Only allow changes if the participant can be included (within limit)
+    if (tableData.canViewTranscript) {
+      onIncludeChange(userData.id, updatedIncluded);
+      setIncludeInSummary(updatedIncluded);
+    }
   };
 
   const handleViewClick = async () => {
+    // Only allow viewing transcript if within limit
+    if (!tableData.canViewTranscript) return;
+    
     setIsPopupVisible(true);
     const messageHistory = await getAllChatMessagesInOrder(userData.thread_id);
 
@@ -61,9 +68,15 @@ export default function ParicipantSessionRow({
 
   return (
     <>
-      <TableRow>
-        <TableCell onClick={handleViewClick} className="font-medium">
+      <TableRow className={tableData.isLimited ? "opacity-60" : ""}>
+        <TableCell 
+          onClick={handleViewClick} 
+          className={`font-medium ${tableData.canViewTranscript ? "cursor-pointer" : "cursor-not-allowed"}`}
+        >
           {tableData.userName}
+          {!tableData.canViewTranscript && (
+            <LockIcon size={14} className="inline ml-2 text-gray-400" />
+          )}
         </TableCell>
         <TableCell className='hidden md:table-cell'>
           <Badge
@@ -91,10 +104,16 @@ export default function ParicipantSessionRow({
           <Switch
             checked={includeInSummary}
             onCheckedChange={handleIncludeInSummaryUpdate}
+            disabled={!tableData.canViewTranscript}
           ></Switch>
         </TableCell>
         <TableCell className="hidden md:table-cell">
-          <Button variant="secondary" onClick={handleViewClick}>
+          <Button 
+            variant="secondary" 
+            onClick={handleViewClick}
+            disabled={!tableData.canViewTranscript}
+            className={!tableData.canViewTranscript ? "opacity-50 cursor-not-allowed" : ""}
+          >
             View
           </Button>
         </TableCell>

@@ -562,7 +562,6 @@ export default function ShareSettings({
         <PricingModal
           open={showPricing}
           onOpenChange={setShowPricing}
-          userId={user.sub}
         />
       )}
       {initialIsOpen === undefined && (

@@ -97,7 +97,6 @@ export default function User() {
         <PricingModal
           open={showPricing}
           onOpenChange={setShowPricing}
-          userId={user.sub}
         />
       );
     }
