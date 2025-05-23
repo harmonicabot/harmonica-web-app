@@ -1528,3 +1528,16 @@ export async function updateSessionFile(
     .returning('id')
     .executeTakeFirst();
 }
+
+export async function getExtendedWorkspaceData(workspaceId: string) {
+  try {
+    const response = await fetch(`/api/workspaces/${workspaceId}/extended`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch workspace data');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching extended workspace data:', error);
+    return null;
+  }
+}

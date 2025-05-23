@@ -9,12 +9,13 @@ import {
   Workspace,
 } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { ExtendedWorkspaceData } from '@/lib/types';
 import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 import { PromptSettings } from '@/components/SessionResult/ResultTabs/components/PromptSettings';
 import { toast } from 'hooks/use-toast';
 import * as db from '@/lib/db';
+import { Loader2 } from 'lucide-react';
 
 // Default visibility configuration for workspaces
 const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
@@ -38,70 +39,138 @@ export default function WorkspaceContent({
 }: WorkspaceContentProps) {
   const initialWorkspaceData = extendedWorkspaceData?.workspace;
   const [workspaceData, setWorkspaceData] = useState<Workspace | NewWorkspace>(
-    initialWorkspaceData
+    initialWorkspaceData,
   );
+  const [extendedData, setExtendedData] = useState(extendedWorkspaceData);
 
-  // Update state when initialWorkspaceData changes (e.g., after fetch)
+  // Update state when initialWorkspaceData changes
   useEffect(() => {
     if (initialWorkspaceData) {
       setWorkspaceData(initialWorkspaceData);
     }
   }, [initialWorkspaceData]);
 
-  // Function to handle updates from child components
-  const handleWorkspaceUpdate = (updates: Workspace) => {
+  // Update extended data when props change
+  useEffect(() => {
+    setExtendedData(extendedWorkspaceData);
+  }, [extendedWorkspaceData]);
+
+  const {
+    hasMinimumRole,
+    loading: loadingUserInfo,
+    isPublic,
+  } = usePermissions(workspaceId);
+
+  // Memoize visibility config
+  const visibilityConfig = useMemo(
+    () =>
+      isPublic
+        ? {
+            showSummary: true,
+            showResponses: false,
+            showCustomInsights: false,
+            showSimScore: false,
+            showChat: true,
+            allowCustomInsightsEditing: false,
+            showSessionRecap: true,
+          }
+        : defaultWorkspaceVisibilityConfig,
+    [isPublic],
+  );
+
+  const exists = extendedData.exists;
+
+  // Memoize permission checks
+  const isEditable = useMemo(
+    () => !exists || hasMinimumRole('editor'),
+    [exists, hasMinimumRole],
+  );
+
+  const canEdit = useMemo(() => hasMinimumRole('owner'), [hasMinimumRole]);
+
+  // Memoize the handleWorkspaceUpdate callback
+  const handleWorkspaceUpdate = useCallback((updates: Workspace) => {
     setWorkspaceData((prev) => ({
       ...prev,
       ...updates,
     }));
-  };
+  }, []);
 
-  const { hasMinimumRole, loading: loadingUserInfo, isPublic } =
-    usePermissions(workspaceId);
+  // Memoize the handlePromptChange callback
+  const handlePromptChange = useCallback(
+    async (newPrompt: string) => {
+      try {
+        const updateData = { summary_prompt: newPrompt };
+        const result = await db.updateWorkspace(workspaceId, updateData);
 
-  // For public access, we show a more limited view
-  const visibilityConfig: ResultTabsVisibilityConfig = isPublic
-    ? {
-        showSummary: true,
-        showResponses: false,
-        showCustomInsights: false,
-        showSimScore: false,
-        showChat: true,
-        allowCustomInsightsEditing: false,
-        showSessionRecap: true,
-      }
-    : defaultWorkspaceVisibilityConfig;
-
-  const exists = extendedWorkspaceData.exists;
-
-  const handlePromptChange = async (newPrompt: string) => {
-    try {
-      const updateData = { summary_prompt: newPrompt };
-  
-      const result = await db.updateWorkspace(workspaceId, updateData);
-      
-      if (result) {
-        // Update local state
-        setWorkspaceData(prev => ({
-          ...prev,
-          summary_prompt: newPrompt
-        }));
-      } else {
+        if (result) {
+          setWorkspaceData((prev) => ({
+            ...prev,
+            summary_prompt: newPrompt,
+          }));
+        } else {
+          toast({
+            title: 'Failed to update prompt',
+            description:
+              'An error occurred while updating the prompt. Changes were not saved.',
+            variant: 'destructive',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to update prompt:', error);
         toast({
           title: 'Failed to update prompt',
-          description: 'An error occurred while updating the prompt. Changes were not saved.',
+          description: 'An error occurred while updating the prompt.',
           variant: 'destructive',
-        });  
+        });
+      }
+    },
+    [workspaceId],
+  );
+
+  // Handle session updates
+  const handleSessionsUpdate = useCallback(async () => {
+    try {
+      // Fetch updated workspace data
+      const updatedData = await db.getExtendedWorkspaceData(workspaceId);
+      if (updatedData) {
+        setExtendedData(updatedData);
       }
     } catch (error) {
-      console.error('Failed to update prompt:', error);
+      console.error('Failed to update workspace data:', error);
       toast({
-        title: 'Failed to update prompt',
-        description: 'An error occurred while updating the prompt.',
+        title: 'Error',
+        description: 'Failed to refresh workspace data',
         variant: 'destructive',
       });
     }
-  };
+  }, [workspaceId]);
+
+  // Memoize the chat entry message
+  const chatEntryMessage = useMemo(
+    () => ({
+      role: 'assistant' as const,
+      content: `Welcome to ${
+        workspaceData?.title || 'this project'
+      }! I'm here to help you understand the learnings across the linked discussions.
+
+Here are some questions you might want to ask:
+  - What were the main themes discussed during the sessions?
+  - What was controversial, and where did participants agree?`,
+    }),
+    [workspaceData?.title],
+  );
+
+  if (loadingUserInfo) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
+          <p className="text-gray-600">Loading workspace...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -116,56 +185,45 @@ export default function WorkspaceContent({
           initialGradientFrom={workspaceData?.gradientFrom}
           initialGradientTo={workspaceData?.gradientTo}
           initialUseGradient={workspaceData?.useGradient}
-          isEditable={!exists || (!loadingUserInfo && hasMinimumRole('editor'))}
+          isEditable={isEditable}
           onUpdate={handleWorkspaceUpdate}
         />
-        {!loadingUserInfo && hasMinimumRole('editor') && (
+        {isEditable && (
           <div className="flex items-center gap-4 self-end mt-4">
-            <PromptSettings 
+            <PromptSettings
               isProject={false}
               summaryPrompt={workspaceData.summary_prompt}
-              onPromptChange={(newPrompt) => handlePromptChange(newPrompt)}
-              />
-            <ShareSettings 
-              resourceId={workspaceId} 
-              resourceType="WORKSPACE" 
+              onPromptChange={handlePromptChange}
             />
+            <ShareSettings resourceId={workspaceId} resourceType="WORKSPACE" />
           </div>
         )}
       </div>
 
       <div className="mt-8 flex flex-col lg:flex-row gap-4">
         <ResultTabs
-          hostData={extendedWorkspaceData.hostSessions}
-          userData={extendedWorkspaceData.userData}
+          hostData={extendedData.hostSessions}
+          userData={extendedData.userData}
           resourceId={workspaceId}
           isWorkspace={true}
           hasNewMessages={false}
           visibilityConfig={
             workspaceData?.visibility_settings || visibilityConfig
           }
-          sessionIds={extendedWorkspaceData.sessionIds}
-          chatEntryMessage={{
-            role: 'assistant',
-            content: `Welcome to ${
-              workspaceData?.title || 'this project'
-            }! I'm here to help you understand the learnings across the linked discussions.
-
-Here are some questions you might want to ask:
-  - What were the main themes discussed during the sessions?
-  - What was controversial, and where did participants agree?`,
-          }}
-          showEdit={!loadingUserInfo && hasMinimumRole('owner')}
+          sessionIds={extendedData.sessionIds}
+          chatEntryMessage={chatEntryMessage}
+          showEdit={canEdit}
           draft={!exists}
         >
           <SessionInsightsGrid
-            hostSessions={extendedWorkspaceData.hostSessions}
-            userData={extendedWorkspaceData.userData}
+            hostSessions={extendedData.hostSessions}
+            userData={extendedData.userData}
             workspaceId={workspaceId}
-            showEdit={!exists || (!loadingUserInfo && hasMinimumRole('owner'))}
-            availableSessions={extendedWorkspaceData.availableSessions}
+            showEdit={!exists || canEdit}
+            availableSessions={extendedData.availableSessions}
+            onSessionsUpdate={handleSessionsUpdate}
           />
-          </ResultTabs>
+        </ResultTabs>
       </div>
     </>
   );

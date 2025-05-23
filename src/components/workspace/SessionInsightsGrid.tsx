@@ -4,7 +4,7 @@ import { HostSession, UserSession } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
 import { LinkIcon, Pencil, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import {
   unlinkSessionFromWorkspace,
 } from '@/lib/workspaceActions';
 import { useToast } from 'hooks/use-toast';
+import * as db from '@/lib/db';
 
 interface SessionInsightsGridProps {
   hostSessions: HostSession[];
@@ -27,6 +28,7 @@ interface SessionInsightsGridProps {
   workspaceId: string;
   showEdit?: boolean;
   availableSessions?: Pick<HostSession, 'id' | 'topic' | 'start_time'>[];
+  onSessionsUpdate?: () => void;
 }
 
 export default function SessionInsightsGrid({
@@ -35,6 +37,7 @@ export default function SessionInsightsGrid({
   workspaceId,
   showEdit = false,
   availableSessions = [],
+  onSessionsUpdate,
 }: SessionInsightsGridProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -42,7 +45,14 @@ export default function SessionInsightsGrid({
   const [isLinking, setIsLinking] = useState(false);
   const [localHostSessions, setLocalHostSessions] =
     useState<HostSession[]>(hostSessions);
+  const [localUserData, setLocalUserData] = useState<UserSession[]>(userData);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Update local state when props change
+  useEffect(() => {
+    setLocalHostSessions(hostSessions);
+    setLocalUserData(userData);
+  }, [hostSessions, userData]);
 
   // Filter out sessions that are already in the workspace
   const sessionsToLink = availableSessions.filter(
@@ -51,7 +61,6 @@ export default function SessionInsightsGrid({
   );
 
   const handleCreateSession = () => {
-    // Store the workspace ID in localStorage to retrieve after session creation
     localStorage.setItem('pendingWorkspaceLink', workspaceId);
     router.push('/create');
   };
@@ -69,10 +78,42 @@ export default function SessionInsightsGrid({
 
     setIsLinking(true);
     try {
+      // First, link the sessions to the workspace
       await linkSessionsToWorkspace(workspaceId, selectedSessions);
-      console.log('Refreshing after linking');
+
+      // Fetch complete session data and user data for the newly linked sessions
+      const [newSessionsData, newUserData] = await Promise.all([
+        // Fetch session data
+        Promise.all(
+          selectedSessions.map(async (sessionId) => {
+            const sessionData = await db.getHostSessionById(sessionId);
+            return sessionData;
+          }),
+        ),
+        // Fetch user data
+        Promise.all(
+          selectedSessions.map(async (sessionId) => {
+            const users = await db.getUsersBySessionId(sessionId);
+            return users;
+          }),
+        ),
+      ]);
+
+      // Update local state with the complete session data
+      setLocalHostSessions((prev) => [...prev, ...newSessionsData]);
+
+      // Update local user data
+      const flattenedUserData = newUserData.flat();
+      setLocalUserData((prev) => [...prev, ...flattenedUserData]);
+
+      // Notify parent component to refresh all data
+      onSessionsUpdate?.();
+
       setDialogOpen(false);
-      router.refresh(); // Refresh the page to show the newly linked sessions
+      toast({
+        title: 'Success',
+        description: 'Sessions linked successfully',
+      });
     } catch (error) {
       console.error('Failed to link sessions:', error);
       toast({
@@ -86,27 +127,23 @@ export default function SessionInsightsGrid({
     }
   };
 
-  useEffect(() => {
-    setLocalHostSessions(hostSessions);
-  }, [hostSessions]);
-
   const handleRemoveSession = async (sessionId: string) => {
     try {
-      // First update the local state for immediate UI feedback
+      // Update local state immediately
       setLocalHostSessions((prev) =>
         prev.filter((session) => session.id !== sessionId),
       );
 
-      // Then perform the actual unlinking in the database
+      // Perform the actual unlinking
       await unlinkSessionFromWorkspace(workspaceId, sessionId);
+
+      // Notify parent component
+      onSessionsUpdate?.();
 
       toast({
         title: 'Session removed',
         description: 'The session has been removed from this project',
       });
-
-      // Optionally refresh the page to ensure data consistency
-      // router.refresh();
     } catch (error) {
       console.error('Failed to remove session:', error);
       toast({
@@ -128,22 +165,34 @@ export default function SessionInsightsGrid({
       <CardContent>
         <div className="grid grid-cols-auto-fit gap-4">
           {/* Host Sessions cards at the top */}
-          {localHostSessions.map((hostData) => (
-            <SessionSummaryCard
-              key={hostData.id}
-              hostData={hostData}
-              userData={userData.filter(
-                (user) => user.session_id === hostData.id,
-              )}
-              workspace_id={workspaceId}
-              id={hostData.id}
-              onRemove={showEdit ? handleRemoveSession : undefined}
-            />
-          ))}
+          {localHostSessions.map((hostData) => {
+            // Get the corresponding user data for this session
+            const sessionUserData = localUserData.filter(
+              (user) => user.session_id === hostData.id,
+            );
+
+            // Calculate the number of participants
+            const participantCount = sessionUserData.length;
+
+            return (
+              <SessionSummaryCard
+                key={hostData.id}
+                hostData={{
+                  ...hostData,
+                  goal: hostData.goal || 'No goal set',
+                  num_sessions: participantCount,
+                }}
+                userData={sessionUserData}
+                workspace_id={workspaceId}
+                id={hostData.id}
+                onRemove={showEdit ? handleRemoveSession : undefined}
+              />
+            );
+          })}
 
           {showEdit && (
             <>
-              {/* <Card
+              <Card
                 className="border-2 border-dashed border-gray-300 hover:border-primary cursor-pointer transition-colors"
                 onClick={handleCreateSession}
               >
@@ -158,7 +207,7 @@ export default function SessionInsightsGrid({
                     </p>
                   </div>
                 </CardContent>
-              </Card> */}
+              </Card>
 
               {/* Link Existing Session Card */}
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
