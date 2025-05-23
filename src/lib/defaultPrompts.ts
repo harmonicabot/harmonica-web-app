@@ -103,7 +103,7 @@ Your summary should:
 
 Remember: **each summary should feel like it belongs uniquely to that project.**
 Use the structure that best expresses the real shape of the conversation.
-`,  
+`,
 
   EXTRACT_PROMPT: `You are a data extraction assistant that formats conversation data according to specific instructions. Always return valid JSON without markdown formatting or code blocks.`,
 
@@ -215,7 +215,6 @@ Open the session by introducing the user with the following details:
 The session title (eg. Welcome to …. )
 A short description of the objective of the session, how it will be structured and estimating how long it might take to respond.
 Remind the user that they can:
-share their thoughts openly as this is a safe space and
 exit anytime choosing whether incomplete sessions should be saved. If a participant asks to end the session early, ask if they want their inputs to be saved, wait for the participant's response to decide on saving or deleting their responses, then reply with a confirmation, a thank you for participating and a goodbye. Then comply with their instruction to save or delete their incomplete contributions.
 
 Session Steps
