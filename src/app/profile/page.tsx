@@ -244,10 +244,10 @@ export default function Profile() {
                     </p>
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium">Workspaces</h3>
+                    <h3 className="text-lg font-medium">Projects</h3>
                     <p>
                       You have ownership of {userData.workspaces?.length || 0}{' '}
-                      workspace{userData.workspaces?.length === 1 ? '' : 's'}.
+                      project{userData.workspaces?.length === 1 ? '' : 's'}.
                     </p>
                   </div>
 
@@ -283,7 +283,7 @@ export default function Profile() {
                     <div>
                       <p className="mb-2 text-sm text-gray-600">
                         You can request the deletion of all your personal data
-                        from our systems. (This includes all your messages, and all the sessions and workspaces where you are the sole owner)
+                        from our systems. (This includes all your messages, and all the sessions and projects where you are the sole owner)
                       </p>
                       <Button
                         variant="destructive"
