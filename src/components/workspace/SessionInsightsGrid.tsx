@@ -61,8 +61,7 @@ export default function SessionInsightsGrid({
   );
 
   const handleCreateSession = () => {
-    localStorage.setItem('pendingWorkspaceLink', workspaceId);
-    router.push('/create');
+    router.push(`/create?workspaceId=${workspaceId}`);
   };
 
   const handleSessionSelection = (sessionId: string) => {
