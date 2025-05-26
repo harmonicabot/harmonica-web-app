@@ -30,7 +30,8 @@ export interface HostSessionsTable {
   goal: string;
   critical?: string;
   context?: string;
-  prompt_summary: string;
+  prompt_summary: string; // Note: This is NOT the prompt that is used to _generate_ the summary, but a _summarization of the full prompt_ that is displayed to the user. 
+  summary_prompt?: string; // THIS is the prompt used to generate the summary! (if different from the default)
   questions?: JSON;
   is_public: boolean;
   visibility_settings?: ResultTabsVisibilityConfig;
@@ -86,6 +87,7 @@ export interface WorkspacesTable {
   created_at: Generated<Date>;
   last_modified: Generated<Date>;
   visibility_settings?: ResultTabsVisibilityConfig;
+  summary_prompt?: string;
 }
 
 export interface ResultTabsVisibilityConfig {

@@ -75,7 +75,7 @@ export async function getHostSessionsForIds(
   ids: string[],
   columns: (keyof s.HostSessionsTable)[],
   page: number = 1,
-  pageSize: number = 200,
+  pageSize: number = 100,
 ): Promise<s.HostSession[]> {
   const db = await dbPromise;
   console.log('Database call to getHostSessions at:', new Date().toISOString());
@@ -1527,4 +1527,17 @@ export async function updateSessionFile(
     .where('id', '=', fileId)
     .returning('id')
     .executeTakeFirst();
+}
+
+export async function getExtendedWorkspaceData(workspaceId: string) {
+  try {
+    const response = await fetch(`/api/workspaces/${workspaceId}/extended`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch workspace data');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching extended workspace data:', error);
+    return null;
+  }
 }

@@ -4,7 +4,7 @@ import SessionResultsOverview from '@/components/SessionResult/SessionResultsOve
 import SessionResultsSection from '@/components/SessionResult/SessionResultsSection';
 import { OpenAIMessage } from '@/lib/types';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
-import { calculateStatus, SessionStatus } from '@/lib/clientUtils';
+import { SessionStatus } from '@/lib/clientUtils';
 
 interface SessionPageProps {
   data: SessionData;
@@ -20,7 +20,6 @@ export default function SessionPage({
   chatEntryMessage,
 }: SessionPageProps) {
   const { hostData, usersWithChat, stats } = data;
-  console.log('Host session data:', hostData); // Add logging to verify the data
 
   const status =
     !hostData.active || hostData.final_report_sent
@@ -44,7 +43,7 @@ export default function SessionPage({
         completedSessions={stats.finishedUsers}
         showShare={showShare}
         currentPrompt={hostData.prompt}
-        summaryPrompt={hostData.prompt_summary}
+        summaryPrompt={hostData.summary_prompt}
         crossPollination={hostData.cross_pollination}
       />
       <SessionResultsSection
