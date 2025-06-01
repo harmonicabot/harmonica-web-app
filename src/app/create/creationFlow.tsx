@@ -6,7 +6,7 @@ import ReviewPrompt from './review';
 import LoadingMessage from './loading';
 import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
 import { sendApiCall } from '@/lib/clientUtils';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NewHostSession } from '@/lib/schema';
 import * as db from '@/lib/db';
@@ -51,6 +51,7 @@ const STEP_CONFIG: StepConfig[] = [
 
 export default function CreationFlow() {
   const route = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [activeStep, setActiveStep] = useState<Step>(STEPS[0]);
   const latestFullPromptRef = useRef('');
@@ -223,16 +224,15 @@ export default function CreationFlow() {
       expirationDate.setDate(expirationDate.getDate() + 30);
       document.cookie = `sessionId=${sessionId}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
 
-      // Navigate based on mode & whether there's a pending workspace linking action
-      const pendingWorkspaceId = localStorage.getItem('pendingWorkspaceLink');
-      if (pendingWorkspaceId) {
+      // Navigate based on mode & whether there's a workspace to link to
+      const workspaceId = searchParams.get('workspaceId');
+      
+      if (workspaceId) {
         try {
           // Link the newly created session to the workspace
-          await linkSessionsToWorkspace(pendingWorkspaceId, [sessionId]);
-          // Clear the pending link
-          localStorage.removeItem('pendingWorkspaceLink');
+          await linkSessionsToWorkspace(workspaceId, [sessionId]);
           // Redirect to the workspace page
-          route.push(`/workspace/${pendingWorkspaceId}`);
+          route.push(`/workspace/${workspaceId}`);
         } catch (error) {
           console.error('Failed to link session to workspace:', error);
         }

@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { encryptId } from '@/lib/encryptionUtils';
 import type { UserProfile } from '@auth0/nextjs-auth0/client';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { QuestionsModal, SUPPORTED_LANGUAGES } from './QuestionsModal';
 import { QuestionInfo } from 'app/create/types';
@@ -14,6 +14,7 @@ interface SessionModalProps {
   user?: UserProfile;
   hostData?: { topic: string; questions?: QuestionInfo[] };
   onStart: (answers?: Record<string, string>) => void;
+  loadingUserInfo?: boolean;
 }
 
 export const SessionModal = ({
@@ -23,6 +24,7 @@ export const SessionModal = ({
   user,
   hostData,
   onStart,
+  loadingUserInfo = false,
 }: SessionModalProps) => {
   const [showQuestions, setShowQuestions] = useState(false);
 
@@ -51,7 +53,12 @@ export const SessionModal = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-4 sm:p-6 md:p-10 rounded-lg w-[calc(100%-2rem)] h-[calc(100%-2rem)] flex items-center justify-center m-4 overflow-y-auto">
         <div className="max-w-6xl w-full">
-          {userFinished ? (
+          {loadingUserInfo ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 text-gray-400 animate-spin mb-4" />
+              <p className="text-gray-600">Loading session information...</p>
+            </div>
+          ) : userFinished ? (
             <div className="flex flex-col items-center justify-center">
               <h2 className="text-xl font-bold mb-4">
                 Thank You for Your Participation!
@@ -110,13 +117,26 @@ export const SessionModal = ({
                       </Link>
                     </div>
                   ) : (
-                    <Button
-                      onClick={handleStart}
-                      size="lg"
-                      className="w-full sm:w-auto flex items-center gap-2"
-                    >
-                      Get started <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    <>
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-amber-800">
+                            <span className="font-medium">Important:</span>{' '}
+                            Please keep in mind that session host(s) will have
+                            access to your responses, even if you don't finish
+                            the session.
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleStart}
+                        size="lg"
+                        className="w-full sm:w-auto flex items-center gap-2"
+                      >
+                        Get started <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
