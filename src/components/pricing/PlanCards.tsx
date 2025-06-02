@@ -43,7 +43,7 @@ export const plans: Plan[] = [
   },
   {
     name: 'Pro',
-    price: '$49',
+    price: '$39',
     period: '/month',
     description: 'Ideal for teams seeking deeper insights and collaboration',
     features: [
