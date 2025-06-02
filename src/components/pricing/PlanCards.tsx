@@ -33,11 +33,11 @@ export const plans: Plan[] = [
     description:
       'Perfect for individuals and small teams just getting started.',
     features: [
-      'Up to 10 responses in summaries',
-      '5 meeting templates',
-      'Email notifications',
-      'Basic summary generation',
-      '24-hour data retention',
+      'Access for 1 organizer',
+      'Gather insights from up to 10 participants',
+      '3 queries to the Results AI',
+      'Private results dashboard',
+      '10MB project knowledge base',
     ],
     productId: null,
   },
@@ -45,17 +45,13 @@ export const plans: Plan[] = [
     name: 'Pro',
     price: '$49',
     period: '/month',
-    description: 'For teams that need advanced features and more flexibility.',
+    description: 'Ideal for teams seeking deeper insights and collaboration',
     features: [
-      'Unlimited responses in summaries',
-      'Unlimited meeting templates',
-      'Custom templates',
-      'Cross-pollination of ideas',
-      'Ask AI prompting',
-      'Analytics dashboard',
-      '90-day data retention',
-      'Priority support',
-      'Advanced integrations',
+      'Team access for 3 administrators',
+      'Unlimited participant insights',
+      'Unlimited AI analysis queries',
+      'Public results page with shareable link',
+      'Expanded knowledge integration',
     ],
     productId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
     highlight: true,
@@ -63,20 +59,17 @@ export const plans: Plan[] = [
   {
     name: 'Enterprise',
     price: 'Custom',
-    description: 'For organizations requiring maximum control and support.',
+    description: 'Complete solution for managing complex stakeholder input',
     features: [
-      'Everything in Pro',
-      'Unlimited data retention',
-      'Dedicated account manager',
-      'Custom AI model training',
-      'SLA guarantees',
-      'SSO & advanced security',
-      'API access',
+      'Custom administrator seats',
+      'Advanced analytics dashboard',
+      'Priority support',
+      'Dedicated onboarding',
       'Custom integrations',
-      'Onboarding & training',
+      'Enhanced security features',
     ],
     action: 'Contact Sales',
-    contactEmail: 'enterprise@harmonica.chat',
+    contactEmail: 'hello@harmonica.chat',
   },
 ];
 
@@ -110,7 +103,7 @@ export function PlanCards({
           key={plan.name}
           className={`flex flex-col ${isCurrentPlan(plan.name) ? 'border-purple-500 shadow-md' : ''}`}
         >
-          <CardHeader>
+          <CardHeader className="h-[180px] flex flex-col">
             <div className="flex justify-between items-center">
               <CardTitle>{plan.name}</CardTitle>
               {showCurrentPlanBadge && isCurrentPlan(plan.name) && (
@@ -125,7 +118,9 @@ export function PlanCards({
                 <span className="text-gray-500 ml-1">{plan.period}</span>
               )}
             </div>
-            <CardDescription>{plan.description}</CardDescription>
+            <CardDescription className="flex-1">
+              {plan.description}
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex-1">
             <ul className="space-y-2">
