@@ -507,7 +507,7 @@ export default function Chat({
         className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''} sticky bottom-0`}
         onSubmit={handleSubmit}
       >
-        <div className="flex justify-end mb-2">
+        {/* <div className="flex justify-end mb-2">
           <Button
             type="button"
             variant="outline"
@@ -531,7 +531,7 @@ export default function Chat({
                 : 'AI Suggestion'}
             </span>
           </Button>
-        </div>
+        </div> */}
 
         <div className="relative">
           <Textarea
