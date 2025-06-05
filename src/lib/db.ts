@@ -58,17 +58,29 @@ export async function getHostSessions(
   columns: (keyof s.HostSessionsTable)[],
   page: number = 1,
   pageSize: number = 200,
-): Promise<s.HostSession[]> {
+): Promise<Partial<s.HostSession>[]> {
   const db = await dbPromise;
   console.log('Calling getHostSessions');
 
-  let query = db.selectFrom(hostTableName).select(columns);
+  try {
+    const query = db
+      .selectFrom(hostTableName)
+      .selectAll()
+      .orderBy('start_time', 'desc')
+      .limit(pageSize)
+      .offset(Math.max(0, page - 1) * pageSize);
 
-  return query
-    .orderBy('start_time', 'desc')
-    .limit(pageSize)
-    .offset(Math.max(0, page - 1) * pageSize)
-    .execute();
+    // Log the SQL query
+    const sql = query.compile();
+    console.log('SQL Query:', sql.sql);
+    console.log('SQL Parameters:', sql.parameters);
+
+    const result = await query.execute();
+    return result;
+  } catch (error) {
+    console.error('Error in getHostSessions:', error);
+    throw error;
+  }
 }
 
 export async function getHostSessionsForIds(
@@ -80,16 +92,31 @@ export async function getHostSessionsForIds(
   const db = await dbPromise;
   console.log('Database call to getHostSessions at:', new Date().toISOString());
 
-  let query = db
-    .selectFrom(hostTableName)
-    .select(columns)
-    .where('id', 'in', ids);
+  try {
+    // If no IDs provided, return empty array
+    if (!ids || ids.length === 0) {
+      return [];
+    }
 
-  return query
-    .orderBy('start_time', 'desc')
-    .limit(pageSize)
-    .offset(Math.max(0, page - 1) * pageSize)
-    .execute();
+    const query = db
+      .selectFrom(hostTableName)
+      .selectAll()
+      .where('id', 'in', ids)
+      .orderBy('start_time', 'desc')
+      .limit(pageSize)
+      .offset(Math.max(0, page - 1) * pageSize);
+
+    // Log the SQL query
+    const sql = query.compile();
+    console.log('SQL Query:', sql.sql);
+    console.log('SQL Parameters:', sql.parameters);
+
+    const result = await query.execute();
+    return result;
+  } catch (error) {
+    console.error('Error in getHostSessionsForIds:', error);
+    throw error;
+  }
 }
 
 export async function getHostSessionById(
