@@ -153,7 +153,7 @@ export function PlanCards({
                 variant="outline"
                 onClick={() =>
                   plan.contactEmail &&
-                  (window.location.href = `mailto:${plan.contactEmail}`)
+                  window.open('https://harmonica.chat/sales', '_blank')
                 }
               >
                 {plan.action}
