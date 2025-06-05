@@ -106,7 +106,7 @@ export default function BillingPage() {
                     )}
                   </div>
                   <p className="text-muted-foreground mt-1">
-                    {status === 'PRO' ? '$49 / month' : '$0'}
+                    {status === 'PRO' ? '$39 / month' : '$0'}
                   </p>
                 </div>
               </div>

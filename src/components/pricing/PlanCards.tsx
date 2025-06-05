@@ -43,7 +43,7 @@ export const plans: Plan[] = [
   },
   {
     name: 'Pro',
-    price: '$49',
+    price: '$39',
     period: '/month',
     description: 'Ideal for teams seeking deeper insights and collaboration',
     features: [
@@ -153,7 +153,7 @@ export function PlanCards({
                 variant="outline"
                 onClick={() =>
                   plan.contactEmail &&
-                  (window.location.href = `mailto:${plan.contactEmail}`)
+                  window.open('https://harmonica.chat/sales', '_blank')
                 }
               >
                 {plan.action}
