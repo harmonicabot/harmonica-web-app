@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoaderCircle, Settings, Copy, InfoIcon } from 'lucide-react';
+import { LoaderCircle, Settings, Copy, InfoIcon, Trash2 } from 'lucide-react';
 import * as db from '@/lib/db';
 import { createSummary } from '@/lib/serverUtils';
 import { cloneSession } from '@/lib/serverUtils';
@@ -18,6 +18,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface SessionResultControlsProps {
   id: string;
@@ -26,6 +34,7 @@ interface SessionResultControlsProps {
   currentPrompt?: string;
   summaryPrompt?: string;
   crossPollination?: boolean;
+  sessionTopic?: string;
 }
 
 export default function SessionResultControls({
@@ -35,9 +44,12 @@ export default function SessionResultControls({
   currentPrompt = '',
   summaryPrompt = '',
   crossPollination = true,
+  sessionTopic = '',
 }: SessionResultControlsProps) {
   const [loadSummary, setLoadSummary] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [localCrossPollination, setLocalCrossPollination] =
     useState(crossPollination);
   const router = useRouter();
@@ -137,6 +149,28 @@ export default function SessionResultControls({
     }
   };
 
+  const handleDeleteSession = async () => {
+    setIsDeleting(true);
+    try {
+      await db.deleteHostSession(id);
+      toast({
+        title: 'Session deleted',
+        description: 'The session has been successfully deleted.',
+      });
+      router.push('/');
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      toast({
+        title: 'Failed to delete session',
+        description: 'An error occurred while deleting the session.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
   return (
     <Card className="flex-grow">
       <CardHeader>
@@ -149,7 +183,7 @@ export default function SessionResultControls({
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={() => (isFinished ? reopenSession() : finishSession())}
-            disabled={loadSummary || isCloning}
+            disabled={loadSummary || isCloning || isDeleting}
           >
             {isFinished ? 'Reopen' : 'Finish'}
           </Button>
@@ -157,7 +191,7 @@ export default function SessionResultControls({
             <Button
               variant="secondary"
               onClick={updateSummary}
-              disabled={loadSummary || isCloning}
+              disabled={loadSummary || isCloning || isDeleting}
             >
               Refresh Summary
               {loadSummary && (
@@ -169,7 +203,7 @@ export default function SessionResultControls({
           <Button
             variant="outline"
             onClick={handleCloneSession}
-            disabled={isCloning}
+            disabled={isCloning || isDeleting}
           >
             {isCloning ? (
               <LoaderCircle className="mr-2 w-4 w-4 animate-spin" />
@@ -178,12 +212,22 @@ export default function SessionResultControls({
             )}
             Clone Session
           </Button>
+
           <PromptSettings
             isProject={false}
             sessionFacilitationPrompt={currentPrompt}
             summaryPrompt={summaryPrompt}
             onPromptChange={handlePromptChange}
           />
+
+          <Button
+            variant="destructive"
+            onClick={() => setShowDeleteDialog(true)}
+            disabled={isCloning || isDeleting}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete Session
+          </Button>
         </div>
 
         <div className="flex items-center gap-2">
@@ -208,6 +252,34 @@ export default function SessionResultControls({
             onCheckedChange={handleCrossPollination}
           />
         </div>
+
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Are you sure?</DialogTitle>
+              <DialogDescription>
+                This will permanently delete the session and all its data. This
+                action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteDialog(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteSession}
+                disabled={isDeleting}
+                variant="destructive"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
