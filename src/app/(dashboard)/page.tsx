@@ -216,13 +216,14 @@ export default async function Dashboard({
         </div>
       </div>
       {/* Main dashboard content */}
-      <div className="mb-8">
+      <div>
         <h2 className="text-2xl font-semibold tracking-tight mb-2">Projects</h2>
       </div>
       <div className="mb-10">
         <ProjectsGrid workspaces={workspacesWithSessions} searchParams={searchParams} />
       </div>
       <div>
+        <h2 className="text-2xl font-semibold tracking-tight mb-4">Sessions</h2>
         {hostSessions.length > 0 ? (
           <SessionsTable sessions={hostSessions} />
         ) : (
