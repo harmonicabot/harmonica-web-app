@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle } from 'lucide-react';
+import { ChevronRight, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SessionsTable } from './sessions-table';
 import { WorkspacesTable } from './workspaces-table';
@@ -12,6 +12,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { HostSession, Workspace } from '@/lib/schema';
 import DonateBanner from '@/components/DonateBanner';
 import { getSession } from '@auth0/nextjs-auth0';
+import ProjectsGrid from './ProjectsGrid';
+import { Textarea } from '@/components/ui/textarea';
+import CreateSessionInputClient from './CreateSessionInputClient';
 
 export const dynamic = 'force-dynamic'; // getHostSessions is using auth, which can only be done client side
 export const revalidate = 300; // Revalidate the data every 5 minutes (or on page reload)
@@ -183,83 +186,71 @@ async function combineWorkspacesWithSessions(
   });
 }
 
-export default async function Dashboard() {
-  console.log('Loading session data');
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams?: { page?: string };
+}) {
   const { hostSessions, workspacesWithSessions } = await sessionCache();
   if (!hostSessions) {
     return <ErrorPage title={''} message={''} />;
   }
 
   return (
-    <>
+    <div className="bg-background min-h-screen">
       {Date.now() < new Date('2025-02-14').getTime() && <DonateBanner />}
-      <Tabs defaultValue="sessions">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
-            <p className="text-sm text-muted-foreground">
-              Manage your sessions and projects
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <CreateSessionButton />
-            <CreateWorkspaceButton />
+      {/* Welcome Banner */}
+      <div className="border rounded-xl bg-gradient-to-b from-white to-amber-100 p-8 mb-10 flex flex-col md:flex-row items-stretch gap-8">
+        {/* Left column */}
+        <div className="flex-1 flex flex-col justify-center">
+          <img src="/harmonica-logo-sm.png" alt="Harmonica logo" className="w-16 mb-6" />
+          <div>
+            <h1 className="text-4xl font-semibold tracking-tight mb-2">Welcome!</h1>
+            <p className="text-muted-foreground text-lg">Ready to uncover something new?</p>
           </div>
         </div>
-
-        <TabsList className="mt-6">
-          <TabsTrigger value="sessions" className="flex items-center gap-2">
-            Sessions
-            {hostSessions.length > 0 && (
-              <span className="ml-2 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                {hostSessions.length}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="workspaces" className="flex items-center gap-2">
-            Projects
-            <span className="ml-2 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-              {workspacesWithSessions.length}
-            </span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="sessions" className="mt-4">
-          {hostSessions.length > 0 ? (
-            <SessionsTable sessions={hostSessions} />
-          ) : (
-            <Card>
-              <CardContent className="flex items-center justify-center py-6">
-                <CreateSessionButton text="Create Your First Session" />
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="workspaces" className="mt-4">
-          {workspacesWithSessions.length > 0 ? (
-            <WorkspacesTable workspaces={workspacesWithSessions} />
-          ) : (
-            <Card>
-              <CardContent className="flex items-center justify-center py-6">
-                <CreateWorkspaceButton text="Create Your First Project" />
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
-    </>
+        {/* Right column */}
+        <div className="flex-1 flex flex-col justify-center">
+          <label htmlFor="dashboard-objective" className="block text-base font-medium mb-2">Create a new session</label>
+          <CreateSessionInputClient />
+        </div>
+      </div>
+      {/* Main dashboard content */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold tracking-tight mb-2">Projects</h2>
+      </div>
+      <div className="mb-10">
+        <ProjectsGrid workspaces={workspacesWithSessions} searchParams={searchParams} />
+      </div>
+      <div>
+        {hostSessions.length > 0 ? (
+          <SessionsTable sessions={hostSessions} />
+        ) : (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8">
+              <p className="text-muted-foreground text-lg mb-4">No sessions yet, create one to get started.</p>
+              <div className="flex justify-center gap-4">
+                <CreateSessionButton text="Get Started" />
+                <Link href="https://harmonica.chat/support" target="_blank">
+                  <Button variant="outline">
+                    How it works
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
   );
 }
 
 function CreateSessionButton({ text = 'Create Session' }: { text?: string }) {
   return (
     <Link href="/create">
-      <Button size="lg" className="gap-1">
-        <PlusCircle className="h-3.5 w-3.5" />
-        <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-          {text}
-        </span>
+      <Button>
+        {text}
+        <ChevronRight />
       </Button>
     </Link>
   );
@@ -270,11 +261,9 @@ function CreateWorkspaceButton({ text = 'Create Project' }: { text?: string }) {
   const link = `/workspace/${workspaceId}`;
   return (
     <Link href={link}>
-      <Button size="lg" className="gap-1">
-        <PlusCircle className="h-3.5 w-3.5" />
-        <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-          {text}
-        </span>
+      <Button size="lg">
+        <PlusCircle />
+        {text}
       </Button>
     </Link>
   );
