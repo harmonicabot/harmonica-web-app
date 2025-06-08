@@ -16,26 +16,26 @@ export async function createStripeSession({
   metadata?: Record<string, string>;
 }) {
   try {
-    const session = await stripe.checkout.sessions.create({
-      line_items: [{ price: priceId, quantity: 1 }],
-      mode: 'subscription',
-      success_url: `${returnUrl}?stripe_success=true`,
-      cancel_url: `${returnUrl}?stripe_canceled=true`,
-      metadata: {
-        userId,
-        ...metadata,
+    const response = await fetch('/api/stripe/create-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      subscription_data: {
-        metadata: {
-          userId,
-          ...metadata,
-        },
-      },
+      body: JSON.stringify({
+        priceId,
+        returnUrl,
+        metadata,
+      }),
     });
-    console.log('[Server] Stripe session created successfully:', session.id);
-    return { url: session.url as string };
+
+    if (!response.ok) {
+      throw new Error('Failed to create session');
+    }
+
+    const data = await response.json();
+    return { url: data.url };
   } catch (error) {
-    console.error('[Server] Error creating Stripe session:', error);
+    console.error('Error creating Stripe session:', error);
     throw error;
   }
 }
