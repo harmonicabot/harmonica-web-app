@@ -86,7 +86,7 @@ export default function WorkspaceContent({
     [exists, hasMinimumRole],
   );
 
-  const canEdit = useMemo(() => hasMinimumRole('owner'), [hasMinimumRole]);
+  const canEdit = useMemo(() => hasMinimumRole('editor'), [hasMinimumRole]);
 
   // Memoize the handleWorkspaceUpdate callback
   const handleWorkspaceUpdate = useCallback((updates: Workspace) => {
