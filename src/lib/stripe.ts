@@ -16,7 +16,9 @@ export async function createStripeSession({
   metadata?: Record<string, string>;
 }) {
   try {
-    const response = await fetch('/api/stripe/create-session', {
+    // Get the base URL from the current window location
+    const baseUrl = window.location.origin;
+    const response = await fetch(`${baseUrl}/api/stripe/create-session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
