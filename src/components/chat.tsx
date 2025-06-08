@@ -12,7 +12,7 @@ import { UserProfile, useUser } from '@auth0/nextjs-auth0/client';
 import { Message } from '@/lib/schema';
 import ErrorPage from './Error';
 import { getUserNameFromContext } from '@/lib/clientUtils';
-import { Loader2, Sparkles, Info} from 'lucide-react';
+import { Loader2, Sparkles, Info } from 'lucide-react';
 import { LimitPopup } from './pricing/LimitPopup';
 
 interface ChatProps {
@@ -620,6 +620,32 @@ export default function Chat({
             </Button>
           </div>
         )}
+
+        {/* <div className="flex justify-end mb-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleParticipantSuggestion}
+            disabled={
+              isLoading ||
+              isParticipantSuggestionLoading ||
+              !threadIdRef.current
+            }
+            className="flex items-center gap-2"
+          >
+            {isParticipantSuggestionLoading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Sparkles size={16} />
+            )}
+            <span>
+              {isParticipantSuggestionLoading
+                ? 'Generating...'
+                : 'AI Suggestion'}
+            </span>
+          </Button>
+        </div> */}
 
         <div className="relative">
           <Textarea

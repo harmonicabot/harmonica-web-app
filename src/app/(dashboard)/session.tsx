@@ -15,15 +15,13 @@ import { deleteSession } from './actions';
 import { SessionTableData } from './sessions-table';
 import { useState } from 'react';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { cloneSession } from '@/lib/serverUtils';
 import { useRouter } from 'next/navigation';
 import { toast } from 'hooks/use-toast';
@@ -31,19 +29,18 @@ import { SessionStatus } from '@/lib/clientUtils';
 import { AddToProjectDialog } from '@/components/AddToProjectDialog';
 import ShareSettings from '@/components/ShareSettings';
 
-export function Session({
+function DeleteSessionDialog({
+  isOpen,
+  onClose,
   session,
   onDelete,
 }: {
+  isOpen: boolean;
+  onClose: () => void;
   session: SessionTableData;
   onDelete: (sessionId: string) => void;
 }) {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isCloning, setIsCloning] = useState(false);
-  const [showProjectDialog, setShowProjectDialog] = useState(false);
-  const [showShareDialog, setShowShareDialog] = useState(false);
-  const router = useRouter();
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -63,9 +60,49 @@ export function Session({
       });
     } finally {
       setIsDeleting(false);
-      setShowDeleteDialog(false);
+      onClose();
     }
   };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Are you sure?</DialogTitle>
+          <DialogDescription>
+            This will permanently delete the session "{session.topic}" and all
+            its data. This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isDeleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            variant="destructive"
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function Session({
+  session,
+  onDelete,
+}: {
+  session: SessionTableData;
+  onDelete: (sessionId: string) => void;
+}) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isCloning, setIsCloning] = useState(false);
+  const [showProjectDialog, setShowProjectDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const router = useRouter();
 
   const handleClone = async () => {
     setIsCloning(true);
@@ -112,8 +149,8 @@ export function Session({
             session.status === SessionStatus.ACTIVE
               ? 'bg-lime-100 text-lime-900'
               : session.status === SessionStatus.DRAFT
-              ? 'bg-purple-100 text-purple-900'
-              : '' // Finished, remain white
+                ? 'bg-purple-100 text-purple-900'
+                : '' // Finished, remain white
           }`}
         >
           {session.status}
@@ -158,7 +195,6 @@ export function Session({
             <DropdownMenuItem
               onClick={() => setShowDeleteDialog(true)}
               className="text-red-600"
-              disabled={isDeleting}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
@@ -175,27 +211,13 @@ export function Session({
         />
       )}
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the session "{session.topic}" and all
-              its data. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteSessionDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        session={session}
+        onDelete={onDelete}
+      />
+
       <AddToProjectDialog
         sessionId={session.id}
         open={showProjectDialog}
