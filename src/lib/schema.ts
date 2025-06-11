@@ -30,7 +30,7 @@ export interface HostSessionsTable {
   goal: string;
   critical?: string;
   context?: string;
-  prompt_summary: string; // Note: This is NOT the prompt that is used to _generate_ the summary, but a _summarization of the full prompt_ that is displayed to the user. 
+  prompt_summary: string; // Note: This is NOT the prompt that is used to _generate_ the summary, but a _summarization of the full prompt_ that is displayed to the user.
   summary_prompt?: string; // THIS is the prompt used to generate the summary! (if different from the default)
   questions?: JSON;
   is_public: boolean;
@@ -60,6 +60,7 @@ export interface MessagesTable {
   role: 'user' | 'assistant';
   content: string;
   created_at: Generated<Date>;
+  is_final?: boolean;
 }
 
 export interface CustomResponsesTable {
@@ -203,6 +204,19 @@ export interface SessionFilesTable {
   metadata?: JSON;
   file_purpose?: 'TRANSCRIPT' | 'KNOWLEDGE';
 }
+
+export interface SessionRatingsTable {
+  id: Generated<string>;
+  thread_id: string;
+  rating: number;
+  feedback?: string;
+  created_at: Generated<Date>;
+  user_id?: string;
+}
+
+export type SessionRating = Selectable<SessionRatingsTable>;
+export type NewSessionRating = Insertable<SessionRatingsTable>;
+export type SessionRatingUpdate = Updateable<SessionRatingsTable>;
 
 export async function createDbInstance<T extends Record<string, any>>() {
   try {
