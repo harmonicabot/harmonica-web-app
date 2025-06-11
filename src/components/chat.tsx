@@ -29,6 +29,7 @@ export default function Chat({
   isSessionPublic = false,
   sessionId: providedSessionId,
   onThreadIdReceived,
+  setShowRating,
 }: {
   sessionIds?: string[];
   setUserSessionId?: (id: string) => void;
@@ -46,6 +47,7 @@ export default function Chat({
     message: OpenAIMessage,
     index: number,
   ) => React.ReactNode;
+  setShowRating?: (show: boolean) => void;
 }) {
   const isTesting = false;
   const [errorMessage, setErrorMessage] = useState<{
@@ -388,11 +390,11 @@ export default function Chat({
             !isAskAi && sessionIds?.length === 1 && crossPollination,
           )
           .then((answer) => {
-            console.log('[Chat] Received answer from llama:', {
-              content: answer.content?.slice(0, 100) + '...',
-              is_final: answer.is_final,
-              role: answer.role,
-            });
+            if (answer.is_final && setShowRating) {
+              setTimeout(() => {
+                setShowRating(true);
+              }, 2000);
+            }
             setIsLoading(false);
             const now = new Date();
             addMessage(answer);
@@ -503,6 +505,7 @@ export default function Chat({
                 message={message}
                 isSessionPublic={isSessionPublic}
                 sessionId={providedSessionId}
+                showButtons={true}
               />
             )}
           </div>

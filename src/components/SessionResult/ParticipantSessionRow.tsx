@@ -224,7 +224,11 @@ export default function ParicipantSessionRow({
               ) : (
                 <div className="space-y-4">
                   {messages.map((message, index) => (
-                    <ChatMessage key={index} message={message} />
+                    <ChatMessage
+                      key={index}
+                      message={message}
+                      showButtons={false}
+                    />
                   ))}
                 </div>
               )}

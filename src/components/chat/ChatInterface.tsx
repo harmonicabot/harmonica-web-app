@@ -7,6 +7,7 @@ import { PoweredByHarmonica } from '@/components/icons';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { RatingModal } from './RatingModal';
 import { useState, useEffect } from 'react';
+import { updateUserSession, increaseSessionsCount } from '@/lib/db';
 
 interface ChatInterfaceProps {
   hostData: {
@@ -79,6 +80,27 @@ export const ChatInterface = ({
     }
   }, [message?.is_final, threadId, message]);
 
+  useEffect(() => {
+    const updateSession = async () => {
+      if (showRating && userSessionId) {
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+
+          await updateUserSession(userSessionId, {
+            active: false,
+            last_edit: new Date(),
+          });
+
+          await increaseSessionsCount(userSessionId, 'num_finished');
+        } catch (error) {
+          console.error('Error updating session:', error);
+        }
+      }
+    };
+
+    updateSession();
+  }, [showRating, userSessionId]);
+
   return (
     <div
       id="chat-container"
@@ -148,6 +170,7 @@ export const ChatInterface = ({
               isSessionPublic={Boolean(hostData?.is_public || isHost)}
               sessionId={hostData?.id}
               onThreadIdReceived={handleThreadIdReceived}
+              setShowRating={setShowRating}
             />
           )}
         </div>

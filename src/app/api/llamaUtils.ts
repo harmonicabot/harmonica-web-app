@@ -66,7 +66,7 @@ export async function handleGenerateAnswer(
   if (crossPollinationEnabled) {
     // Only attempt cross-pollination if there are enough messages and we're not in skip mode
     const shouldAttemptCrossPollination =
-      messages.length >= 3 && skipCrossPollination <= 0;
+      messages.length >= 2 && skipCrossPollination <= 0;
     console.log(
       `[i] Message count: ${messages.length}, should attempt cross-pollination: ${shouldAttemptCrossPollination}, skip counter: ${skipCrossPollination}`,
     );
@@ -169,19 +169,10 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
     console.log('[i] Response:', message);
 
     let isFinal = false;
+
     // Check if this response is final, but only after 6 messages
     if (messageData.sessionId && messages.length >= 6) {
       isFinal = await isSessionComplete(message, sessionData);
-
-      if (isFinal) {
-        await updateUserSession(messageData.sessionId, {
-          active: false,
-          last_edit: new Date(),
-        });
-        await increaseSessionsCount(messageData.sessionId, 'num_finished');
-      } else {
-        console.log('[i] NOT FINAL MESSAGE');
-      }
     }
 
     return {

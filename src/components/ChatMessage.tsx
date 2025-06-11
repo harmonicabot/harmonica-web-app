@@ -3,17 +3,20 @@ import { HRMarkdown } from './HRMarkdown';
 import { Button } from './ui/button';
 import { ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { encryptId } from '@/lib/encryptionUtils';
 
 interface ChatMessageProps {
   message: Partial<Message>;
   isSessionPublic?: boolean;
   sessionId?: string;
+  showButtons?: boolean;
 }
 
 export function ChatMessage({
   message,
   isSessionPublic,
   sessionId,
+  showButtons = false,
 }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const router = useRouter();
@@ -38,7 +41,7 @@ export function ChatMessage({
           <div className={!isUser ? 'ps-2' : ''}>
             <div className="text-sm">
               <HRMarkdown content={message.content ?? ''} className="text-sm" />
-              {!isUser && message.is_final ? (
+              {!isUser && message.is_final && showButtons ? (
                 <div className="flex gap-2 mt-3">
                   {isSessionPublic && (
                     <Button
@@ -46,7 +49,7 @@ export function ChatMessage({
                       size="sm"
                       onClick={() => {
                         if (isSessionPublic && sessionId) {
-                          router.push(`/session/${sessionId}`);
+                          router.push(`/sessions/${encryptId(sessionId)}`);
                         }
                       }}
                     >
