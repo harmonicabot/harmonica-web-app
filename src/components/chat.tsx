@@ -13,6 +13,7 @@ import { Message } from '@/lib/schema';
 import ErrorPage from './Error';
 import { getUserNameFromContext } from '@/lib/clientUtils';
 import { Loader2, Sparkles } from 'lucide-react';
+import { getHostSessionById } from '@/lib/db';
 
 export default function Chat({
   sessionIds,
@@ -25,6 +26,9 @@ export default function Chat({
   customMessageEnhancement,
   isAskAi = false,
   crossPollination = false,
+  isSessionPublic = false,
+  sessionId: providedSessionId,
+  onThreadIdReceived,
 }: {
   sessionIds?: string[];
   setUserSessionId?: (id: string) => void;
@@ -35,6 +39,9 @@ export default function Chat({
   userContext?: Record<string, string>;
   isAskAi?: boolean;
   crossPollination?: boolean;
+  isSessionPublic?: boolean;
+  sessionId?: string;
+  onThreadIdReceived?: (threadId: string) => void;
   customMessageEnhancement?: (
     message: OpenAIMessage,
     index: number,
@@ -57,7 +64,13 @@ export default function Chat({
   });
   const threadIdRef = useRef<string>('');
   const [messages, setMessages] = useState<OpenAIMessage[]>([]);
+
   const addMessage = (newMessage: OpenAIMessage) => {
+    console.log('[Chat] Adding new message:', {
+      content: newMessage.content?.slice(0, 100) + '...',
+      is_final: newMessage.is_final,
+      role: newMessage.role,
+    });
     setMessages((prevMessages) => [...prevMessages, newMessage]);
   };
 
@@ -205,6 +218,9 @@ export default function Chat({
     const threadId = crypto.randomUUID();
     console.log(`[i] Created threadId ${threadId} for session ${sessionId}`);
     threadIdRef.current = threadId;
+    if (onThreadIdReceived) {
+      onThreadIdReceived(threadId);
+    }
 
     const userId =
       typeof user === 'string'
@@ -372,6 +388,11 @@ export default function Chat({
             !isAskAi && sessionIds?.length === 1 && crossPollination,
           )
           .then((answer) => {
+            console.log('[Chat] Received answer from llama:', {
+              content: answer.content?.slice(0, 100) + '...',
+              is_final: answer.is_final,
+              role: answer.role,
+            });
             setIsLoading(false);
             const now = new Date();
             addMessage(answer);
@@ -477,7 +498,12 @@ export default function Chat({
             {customMessageEnhancement ? (
               customMessageEnhancement(message, index)
             ) : (
-              <ChatMessage key={index} message={message} />
+              <ChatMessage
+                key={index}
+                message={message}
+                isSessionPublic={isSessionPublic}
+                sessionId={providedSessionId}
+              />
             )}
           </div>
         ))}
@@ -507,7 +533,7 @@ export default function Chat({
         className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''} sticky bottom-0`}
         onSubmit={handleSubmit}
       >
-        {/* <div className="flex justify-end mb-2">
+        <div className="flex justify-end mb-2">
           <Button
             type="button"
             variant="outline"
@@ -531,7 +557,7 @@ export default function Chat({
                 : 'AI Suggestion'}
             </span>
           </Button>
-        </div> */}
+        </div>
 
         <div className="relative">
           <Textarea

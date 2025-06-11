@@ -4,10 +4,16 @@ import { NewMessage } from '@/lib/schema';
 import { AssistantMessageData } from '@/lib/types';
 import { ChatMessage } from 'llamaindex';
 import { NextResponse } from 'next/server';
-import { getAllChatMessagesInOrder, getHostSessionById } from '@/lib/db';
+import {
+  getAllChatMessagesInOrder,
+  getHostSessionById,
+  updateUserSession,
+  increaseSessionsCount,
+} from '@/lib/db';
 import { initializeCrossPollination } from '@/lib/crossPollination';
 import { getLLM } from '@/lib/modelConfig';
 import { getPromptInstructions } from '@/lib/promptsCache';
+import { isSessionComplete } from '@/lib/sessionGenerator';
 
 // Add a new variable to track when we should skip cross-pollination
 let skipCrossPollination = 0;
@@ -161,11 +167,29 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
       messages: formattedMessages as ChatMessage[],
     });
     console.log('[i] Response:', message);
+
+    let isFinal = false;
+    // Check if this response is final, but only after 6 messages
+    if (messageData.sessionId && messages.length >= 6) {
+      isFinal = await isSessionComplete(message, sessionData);
+
+      if (isFinal) {
+        await updateUserSession(messageData.sessionId, {
+          active: false,
+          last_edit: new Date(),
+        });
+        await increaseSessionsCount(messageData.sessionId, 'num_finished');
+      } else {
+        console.log('[i] NOT FINAL MESSAGE');
+      }
+    }
+
     return {
       thread_id: messageData.threadId || '',
       role: 'assistant',
       content: message,
       created_at: new Date(),
+      is_final: isFinal,
     };
   } catch (error) {
     console.error('[x] Error generating response:', error);
