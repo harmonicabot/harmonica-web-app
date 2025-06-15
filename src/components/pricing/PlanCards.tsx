@@ -28,13 +28,14 @@ export type Plan = {
 // Export the plans array so it can be imported elsewhere
 export const plans: Plan[] = [
   {
-    name: 'Free',
-    price: '$0',
-    description: 'For experimenting with AI facilitation in smaller groups.',
+    name: 'Starter',
+    price: 'Free',
+    description:
+      'Perfect for individuals and small teams just getting started.',
     features: [
       'Solo admin',
       'Private sessions & projects',
-      'Max 10 responses (reflected in summary or exported to JSON)',
+      'Max 10 responses (reflected in summary)',
       '3 queries in AskAI (per session per day)',
       '10 Mb limit for session / project knowledge',
       'Collective Reasoning Agent',
@@ -48,9 +49,9 @@ export const plans: Plan[] = [
     period: '/month',
     description: 'Ideal for teams seeking deeper insights and collaboration',
     features: [
-      'Max 3 admins (per session / project)',
-      'Public sessions / projects',
-      'Unlimited responses (reflected in summary or exported to JSON)',
+      'Invite 3 admins/editors (per session / project)',
+      'Public sessions & projects',
+      'Unlimited responses (reflected in summary)',
       'Unlimited queries in AskAI',
       '100 Mb limit for session / project knowledge',
       'Premium templates (coming soon)',
@@ -63,13 +64,14 @@ export const plans: Plan[] = [
     name: 'Enterprise',
     price: 'Custom',
     description:
-      'For larger orgs engaging in complex sensemaking and deliberative processes.',
+      'Your own version of Harmonica with custom setup and full control',
     features: [
-      'Max 20 admins (per session / project)',
+      'Custom administrator seats',
       'Unlimited session / project knowledge',
       'Priority support',
-      'SSO',
-      'Custom MCP servers',
+      'Dedicated onboarding',
+      'Custom integrations',
+      'MCP servers',
       'Custom domains',
       'Remove Harmonica branding',
       'Opt out of data training',
