@@ -496,7 +496,7 @@ export default function ShareSettings({
         description: 'User access level has been updated.',
       });
     } catch (error) {
-      console.error('Error updating permission:', error);
+      // console.error('Error updating permission:', error);
       toast({
         title: 'Update Error',
         description:
