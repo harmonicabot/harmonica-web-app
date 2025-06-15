@@ -41,25 +41,26 @@ export function ChatMessage({
           <div className={!isUser ? 'ps-2' : ''}>
             <div className="text-sm">
               <HRMarkdown content={message.content ?? ''} className="text-sm" />
-              {!isUser && message.is_final && showButtons ? (
-                <div className="flex gap-2 mt-3">
-                  {isSessionPublic && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => {
-                        if (isSessionPublic && sessionId) {
-                          router.push(`/sessions/${encryptId(sessionId)}`);
-                        }
-                      }}
-                    >
-                      View results
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  )}
+              {!isUser && message.is_final && showButtons && (
+                <div className="mt-6">
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      if (isSessionPublic && sessionId) {
+                        router.push(`/sessions/${encryptId(sessionId)}`);
+                      }
+                    }}
+                    disabled={!isSessionPublic}
+                  >
+                    View Results
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                  <hr className="my-6 border-gray-200" />
+                  <div className="mb-2 text-xl font-medium">
+                    Try Harmonica yourself
+                  </div>
                   <Button
                     variant="outline"
-                    size="sm"
                     onClick={() => {
                       router.push('/create');
                     }}
@@ -68,7 +69,7 @@ export function ChatMessage({
                     <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
-              ) : null}
+              )}
             </div>
           </div>
         </div>

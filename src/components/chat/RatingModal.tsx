@@ -96,7 +96,7 @@ export const RatingModal = ({ threadId, onClose }: RatingModalProps) => {
 
   if (showThanks) {
     return (
-      <div className="bg-white rounded-lg p-4 shadow-lg w-full max-w-xs text-center">
+      <div className="bg-white rounded-lg p-4 shadow-lg w-full max-w-sm text-center">
         <div className="text-4xl mb-2">✨</div>
         <h2 className="text-lg font-semibold mb-1">Awesome!</h2>
         <p className="text-gray-600 text-sm">
@@ -107,7 +107,7 @@ export const RatingModal = ({ threadId, onClose }: RatingModalProps) => {
   }
 
   return (
-    <div className="bg-white rounded-lg p-4 shadow-lg w-full max-w-xs">
+    <div className="bg-white rounded-lg p-4 shadow-lg w-[320px]">
       <div className="flex justify-between items-start mb-3">
         <h2 className="text-lg font-semibold leading-tight">
           {showFeedback ? 'Want to share more?' : 'How satisfied are you?'}
