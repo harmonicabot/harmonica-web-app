@@ -120,13 +120,13 @@ export const ChatInterface = ({
           {isMounted && !isLoading && (
             <div className="w-full">
               <div className="flex items-center">
-                <Button
+                {/* <Button
                   onClick={handleFinish}
                   variant="outline"
                   className="text-sm md:text-base mt-0 md:mt-4"
                 >
                   Finish
-                </Button>
+                </Button> */}
                 <Link
                   href="https://oldspeak.notion.site/Help-Center-fcf198f4683b4e3099beddf48971bd40"
                   target="_blank"
@@ -141,7 +141,7 @@ export const ChatInterface = ({
                 </Link>
               </div>
               {showRating && threadId && (
-                <div className="absolute bottom-8 left-6 right-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="absolute bottom-8 left-6 animate-in fade-in slide-in-from-bottom-4 duration-300 w-fit">
                   <RatingModal
                     threadId={threadId}
                     onClose={() => setShowRating(false)}
