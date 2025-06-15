@@ -20,6 +20,7 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { processFileForQdrant } from 'actions/process-file';
 import { extractTextFromPDF } from 'actions/pdf-processor';
+import { useSubscription } from 'hooks/useSubscription';
 
 type FilePurpose = 'TRANSCRIPT' | 'KNOWLEDGE';
 
@@ -39,10 +40,25 @@ export default function ImportResponsesModal({
   const [filePurpose, setFilePurpose] = useState<FilePurpose>('KNOWLEDGE');
   const { toast } = useToast();
   const { user } = useUser();
+  const { status: plan } = useSubscription();
+  const maxAllowed = plan === 'PRO' ? 100 * 1024 * 1024 : 10 * 1024 * 1024; // 10MB for free tier
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+
+      // Check if the file itself is too large
+      if (selectedFile.size > maxAllowed) {
+        toast({
+          title: 'File too large',
+          description: `Maximum file size is ${maxAllowed / (1024 * 1024)}MB for ${plan} tier. Please upgrade to Pro for larger file uploads.`,
+          variant: 'destructive',
+          duration: 5000,
+        });
+        return;
+      }
+
+      setFile(selectedFile);
     }
   };
 
@@ -89,6 +105,34 @@ export default function ImportResponsesModal({
     setIsUploading(true);
 
     try {
+      // Check total storage usage before uploading
+      const response = await fetch(`/api/sessions/${sessionId}/files`);
+      if (!response.ok) throw new Error('Failed to fetch session files');
+      const data = await response.json();
+      const totalUploaded =
+        data.files?.reduce((acc: number, f: any) => acc + f.file_size, 0) || 0;
+
+      // Check if approaching the limit (80% or more)
+      const usagePercent = (totalUploaded / maxAllowed) * 100;
+      if (usagePercent >= 80 && usagePercent < 100) {
+        toast({
+          title: 'Storage limit approaching',
+          description: `You've used ${usagePercent.toFixed(1)}% of your ${maxAllowed / (1024 * 1024)}MB storage limit. Consider upgrading to Pro for more storage.`,
+          variant: 'default',
+          duration: 5000,
+        });
+      }
+
+      if (totalUploaded + file.size > maxAllowed) {
+        toast({
+          title: 'Storage limit reached',
+          description: `You've reached the ${maxAllowed / (1024 * 1024)}MB storage limit for ${plan} tier. Please upgrade to Pro for more storage.`,
+          variant: 'destructive',
+          duration: 5000,
+        });
+        return;
+      }
+
       if (file.type === 'application/pdf') {
         // For PDFs, extract text and process with Qdrant
         const fileContent = await readFileContent(file);
@@ -118,14 +162,17 @@ export default function ImportResponsesModal({
           description: 'Text has been extracted and processed.',
         });
       } else {
-        // For other files, upload and process as before
+        // For other files, create a copy of the file to avoid memory issues
+        const fileCopy = new File([file], file.name, { type: file.type });
+
+        // Upload the original file
         const formData = new FormData();
         formData.append('file', file);
         formData.append('sessionId', sessionId);
-
         const uploadResult = await uploadFile(formData);
-        const fileContent = await readFileContent(file);
 
+        // Process the file copy for Qdrant
+        const fileContent = await readFileContent(fileCopy);
         await processFileForQdrant({
           sessionId,
           fileContent,
