@@ -66,7 +66,9 @@ interface ShareSettingProps {
 type UserAndRole = User & { role: Role };
 
 // Maximum number of editors for free users
-const FREE_EDITOR_LIMIT = 3;
+const FREE_EDITOR_LIMIT = 0;
+// Maximum number of editors/owners for Pro users (main owner + 3 others)
+const PRO_EDITOR_LIMIT = 4;
 
 export default function ShareSettings({
   resourceId,
@@ -86,7 +88,7 @@ export default function ShareSettings({
   const isWorkspace = resourceType === 'WORKSPACE';
   const [urlCopied, setUrlCopied] = useState(false);
   const [localIsPublic, setLocalIsPublic] = useState(!loading && isPublic);
-  
+
   // Local visibility state management
   const [localVisibilityConfig, setLocalVisibilityConfig] =
     useState<ResultTabsVisibilityConfig>({
@@ -105,7 +107,7 @@ export default function ShareSettings({
   // Permissions and invitations state
   const [userAndRole, setUserAndRole] = useState<UserAndRole[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<Invitation[]>(
-    []
+    [],
   );
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
@@ -172,7 +174,7 @@ export default function ShareSettings({
 
   // Handler for visibility toggle changes
   const handleVisibilityToggle = async (
-    key: keyof ResultTabsVisibilityConfig
+    key: keyof ResultTabsVisibilityConfig,
   ) => {
     if (!localVisibilityConfig) return;
 
@@ -193,7 +195,7 @@ export default function ShareSettings({
       const result = await updateVisibilitySettings(
         resourceId,
         updatedConfig,
-        resourceType
+        resourceType,
       );
 
       if (!result.success) {
@@ -225,14 +227,14 @@ export default function ShareSettings({
     try {
       console.log(
         `Toggling public status for ${resourceType} ${resourceId}: isPublic:`,
-        checked
+        checked,
       );
       if (checked) {
         await updateResourcePermission(
           resourceId,
           'public',
           'viewer',
-          resourceType
+          resourceType,
         );
       } else {
         await removeResourcePermission(resourceId, 'public', resourceType);
@@ -271,28 +273,31 @@ export default function ShareSettings({
 
   // Calculate editor counts whenever permissions or invitations change
   useEffect(() => {
-    // Count existing editors
-    const currentEditors =
-      userAndRole.filter(
-        (u) => 
-          (u.role !== 'admin') // Exclude admins
-          && (u.role === 'editor' || u.role === 'owner')
-      ).length;
+    // Count existing editors/owners
+    const currentEditors = userAndRole.filter(
+      (u) =>
+        u.role !== 'admin' && // Exclude admins
+        (u.role === 'editor' || u.role === 'owner'),
+    ).length;
 
-    // Count pending editor invitations
+    // Count pending editor/owner invitations
     const pendingEditors = pendingInvitations.filter(
-      (inv) =>
-        inv.role === 'editor' || inv.role === 'admin' || inv.role === 'owner'
+      (inv) => inv.role === 'editor' || inv.role === 'owner',
     ).length;
 
     setEditorCount(currentEditors);
     setPendingEditorCount(pendingEditors);
 
     // Check if free user has reached editor limit
-    const totalEditors = currentEditors + pendingEditors;
-    setReachedEditorLimit(
-      subscription.status === 'FREE' && totalEditors >= FREE_EDITOR_LIMIT
-    );
+    if (subscription.status === 'FREE') {
+      setReachedEditorLimit(true);
+    } else if (subscription.status === 'PRO') {
+      // Pro: limit is 4 (main owner + 3 others)
+      const totalEditors = currentEditors + pendingEditors;
+      setReachedEditorLimit(totalEditors >= PRO_EDITOR_LIMIT);
+    } else {
+      setReachedEditorLimit(false);
+    }
   }, [userAndRole, pendingInvitations, subscription.status]);
 
   const fetchPermissions = async () => {
@@ -302,14 +307,17 @@ export default function ShareSettings({
       if (result.success) {
         if (result.permissions) {
           // Now we use the actual user data from our database
-          console.log(`Got the following permissions for ${resourceId}: `, result.permissions)
+          console.log(
+            `Got the following permissions for ${resourceId}: `,
+            result.permissions,
+          );
           setUserAndRole(
             result.permissions.map((p) => ({
               ...p,
               // Fallback values if data isn't available
               email: p.email || 'Unknown',
               name: p.name || 'User ' + p.id.substring(0, 8),
-            }))
+            })),
           );
         }
 
@@ -341,21 +349,36 @@ export default function ShareSettings({
       return;
     }
 
-    // Check if adding editors would exceed the limit for free users
-    if (subscription.status === 'FREE' && role === 'editor') {
+    // Prevent inviting editors or owners on free tier
+    if (
+      subscription.status === 'FREE' &&
+      (role === 'editor' || role === 'owner')
+    ) {
+      toast({
+        title: 'Role Not Allowed',
+        description:
+          'Free accounts cannot add editors or owners. Upgrade to Pro for advanced roles.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    // Prevent inviting more than 3 additional editors/owners on Pro
+    if (
+      subscription.status === 'PRO' &&
+      (role === 'editor' || role === 'owner')
+    ) {
       const emailList = emails
         .split(',')
         .map((e) => e.trim())
         .filter((e) => e);
       const newEditorCount = emailList.length;
-
       if (
         editorCount + pendingEditorCount + newEditorCount >
-        FREE_EDITOR_LIMIT
+        PRO_EDITOR_LIMIT
       ) {
         toast({
-          title: 'Editor Limit Reached',
-          description: `Free accounts are limited to ${FREE_EDITOR_LIMIT} editors. Upgrade to Pro for unlimited editors.`,
+          title: 'Editor/Owner Limit Reached',
+          description: `Pro accounts are limited to ${PRO_EDITOR_LIMIT} editors/owners per project (including the main owner).`,
           variant: 'destructive',
         });
         return;
@@ -419,18 +442,32 @@ export default function ShareSettings({
 
   const handleUpdatePermission = async (
     userId: string,
-    newRole: 'admin' | 'owner' | 'editor' | 'viewer' | 'none'
+    newRole: 'admin' | 'owner' | 'editor' | 'viewer' | 'none',
   ) => {
-    // Check if changing to editor would exceed the limit for free users
+    // Check if changing to editor/owner would exceed the limit for free users
     if (
       subscription.status === 'FREE' &&
-      newRole === 'editor' &&
-      userAndRole.find((u) => u.id === userId)?.role !== 'editor' &&
-      editorCount + pendingEditorCount >= FREE_EDITOR_LIMIT
+      (newRole === 'editor' || newRole === 'owner') &&
+      userAndRole.find((u) => u.id === userId)?.role !== newRole
     ) {
       toast({
-        title: 'Editor Limit Reached',
-        description: `Free accounts are limited to ${FREE_EDITOR_LIMIT} editors. Upgrade to Pro for unlimited editors.`,
+        title: 'Role Not Allowed',
+        description:
+          'Free accounts cannot assign editor or owner roles. Upgrade to Pro for advanced roles.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    // Pro: Prevent changing to editor/owner if at limit
+    if (
+      subscription.status === 'PRO' &&
+      (newRole === 'editor' || newRole === 'owner') &&
+      userAndRole.find((u) => u.id === userId)?.role !== newRole &&
+      editorCount + pendingEditorCount >= PRO_EDITOR_LIMIT
+    ) {
+      toast({
+        title: 'Editor/Owner Limit Reached',
+        description: `Pro accounts are limited to ${PRO_EDITOR_LIMIT} editors/owners per project (including the main owner).`,
         variant: 'destructive',
       });
       return;
@@ -442,7 +479,7 @@ export default function ShareSettings({
         resourceId,
         userId,
         newRole,
-        resourceType
+        resourceType,
       );
 
       if (!result.success) {
@@ -451,7 +488,7 @@ export default function ShareSettings({
 
       // Update local state optimistically
       setUserAndRole(
-        userAndRole.map((p) => (p.id === userId ? { ...p, role: newRole } : p))
+        userAndRole.map((p) => (p.id === userId ? { ...p, role: newRole } : p)),
       );
 
       toast({
@@ -491,7 +528,7 @@ export default function ShareSettings({
       const result = await removeResourcePermission(
         resourceId,
         userId,
-        resourceType
+        resourceType,
       );
 
       if (!result.success) {
@@ -532,7 +569,7 @@ export default function ShareSettings({
 
       // Update local state optimistically
       setPendingInvitations(
-        pendingInvitations.filter((inv) => inv.id !== invitationId)
+        pendingInvitations.filter((inv) => inv.id !== invitationId),
       );
 
       toast({
@@ -559,10 +596,7 @@ export default function ShareSettings({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {showPricing && user?.sub && (
-        <PricingModal
-          open={showPricing}
-          onOpenChange={setShowPricing}
-        />
+        <PricingModal open={showPricing} onOpenChange={setShowPricing} />
       )}
       {initialIsOpen === undefined && (
         <DialogTrigger asChild>
@@ -601,10 +635,9 @@ export default function ShareSettings({
             />
           </div>
           <p className="text-xs text-gray-500 mb-3">
-            {subscription.status === 'FREE' 
-              ? "Upgrade to Pro to make your content publicly accessible with a link."
-              : `When public, anyone with the link can view this ${resourceTypeName.toLocaleLowerCase()}.`
-            }
+            {subscription.status === 'FREE'
+              ? 'Upgrade to Pro to make your content publicly accessible with a link.'
+              : `When public, anyone with the link can view this ${resourceTypeName.toLocaleLowerCase()}.`}
           </p>
 
           {localIsPublic && subscription.status !== 'FREE' && (
@@ -627,11 +660,11 @@ export default function ShareSettings({
               </Button>
             </div>
           )}
-          
+
           {subscription.status === 'FREE' && (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="mt-2 text-xs"
               onClick={() => setShowPricing(true)}
             >
@@ -639,7 +672,6 @@ export default function ShareSettings({
             </Button>
           )}
         </div>
-
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
           <TabsList className="grid w-full grid-cols-3">
@@ -649,20 +681,19 @@ export default function ShareSettings({
           </TabsList>
 
           <TabsContent value="invite" className="mt-4">
-            {subscription.status === 'FREE' && (editorCount + pendingEditorCount >= 1) && (
-              <Alert
-                className="mb-4"
-                variant={reachedEditorLimit ? 'destructive' : 'default'}
-              >
+            {(subscription.status === 'FREE' ||
+              (subscription.status === 'PRO' && reachedEditorLimit)) && (
+              <Alert className="mb-4" variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Free Plan Limit</AlertTitle>
+                <AlertTitle>
+                  {subscription.status === 'FREE'
+                    ? 'Free Plan Restriction'
+                    : 'Pro Plan Limit'}
+                </AlertTitle>
                 <AlertDescription>
-                  You can add up to {FREE_EDITOR_LIMIT} editors with the free
-                  plan.
-                  {reachedEditorLimit ? (
+                  {subscription.status === 'FREE' ? (
                     <>
-                      {' '}
-                      You've reached your limit.{' '}
+                      Free accounts cannot add editors or owners.{' '}
                       <Button
                         variant="link"
                         className="p-0 h-auto"
@@ -670,13 +701,20 @@ export default function ShareSettings({
                       >
                         Upgrade to Pro
                       </Button>{' '}
-                      for unlimited editors.
+                      for advanced roles.
                     </>
                   ) : (
                     <>
-                      {' '}
-                      You've used {editorCount + pendingEditorCount} of{' '}
-                      {FREE_EDITOR_LIMIT}.
+                      You have reached the limit of {PRO_EDITOR_LIMIT}{' '}
+                      editors/owners per project (including the main owner).{' '}
+                      <Button
+                        variant="link"
+                        className="p-0 h-auto"
+                        onClick={() => setShowPricing(true)}
+                      >
+                        Contact Support
+                      </Button>{' '}
+                      for higher limits.
                     </>
                   )}
                 </AlertDescription>
@@ -704,7 +742,8 @@ export default function ShareSettings({
                   onValueChange={setRole}
                   disabled={
                     isSubmitting ||
-                    (reachedEditorLimit && subscription.status === 'FREE')
+                    subscription.status === 'FREE' ||
+                    (subscription.status === 'PRO' && reachedEditorLimit)
                   }
                 >
                   <SelectTrigger>
@@ -717,10 +756,20 @@ export default function ShareSettings({
                     <SelectItem
                       value="editor"
                       disabled={
-                        reachedEditorLimit && subscription.status === 'FREE'
+                        subscription.status === 'FREE' ||
+                        (subscription.status === 'PRO' && reachedEditorLimit)
                       }
                     >
                       Editor (can modify {resourceTypeName.toLocaleLowerCase()})
+                    </SelectItem>
+                    <SelectItem
+                      value="owner"
+                      disabled={
+                        subscription.status === 'FREE' ||
+                        (subscription.status === 'PRO' && reachedEditorLimit)
+                      }
+                    >
+                      Owner (full control)
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -917,14 +966,23 @@ export default function ShareSettings({
                                 <SelectItem
                                   value="editor"
                                   disabled={
-                                    subscription.status === 'FREE' &&
-                                    usr.role !== 'editor' &&
-                                    reachedEditorLimit
+                                    subscription.status === 'FREE' ||
+                                    (subscription.status === 'PRO' &&
+                                      reachedEditorLimit)
                                   }
                                 >
                                   Editor
                                 </SelectItem>
-                                <SelectItem value="owner">Owner</SelectItem>
+                                <SelectItem
+                                  value="owner"
+                                  disabled={
+                                    subscription.status === 'FREE' ||
+                                    (subscription.status === 'PRO' &&
+                                      reachedEditorLimit)
+                                  }
+                                >
+                                  Owner
+                                </SelectItem>
                               </SelectContent>
                             </Select>
 
@@ -970,7 +1028,7 @@ export default function ShareSettings({
                               </span>
                               <span className="text-xs text-gray-500 ml-2">
                                 {new Date(
-                                  invitation.created_at
+                                  invitation.created_at,
                                 ).toLocaleDateString()}
                               </span>
                             </div>
