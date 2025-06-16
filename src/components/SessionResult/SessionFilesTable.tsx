@@ -103,15 +103,15 @@ export default function SessionFilesTable({
   }, [sessionId, refreshTrigger]);
 
   // Show warning toast when approaching limit
-  useEffect(() => {
-    if (isApproachingLimit) {
-      toast({
-        title: 'Storage limit approaching',
-        description: `You've used ${usagePercent.toFixed(1)}% of your ${maxAllowed / (1024 * 1024)}MB storage limit. Consider upgrading to Pro for more storage.`,
-        duration: 5000,
-      });
-    }
-  }, [isApproachingLimit, usagePercent]);
+  // useEffect(() => {
+  //   if (isApproachingLimit) {
+  //     toast({
+  //       title: 'Storage limit approaching',
+  //       description: `You've used ${usagePercent.toFixed(1)}% of your ${maxAllowed / (1024 * 1024)}MB storage limit. Consider upgrading to Pro for more storage.`,
+  //       duration: 5000,
+  //     });
+  //   }
+  // }, [isApproachingLimit, usagePercent]);
 
   const handleDeleteFile = async (fileId: number) => {
     try {

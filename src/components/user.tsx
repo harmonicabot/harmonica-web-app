@@ -65,13 +65,18 @@ export default function User() {
     if (status === 'PRO') {
       return (
         <DropdownMenuItem>
-          <CreditCard className="h-4 w-4 mr-2" />
-          Pro Plan (Active)
-          {expiresAt && (
+          <Link
+            href="/profile?tab=billing"
+            className="flex items-center text-sm text-muted-foreground hover:text-foreground"
+          >
+            <CreditCard className="h-4 w-4 mr-2" />
+            Pro Plan (Active)
+            {/* {expiresAt && (
             <span className="ml-2 text-xs text-muted-foreground">
               Expires {format(expiresAt, 'MMM d, yyyy')}
             </span>
-          )}
+          )} */}
+          </Link>
         </DropdownMenuItem>
       );
     }
@@ -93,12 +98,7 @@ export default function User() {
     if (!showPricing || !user?.sub) return null;
 
     if (status === 'FREE') {
-      return (
-        <PricingModal
-          open={showPricing}
-          onOpenChange={setShowPricing}
-        />
-      );
+      return <PricingModal open={showPricing} onOpenChange={setShowPricing} />;
     }
 
     // Could add different modals for other states

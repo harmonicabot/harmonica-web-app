@@ -112,11 +112,12 @@ export default function BillingPage() {
               </div>
 
               {status === 'PRO' ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CalendarClock className="h-4 w-4" />
-                  Current period ends: {format(expiresAt!, 'MMMM d, yyyy')}
-                </div>
+                <></>
               ) : (
+                // <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                //   <CalendarClock className="h-4 w-4" />
+                //   Current period ends: {format(expiresAt!, 'MMMM d, yyyy')}
+                // </div>
                 <Button
                   onClick={() =>
                     handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID)

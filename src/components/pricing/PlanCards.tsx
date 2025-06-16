@@ -171,6 +171,12 @@ export function PlanCards({
                 className="w-full"
                 variant="outline"
                 disabled={status === 'FREE'}
+                onClick={() =>
+                  window.open(
+                    process.env.NEXT_PUBLIC_STRIPE_BILLING_PORTAL,
+                    '_blank',
+                  )
+                }
               >
                 {status === 'FREE' ? 'Current Plan' : 'Downgrade to Free'}
               </Button>

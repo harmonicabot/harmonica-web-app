@@ -12,12 +12,35 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LoaderCircle } from 'lucide-react';
+import {
+  LoaderCircle,
+  CreditCard,
+  Receipt,
+  CalendarClock,
+  XCircle,
+} from 'lucide-react';
 import { fetchUserData, deleteUserData, deleteUserAccount } from './actions';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useSubscription } from 'hooks/useSubscription';
+import { useToast } from 'hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { createStripeSession } from '@/lib/stripe';
+import { PlanCards } from '@/components/pricing/PlanCards';
+
+// Add env variable
+const STRIPE_BILLING_PORTAL = process.env.NEXT_PUBLIC_STRIPE_BILLING_PORTAL;
 
 export default function Profile() {
   const { user, error: userError, isLoading: userLoading } = useUser();
+  const {
+    status,
+    isActive,
+    expiresAt,
+    isLoading: subscriptionLoading,
+  } = useSubscription();
+  const { toast } = useToast();
+  const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [exportLoading, setExportLoading] = useState<boolean>(false);
@@ -26,6 +49,8 @@ export default function Profile() {
     useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'account';
 
   useEffect(() => {
     if (user && !userLoading) {
@@ -86,7 +111,7 @@ export default function Profile() {
   const handleDeleteData = async () => {
     if (
       !confirm(
-        'Are you sure you want to delete all your data? This action cannot be undone.'
+        'Are you sure you want to delete all your data? This action cannot be undone.',
       )
     ) {
       return;
@@ -112,7 +137,7 @@ export default function Profile() {
   const handleDeleteAccount = async () => {
     if (
       !confirm(
-        'WARNING: Are you absolutely sure you want to delete your entire account? This will permanently remove your account and all associated data. This action CANNOT be undone.'
+        'WARNING: Are you absolutely sure you want to delete your entire account? This will permanently remove your account and all associated data. This action CANNOT be undone.',
       )
     ) {
       return;
@@ -121,7 +146,7 @@ export default function Profile() {
     // Double confirmation for account deletion
     if (
       !confirm(
-        'Please confirm once more that you want to delete your account. You will be logged out immediately.'
+        'Please confirm once more that you want to delete your account. You will be logged out immediately.',
       )
     ) {
       return;
@@ -132,7 +157,7 @@ export default function Profile() {
       const result = await deleteUserAccount();
       if (result.success) {
         setMessage(
-          'Your account has been deleted successfully. Redirecting to logout...'
+          'Your account has been deleted successfully. Redirecting to logout...',
         );
         // Redirect to logout after a short delay
         setTimeout(() => {
@@ -146,6 +171,44 @@ export default function Profile() {
       console.error(error);
     } finally {
       setAccountDeleteLoading(false);
+    }
+  };
+
+  // Handle upgrade to Pro
+  const handleUpgrade = async (priceId: string | undefined) => {
+    if (!user?.sub || !priceId) {
+      toast({
+        title: 'Error',
+        description: 'Unable to process upgrade. Please contact support.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsCreatingSession(true);
+    try {
+      const session = await createStripeSession({
+        userId: user.sub,
+        priceId,
+        returnUrl: window.location.href,
+        metadata: {
+          userId: user.sub,
+          planType: 'PRO',
+        },
+      });
+
+      if (session?.url) {
+        window.location.href = session.url;
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to start checkout process. Please try again.',
+        variant: 'destructive',
+      });
+      console.error('Error creating checkout session:', error);
+    } finally {
+      setIsCreatingSession(false);
     }
   };
 
@@ -187,9 +250,10 @@ export default function Profile() {
         </div>
       )}
 
-      <Tabs defaultValue="account" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="account">Account Information</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="data">Your Data</TabsTrigger>
         </TabsList>
 
@@ -218,6 +282,113 @@ export default function Profile() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="billing">
+          <Card>
+            <CardHeader>
+              <CardTitle>Billing</CardTitle>
+              <CardDescription>
+                Your current plan and subscription status
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Current Plan Section */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-lg">Current Plan</h3>
+                <div className="flex items-center gap-4">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <p className="text-lg font-semibold">
+                        {status === 'PRO' ? 'Pro' : 'Free'}
+                      </p>
+                      {status === 'PRO' && (
+                        <Badge
+                          variant="secondary"
+                          className={
+                            status === 'PRO'
+                              ? 'bg-green-50 text-green-700 hover:bg-green-50 cursor-default'
+                              : 'hover:bg-background cursor-default'
+                          }
+                        ></Badge>
+                      )}
+                    </div>
+                    <p className="text-muted-foreground mt-1">
+                      {status === 'PRO' ? '$39 / month' : '$0'}
+                    </p>
+                  </div>
+                </div>
+
+                {status === 'PRO' ? (
+                  <></>
+                ) : (
+                  // <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  //   <CalendarClock className="h-4 w-4" />
+                  //   Current period ends: {format(expiresAt!, 'MMMM d, yyyy')}
+                  // </div>
+                  <Button
+                    onClick={() =>
+                      handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID)
+                    }
+                    disabled={isCreatingSession}
+                  >
+                    {isCreatingSession ? 'Please wait...' : 'Upgrade to Pro'}
+                  </Button>
+                )}
+
+                <div className="flex flex-wrap gap-3">
+                  {status === 'PRO' ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          window.open(STRIPE_BILLING_PORTAL, '_blank')
+                        }
+                        disabled={!STRIPE_BILLING_PORTAL}
+                      >
+                        <Receipt className="h-4 w-4 mr-2" />
+                        Billing Portal
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          window.open(STRIPE_BILLING_PORTAL, '_blank')
+                        }
+                        disabled={!STRIPE_BILLING_PORTAL}
+                      >
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Update Payment Method
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() =>
+                          window.open(STRIPE_BILLING_PORTAL, '_blank')
+                        }
+                        disabled={!STRIPE_BILLING_PORTAL}
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Cancel Subscription
+                      </Button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t" />
+
+              {/* Available Plans Section */}
+              <div>
+                <h3 className="font-medium text-lg mb-4">Available Plans</h3>
+                <PlanCards
+                  status={status}
+                  onUpgrade={handleUpgrade}
+                  isLoading={isCreatingSession}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="data">
           <Card>
             <CardHeader>
@@ -233,7 +404,8 @@ export default function Profile() {
                     <h3 className="text-lg font-medium">Participation</h3>
                     <p>
                       You have participated in {userData.sessions?.length || 0}{' '}
-                      sessions and sent {userData.messages?.length || 0} messages.
+                      sessions and sent {userData.messages?.length || 0}{' '}
+                      messages.
                     </p>
                   </div>
                   <div>
@@ -283,7 +455,9 @@ export default function Profile() {
                     <div>
                       <p className="mb-2 text-sm text-gray-600">
                         You can request the deletion of all your personal data
-                        from our systems. (This includes all your messages, and all the sessions and projects where you are the sole owner)
+                        from our systems. (This includes all your messages, and
+                        all the sessions and projects where you are the sole
+                        owner)
                       </p>
                       <Button
                         variant="destructive"
