@@ -113,15 +113,15 @@ export default function ImportResponsesModal({
         data.files?.reduce((acc: number, f: any) => acc + f.file_size, 0) || 0;
 
       // Check if approaching the limit (80% or more)
-      const usagePercent = (totalUploaded / maxAllowed) * 100;
-      if (usagePercent >= 80 && usagePercent < 100) {
-        toast({
-          title: 'Storage limit approaching',
-          description: `You've used ${usagePercent.toFixed(1)}% of your ${maxAllowed / (1024 * 1024)}MB storage limit. Consider upgrading to Pro for more storage.`,
-          variant: 'default',
-          duration: 5000,
-        });
-      }
+      // const usagePercent = (totalUploaded / maxAllowed) * 100;
+      // if (usagePercent >= 80 && usagePercent < 100) {
+      //   toast({
+      //     title: 'Storage limit approaching',
+      //     description: `You've used ${usagePercent.toFixed(1)}% of your ${maxAllowed / (1024 * 1024)}MB storage limit. Consider upgrading to Pro for more storage.`,
+      //     variant: 'default',
+      //     duration: 5000,
+      //   });
+      // }
 
       if (totalUploaded + file.size > maxAllowed) {
         toast({
