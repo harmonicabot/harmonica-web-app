@@ -227,3 +227,5 @@ async function createThreadWithContext(config: SessionConfig, context: string) {
 
   return threadId;
 }
+
+export { isSessionComplete };

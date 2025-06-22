@@ -318,7 +318,7 @@ export default function ResultTabs({
     ) {
       return (
         <>
-          <ChatMessage key={key} message={message} />
+          <ChatMessage key={key} message={message} showButtons={false} />
           <div
             className="opacity-0 group-hover:opacity-100 flex flex-row 
             justify-center items-center cursor-pointer rounded-md 

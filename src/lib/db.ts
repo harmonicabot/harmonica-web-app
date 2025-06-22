@@ -27,6 +27,7 @@ const invitationsTableName = 'invitations';
 const usersTableName = 'users';
 const promptsTableName = 'prompts';
 const promptTypesTableName = 'prompt_type';
+const sessionRatingsTableName = 'session_ratings';
 
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
@@ -41,6 +42,7 @@ interface Databases {
   [promptsTableName]: s.PromptsTable;
   [promptTypesTableName]: s.PromptTypesTable;
   session_files: s.SessionFilesTable;
+  [sessionRatingsTableName]: s.SessionRatingsTable;
 }
 
 const dbPromise = (async () => {
@@ -1603,6 +1605,79 @@ export async function getExtendedWorkspaceData(workspaceId: string) {
     return await response.json();
   } catch (error) {
     console.error('Error fetching extended workspace data:', error);
+    return null;
+  }
+}
+
+export async function createThreadRating({
+  threadId,
+  rating,
+  feedback,
+  userId,
+}: {
+  threadId: string;
+  rating: number;
+  feedback?: string;
+  userId?: string;
+}): Promise<s.SessionRating> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .insertInto(sessionRatingsTableName)
+      .values({
+        thread_id: threadId,
+        rating,
+        feedback,
+        user_id: userId,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return result;
+  } catch (error) {
+    console.error('Error creating thread rating:', error);
+    throw error;
+  }
+}
+
+export async function getThreadRating(
+  threadId: string,
+): Promise<s.SessionRating | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom(sessionRatingsTableName)
+      .selectAll()
+      .where('thread_id', '=', threadId)
+      .orderBy('created_at', 'desc')
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error getting thread rating:', error);
+    return null;
+  }
+}
+
+export async function updateThreadRating(
+  threadId: string,
+  data: {
+    rating?: number;
+    feedback?: string;
+  },
+): Promise<s.SessionRating | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .updateTable(sessionRatingsTableName)
+      .set(data)
+      .where('thread_id', '=', threadId)
+      .returningAll()
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error updating thread rating:', error);
     return null;
   }
 }
