@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, ChevronDown } from 'lucide-react';
 import Chat from '@/components/chat';
 import { OpenAIMessage } from '@/lib/types';
 import { PoweredByHarmonica } from '@/components/icons';
@@ -44,6 +44,7 @@ export const ChatInterface = ({
   const [showRating, setShowRating] = useState(false);
   const [threadId, setThreadId] = useState<string>();
   const [isSessionFinished, setIsSessionFinished] = useState(false);
+  const [isHowItWorksExpanded, setIsHowItWorksExpanded] = useState(false);
 
   // Handler to receive thread_id from Chat component
   const handleThreadIdReceived = (id: string) => {
@@ -104,78 +105,128 @@ export const ChatInterface = ({
   return (
     <div
       id="chat-container"
-      className="flex flex-col w-full h-full fixed inset-0 z-50 md:flex-row md:relative bg-purple-50"
+      className="flex flex-col w-full h-full fixed inset-0 z-50 md:flex-row md:relative"
     >
-      <div className="w-full md:w-1/4 p-6 pb-3 md:pb-6">
-        <p className="text-sm text-muted-foreground mb-2 hidden md:block">
-          Your Session
-        </p>
-        <div className="flex items-center md:items-start md:flex-col justify-between w-full">
+      {/* Mobile: Top nav bar */}
+      <div className="md:hidden w-full border-b border-gray-200 bg-white px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-3">
           <h1
-            className="text-xl font-semibold mb-0 overflow-hidden text-ellipsis whitespace-nowrap md:whitespace-normal md:break-words md:mb-4"
+            className="text-lg font-semibold truncate max-w-[200px]"
             title={hostData?.topic}
           >
             {hostData?.topic ?? 'Test'}
           </h1>
-          {isMounted && !isLoading && (
-            <div className="w-full">
-              <div className="flex items-center">
-                {/* <Button
-                  onClick={handleFinish}
-                  variant="outline"
-                  className="text-sm md:text-base mt-0 md:mt-4"
-                >
-                  Finish
-                </Button> */}
-                <Link
-                  href="https://oldspeak.notion.site/Help-Center-fcf198f4683b4e3099beddf48971bd40"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button
-                    variant="outline"
-                    className="md:hidden w-10 h-10 p-2.5 ms-2 flex items-center justify-center rounded-full text-sm md:text-base mt-0"
-                  >
-                    <HelpCircle className="text-lg" />
-                  </Button>
-                </Link>
-              </div>
-              {showRating && threadId && (
-                <div className="absolute bottom-8 left-6 animate-in fade-in slide-in-from-bottom-4 duration-300 w-fit">
-                  <RatingModal
-                    threadId={threadId}
-                    onClose={() => setShowRating(false)}
-                  />
-                </div>
-              )}
-              <div className="md:block hidden absolute bottom-3">
-                <Link href="/" target="_blank">
-                  <PoweredByHarmonica />
-                </Link>
-              </div>
-            </div>
-          )}
         </div>
+        <Link
+          href="https://oldspeak.notion.site/Help-Center-fcf198f4683b4e3099beddf48971bd40"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </Button>
+        </Link>
       </div>
-      <hr className="md:hidden border-t border-white ms-4 me-4" />
-      <div className="w-full md:w-3/4 h-full flex-grow flex flex-col pt-3 md:pb-6">
-        <div className="h-full max-h-[calc(100svh-150px)] md:max-h-[calc(100svh-50px)] max-w-2xl flex m-4">
-          {hostData?.id && (
-            <Chat
-              sessionIds={[hostData?.id]}
-              userSessionId={userSessionId}
-              setUserSessionId={setUserSessionId}
-              userContext={userContext}
-              crossPollination={hostData?.cross_pollination ?? false}
-              isSessionPublic={Boolean(hostData?.is_public || isHost)}
-              sessionId={hostData?.id}
-              onThreadIdReceived={handleThreadIdReceived}
-              setShowRating={setShowRating}
+
+      {/* Desktop: Sidebar */}
+      <div className="hidden md:flex md:w-1/4 flex-col border-r border-gray-200 bg-white">
+        <div className="p-6 pb-4">
+          <p className="text-sm text-muted-foreground mb-2">
+            Your Session
+          </p>
+          <h1
+            className="text-xl font-semibold mb-4 break-words"
+            title={hostData?.topic}
+          >
+            {hostData?.topic ?? 'Test'}
+          </h1>
+        </div>
+        
+        {isMounted && !isLoading && showRating && threadId && (
+          <div className="px-6 pb-4">
+            <RatingModal
+              threadId={threadId}
+              onClose={() => setShowRating(false)}
             />
-          )}
+          </div>
+        )}
+        
+        {/* Bottom section with flex spacing */}
+        <div className="flex flex-col justify-end flex-1">
+          {/* How it works section - collapsible */}
+          <div className="border-t border-gray-200">
+            <button
+              onClick={() => setIsHowItWorksExpanded(!isHowItWorksExpanded)}
+              className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+            >
+              <h3 className="text-sm font-medium text-gray-900">How it works</h3>
+              <ChevronDown 
+                className={`h-4 w-4 text-gray-500 transition-transform ${
+                  isHowItWorksExpanded ? 'rotate-180' : ''
+                }`} 
+              />
+            </button>
+            {isHowItWorksExpanded && (
+              <div className="px-4 pb-4">
+                <div className="space-y-2 pt-4">
+                  <div className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-5 h-5 bg-amber-100 text-amber-800 text-xs font-medium rounded-full flex items-center justify-center">1</span>
+                    <p className="text-xs text-gray-600">Relax and respond as best you can</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-5 h-5 bg-amber-100 text-amber-800 text-xs font-medium rounded-full flex items-center justify-center">2</span>
+                    <p className="text-xs text-gray-600">If you need a question rephrasing, just ask</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-5 h-5 bg-amber-100 text-amber-800 text-xs font-medium rounded-full flex items-center justify-center">3</span>
+                    <p className="text-xs text-gray-600">We'll let you know when we're done</p>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-3 italic">PS. Avoid closing this tab before you're done as your progress will be lost</p>
+              </div>
+            )}
+          </div>
+
+          {/* Harmonica branding */}
+          <div className="p-6 pt-4 border-t border-gray-200">
+            <div className="text-center">
+              <Link href="/" className="inline-flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                Powered by{' '}
+                <img src="/harmonica-lockup.svg" alt="Harmonica" className="h-3 w-auto" />
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
-      <div className="md:hidden absolute bottom-0 w-full flex justify-center items-center pb-3">
+
+      {/* Main chat area */}
+      <div className="w-full md:w-3/4 h-full flex-grow flex flex-col">
+        <div className="h-full max-h-[calc(100svh-80px)] md:max-h-[calc(100svh-0px)] flex m-4 pt-4 justify-center">
+          <div className="w-full max-w-2xl">
+            {hostData?.id && (
+              <Chat
+                sessionIds={[hostData?.id]}
+                userSessionId={userSessionId}
+                setUserSessionId={setUserSessionId}
+                userContext={userContext}
+                crossPollination={hostData?.cross_pollination ?? false}
+                isSessionPublic={Boolean(hostData?.is_public || isHost)}
+                sessionId={hostData?.id}
+                onThreadIdReceived={handleThreadIdReceived}
+                setShowRating={setShowRating}
+                isHost={isHost}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile: Harmonica branding at bottom */}
+      <div className="md:hidden absolute bottom-0 w-full flex justify-center items-center pb-4 px-4">
         <PoweredByHarmonica />
       </div>
     </div>

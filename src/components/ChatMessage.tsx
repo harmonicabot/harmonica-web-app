@@ -26,7 +26,7 @@ export function ChatMessage({
       {!isUser && (
         <img
           className="h-10 w-10 flex-none rounded-full"
-          src="/h_chat_icon.png"
+          src="/hm-chat-icon.svg"
           alt=""
         />
       )}
@@ -38,7 +38,7 @@ export function ChatMessage({
         }
       >
         <div className={!isUser ? 'pt-2' : ''}>
-          <div className={!isUser ? 'ps-2' : ''}>
+          <div className={!isUser ? 'ps-4' : ''}>
             <div className="text-sm">
               <HRMarkdown content={message.content ?? ''} className="text-sm" />
               {!isUser && message.is_final && showButtons && (
