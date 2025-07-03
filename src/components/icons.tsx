@@ -343,20 +343,20 @@ export function Send() {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <path
+        <path
         d="M8 12.6667L8 3.33333"
         stroke="currentColor"
         strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
         d="M3.33334 8L8 3.33333L12.6667 8"
         stroke="currentColor"
         strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
     </svg>
   );
 }

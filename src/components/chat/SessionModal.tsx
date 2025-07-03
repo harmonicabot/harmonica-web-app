@@ -132,7 +132,7 @@ export const SessionModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-4 sm:p-6 md:p-10 rounded-lg w-[calc(100%-2rem)] h-[calc(100%-2rem)] flex items-start justify-center m-4 overflow-y-auto relative">
+      <div className="bg-white p-4 sm:p-6 md:p-10 rounded-lg w-full h-full md:w-[calc(100%-2rem)] md:h-[calc(100%-2rem)] flex items-start justify-center m-0 md:m-4 overflow-y-auto relative">
         <div className="max-w-6xl w-full flex flex-col min-h-full">
           {loadingUserInfo ? (
             <div className="flex flex-col items-center justify-center py-8">
@@ -180,7 +180,7 @@ export const SessionModal = ({
                       {loadingUserInfo
                         ? 'Please wait while we load your session...'
                         : sessionClosed
-                        ? 'You can create a new session on any topic and invite others to participate.'
+                      ? 'You can create a new session on any topic and invite others to participate.'
                         : "Welcome to this conversational survey. Ready to share what you really think? We'll walk you through a few questions that help us understand your perspective."}
                     </p>
                   </div>
@@ -276,35 +276,35 @@ export const SessionModal = ({
                   </div>
                 )}
                 
-                {sessionClosed ? (
-                  <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-8">
-                    {user && user.sub && (
+                  {sessionClosed ? (
+                    <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-8">
+                      {user && user.sub && (
+                        <Link
+                          href={`/sessions/${encryptId(sessionId!)}`}
+                          passHref
+                          className="w-full sm:w-auto"
+                        >
+                          <Button size="lg" className="w-full sm:w-auto">
+                            View Session Results
+                          </Button>
+                        </Link>
+                      )}
                       <Link
-                        href={`/sessions/${encryptId(sessionId!)}`}
+                        href="/create"
                         passHref
                         className="w-full sm:w-auto"
                       >
-                        <Button size="lg" className="w-full sm:w-auto">
-                          View Session Results
+                        <Button
+                          size="lg"
+                          variant="ghost"
+                          className="w-full sm:w-auto"
+                        >
+                          Start a New Session
                         </Button>
                       </Link>
-                    )}
-                    <Link
-                      href="/create"
-                      passHref
-                      className="w-full sm:w-auto"
-                    >
-                      <Button
-                        size="lg"
-                        variant="ghost"
-                        className="w-full sm:w-auto"
-                      >
-                        Start a New Session
-                      </Button>
-                    </Link>
-                  </div>
+                    </div>
                 ) : !showForm ? (
-                  <>
+                    <>
                     <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-6">
                       {/* 3 points on the left */}
                       <div className="flex-1 space-y-2">
@@ -364,9 +364,9 @@ export const SessionModal = ({
                         </Button>
                       </div>
                     </div>
-                  </>
-                )}
-              </div>
+                    </>
+                  )}
+                </div>
               
               {/* Right side image - 40% width */}
               <div className="hidden lg:flex w-full lg:w-2/5 items-start justify-end">
@@ -380,7 +380,7 @@ export const SessionModal = ({
           )}
           
           {/* Footer */}
-          <div className="mt-auto pt-8 text-center flex flex-row justify-center gap-8 items-center">
+          <div className="mt-auto pt-8 text-center flex flex-col md:flex-row justify-center gap-4 md:gap-8 items-center">
             <Link href="/" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
               Powered by{' '}
               <img src="/harmonica-lockup.svg" alt="Harmonica" className="h-3 w-auto" />
