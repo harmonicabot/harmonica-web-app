@@ -26,7 +26,7 @@ export default function ClientLayout({
       ) : (
         <div className="flex flex-col min-h-screen">
           {!isAdminPage && <Navigation />}
-          <main className="flex flex-col justify-start flex-grow bg-purple-50">
+          <main className="flex flex-col justify-start flex-grow bg-background">
             {children}
           </main>
         </div>

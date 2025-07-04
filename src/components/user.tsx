@@ -77,7 +77,6 @@ export default function User() {
             <Button
               variant="ghost"
               size="sm"
-              className="flex items-center gap-2"
             >
               <User2 className="h-4 w-4" />
               {user.name || 'Account'}

@@ -123,7 +123,7 @@ Please type your name or "anonymous" if you prefer
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-svh bg-purple-50">
+    <div className="flex flex-col md:flex-row h-svh bg-white">
       <div className="hidden">
         <div data-tf-live="01JB9CRNXPX488VHX879VNF3E6"></div>
         <script src="//embed.typeform.com/next/embed.js"></script>
