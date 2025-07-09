@@ -12,12 +12,5 @@ export async function deleteSession(id: string) {
 }
 
 export async function deleteWorkspace(id: string) {
-  if (
-    confirm(
-      `Are you sure you want to delete this workspace? \n\n${id}`
-    )
-  ) {
-    return await db.deleteWorkspace(id);
-  }
-  return false;
+  return await db.deleteWorkspace(id);
 }
