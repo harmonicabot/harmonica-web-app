@@ -22,23 +22,23 @@ export function ChatMessage({
   const router = useRouter();
   const userOrAssistantPrefix = isUser ? 'You : ' : 'AI : ';
   return (
-    <div className={isUser ? 'flex justify-end' : 'flex'}>
+    <div className={`${isUser ? 'flex justify-end' : 'flex'} mb-6`}>
       {!isUser && (
         <img
           className="h-10 w-10 flex-none rounded-full"
-          src="/h_chat_icon.png"
+          src="/hm-chat-icon.svg"
           alt=""
         />
       )}
       <div
         className={
           isUser
-            ? 'md:ms-20 px-3 py-2 m-3 rounded-lg border-gray-400 bg-yellow-50 shadow-sm'
+            ? 'md:ms-20 px-3 py-2 m-3 rounded-lg border-gray-300 bg-white shadow-sm'
             : ''
         }
       >
         <div className={!isUser ? 'pt-2' : ''}>
-          <div className={!isUser ? 'ps-2' : ''}>
+          <div className={!isUser ? 'ps-4' : ''}>
             <div className="text-sm">
               <HRMarkdown content={message.content ?? ''} className="text-sm" />
               {!isUser && message.is_final && showButtons && (
