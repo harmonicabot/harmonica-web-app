@@ -41,14 +41,14 @@ const sessionCache = cache(async () => {
     if (hasAccessToAllResources) {
       // This block is strictly speaking not necessary any more, but it might still be more performant, so leaving it here.
       // For users with global access, fetch ALL sessions without client filtering
-      const hostSessions = await db.getHostSessions([
+      const hostSessions = (await db.getHostSessions([
         'id',
         'topic',
         'start_time',
         'final_report_sent',
         'active',
         'client',
-      ]);
+      ])) as HostSession[]; // Type assertion since we know these fields are required
 
       // Get ALL workspace IDs
 

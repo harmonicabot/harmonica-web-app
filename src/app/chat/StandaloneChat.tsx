@@ -157,6 +157,8 @@ Please type your name or "anonymous" if you prefer
                   assistant_id: hostData.assistant_id,
                   id: hostData.id,
                   cross_pollination: hostData.cross_pollination,
+                  is_public: hostData.is_public,
+                  client: hostData.client,
                 }
               : {}
           }

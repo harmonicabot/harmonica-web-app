@@ -59,17 +59,22 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
   }, []);
 
   async function setAsSessionTableData(sessions: HostSession[]) {
-    const sessionToUserStats = await db.getNumUsersAndMessages(sessions.map(s => s.id)); 
+    const sessionToUserStats = await db.getNumUsersAndMessages(
+      sessions.map((s) => s.id),
+    );
     const asSessionTableData = sessions
       .map((session) => {
-        const {totalUsers, finishedUsers} = getUserStats(sessionToUserStats, session.id)
+        const { totalUsers, finishedUsers } = getUserStats(
+          sessionToUserStats,
+          session.id,
+        );
         if (!session || !session.topic) return;
-        const status = 
+        const status =
           !session.active || session.final_report_sent
             ? SessionStatus.FINISHED
             : totalUsers === 0
-            ? SessionStatus.DRAFT
-            : SessionStatus.ACTIVE;
+              ? SessionStatus.DRAFT
+              : SessionStatus.ACTIVE;
         const created_on = new Intl.DateTimeFormat(undefined, {
           dateStyle: 'medium',
           timeStyle: 'short',
@@ -84,7 +89,8 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
           num_finished: finishedUsers,
           created_on,
         };
-      }).filter((session) => session !== undefined);
+      })
+      .filter((session) => session !== undefined);
     if (asSessionTableData !== undefined) {
       setTableSessions(asSessionTableData);
     }
@@ -93,7 +99,7 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
   const handleOnDelete = (deletedId: string) => {
     console.log('Deleted session, now updating table');
     setTableSessions((prevSessions) =>
-      prevSessions.filter((session) => session.id !== deletedId)
+      prevSessions.filter((session) => session.id !== deletedId),
     );
   };
 

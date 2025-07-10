@@ -27,6 +27,7 @@ const invitationsTableName = 'invitations';
 const usersTableName = 'users';
 const promptsTableName = 'prompts';
 const promptTypesTableName = 'prompt_type';
+const sessionRatingsTableName = 'session_ratings';
 
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
@@ -41,6 +42,7 @@ interface Databases {
   [promptsTableName]: s.PromptsTable;
   [promptTypesTableName]: s.PromptTypesTable;
   session_files: s.SessionFilesTable;
+  [sessionRatingsTableName]: s.SessionRatingsTable;
 }
 
 const dbPromise = (async () => {
@@ -58,17 +60,29 @@ export async function getHostSessions(
   columns: (keyof s.HostSessionsTable)[],
   page: number = 1,
   pageSize: number = 200,
-): Promise<s.HostSession[]> {
+): Promise<Partial<s.HostSession>[]> {
   const db = await dbPromise;
   console.log('Calling getHostSessions');
 
-  let query = db.selectFrom(hostTableName).select(columns);
+  try {
+    const query = db
+      .selectFrom(hostTableName)
+      .selectAll()
+      .orderBy('start_time', 'desc')
+      .limit(pageSize)
+      .offset(Math.max(0, page - 1) * pageSize);
 
-  return query
-    .orderBy('start_time', 'desc')
-    .limit(pageSize)
-    .offset(Math.max(0, page - 1) * pageSize)
-    .execute();
+    // Log the SQL query
+    const sql = query.compile();
+    console.log('SQL Query:', sql.sql);
+    console.log('SQL Parameters:', sql.parameters);
+
+    const result = await query.execute();
+    return result;
+  } catch (error) {
+    console.error('Error in getHostSessions:', error);
+    throw error;
+  }
 }
 
 export async function getHostSessionsForIds(
@@ -80,16 +94,31 @@ export async function getHostSessionsForIds(
   const db = await dbPromise;
   console.log('Database call to getHostSessions at:', new Date().toISOString());
 
-  let query = db
-    .selectFrom(hostTableName)
-    .select(columns)
-    .where('id', 'in', ids);
+  try {
+    // If no IDs provided, return empty array
+    if (!ids || ids.length === 0) {
+      return [];
+    }
 
-  return query
-    .orderBy('start_time', 'desc')
-    .limit(pageSize)
-    .offset(Math.max(0, page - 1) * pageSize)
-    .execute();
+    const query = db
+      .selectFrom(hostTableName)
+      .selectAll()
+      .where('id', 'in', ids)
+      .orderBy('start_time', 'desc')
+      .limit(pageSize)
+      .offset(Math.max(0, page - 1) * pageSize);
+
+    // Log the SQL query
+    const sql = query.compile();
+    console.log('SQL Query:', sql.sql);
+    console.log('SQL Parameters:', sql.parameters);
+
+    const result = await query.execute();
+    return result;
+  } catch (error) {
+    console.error('Error in getHostSessionsForIds:', error);
+    throw error;
+  }
 }
 
 export async function getHostSessionById(
@@ -137,7 +166,16 @@ export async function insertHostSessions(
       .values({ ...data, client: userSub })
       .returningAll()
       .execute();
-    return result.map((row) => row.id);
+
+    // Set the creator as the owner of the session
+    const sessionIds = result.map((row) => row.id);
+    if (userSub) {
+      await Promise.all(
+        sessionIds.map((id) => setPermission(id, 'owner', 'SESSION', userSub)),
+      );
+    }
+
+    return sessionIds;
   } catch (error) {
     console.error('Error inserting host sessions:', error);
     throw error;
@@ -872,7 +910,36 @@ export async function setPermission(
     if (!userId) {
       console.warn('Could not get user info. Will store session as anonymous.');
     }
+
     const db = await dbPromise;
+
+    // If this is a workspace permission, also set permissions for all sessions in the workspace
+    if (resourceType === 'WORKSPACE') {
+      // Get all sessions in the workspace
+      const sessionIds = await getWorkspaceSessionIds(resourceId);
+
+      // Set permissions for each session
+      await Promise.all(
+        sessionIds.map((sessionId) =>
+          db
+            .insertInto(permissionsTableName)
+            .values({
+              resource_id: sessionId,
+              user_id: userId || 'anonymous',
+              role,
+              resource_type: 'SESSION',
+            })
+            .onConflict((oc) =>
+              oc
+                .columns(['resource_id', 'user_id', 'resource_type'])
+                .doUpdateSet({ role }),
+            )
+            .execute(),
+        ),
+      );
+    }
+
+    // Set the original permission
     await db
       .insertInto(permissionsTableName)
       .values({
@@ -1538,6 +1605,79 @@ export async function getExtendedWorkspaceData(workspaceId: string) {
     return await response.json();
   } catch (error) {
     console.error('Error fetching extended workspace data:', error);
+    return null;
+  }
+}
+
+export async function createThreadRating({
+  threadId,
+  rating,
+  feedback,
+  userId,
+}: {
+  threadId: string;
+  rating: number;
+  feedback?: string;
+  userId?: string;
+}): Promise<s.SessionRating> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .insertInto(sessionRatingsTableName)
+      .values({
+        thread_id: threadId,
+        rating,
+        feedback,
+        user_id: userId,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return result;
+  } catch (error) {
+    console.error('Error creating thread rating:', error);
+    throw error;
+  }
+}
+
+export async function getThreadRating(
+  threadId: string,
+): Promise<s.SessionRating | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom(sessionRatingsTableName)
+      .selectAll()
+      .where('thread_id', '=', threadId)
+      .orderBy('created_at', 'desc')
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error getting thread rating:', error);
+    return null;
+  }
+}
+
+export async function updateThreadRating(
+  threadId: string,
+  data: {
+    rating?: number;
+    feedback?: string;
+  },
+): Promise<s.SessionRating | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .updateTable(sessionRatingsTableName)
+      .set(data)
+      .where('thread_id', '=', threadId)
+      .returningAll()
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error updating thread rating:', error);
     return null;
   }
 }

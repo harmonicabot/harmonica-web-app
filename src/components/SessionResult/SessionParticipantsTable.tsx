@@ -92,14 +92,14 @@ export default function SessionParticipantsTable({
               View participants progress and transcripts
             </CardDescription>
           </div>
-          {/* <div className="flex gap-2">
+          <div className="flex gap-2">
             <Button
               variant="default"
               onClick={() => setIsGenerateModalOpen(true)}
             >
               Generate Responses
             </Button>
-          </div> */}
+          </div>
         </CardHeader>
         <CardContent>
           {userData.length === 0 ? (
