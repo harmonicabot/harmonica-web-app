@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import * as db from '@/lib/db';
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
     const dbInstance = await db.getDbInstance();
@@ -32,8 +32,8 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
@@ -70,8 +70,8 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
     const dbInstance = await db.getDbInstance();

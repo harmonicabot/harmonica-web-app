@@ -8,7 +8,7 @@ import { cache } from 'react';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 300; // in seconds
-export const revalidate = 5 * 60; // check new data only every 5 minutes
+export const revalidate = 0; // Disable caching for this page
 
 // Create a cached version of fetchWorkspaceData
 const cachedFetchWorkspaceData = cache(async (workspaceId: string): Promise<ExtendedWorkspaceData> => {

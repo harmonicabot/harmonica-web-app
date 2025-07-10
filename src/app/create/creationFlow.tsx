@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import CreateSession from './create';
 import ReviewPrompt from './review';
 import LoadingMessage from './loading';
@@ -116,6 +116,27 @@ export default function CreationFlow() {
       setCreateNewPromptBecauseCreationContentChanged(true);
     }
   };
+
+  // Handle session storage pre-fill data
+  useEffect(() => {
+    const prefillData = sessionStorage.getItem('createSessionPrefill');
+    if (prefillData) {
+      try {
+        const data = JSON.parse(prefillData);
+        // Only use if less than 5 minutes old
+        if (Date.now() - data.timestamp < 5 * 60 * 1000) {
+          onFormDataChange(data);
+          enabledSteps[1] = true;
+          setActiveStep('Create');
+        }
+        // Always clear the data
+        sessionStorage.removeItem('createSessionPrefill');
+      } catch (error) {
+        console.error('Error parsing prefill data:', error);
+        sessionStorage.removeItem('createSessionPrefill');
+      }
+    }
+  }, []);
 
   const handleCreateComplete = async (e: React.FormEvent) => {
     e.preventDefault();
