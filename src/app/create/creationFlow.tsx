@@ -395,6 +395,7 @@ export default function CreationFlow() {
     latestFullPromptRef.current = responseFullPrompt.fullPrompt;
 
     // This will stream directly into the streamPromptRef:
+    // TODO: Streaming doesn't work yet
     getStreamOfSummary({
       fullPrompt: responseFullPrompt.fullPrompt,
     });
