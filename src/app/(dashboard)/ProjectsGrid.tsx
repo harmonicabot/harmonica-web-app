@@ -213,7 +213,6 @@ function ProjectCard({ workspace }: { workspace: WorkspaceWithSessions }) {
 function LoadMoreButton({ currentCount, totalCount }: { currentCount: number; totalCount: number }) {
   const nextPage = Math.ceil(currentCount / 8) + 1;
   const remainingItems = totalCount - currentCount;
-  const itemsToLoad = Math.min(10, remainingItems);
 
   if (remainingItems <= 0) return null;
 
@@ -240,7 +239,8 @@ export default function ProjectsGrid({
   const currentPage = searchParams?.page ? parseInt(searchParams.page) : 1;
   const startIndex = 0;
   const endIndex = currentPage * 8;
-  const displayedWorkspaces = workspaces.slice(startIndex, endIndex);
+  const sortedWorkspaces = workspaces.sort((a, b) => a.last_modified.getTime() - b.last_modified.getTime())
+  const displayedWorkspaces = sortedWorkspaces.slice(startIndex, endIndex);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
