@@ -10,8 +10,35 @@ let transporter: nodemailer.Transporter;
 
 function getTransporter() {
   if (!transporter) {
-    // Check if we're using SendGrid or other SMTP provider
-    if (process.env.SENDGRID_API_KEY) {
+    if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+      // Gmail Service App - requires 2FA on the main account
+      transporter = nodemailer.createTransport({
+        service: "Gmail",
+        auth: {
+          user: process.env.GMAIL_USER,
+          pass: process.env.GMAIL_APP_PASSWORD,
+        },
+      });
+      console.log('Using Gmail Service App transport');
+    } else if (process.env.GMAIL_USER && process.env.GMAIL_SERVICE_CLIENT_ID && process.env.GMAIL_PRIVATE_KEY) {
+      // Gmail OAuth2 with Service Account (2LO) - for automated sending. Managed in gcloud console.
+      // NOTE: This might not work yet; there are some more configuration steps required.
+      // (unauthorized_client: Client not authorized for any of the scopes requested - https://mail.google.com/)
+      // And for security reasons I've deleted the required service account again, so that'll need to be set up again as well. 
+      transporter = nodemailer.createTransport({
+        service: "Gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: {
+          type: 'OAuth2',
+          user: process.env.GMAIL_USER,
+          serviceClient: process.env.GMAIL_SERVICE_CLIENT_ID,
+          privateKey: process.env.GMAIL_PRIVATE_KEY.replace(/\\n/g, '\n'), // Handle newlines in env var
+        },
+      });
+      console.log('Using Gmail OAuth2 transport');
+    } else if (process.env.SENDGRID_API_KEY) {
       transporter = nodemailer.createTransport({
         service: 'SendGrid',
         auth: {
@@ -45,7 +72,7 @@ interface SendEmailOptions {
 export async function sendEmail({ to, subject, html, text }: SendEmailOptions): Promise<boolean> {
   try {
     const transport = getTransporter();
-    const fromEmail = process.env.EMAIL_FROM || 'noreply@harmonica.ai';
+    const fromEmail = process.env.EMAIL_FROM || 'noreply@harmonica.chat';
     const fromName = process.env.EMAIL_FROM_NAME || 'Harmonica';
     
     await transport.sendMail({
@@ -104,7 +131,7 @@ export async function sendInvitation(invitation: Invitation): Promise<boolean> {
           <p style="color: #666; font-size: 0.9em;">If you don't have a Harmonica account yet, you'll need to sign up first using this same email address, and you'll automatically get access to the ${type}.</p>
         </div>
         <div style="text-align: center; color: #666; font-size: 0.8em; margin-top: 20px;">
-          <p>© ${new Date().getFullYear()} Harmonica AI. All rights reserved.</p>
+          <p>© ${new Date().getFullYear()} Harmonica. All rights reserved.</p>
         </div>
       </div>
     `;
