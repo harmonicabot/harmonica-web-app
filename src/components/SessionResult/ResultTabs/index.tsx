@@ -127,9 +127,10 @@ export default function ResultTabs({
         id: 'SUMMARY',
         label: 'Summary',
         isVisible:
-          visibilityConfig.showSummary ||
+          (visibilityConfig.showSummary ||
           visibilityConfig.showSessionRecap ||
-          hasMinimumRole('editor'),
+          hasMinimumRole('editor')) &&
+          (hasAnyIncludedUserMessages || hasMinimumRole('editor') || draft),
         content: (
           <SessionResultSummary
             hostData={hostData}
@@ -270,10 +271,13 @@ export default function ResultTabs({
     return firstVisibleTab || 'SUMMARY'; // Fallback to SUMMARY if no visible tabs
   });
 
-  // Update active tab if visibility changes (should only happen in the first few seconds of page load)
+  // Update active tab only if current tab becomes invisible
   useEffect(() => {
-    setActiveTab(visibleTabs[0]?.id || 'SUMMARY');
-  }, [visibleTabs]);
+    const currentTabVisible = visibleTabs.some(tab => tab.id === activeTab);
+    if (!currentTabVisible && visibleTabs.length > 0) {
+      setActiveTab(visibleTabs[0].id);
+    }
+  }, [visibleTabs, activeTab]);
 
   const handlePromptChange = async (
     newPrompt: string,
