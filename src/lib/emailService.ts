@@ -3,6 +3,7 @@
 import nodemailer from 'nodemailer';
 import { Invitation, Workspace } from './schema';
 import { getFromHostSession, getWorkspaceById } from './db';
+import { encryptId } from './encryptionUtils';
 
 // Configure email transport - this should use environment variables in production
 let transporter: nodemailer.Transporter;
@@ -65,7 +66,7 @@ export async function sendEmail({ to, subject, html, text }: SendEmailOptions): 
 
 export async function sendInvitation(invitation: Invitation): Promise<boolean> {
   try {
-    const id = invitation.resource_id
+    const id = invitation.resource_id;
     let title, url, type;
     const appUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.harmonica.chat';
     switch (invitation.resource_type) {
@@ -76,7 +77,7 @@ export async function sendInvitation(invitation: Invitation): Promise<boolean> {
         break;
       case "SESSION":
         title = await getSessionTitle(id);
-        url = `${appUrl}/sessions/${id}`;
+        url = `${appUrl}/sessions/${encryptId(id)}`;
         type = 'session';
         break;
       default:
