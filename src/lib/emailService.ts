@@ -19,7 +19,6 @@ function getTransporter() {
           pass: process.env.GMAIL_APP_PASSWORD,
         },
       });
-      console.log('Using Gmail Service App transport');
     } else if (process.env.GMAIL_USER && process.env.GMAIL_SERVICE_CLIENT_ID && process.env.GMAIL_PRIVATE_KEY) {
       // Gmail OAuth2 with Service Account (2LO) - for automated sending. Managed in gcloud console.
       // NOTE: This might not work yet; there are some more configuration steps required.
@@ -37,7 +36,6 @@ function getTransporter() {
           privateKey: process.env.GMAIL_PRIVATE_KEY.replace(/\\n/g, '\n'), // Handle newlines in env var
         },
       });
-      console.log('Using Gmail OAuth2 transport');
     } else if (process.env.SENDGRID_API_KEY) {
       transporter = nodemailer.createTransport({
         service: 'SendGrid',
