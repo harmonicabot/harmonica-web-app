@@ -134,101 +134,99 @@ export async function deleteUserData(existingUserData?: any) {
     
     const db = await getDbInstance();
     
-    await db.transaction().execute(async (trx) => {
-      console.log('Starting transaction for data deletion...');
-      
-      // 1. Delete messages by exact IDs
-      if (userData.messages.length > 0) {
-        const messageIds = userData.messages.map((msg: any) => msg.id);
-        console.log(`Deleting ${messageIds.length} specific messages`);
-        await trx
-          .deleteFrom(messageTable)
-          .where('id', 'in', messageIds)
-          .execute();
-      }
-      
-      // 2. Delete user sessions by exact IDs
-      if (userData.sessions.length > 0) {
-        const sessionIds = userData.sessions.map((session: any) => session.id);
-        console.log(`Deleting ${sessionIds.length} specific chat sessions`);
-        await trx
-          .deleteFrom(chatSessionsTable)
-          .where('id', 'in', sessionIds)
-          .execute();
-      }  
-      
-      // 3. For owned resources, check if user is the sole owner before deletion
-      
-      // 3a. Process host sessions (for owned sessions)
-      for (const hostSession of userData.hostSessions) {
-        // Check if this user is the sole owner
-        const otherOwners = await trx
-          .selectFrom(permissionsTable)
-          .select('user_id')
-          .where('resource_id', '=', hostSession.id)
-          .where('resource_type', '=', 'SESSION')
-          .where('role', '=', 'owner')
-          .where('user_id', '!=', userSub)
-          .execute();
-        
-        if (otherOwners.length === 0) {
-          // User is sole owner, delete the host session
-          console.log(`Deleting host session ${hostSession.id} (user is sole owner)`);
-          await trx
-            .deleteFrom(hostSessionsTable)
-            .where('id', '=', hostSession.id)
-            .execute();
-        } else {
-          console.log(`Not deleting host session ${hostSession.id} (has other owners: ${otherOwners.length})`);
-        }
-      }
-      
-      // 3b. Process workspaces (for owned workspaces)
-      for (const workspace of userData.workspaces) {
-        // Check if this user is the sole owner
-        const otherOwners = await trx
-          .selectFrom(permissionsTable)
-          .select('user_id')
-          .where('resource_id', '=', workspace.id)
-          .where('resource_type', '=', 'WORKSPACE')
-          .where('role', '=', 'owner')
-          .where('user_id', '!=', userSub)
-          .execute();
-        
-        if (otherOwners.length === 0) {
-          // User is sole owner, delete the workspace
-          console.log(`Deleting workspace ${workspace.id} (user is sole owner)`);
-          await trx
-            .deleteFrom(workspacesTable)
-            .where('id', '=', workspace.id)
-            .execute();
-          
-          // Also make sure that we delete all workspace_session rows for this workspace.
-          // For workspace_sessions, we need to construct a composite key condition
-          if (userData.workspaceSessions.length > 0) {            
-            console.log(`Deleting ${userData.workspaceSessions.length} specific workspace sessions`);
-            for (const ws of userData.workspaceSessions) {
-              await trx
-                .deleteFrom(workspaceSessionsTable)
-                .where('workspace_id', '=', ws.workspace_id)
-                .where('session_id', '=', ws.session_id)
-                .execute();
-            }
-          }
-        } else {
-          console.log(`Not deleting workspace ${workspace.id} (has other owners: ${otherOwners.length})`);
-        }
-      }
-      
-      // 4. Delete permissions for this user
-      console.log(`Deleting all permissions for user ${userSub}`);
-      await trx
-        .deleteFrom(permissionsTable)
-        .where('user_id', '=', userSub)
+    console.log('Starting data deletion...');
+    
+    // 1. Delete messages by exact IDs
+    if (userData.messages.length > 0) {
+      const messageIds = userData.messages.map((msg: any) => msg.id);
+      console.log(`Deleting ${messageIds.length} specific messages`);
+      await db
+        .deleteFrom(messageTable)
+        .where('id', 'in', messageIds)
+        .execute();
+    }
+    
+    // 2. Delete user sessions by exact IDs
+    if (userData.sessions.length > 0) {
+      const sessionIds = userData.sessions.map((session: any) => session.id);
+      console.log(`Deleting ${sessionIds.length} specific chat sessions`);
+      await db
+        .deleteFrom(chatSessionsTable)
+        .where('id', 'in', sessionIds)
+        .execute();
+    }  
+    
+    // 3. For owned resources, check if user is the sole owner before deletion
+    
+    // 3a. Process host sessions (for owned sessions)
+    for (const hostSession of userData.hostSessions) {
+      // Check if this user is the sole owner
+      const otherOwners = await db
+        .selectFrom(permissionsTable)
+        .select('user_id')
+        .where('resource_id', '=', hostSession.id)
+        .where('resource_type', '=', 'SESSION')
+        .where('role', '=', 'owner')
+        .where('user_id', '!=', userSub)
         .execute();
       
-      console.log('Transaction completed successfully');
-    });
+      if (otherOwners.length === 0) {
+        // User is sole owner, delete the host session
+        console.log(`Deleting host session ${hostSession.id} (user is sole owner)`);
+        await db
+          .deleteFrom(hostSessionsTable)
+          .where('id', '=', hostSession.id)
+          .execute();
+      } else {
+        console.log(`Not deleting host session ${hostSession.id} (has other owners: ${otherOwners.length})`);
+      }
+    }
+    
+    // 3b. Process workspaces (for owned workspaces)
+    for (const workspace of userData.workspaces) {
+      // Check if this user is the sole owner
+      const otherOwners = await db
+        .selectFrom(permissionsTable)
+        .select('user_id')
+        .where('resource_id', '=', workspace.id)
+        .where('resource_type', '=', 'WORKSPACE')
+        .where('role', '=', 'owner')
+        .where('user_id', '!=', userSub)
+        .execute();
+      
+      if (otherOwners.length === 0) {
+        // User is sole owner, delete the workspace
+        console.log(`Deleting workspace ${workspace.id} (user is sole owner)`);
+        await db
+          .deleteFrom(workspacesTable)
+          .where('id', '=', workspace.id)
+          .execute();
+        
+        // Also make sure that we delete all workspace_session rows for this workspace.
+        // For workspace_sessions, we need to construct a composite key condition
+        if (userData.workspaceSessions.length > 0) {            
+          console.log(`Deleting ${userData.workspaceSessions.length} specific workspace sessions`);
+          for (const ws of userData.workspaceSessions) {
+            await db
+              .deleteFrom(workspaceSessionsTable)
+              .where('workspace_id', '=', ws.workspace_id)
+              .where('session_id', '=', ws.session_id)
+              .execute();
+          }
+        }
+      } else {
+        console.log(`Not deleting workspace ${workspace.id} (has other owners: ${otherOwners.length})`);
+      }
+    }
+    
+    // 4. Delete permissions for this user
+    console.log(`Deleting all permissions for user ${userSub}`);
+    await db
+      .deleteFrom(permissionsTable)
+      .where('user_id', '=', userSub)
+      .execute();
+    
+    console.log('Data deletion completed successfully');
     
     // Revalidate the profile page to reflect the changes
     revalidatePath('/profile');
@@ -271,25 +269,24 @@ export async function deleteUserAccount(existingUserData?: any) {
     }
     
     // Then delete the user account itself
-    await db.transaction().execute(async (trx) => {
-      // Delete any remaining permissions
-      await trx
-        .deleteFrom(permissionsTable)
-        .where('user_id', '=', userSub)
-        .execute();
-      
-      // Delete any invitations created by this user
-      await trx
-        .deleteFrom('invitations')
-        .where('created_by', '=', userSub)
-        .execute();
-      
-      // Finally delete the user record
-      await trx
-        .deleteFrom(usersTable)
-        .where('id', '=', userSub)
-        .execute();
-    });
+    
+    // Delete any remaining permissions
+    await db
+      .deleteFrom(permissionsTable)
+      .where('user_id', '=', userSub)
+      .execute();
+    
+    // Delete any invitations created by this user
+    await db
+      .deleteFrom('invitations')
+      .where('created_by', '=', userSub)
+      .execute();
+    
+    // Finally delete the user record
+    await db
+      .deleteFrom(usersTable)
+      .where('id', '=', userSub)
+      .execute();
     
     // Note: This doesn't actually log the user out or delete their Auth0 account
     // That would require additional Auth0 API calls which are not implemented here
