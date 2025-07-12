@@ -22,7 +22,7 @@ export function ChatMessage({
   const router = useRouter();
   const userOrAssistantPrefix = isUser ? 'You : ' : 'AI : ';
   return (
-    <div className={`${isUser ? 'flex justify-end' : 'flex'} mb-6`}>
+    <div className={`${isUser ? 'flex justify-end' : 'flex'}`}>
       {!isUser && (
         <img
           className="h-10 w-10 flex-none rounded-full"
@@ -33,7 +33,7 @@ export function ChatMessage({
       <div
         className={
           isUser
-            ? 'md:ms-20 px-3 py-2 m-3 rounded-lg border-gray-300 bg-white shadow-sm'
+            ? 'md:ms-20 px-3 py-2 m-3 rounded-lg border-gray-300 bg-white shadow-md'
             : ''
         }
       >
