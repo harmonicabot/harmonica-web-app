@@ -40,7 +40,7 @@ export const ChatInterface = ({
   userContext,
 }: ChatInterfaceProps) => {
   const { user } = useUser();
-  const isHost = user?.sub && hostData?.client === user.sub;
+  const isHost = Boolean(user?.sub && hostData?.client === user.sub);
   const mainPanelRef = useRef<HTMLElement>(null);
   const [showRating, setShowRating] = useState(false);
   const [threadId, setThreadId] = useState<string>();
