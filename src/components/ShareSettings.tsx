@@ -46,6 +46,7 @@ import {
 import { Role, usePermissions } from '@/lib/permissions';
 import { Invitation, PermissionsTable, User, ResultTabsVisibilityConfig } from '@/lib/schema';
 import { encryptId } from '@/lib/encryptionUtils';
+import { Spinner } from './icons';
 
 interface ShareSettingProps {
   resourceId: string;
@@ -494,12 +495,14 @@ export default function ShareSettings({
                 Public Access
               </label>
             </div>
-            <Switch
-              id="public-access"
-              checked={localIsPublic}
-              onCheckedChange={handlePublicToggle}
-              disabled={loading}
-            />
+            {loading
+              ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              : <Switch
+                id="public-access"
+                checked={localIsPublic}
+                onCheckedChange={handlePublicToggle}
+              />
+            }
           </div>
           <p className="text-xs text-gray-500 mb-3">
             When public, anyone with the link can view this{' '}

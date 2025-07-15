@@ -146,9 +146,10 @@ export default function ReviewPrompt({
                         onClick={() => showFullPrompt(prompt.id)}
                       />
                     )}
+                    {/* Disabling the 'Test' chat, it doesn't work because we don't have the session ID yet, but it's needed for the AI to use the actual prompt...
                     <ChatPopupButton
                       prompt={prompt}
-                    />
+                    /> */}
                     {prompt.id !== currentVersion ? (
                       <Button className='border-[1px]' onClick={() => setCurrentVersion(prompt.id)}>
                         Select

@@ -33,13 +33,29 @@ Please type your name or "anonymous" if you prefer
     state.addHostData,
   ]);
 
-  const [userSessionId, setUserSessionId] = useState<string>();
-  const [showModal, setShowModal] = useState(true);
+  const [userSessionId, setUserSessionId] = useState<string | undefined>(() => {
+    if (typeof window !== 'undefined' && sessionId) {
+      return sessionStorage.getItem(`userSessionId_${sessionId}`) || undefined;
+    }
+    return undefined;
+  });
+  const [showModal, setShowModal] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem(`showModal_${sessionId}`) !== 'false';
+    }
+    return true;
+  });
   const [userFinished, setUserFinished] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isFirstMessage, setIsFirstMessage] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
-  const [userContext, setUserContext] = useState<Record<string, string>>({});
+  const [userContext, setUserContext] = useState<Record<string, string>>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem(`userContext_${sessionId}`);
+      return stored ? JSON.parse(stored) : {};
+    }
+    return {};
+  });
 
   useEffect(() => {
     setIsMounted(true);
@@ -123,7 +139,7 @@ Please type your name or "anonymous" if you prefer
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-svh bg-purple-50">
+    <div className="flex flex-col md:flex-row h-svh bg-gradient-to-t bg-amber-50">
       <div className="hidden">
         <div data-tf-live="01JB9CRNXPX488VHX879VNF3E6"></div>
         <script src="//embed.typeform.com/next/embed.js"></script>
@@ -144,8 +160,15 @@ Please type your name or "anonymous" if you prefer
               : undefined
           }
           onStart={(answers?: Record<string, string>) => {
-            setUserContext(answers || {});
+            const contextData = answers || {};
+            setUserContext(contextData);
             setShowModal(false);
+            
+            // Persist to sessionStorage
+            if (sessionId) {
+              sessionStorage.setItem(`userContext_${sessionId}`, JSON.stringify(contextData));
+              sessionStorage.setItem(`showModal_${sessionId}`, 'false');
+            }
           }}
         />
       ) : (
@@ -163,7 +186,15 @@ Please type your name or "anonymous" if you prefer
               : {}
           }
           userSessionId={userSessionId}
-          setUserSessionId={setUserSessionId}
+          setUserSessionId={(id: string | undefined) => {
+            setUserSessionId(id);
+            if (sessionId && id) {
+              sessionStorage.setItem(`userSessionId_${sessionId}`, id);
+            }
+            if (id === undefined) {
+              sessionStorage.removeItem(`userSessionId_${sessionId}`);
+            }
+          }}
           onFinish={finishSession}
           isMounted={isMounted}
           isLoading={isLoading}

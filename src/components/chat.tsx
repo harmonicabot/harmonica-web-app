@@ -13,7 +13,7 @@ import { Message } from '@/lib/schema';
 import ErrorPage from './Error';
 import { getUserNameFromContext } from '@/lib/clientUtils';
 import { Loader2, Sparkles } from 'lucide-react';
-import { getHostSessionById } from '@/lib/db';
+import { getHostSessionById, getUserSessionById, getAllChatMessagesInOrder } from '@/lib/db';
 
 export default function Chat({
   sessionIds,
@@ -30,6 +30,10 @@ export default function Chat({
   sessionId: providedSessionId,
   onThreadIdReceived,
   setShowRating,
+  isHost = false,
+  mainPanelRef,
+  hasBottomLeftButtons = false,
+  mode = "embedded",
 }: {
   sessionIds?: string[];
   setUserSessionId?: (id: string) => void;
@@ -48,6 +52,10 @@ export default function Chat({
     index: number,
   ) => React.ReactNode;
   setShowRating?: (show: boolean) => void;
+  isHost?: boolean;
+  mainPanelRef?: React.RefObject<HTMLElement>;
+  hasBottomLeftButtons?: boolean;
+  mode?: "fullscreen" | "embedded";
 }) {
   const isTesting = false;
   const [errorMessage, setErrorMessage] = useState<{
@@ -83,13 +91,10 @@ export default function Chat({
     useState(false);
 
   useEffect(() => {
-    if (messagesEndRef.current && messages.length > 1) {
-      messagesEndRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      });
+    if (mainPanelRef?.current && messages.length > 1) {
+      mainPanelRef.current.scrollTop = mainPanelRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, mainPanelRef]);
 
   useEffect(() => {
     console.log('[i] Chat loading: ');
@@ -104,24 +109,6 @@ export default function Chat({
   const createThreadInProgressRef = useRef(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
-    if (
-      !threadIdRef.current &&
-      !createThreadInProgressRef.current &&
-      !isAskAi
-    ) {
-      createThreadInProgressRef.current = true;
-      const userName = getUserNameFromContext(userContext);
-
-      createThread(
-        context,
-        sessionIds && sessionIds.length ? sessionIds[0] : undefined,
-        user ? user : 'id',
-        userName,
-        userContext,
-      );
-    }
-
     if (e.key === 'Enter' && !isLoading) {
       if (e.metaKey) {
         e.preventDefault();
@@ -281,22 +268,87 @@ export default function Chat({
       !threadIdRef.current &&
       !createThreadInProgressRef.current &&
       !isAskAi // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
-      // Also, AskAI doesn't use the userContext, so this should never be triggered (unless maybe on page load?), but just for clarity we put it here anyway.
+      // Also, AskAI doesn't use the userContext, so this parameter combination should never be triggered (unless maybe on page load?), but just for clarity we put it here anyway.
     ) {
       const userName = getUserNameFromContext(userContext);
 
       createThreadInProgressRef.current = true;
-      createThread(
-        context,
-        sessionIds && sessionIds.length ? sessionIds[0] : undefined,
-        user ? user : 'id',
-        userName,
-        userContext,
-      ).then((threadSessionId) => {
-        handleSubmit(undefined, true, threadSessionId);
-      });
+      
+      // Check if we have an existing userSessionId to restore
+      if (userSessionId) {
+        restoreExistingThread(userSessionId).then((restored: boolean) => {
+          if (!restored) {
+            // Fallback to creating new thread if restoration fails
+            createThread(
+              context,
+              sessionIds && sessionIds.length ? sessionIds[0] : undefined,
+              user ? user : 'id',
+              userName,
+              userContext,
+            ).then((threadSessionId) => {
+              handleSubmit(undefined, true, threadSessionId);
+            });
+          }
+        });
+      } else {
+        // No existing session, create new thread
+        createThread(
+          context,
+          sessionIds && sessionIds.length ? sessionIds[0] : undefined,
+          user ? user : 'id',
+          userName,
+          userContext,
+        ).then((threadSessionId) => {
+          handleSubmit(undefined, true, threadSessionId);
+        });
+      }
     }
   }, [userContext]);
+
+  /**
+   * Restores an existing thread from a userSessionId
+   * @param userSessionId The existing user session ID
+   * @returns {Promise<boolean>} True if restoration was successful
+   */
+  async function restoreExistingThread(userSessionId: string): Promise<boolean> {
+    try {
+      console.log(`[i] Attempting to restore thread for userSessionId: ${userSessionId}`);
+      
+      // Get the existing user session
+      const existingSession = await getUserSessionById(userSessionId);
+      if (!existingSession) {
+        console.log(`[i] No existing session found for userSessionId: ${userSessionId}`);
+        return false;
+      }
+      
+      // Set the thread ID to the existing one
+      threadIdRef.current = existingSession.thread_id;
+      if (onThreadIdReceived) {
+        onThreadIdReceived(existingSession.thread_id);
+      }
+      
+      // Load existing messages for this thread
+      const existingMessages = await getAllChatMessagesInOrder(existingSession.thread_id);
+
+      // Filter out the initial context message if present
+      const filteredMessages = existingMessages.filter(
+        msg => !(msg.role === 'user' && msg.content?.startsWith('User shared the following context:'))
+      ).map(msg => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        is_final: msg.is_final,
+      }));
+      
+      setMessages(filteredMessages);
+      
+      console.log(`[i] Successfully restored ${existingMessages.length} messages for thread ${existingSession.thread_id}`);
+      return true;
+      
+    } catch (error) {
+      console.error('[!] Error restoring existing thread:', error);
+      return false;
+    }
+  }
 
   const handleSubmit = async (
     e?: React.FormEvent,
@@ -493,8 +545,8 @@ export default function Chat({
   }
 
   return (
-    <div className="h-full flex-grow flex flex-col">
-      <div className="h-full flex-grow overflow-y-auto">
+    <div className="flex flex-col h-full w-full max-w-3xl mx-auto relative">
+      <div className={`flex-1 flex flex-col gap-y-6 px-4 max-w-3xl mx-auto w-full ${mode === "fullscreen" ? "pb-36 md:pb-0" : ""}`}>
         {messages.map((message, index) => (
           <div key={index} className="group">
             {customMessageEnhancement ? (
@@ -519,7 +571,7 @@ export default function Chat({
           <div className="flex">
             <img
               className="h-10 w-10 flex-none rounded-full"
-              src="/h_chat_icon.png"
+              src="/hm-chat-icon.svg"
               alt=""
             />
             <div className="ps-2 flex space-x-1 justify-center items-center dark:invert">
@@ -532,55 +584,72 @@ export default function Chat({
         <div ref={messagesEndRef} />
       </div>
 
-      <form
-        className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''} sticky bottom-0`}
-        onSubmit={handleSubmit}
-      >
-        <div className="flex justify-end mb-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleParticipantSuggestion}
-            disabled={
-              isLoading ||
-              isParticipantSuggestionLoading ||
-              !threadIdRef.current
-            }
-            className="flex items-center gap-2"
-          >
-            {isParticipantSuggestionLoading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Sparkles size={16} />
+      <div className={
+        mode === "fullscreen"
+          ? "fixed bottom-0 left-0 right-0 pb-2 z-10 w-full bg-amber-50 border-t border-gray-200 px-3 md:sticky md:relative"
+          : "pb-2 w-full bg-amber-50 border-t border-gray-200 px-3 md:sticky"
+      }>
+        <form
+          className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''}`}
+          onSubmit={handleSubmit}
+        >
+          <div className="relative">
+            <Textarea
+              name="messageText"
+              value={formData.messageText}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = Math.min(target.scrollHeight, 144) + 'px';
+                
+                // Auto-scroll to keep cursor visible when content overflows
+                if (target.scrollHeight > target.clientHeight) {
+                  target.scrollTop = target.scrollHeight;
+                }
+              }}
+              placeholder={placeholder}
+              className={`flex-grow pr-12 ${hasBottomLeftButtons ? 'pb-16' : 'pb-4'} text-base min-h-[44px] max-h-[144px] overflow-y-auto resize-none focus:ring-0 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-yellow-300`}
+              ref={textareaRef}
+            />
+            {isHost && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleParticipantSuggestion}
+              disabled={
+                isLoading ||
+                isParticipantSuggestionLoading ||
+                !threadIdRef.current
+              }
+                className="absolute bottom-3 left-3 flex items-center gap-2"
+            >
+              {isParticipantSuggestionLoading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Sparkles size={16} />
+              )}
+                <span className="text-xs">
+                {isParticipantSuggestionLoading
+                  ? 'Generating...'
+                  : 'AI Suggestion'}
+              </span>
+            </Button>
             )}
-            <span>
-              {isParticipantSuggestionLoading
-                ? 'Generating...'
-                : 'AI Suggestion'}
-            </span>
-          </Button>
-        </div>
-
-        <div className="relative">
-          <Textarea
-            name="messageText"
-            value={formData.messageText}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            className="flex-grow pr-12 focus:ring-0 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-yellow-300"
-            ref={textareaRef}
-          />
-          <Button
-            type="submit"
-            className="absolute bottom-2 right-4 rounded-full p-3"
-            disabled={isLoading}
-          >
-            <Send />
-          </Button>
-        </div>
-      </form>
+            <Button
+              type="submit"
+              variant="default"
+              size="icon"
+              className="absolute bottom-3 right-3 h-10 w-10"
+              disabled={isLoading}
+            >
+              <Send />
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

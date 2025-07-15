@@ -20,10 +20,10 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-5 text-base",
-        icon: "h-10 w-10",
+        default: "h-10 px-3 py-2 [&>svg]:w-4 [&>svg]:h-4",
+        sm: "h-9 px-1.5 py-1.5 [&>svg]:w-3 [&>svg]:h-3",
+        lg: "h-11 px-3 py-3 text-base [&>svg]:w-5 [&>svg]:h-5",
+        icon: "h-9 w-9 [&>svg]:w-4 [&>svg]:h-4",
       },
     },
     defaultVariants: {
@@ -40,14 +40,32 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
+
+    // Helper to wrap string/number children in a span with padding based on size
+    const wrapLabel = (child: React.ReactNode, key?: React.Key) => {
+      if (typeof child !== "string" && typeof child !== "number") return child;
+      
+      const paddingClass = size === "sm" ? "px-1" : "px-2";
+      return <span key={key} className={paddingClass}>{child}</span>;
+    };
+
+    let content;
+    if (Array.isArray(children)) {
+      content = children.map((child, i) => wrapLabel(child, i));
+    } else {
+      content = wrapLabel(children);
+    }
+
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...props}
-      />
+      >
+        {content}
+      </Comp>
     )
   }
 )

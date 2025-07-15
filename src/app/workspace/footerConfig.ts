@@ -24,7 +24,7 @@ export const footerConfigs: Record<string, FooterConfig> = {
       },
     },
     copyright: {
-      text: '© 2025 Harmonica AI. All rights reserved.',
+      text: '© 2025 Harmonica. All rights reserved.',
     },
   },
   'ENS-PSL': {
@@ -69,9 +69,9 @@ export const footerConfigs: Record<string, FooterConfig> = {
       },
     },
     copyright: {
-      text: '© 2025 Harmonica AI. All rights reserved.',
+      text: '© 2025 Harmonica. All rights reserved.',
       subtext:
-        'A collaboration between ENS Paris, Mission Publique, and Harmonica AI',
+        'A collaboration between ENS Paris, Mission Publique, and Harmonica',
     },
   },
 };
