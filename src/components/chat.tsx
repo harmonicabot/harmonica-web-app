@@ -13,7 +13,7 @@ import { Message } from '@/lib/schema';
 import ErrorPage from './Error';
 import { getUserNameFromContext } from '@/lib/clientUtils';
 import { Loader2, Sparkles } from 'lucide-react';
-import { getHostSessionById } from '@/lib/db';
+import { getHostSessionById, getUserSessionById, getAllChatMessagesInOrder } from '@/lib/db';
 
 export default function Chat({
   sessionIds,
@@ -105,24 +105,6 @@ export default function Chat({
   const createThreadInProgressRef = useRef(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
-    if (
-      !threadIdRef.current &&
-      !createThreadInProgressRef.current &&
-      !isAskAi
-    ) {
-      createThreadInProgressRef.current = true;
-      const userName = getUserNameFromContext(userContext);
-
-      createThread(
-        context,
-        sessionIds && sessionIds.length ? sessionIds[0] : undefined,
-        user ? user : 'id',
-        userName,
-        userContext,
-      );
-    }
-
     if (e.key === 'Enter' && !isLoading) {
       if (e.metaKey) {
         e.preventDefault();
@@ -282,22 +264,87 @@ export default function Chat({
       !threadIdRef.current &&
       !createThreadInProgressRef.current &&
       !isAskAi // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
-      // Also, AskAI doesn't use the userContext, so this should never be triggered (unless maybe on page load?), but just for clarity we put it here anyway.
+      // Also, AskAI doesn't use the userContext, so this parameter combination should never be triggered (unless maybe on page load?), but just for clarity we put it here anyway.
     ) {
       const userName = getUserNameFromContext(userContext);
 
       createThreadInProgressRef.current = true;
-      createThread(
-        context,
-        sessionIds && sessionIds.length ? sessionIds[0] : undefined,
-        user ? user : 'id',
-        userName,
-        userContext,
-      ).then((threadSessionId) => {
-        handleSubmit(undefined, true, threadSessionId);
-      });
+      
+      // Check if we have an existing userSessionId to restore
+      if (userSessionId) {
+        restoreExistingThread(userSessionId).then((restored: boolean) => {
+          if (!restored) {
+            // Fallback to creating new thread if restoration fails
+            createThread(
+              context,
+              sessionIds && sessionIds.length ? sessionIds[0] : undefined,
+              user ? user : 'id',
+              userName,
+              userContext,
+            ).then((threadSessionId) => {
+              handleSubmit(undefined, true, threadSessionId);
+            });
+          }
+        });
+      } else {
+        // No existing session, create new thread
+        createThread(
+          context,
+          sessionIds && sessionIds.length ? sessionIds[0] : undefined,
+          user ? user : 'id',
+          userName,
+          userContext,
+        ).then((threadSessionId) => {
+          handleSubmit(undefined, true, threadSessionId);
+        });
+      }
     }
   }, [userContext]);
+
+  /**
+   * Restores an existing thread from a userSessionId
+   * @param userSessionId The existing user session ID
+   * @returns {Promise<boolean>} True if restoration was successful
+   */
+  async function restoreExistingThread(userSessionId: string): Promise<boolean> {
+    try {
+      console.log(`[i] Attempting to restore thread for userSessionId: ${userSessionId}`);
+      
+      // Get the existing user session
+      const existingSession = await getUserSessionById(userSessionId);
+      if (!existingSession) {
+        console.log(`[i] No existing session found for userSessionId: ${userSessionId}`);
+        return false;
+      }
+      
+      // Set the thread ID to the existing one
+      threadIdRef.current = existingSession.thread_id;
+      if (onThreadIdReceived) {
+        onThreadIdReceived(existingSession.thread_id);
+      }
+      
+      // Load existing messages for this thread
+      const existingMessages = await getAllChatMessagesInOrder(existingSession.thread_id);
+
+      // Filter out the initial context message if present
+      const filteredMessages = existingMessages.filter(
+        msg => !(msg.role === 'user' && msg.content?.startsWith('User shared the following context:'))
+      ).map(msg => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        is_final: msg.is_final,
+      }));
+      
+      setMessages(filteredMessages);
+      
+      console.log(`[i] Successfully restored ${existingMessages.length} messages for thread ${existingSession.thread_id}`);
+      return true;
+      
+    } catch (error) {
+      console.error('[!] Error restoring existing thread:', error);
+      return false;
+    }
+  }
 
   const handleSubmit = async (
     e?: React.FormEvent,
@@ -533,7 +580,7 @@ export default function Chat({
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 pb-2 z-10 w-full bg-white border-t border-gray-200 px-3 md:sticky md:relative">
+      <div className="fixed bottom-0 left-0 right-0 pb-2 z-10 w-full bg-white border-t border-gray-200 px-3 md:sticky">
         <form
           className={`space-y-4 mt-2 ${isAskAi ? '-mx-6' : ''}`}
           onSubmit={handleSubmit}
