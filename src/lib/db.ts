@@ -318,6 +318,20 @@ export async function deleteUserSession(id: string): Promise<void> {
   }
 }
 
+export async function getUserSessionById(id: string): Promise<s.UserSession | undefined> {
+  try {
+    const db = await dbPromise;
+    return await db
+      .selectFrom(userTableName)
+      .where('id', '=', id)
+      .selectAll()
+      .executeTakeFirst();
+  } catch (error) {
+    console.error('Error getting user session by ID:', error);
+    throw error;
+  }
+}
+
 export async function searchUserSessions(
   columnName: keyof s.UserSessionsTable,
   searchTerm: string,
