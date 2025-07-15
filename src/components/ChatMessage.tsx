@@ -24,16 +24,15 @@ export function ChatMessage({
   return (
     <div className={`${isUser ? 'flex justify-end' : 'flex'}`}>
       {!isUser && (
-        <img
-          className="h-10 w-10 flex-none rounded-full hidden md:block"
-          src="/hm-chat-icon.svg"
-          alt=""
+        <div
+          className="h-[1.75rem] w-[0.75rem] mt-2 rounded-md bg-gradient-to-b from-yellow-200 via-yellow-300 to-yellow-400 shadow-sm hidden md:block"
+          style={{ boxShadow: 'rgba(0, 0, 0, 0.1) 1px -2px 0px 0px inset' }}
         />
       )}
       <div
         className={
           isUser
-            ? 'md:ms-20 px-4 py-3.5 m-3 rounded-xl bg-white shadow-md'
+            ? 'md:ms-20 px-4 py-3.5 m-3 rounded-xl bg-white shadow-sm'
             : ''
         }
       >
