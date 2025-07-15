@@ -141,10 +141,15 @@ export const ChatInterface = ({
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="flex-shrink-0 w-5 h-5 bg-amber-100 text-amber-800 text-xs font-medium rounded-full flex items-center justify-center">3</span>
-                    <p className="text-xs text-gray-600">We'll let you know when we're done</p>
+                    <p className="text-xs text-gray-600">Keep this tab open to save your progress</p>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-3 italic">PS. Avoid closing this tab before you're done as your progress will be lost</p>
+                <div className="pt-2 border-t border-gray-100">
+                  <Link href="/" className="inline-flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    Powered by{' '}
+                    <img src="/harmonica-lockup.svg" alt="Harmonica" className="h-3 w-auto" />
+                  </Link>
+                </div>
               </div>
             )}
           </div>
@@ -162,8 +167,8 @@ export const ChatInterface = ({
       {/* Main Content */}
       <main ref={mainPanelRef} className="md:ml-80 flex-1 h-screen overflow-y-auto flex flex-col relative bg-amber-50 px-3">
         {/* Top nav (mobile) */}
-        <div className="md:hidden w-full border-b border-gray-200 bg-amber-50 px-4 py-3">
-          <div className="flex items-center justify-between w-full">
+        <div className="md:hidden w-full border-b border-gray-200 bg-amber-50 px-4 min-h-12 flex-shrink-0 flex flex-col">
+          <div className="flex items-center justify-between w-full py-3">
             <h1 className="text-lg font-semibold truncate flex-1 mr-4" title={hostData?.topic}>
               {hostData?.topic ?? 'Test'}
             </h1>
@@ -176,10 +181,9 @@ export const ChatInterface = ({
               <HelpCircle className="h-4 w-4" />
             </Button>
           </div>
-          
           {/* Mobile How it Works Dropdown */}
           {isMobileHowItWorksOpen && (
-            <div className="mt-3 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <span className="flex-shrink-0 w-5 h-5 bg-amber-100 text-amber-800 text-xs font-medium rounded-full flex items-center justify-center">1</span>
@@ -191,16 +195,21 @@ export const ChatInterface = ({
                 </div>
                 <div className="flex items-start gap-3">
                   <span className="flex-shrink-0 w-5 h-5 bg-amber-100 text-amber-800 text-xs font-medium rounded-full flex items-center justify-center">3</span>
-                  <p className="text-sm text-gray-600">We'll let you know when we're done</p>
+                  <p className="text-sm text-gray-600">Keep this tab open to save your progress</p>
                 </div>
-                <p className="text-xs text-gray-500 mt-3 italic">PS. Avoid closing this tab before you're done as your progress will be lost</p>
+                <div className="pt-2 border-t border-gray-100">
+                  <Link href="/" className="inline-flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    Powered by{' '}
+                    <img src="/harmonica-lockup.svg" alt="Harmonica" className="h-3 w-auto" />
+                  </Link>
+                </div>
               </div>
             </div>
           )}
         </div>
 
         {/* Chat area */}
-        <div className="flex flex-col w-full max-w-3xl mx-auto flex-1">
+        <div className="flex flex-col w-full max-w-3xl mx-auto flex-1 pt-12">
           <Chat
             sessionIds={[hostData?.id ?? '']}
             userSessionId={userSessionId}
@@ -213,6 +222,8 @@ export const ChatInterface = ({
             setShowRating={setShowRating}
             isHost={isHost}
             mainPanelRef={mainPanelRef}
+            hasBottomLeftButtons={true}
+            mode="fullscreen"
           />
         </div>
       </main>
