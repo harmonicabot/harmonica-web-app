@@ -162,7 +162,7 @@ export const ChatInterface = ({
       {/* Main Content */}
       <main ref={mainPanelRef} className="md:ml-80 flex-1 h-screen overflow-y-auto flex flex-col relative bg-amber-50 px-3">
         {/* Top nav (mobile) */}
-        <div className="md:hidden w-full border-b border-gray-200 bg-amber-50 px-4 py-3">
+        <div className="md:hidden w-full border-b border-gray-200 bg-amber-50 px-4 h-12 flex-shrink-0 flex items-center">
           <div className="flex items-center justify-between w-full">
             <h1 className="text-lg font-semibold truncate flex-1 mr-4" title={hostData?.topic}>
               {hostData?.topic ?? 'Test'}
@@ -200,7 +200,7 @@ export const ChatInterface = ({
         </div>
 
         {/* Chat area */}
-        <div className="flex flex-col w-full max-w-3xl mx-auto flex-1">
+        <div className="flex flex-col w-full max-w-3xl mx-auto flex-1 pt-12">
           <Chat
             sessionIds={[hostData?.id ?? '']}
             userSessionId={userSessionId}
@@ -213,6 +213,8 @@ export const ChatInterface = ({
             setShowRating={setShowRating}
             isHost={isHost}
             mainPanelRef={mainPanelRef}
+            hasBottomLeftButtons={true}
+            mode="fullscreen"
           />
         </div>
       </main>

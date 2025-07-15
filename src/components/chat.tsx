@@ -32,6 +32,8 @@ export default function Chat({
   setShowRating,
   isHost = false,
   mainPanelRef,
+  hasBottomLeftButtons = false,
+  mode = "embedded",
 }: {
   sessionIds?: string[];
   setUserSessionId?: (id: string) => void;
@@ -52,6 +54,8 @@ export default function Chat({
   setShowRating?: (show: boolean) => void;
   isHost?: boolean;
   mainPanelRef?: React.RefObject<HTMLElement>;
+  hasBottomLeftButtons?: boolean;
+  mode?: "fullscreen" | "embedded";
 }) {
   const isTesting = false;
   const [errorMessage, setErrorMessage] = useState<{
@@ -542,7 +546,7 @@ export default function Chat({
 
   return (
     <div className="flex flex-col h-full w-full max-w-3xl mx-auto relative">
-      <div className="flex-1 flex flex-col gap-y-6 px-4 max-w-3xl mx-auto w-full py-4">
+      <div className={`flex-1 flex flex-col gap-y-6 px-4 max-w-3xl mx-auto w-full ${mode === "fullscreen" ? "pb-36 md:pb-0" : ""}`}>
         {messages.map((message, index) => (
           <div key={index} className="group">
             {customMessageEnhancement ? (
@@ -580,9 +584,13 @@ export default function Chat({
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 pb-2 z-10 w-full bg-white border-t border-gray-200 px-3 md:sticky">
+      <div className={
+        mode === "fullscreen"
+          ? "fixed bottom-0 left-0 right-0 pb-2 z-10 w-full bg-amber-50 border-t border-gray-200 px-3 md:sticky md:relative"
+          : "pb-2 w-full bg-amber-50 border-t border-gray-200 px-3 md:sticky"
+      }>
         <form
-          className={`space-y-4 mt-2 ${isAskAi ? '-mx-6' : ''}`}
+          className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''}`}
           onSubmit={handleSubmit}
         >
           <div className="relative">
@@ -602,7 +610,7 @@ export default function Chat({
                 }
               }}
               placeholder={placeholder}
-              className="flex-grow pr-12 pb-4 text-base min-h-[44px] max-h-[144px] overflow-y-auto resize-none focus:ring-0 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-yellow-300"
+              className={`flex-grow pr-12 ${hasBottomLeftButtons ? 'pb-16' : 'pb-4'} text-base min-h-[44px] max-h-[144px] overflow-y-auto resize-none focus:ring-0 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-yellow-300`}
               ref={textareaRef}
             />
             {isHost && (
