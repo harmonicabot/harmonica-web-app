@@ -43,10 +43,11 @@ import {
   getVisibilitySettings,
   updateVisibilitySettings
 } from '../app/actions/visibility-settings';
-import { Role, usePermissions } from '@/lib/permissions';
+import { Role, usePermissions, ROLE_HIERARCHY } from '@/lib/permissions';
 import { Invitation, PermissionsTable, User, ResultTabsVisibilityConfig } from '@/lib/schema';
 import { encryptId } from '@/lib/encryptionUtils';
 import { Spinner } from './icons';
+import { Description } from '@radix-ui/react-alert-dialog';
 
 interface ShareSettingProps {
   resourceId: string;
@@ -63,7 +64,7 @@ export default function ShareSettings({
   initialIsOpen,
   onClose
 }: ShareSettingProps) {
-  const { loading, isPublic } = usePermissions(resourceId);
+  const { loading, isPublic, hasRoleHigherThan } = usePermissions(resourceId);
 
   // Invitation form state
   const [emails, setEmails] = useState('');
@@ -73,6 +74,7 @@ export default function ShareSettings({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('invite');
   const isWorkspace = resourceType === 'WORKSPACE';
+  const resourceTypeName = resourceType === 'WORKSPACE' ? 'Project' : 'Session';
   const [urlCopied, setUrlCopied] = useState(false);
   const [localIsPublic, setLocalIsPublic] = useState(!loading && isPublic);
   
@@ -105,6 +107,21 @@ export default function ShareSettings({
   const { toast } = useToast();
   const { user } = useUser();
 
+
+  const assignableRoles = Object.keys(ROLE_HIERARCHY)
+      .filter((role) => role !== 'none' && hasRoleHigherThan(role as Role))
+      .map((role) => role as Role);
+
+  const roleLabelsAndDescription: Record<Role, { label: string; description: string }> = {
+    admin: { label: "Admin", description: "can manage everything" },
+    owner: { label: "Owner", description: "owns this and can delete it" },
+    editor: { label: "Editor", description: `can modify ${resourceTypeName.toLocaleLowerCase()}` },
+    viewer: { label: "Viewer", description: "can view and participate" },
+    none: { label: "None", description: "Should not be able to access this resource" },
+  };
+
+  console.log("Assignable roles: ", assignableRoles)
+  
   const handleOpenChange = (open: boolean) => {
     if (!open && onClose) {
       onClose();
@@ -149,8 +166,6 @@ export default function ShareSettings({
       setIsLoadingVisibility(false);
     }
   };
-
-  const resourceTypeName = resourceType === 'WORKSPACE' ? 'Project' : 'Session';
   
   // Handler for visibility toggle changes
   const handleVisibilityToggle = async (key: keyof ResultTabsVisibilityConfig) => {
@@ -250,14 +265,13 @@ export default function ShareSettings({
       if (result.success) {
         if (result.permissions) {
           // Now we use the actual user data from our database
-          setUserAndRole(
-            result.permissions.map((p) => ({
-              ...p,
-              // Fallback values if data isn't available
-              email: p.email || 'Unknown',
-              name: p.name || 'User ' + p.id.substring(0, 8),
-            }))
-          );
+          const permissions = result.permissions.map((p) => ({
+            ...p,
+            // Fallback values if data isn't available
+            email: p.email || 'Unknown',
+            name: p.name || 'User ' + p.id.substring(0, 8),
+          }));
+          setUserAndRole(permissions);
         }
 
         if (result.pendingInvitations) {
@@ -392,7 +406,6 @@ export default function ShareSettings({
     if (user?.sub === userId) {
       toast({
         title: 'Cannot Remove Self',
-
         description: `You cannot remove your own access to this ${resourceTypeName.toLocaleLowerCase()}.`,
         variant: 'destructive',
       });
@@ -416,7 +429,6 @@ export default function ShareSettings({
 
       toast({
         title: 'User Removed',
-
         description: `User has been removed from the ${resourceTypeName.toLocaleLowerCase()}.`,
       });
     } catch (error) {
@@ -564,12 +576,11 @@ export default function ShareSettings({
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="viewer">
-                      Viewer (can view and participate)
-                    </SelectItem>
-                    <SelectItem value="editor">
-                      Editor (can modify {resourceTypeName.toLocaleLowerCase()})
-                    </SelectItem>
+                    {assignableRoles.map(role => (
+                      <SelectItem key={role} value={role}>
+                        {roleLabelsAndDescription[role].label} ({roleLabelsAndDescription[role].description})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500">
@@ -730,27 +741,29 @@ export default function ShareSettings({
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Select
-                              value={usr.role}
-                              onValueChange={(newRole) =>
-                                handleUpdatePermission(usr.id, newRole as any)
-                              }
-                              disabled={
-                                updatingUserId === usr.id ||
-                                user?.sub === usr.id
-                              }
-                            >
-                              <SelectTrigger className="w-[140px] h-8">
-                                <SelectValue placeholder="Select role" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="viewer">Viewer</SelectItem>
-                                <SelectItem value="editor">Editor</SelectItem>
-                                <SelectItem value="owner">Owner</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            {hasRoleHigherThan(usr.role) &&
+                              <Select
+                                value={usr.role}
+                                onValueChange={(newRole) =>
+                                  handleUpdatePermission(usr.id, newRole as any)
+                                }
+                                disabled={
+                                  updatingUserId === usr.id ||
+                                  user?.sub === usr.id
+                                }
+                              >
+                                <SelectTrigger className="w-[140px] h-8">
+                                  <SelectValue placeholder="Select role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {assignableRoles.map(role => (
+                                    <SelectItem key={role} value={role}>{roleLabelsAndDescription[role].label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            }
 
-                            {user?.sub !== usr.id && (
+                            {user?.sub !== usr.id && hasRoleHigherThan(usr.role) && (
                               <Button
                                 variant="ghost"
                                 size="icon"
