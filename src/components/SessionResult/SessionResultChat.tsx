@@ -1,6 +1,6 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Chat from '@/components/chat';
+import { EmbeddedChat } from '@/components/chat/EmbeddedChat';
 import { UserSession } from '@/lib/schema';
 import { OpenAIMessage } from '@/lib/types';
 
@@ -41,7 +41,7 @@ Here are a few examples of what you can ask me:
       </CardHeader>
       <CardContent className="h-full flex flex-col overflow-y-auto pb-0">
         {userData && userData.length > 0 && (
-          <Chat
+          <EmbeddedChat
             context={{
               role: 'assistant',
               content: `You will be asked questions based on the session data. Answer short.`,

@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { HelpCircle, ChevronDown } from 'lucide-react';
-import Chat from '@/components/chat';
+import { FullscreenChat } from './FullscreenChat';
 import { OpenAIMessage } from '@/lib/types';
 import { PoweredByHarmonica } from '@/components/icons';
 import { useUser } from '@auth0/nextjs-auth0/client';
@@ -209,8 +209,8 @@ export const ChatInterface = ({
         </div>
 
         {/* Chat area */}
-        <div className="flex flex-col w-full max-w-3xl mx-auto flex-1 pt-12">
-          <Chat
+        <div className="flex flex-col w-full max-w-3xl mx-auto flex-1 pt-12 min-h-0">
+          <FullscreenChat
             sessionIds={[hostData?.id ?? '']}
             userSessionId={userSessionId}
             setUserSessionId={setUserSessionId}
@@ -222,8 +222,6 @@ export const ChatInterface = ({
             setShowRating={setShowRating}
             isHost={isHost}
             mainPanelRef={mainPanelRef}
-            hasBottomLeftButtons={true}
-            mode="fullscreen"
           />
         </div>
       </main>

@@ -1,40 +1,15 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import * as db from '@/lib/db';
-import * as llama from 'app/api/llamaUtils';
+import * as llama from '../app/api/llamaUtils';
 import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
-import { ChatMessage } from './ChatMessage';
-import { Send } from './icons';
 import { UserProfile, useUser } from '@auth0/nextjs-auth0/client';
 import { Message } from '@/lib/schema';
-import ErrorPage from './Error';
 import { getUserNameFromContext } from '@/lib/clientUtils';
-import { Loader2, Sparkles } from 'lucide-react';
 import { getHostSessionById, getUserSessionById, getAllChatMessagesInOrder } from '@/lib/db';
 
-export default function Chat({
-  sessionIds,
-  setUserSessionId,
-  userSessionId,
-  entryMessage,
-  context,
-  placeholderText,
-  userContext,
-  customMessageEnhancement,
-  isAskAi = false,
-  crossPollination = false,
-  isSessionPublic = false,
-  sessionId: providedSessionId,
-  onThreadIdReceived,
-  setShowRating,
-  isHost = false,
-  mainPanelRef,
-  hasBottomLeftButtons = false,
-  mode = "embedded",
-}: {
+export interface UseChatOptions {
   sessionIds?: string[];
   setUserSessionId?: (id: string) => void;
   userSessionId?: string;
@@ -54,9 +29,28 @@ export default function Chat({
   setShowRating?: (show: boolean) => void;
   isHost?: boolean;
   mainPanelRef?: React.RefObject<HTMLElement>;
-  hasBottomLeftButtons?: boolean;
-  mode?: "fullscreen" | "embedded";
-}) {
+}
+
+export function useChat(options: UseChatOptions) {
+  const {
+    sessionIds,
+    setUserSessionId,
+    userSessionId,
+    entryMessage,
+    context,
+    placeholderText,
+    userContext,
+    isAskAi = false,
+    crossPollination = false,
+    isSessionPublic = false,
+    sessionId: providedSessionId,
+    onThreadIdReceived,
+    customMessageEnhancement,
+    setShowRating,
+    isHost = false,
+    mainPanelRef,
+  } = options;
+
   const isTesting = false;
   const [errorMessage, setErrorMessage] = useState<{
     title: string;
@@ -489,7 +483,7 @@ export default function Chat({
     }
   };
 
-  const handleParticipantSuggestion = async () => {
+  const generateParticipantSuggestion = async () => {
     if (!threadIdRef.current || isParticipantSuggestionLoading) return;
 
     setIsParticipantSuggestionLoading(true);
@@ -529,7 +523,23 @@ export default function Chat({
     setTimeout(() => setErrorToastMessage(''), 6000);
   }
 
-  // Focus the textarea when the component mounts
+  async function waitForThreadCreation(threadIdRef: any, setErrorMessage: any) {
+    let waitedCycles = 0;
+    while (!threadIdRef.current) {
+      if (waitedCycles > 720) {
+        setErrorMessage({
+          title: 'The chat seems to be stuck.',
+          message: 'Please reload the page and try again.',
+        });
+        throw new Error('Creating the thread took too long.');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      waitedCycles++;
+      console.log(`Waiting ${waitedCycles} cycles for thread to be created...`);
+    }
+  }
+
+  // Focus the textarea when the component mounts and show entry message
   useEffect(() => {
     const textarea = textareaRef.current;
     if (entryMessage && messages.length === 0) {
@@ -540,132 +550,35 @@ export default function Chat({
     }
   }, []);
 
-  if (errorMessage) {
-    return <ErrorPage {...errorMessage} />;
-  }
-
-  return (
-    <div className="flex flex-col flex-1 w-full max-w-3xl mx-auto relative">
-      <div className={`flex-grow min-h-0 flex flex-col bg-green-400 gap-y-6 px-4 max-w-3xl mx-auto w-full overflow-y-auto`}>
-        {messages.map((message, index) => (
-          <div key={index} className="group">
-            {customMessageEnhancement ? (
-              customMessageEnhancement(message, index)
-            ) : (
-              <ChatMessage
-                key={index}
-                message={message}
-                isSessionPublic={isSessionPublic}
-                sessionId={providedSessionId}
-                showButtons={true}
-              />
-            )}
-          </div>
-        ))}
-        {errorToastMessage && (
-          <div className="fixed top-4 right-4 bg-red-500 text-white py-2 px-4 rounded shadow-lg">
-            {errorToastMessage}
-          </div>
-        )}
-        {isLoading && (
-          <div className="flex">
-            <img
-              className="h-10 w-10 flex-none rounded-full"
-              src="/hm-chat-icon.svg"
-              alt=""
-            />
-            <div className="ps-2 flex space-x-1 justify-center items-center dark:invert">
-              <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-              <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-              <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce"></div>
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      <div className={
-        mode === "fullscreen"
-          ? "flex-shrink-0 fixed bottom-0 left-0 right-0 pb-2 z-10 w-full bg-blue-600 border-t border-gray-200 px-3 opacity-50"
-          : "flex-shrink-0 pb-2 w-full border-t border-gray-200 px-3"
-      }>
-        <form
-          className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''}`}
-          onSubmit={handleSubmit}
-        >
-          <div className="relative">
-            <Textarea
-              name="messageText"
-              value={formData.messageText}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = 'auto';
-                target.style.height = Math.min(target.scrollHeight, 144) + 'px';
-                
-                // Auto-scroll to keep cursor visible when content overflows
-                if (target.scrollHeight > target.clientHeight) {
-                  target.scrollTop = target.scrollHeight;
-                }
-              }}
-              placeholder={placeholder}
-              className={`flex-grow pr-12 ${hasBottomLeftButtons ? 'pb-16' : 'pb-4'} text-base min-h-[44px] max-h-[144px] overflow-y-auto resize-none focus:ring-0 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-yellow-300`}
-              ref={textareaRef}
-            />
-            {isHost && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleParticipantSuggestion}
-              disabled={
-                isLoading ||
-                isParticipantSuggestionLoading ||
-                !threadIdRef.current
-              }
-                className="absolute bottom-3 left-3 flex items-center gap-2"
-            >
-              {isParticipantSuggestionLoading ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Sparkles size={16} />
-              )}
-                <span className="text-xs">
-                {isParticipantSuggestionLoading
-                  ? 'Generating...'
-                  : 'AI Suggestion'}
-              </span>
-            </Button>
-            )}
-            <Button
-              type="submit"
-              variant="default"
-              size="icon"
-              className="absolute bottom-3 right-3 h-10 w-10"
-              disabled={isLoading}
-            >
-              <Send />
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-async function waitForThreadCreation(threadIdRef: any, setErrorMessage: any) {
-  let waitedCycles = 0;
-  while (!threadIdRef.current) {
-    if (waitedCycles > 720) {
-      setErrorMessage({
-        title: 'The chat seems to be stuck.',
-        message: 'Please reload the page and try again.',
-      });
-      throw new Error('Creating the thread took too long.');
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    waitedCycles++;
-    console.log(`Waiting ${waitedCycles} cycles for thread to be created...`);
-  }
+  return {
+    // State
+    messages,
+    formData,
+    isLoading,
+    isParticipantSuggestionLoading,
+    errorMessage,
+    errorToastMessage,
+    placeholder,
+    
+    // Refs
+    textareaRef,
+    messagesEndRef,
+    
+    // Handlers
+    handleInputChange,
+    handleKeyDown,
+    handleSubmit,
+    generateParticipantSuggestion,
+    
+    // Options passed through for components
+    customMessageEnhancement,
+    isSessionPublic,
+    sessionId: providedSessionId,
+    isHost,
+    isAskAi,
+    
+    // Utils
+    setErrorMessage,
+    setErrorToastMessage,
+  };
 }
