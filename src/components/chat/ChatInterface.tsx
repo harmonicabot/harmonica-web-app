@@ -144,12 +144,6 @@ export const ChatInterface = ({
                     <p className="text-xs text-gray-600">Keep this tab open to save your progress</p>
                   </div>
                 </div>
-                <div className="pt-2 border-t border-gray-100">
-                  <Link href="/" className="inline-flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                    Powered by{' '}
-                    <img src="/harmonica-lockup.svg" alt="Harmonica" className="h-3 w-auto" />
-                  </Link>
-                </div>
               </div>
             )}
           </div>
