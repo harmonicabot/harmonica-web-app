@@ -26,7 +26,7 @@ interface ChatInterfaceProps {
   message: OpenAIMessage;
   assistantId?: string;
   userContext?: Record<string, string>;
-  questions?: { id: string; label: string }[];
+  questions?: JSON;
 }
 
 export const ChatInterface = ({
@@ -226,7 +226,7 @@ export const ChatInterface = ({
             mainPanelRef={mainPanelRef}
             hasBottomLeftButtons={true}
             mode="fullscreen"
-            questions={questions}
+            questions={questions as { id: string; label: string }[] | undefined}
           />
         </div>
       </main>
