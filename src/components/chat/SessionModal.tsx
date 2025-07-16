@@ -76,49 +76,31 @@ export const SessionModal = ({
   };
 
   const handleQuestionsSubmit = (formAnswers?: Record<string, string>) => {
-    if (formAnswers) {
-      // If answers are passed directly (from old flow), use them
-      onStart(formAnswers);
-    } else {
-      // Validate and submit form answers
-      const newErrors: Record<string, string> = {};
-      hostData?.questions?.forEach((q) => {
-        if (q.required && !answers[q.id]) {
-          newErrors[q.id] = `${q.label} is required`;
-        }
-        if (
-          q.type === QuestionType.EMAIL &&
-          answers[q.id] &&
-          !validateEmail(answers[q.id])
-        ) {
-          newErrors[q.id] = 'Please enter a valid email address';
-        }
-      });
-
-      if (Object.keys(newErrors).length > 0) {
-        setErrors(newErrors);
-        return;
+    // Validate and submit form answers (keep validation as is)
+    const newErrors: Record<string, string> = {};
+    hostData?.questions?.forEach((q) => {
+      if (q.required && !answers[q.id]) {
+        newErrors[q.id] = `${q.label} is required`;
       }
+      if (
+        q.type === QuestionType.EMAIL &&
+        answers[q.id] &&
+        !validateEmail(answers[q.id])
+      ) {
+        newErrors[q.id] = 'Please enter a valid email address';
+      }
+    });
 
-      // Transform answers from id:value to label:value
-      const transformedAnswers = Object.entries(answers).reduce(
-        (acc, [id, value]) => {
-          const question = hostData?.questions?.find((q) => q.id === id);
-          return {
-            ...acc,
-            [question?.label || id]: value,
-          };
-        },
-        {},
-      );
-
-      const finalAnswers = {
-        ...transformedAnswers,
-        preferred_language: answers.preferred_language || 'English',
-      };
-
-      onStart(finalAnswers);
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
     }
+
+    // Pass answers directly to onStart (no transformation)
+    onStart({
+      ...answers,
+      preferred_language: answers.preferred_language || 'English',
+    });
   };
 
   if (showQuestions && hostData?.questions) {

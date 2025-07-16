@@ -163,7 +163,6 @@ Please type your name or "anonymous" if you prefer
             const contextData = answers || {};
             setUserContext(contextData);
             setShowModal(false);
-            
             // Persist to sessionStorage
             if (sessionId) {
               sessionStorage.setItem(`userContext_${sessionId}`, JSON.stringify(contextData));
