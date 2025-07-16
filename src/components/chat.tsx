@@ -535,9 +535,10 @@ export default function Chat({
     if (entryMessage && messages.length === 0) {
       addMessage(entryMessage);
     }
-    if (textarea) {
-      textarea.focus(); // Automatically focus the textarea
-    }
+    // Removed autofocus per new requirements
+    // if (textarea) {
+    //   textarea.focus(); // Automatically focus the textarea
+    // }
   }, []);
 
   if (errorMessage) {
