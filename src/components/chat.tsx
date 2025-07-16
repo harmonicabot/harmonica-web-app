@@ -34,6 +34,7 @@ export default function Chat({
   mainPanelRef,
   hasBottomLeftButtons = false,
   mode = "embedded",
+  questions,
 }: {
   sessionIds?: string[];
   setUserSessionId?: (id: string) => void;
@@ -56,6 +57,7 @@ export default function Chat({
   mainPanelRef?: React.RefObject<HTMLElement>;
   hasBottomLeftButtons?: boolean;
   mode?: "fullscreen" | "embedded";
+  questions?: { id: string; label: string }[];
 }) {
   const isTesting = false;
   const [errorMessage, setErrorMessage] = useState<{
@@ -226,15 +228,19 @@ export default function Chat({
         start_time: new Date(),
         last_edit: new Date(),
       };
-      //insert user formdata
+      // Map userContext keys to labels using questions array
+      const contextString = userContext
+        ? Object.entries(userContext)
+            .map(([key, value]) => {
+              const label = questions?.find(q => q.id === key)?.label || key;
+              return `${label}: ${value}`;
+            })
+            .join('; ')
+        : '';
       db.insertChatMessage({
         thread_id: threadIdRef.current,
         role: 'user',
-        content: `User shared the following context:\n${Object.entries(
-          userContext || {},
-        )
-          .map(([key, value]) => `${key}: ${value}`)
-          .join('; ')}`,
+        content: `User shared the following context:\n${contextString}`,
         created_at: new Date(),
       }).catch((error) => {
         console.log('Error in insertChatMessage: ', error);

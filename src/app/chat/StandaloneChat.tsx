@@ -200,6 +200,7 @@ Please type your name or "anonymous" if you prefer
           message={message}
           assistantId={assistantId ?? undefined}
           userContext={userContext}
+          questions={hostData?.questions}
         />
       )}
     </div>
