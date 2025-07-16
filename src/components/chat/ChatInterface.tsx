@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { HelpCircle, ChevronDown } from 'lucide-react';
-import Chat from '@/components/chat';
+import { FullscreenChat } from './FullscreenChat';
 import { OpenAIMessage } from '@/lib/types';
 import { PoweredByHarmonica } from '@/components/icons';
 import { useUser } from '@auth0/nextjs-auth0/client';
@@ -144,12 +144,6 @@ export const ChatInterface = ({
                     <p className="text-xs text-gray-600">Keep this tab open to save your progress</p>
                   </div>
                 </div>
-                <div className="pt-2 border-t border-gray-100">
-                  <Link href="/" className="inline-flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                    Powered by{' '}
-                    <img src="/harmonica-lockup.svg" alt="Harmonica" className="h-3 w-auto" />
-                  </Link>
-                </div>
               </div>
             )}
           </div>
@@ -209,8 +203,8 @@ export const ChatInterface = ({
         </div>
 
         {/* Chat area */}
-        <div className="flex flex-col w-full max-w-3xl mx-auto flex-1 pt-12">
-          <Chat
+        <div className="flex flex-col w-full max-w-3xl mx-auto flex-1 pt-12 min-h-0">
+          <FullscreenChat
             sessionIds={[hostData?.id ?? '']}
             userSessionId={userSessionId}
             setUserSessionId={setUserSessionId}
@@ -222,8 +216,6 @@ export const ChatInterface = ({
             setShowRating={setShowRating}
             isHost={isHost}
             mainPanelRef={mainPanelRef}
-            hasBottomLeftButtons={true}
-            mode="fullscreen"
           />
         </div>
       </main>
