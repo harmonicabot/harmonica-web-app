@@ -11,6 +11,8 @@ import ExpandableCard from '../ui/expandable-card';
 import { ExportButton } from '../Export/ExportButton';
 import { Spinner } from '../icons';
 
+export type RefreshStatus = 'up-to-date' | 'needs-refresh' | 'auto-refresh-pending';
+
 interface CardProps {
   title: string;
   content?: string;
@@ -21,7 +23,27 @@ interface CardProps {
   isUpdating?: boolean;
   loading?: boolean;
   className?: string;
+  refreshStatus?: RefreshStatus;
 }
+
+const StatusIndicator = ({ status }: { status: RefreshStatus }) => {
+  const getStatusColor = () => {
+    switch (status) {
+      case 'up-to-date':
+        return 'bg-green-500';
+      case 'needs-refresh':
+        return 'bg-red-500';
+      case 'auto-refresh-pending':
+        return 'bg-orange-500 animate-pulse';
+      default:
+        return 'bg-gray-400';
+    }
+  };
+
+  return (
+    <div className={`w-2 h-2 rounded-full ${getStatusColor()}`} />
+  );
+};
 
 export const ExpandableWithExport = ({
   title,
@@ -33,6 +55,7 @@ export const ExpandableWithExport = ({
   isUpdating,
   loading,
   className,
+  refreshStatus = 'up-to-date',
 }: CardProps) => {
   return (
     <ExpandableCard
@@ -48,20 +71,36 @@ export const ExpandableWithExport = ({
                 <TooltipProvider>
                   <Tooltip delayDuration={50}>
                     <TooltipTrigger>
-                      <RefreshCw
-                        onClick={!isUpdating ? onRefresh : undefined}
-                        className={`h-5 w-5 text-gray-500 cursor-pointer hover:text-primary ${
-                          isUpdating
-                            ? 'animate-spin cursor-not-allowed opacity-50'
-                            : ''
-                        }`}
-                      />
+                      <div className="relative">
+                        <RefreshCw
+                          onClick={!isUpdating ? onRefresh : undefined}
+                          className={`h-5 w-5 text-gray-500 cursor-pointer hover:text-primary ${
+                            isUpdating
+                              ? 'animate-spin cursor-not-allowed opacity-50'
+                              : ''
+                          }`}
+                        />
+                        <div className="absolute -top-1 -right-1">
+                          <StatusIndicator status={refreshStatus} />
+                        </div>
+                      </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" align="end">
                       {isUpdating ? (
                         <p>Please wait while a {title} is generated</p>
                       ) : (
-                        <p>Refresh {title}</p>
+                        <div>
+                          <p>Refresh {title}</p>
+                          {refreshStatus === 'auto-refresh-pending' && (
+                            <p className="text-xs text-orange-600">Auto-refreshing soon</p>
+                          )}
+                          {refreshStatus === 'needs-refresh' && (
+                            <p className="text-xs text-red-600">New content available</p>
+                          )}
+                          {refreshStatus === 'up-to-date' && (
+                            <p className="text-xs text-green-600">Up to date</p>
+                          )}
+                        </div>
                       )}
                     </TooltipContent>
                   </Tooltip>
