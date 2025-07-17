@@ -146,10 +146,14 @@ export const ChatInterface = ({
                     <p className="text-xs text-gray-600">Keep this tab open to save your progress</p>
                   </div>
                 </div>
-                <div className="pt-2 border-t border-gray-100">
-                  <Link href="/" className="inline-flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                    Powered by{' '}
-                    <img src="/harmonica-lockup.svg" alt="Harmonica" className="h-3 w-auto" />
+                <div className="pt-3 border-t border-gray-100">
+                  <Link 
+                    href="https://oldspeak.notion.site/Help-Participating-in-a-Session-233fc9ee968180db9d5ded302fc6b552" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center w-full px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                  >
+                    Support
                   </Link>
                 </div>
               </div>
@@ -199,7 +203,15 @@ export const ChatInterface = ({
                   <span className="flex-shrink-0 w-5 h-5 bg-amber-100 text-amber-800 text-xs font-medium rounded-full flex items-center justify-center">3</span>
                   <p className="text-sm text-gray-600">Keep this tab open to save your progress</p>
                 </div>
-                <div className="pt-2 border-t border-gray-100">
+                <div className="pt-3 border-t border-gray-100 space-y-4">
+                  <Link 
+                    href="https://oldspeak.notion.site/Help-Participating-in-a-Session-233fc9ee968180db9d5ded302fc6b552" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                  >
+                    Support
+                  </Link>
                   <Link href="/" className="inline-flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
                     Powered by{' '}
                     <img src="/harmonica-lockup.svg" alt="Harmonica" className="h-3 w-auto" />
