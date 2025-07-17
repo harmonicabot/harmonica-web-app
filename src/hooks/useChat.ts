@@ -7,7 +7,7 @@ import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
 import { UserProfile, useUser } from '@auth0/nextjs-auth0/client';
 import { Message } from '@/lib/schema';
 import { getUserNameFromContext } from '@/lib/clientUtils';
-import { getHostSessionById, getUserSessionById, getAllChatMessagesInOrder } from '@/lib/db';
+import { getUserSessionById, getAllChatMessagesInOrder } from '@/lib/db';
 
 export interface UseChatOptions {
   sessionIds?: string[];
@@ -29,6 +29,7 @@ export interface UseChatOptions {
   setShowRating?: (show: boolean) => void;
   isHost?: boolean;
   mainPanelRef?: React.RefObject<HTMLElement>;
+  questions?: { id: string; label: string }[] | undefined;
 }
 
 export function useChat(options: UseChatOptions) {

@@ -163,7 +163,6 @@ Please type your name or "anonymous" if you prefer
             const contextData = answers || {};
             setUserContext(contextData);
             setShowModal(false);
-            
             // Persist to sessionStorage
             if (sessionId) {
               sessionStorage.setItem(`userContext_${sessionId}`, JSON.stringify(contextData));
@@ -201,6 +200,7 @@ Please type your name or "anonymous" if you prefer
           message={message}
           assistantId={assistantId ?? undefined}
           userContext={userContext}
+          questions={hostData?.questions}
         />
       )}
     </div>
