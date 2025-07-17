@@ -93,7 +93,12 @@ export default function ResultTabs({
       isProject,
       sessionIds: hostData.map(h => h.id),
       projectId: isProject ? resourceId : undefined,
-      onComplete: () => setNewSummaryContentAvailable(false),
+      onComplete: () => {
+        setNewSummaryContentAvailable(false);
+        setIsDebouncedUpdateScheduled(false);
+      },
+      onSchedule: () => setIsDebouncedUpdateScheduled(true),
+      onCancel: () => setIsDebouncedUpdateScheduled(false),
     });
 
   // User management state
@@ -107,6 +112,10 @@ export default function ResultTabs({
 
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
     useState(hasNewMessages);
+
+  // Track if a debounced update is scheduled
+  const [isDebouncedUpdateScheduled, setIsDebouncedUpdateScheduled] =
+    useState(false);
 
   // Participant Ids that should be included in the _summary_ and _simscore_ analysis
   const updateIncludedInAnalysisList = useCallback(
@@ -138,6 +147,7 @@ export default function ResultTabs({
       
       // Schedule debounced summary update if users changed
       if (haveIncludedUsersChanged) {
+        console.log("Users have changed, scheduling summary ubpdaet")
         scheduleSummaryUpdate();
       }
     },
@@ -177,6 +187,7 @@ export default function ResultTabs({
             }
             showSessionRecap={visibilityConfig.showSessionRecap ?? true}
             cancelScheduledUpdate={cancelSummaryUpdate}
+            isDebouncedUpdateScheduled={isDebouncedUpdateScheduled}
           />
         ),
       },

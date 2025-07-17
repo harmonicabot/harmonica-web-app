@@ -20,6 +20,7 @@ interface SessionResultSummaryProps {
   showSummary?: boolean;
   showSessionRecap?: boolean;
   cancelScheduledUpdate?: () => void;
+  isDebouncedUpdateScheduled?: boolean;
 }
 
 export default function SessionResultSummary({
@@ -32,6 +33,7 @@ export default function SessionResultSummary({
   showSummary = true,
   showSessionRecap = true,
   cancelScheduledUpdate,
+  isDebouncedUpdateScheduled = false,
 }: SessionResultSummaryProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExpandedPrompt, setIsExpandedPrompt] = useState(false);
@@ -46,8 +48,13 @@ export default function SessionResultSummary({
 
   // Calculate refresh status
   const getRefreshStatus = (): RefreshStatus => {
+    // If a debounced update is scheduled, show orange
+    if (isDebouncedUpdateScheduled) {
+      return RefreshStatus.AutoRefreshPending;
+    }
+
     if (!newSummaryContentAvailable) {
-      return 'up-to-date';
+      return RefreshStatus.UpToDate;
     }
 
     // For single sessions, check if auto-refresh would trigger
@@ -63,13 +70,13 @@ export default function SessionResultSummary({
         
         // If auto-refresh would trigger (> 10 minutes), show orange
         if (timeSinceLastUpdate > tenMinutesInMs) {
-          return 'auto-refresh-pending';
+          return RefreshStatus.AutoRefreshPending;
         }
       }
     }
 
     // New content available but not auto-refreshing
-    return 'needs-refresh';
+    return RefreshStatus.NeedsRefresh;
   };
 
   const refreshStatus = getRefreshStatus();

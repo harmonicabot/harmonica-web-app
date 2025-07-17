@@ -11,7 +11,11 @@ import ExpandableCard from '../ui/expandable-card';
 import { ExportButton } from '../Export/ExportButton';
 import { Spinner } from '../icons';
 
-export type RefreshStatus = 'up-to-date' | 'needs-refresh' | 'auto-refresh-pending';
+export enum RefreshStatus {
+  UpToDate = 'up-to-date',
+  NeedsRefresh = 'needs-refresh',
+  AutoRefreshPending = 'auto-refresh-pending'
+}
 
 interface CardProps {
   title: string;
@@ -29,11 +33,11 @@ interface CardProps {
 const StatusIndicator = ({ status }: { status: RefreshStatus }) => {
   const getStatusColor = () => {
     switch (status) {
-      case 'up-to-date':
+      case RefreshStatus.UpToDate:
         return 'bg-green-500';
-      case 'needs-refresh':
+      case RefreshStatus.NeedsRefresh:
         return 'bg-red-500';
-      case 'auto-refresh-pending':
+      case RefreshStatus.AutoRefreshPending:
         return 'bg-orange-500 animate-pulse';
       default:
         return 'bg-gray-400';
@@ -55,7 +59,7 @@ export const ExpandableWithExport = ({
   isUpdating,
   loading,
   className,
-  refreshStatus = 'up-to-date',
+  refreshStatus = RefreshStatus.UpToDate,
 }: CardProps) => {
   return (
     <ExpandableCard
@@ -91,13 +95,13 @@ export const ExpandableWithExport = ({
                       ) : (
                         <div>
                           <p>Refresh {title}</p>
-                          {refreshStatus === 'auto-refresh-pending' && (
+                          {refreshStatus === RefreshStatus.AutoRefreshPending && (
                             <p className="text-xs text-orange-600">Auto-refreshing soon</p>
                           )}
-                          {refreshStatus === 'needs-refresh' && (
+                          {refreshStatus === RefreshStatus.NeedsRefresh && (
                             <p className="text-xs text-red-600">New content available</p>
                           )}
-                          {refreshStatus === 'up-to-date' && (
+                          {refreshStatus === RefreshStatus.UpToDate && (
                             <p className="text-xs text-green-600">Up to date</p>
                           )}
                         </div>
