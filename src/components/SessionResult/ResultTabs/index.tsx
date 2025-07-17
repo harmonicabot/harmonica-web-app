@@ -29,7 +29,8 @@ import {
 import { SimScoreTab } from './SimScoreTab';
 import SessionFilesTable from '../SessionFilesTable';
 import { useSessionStore } from '@/stores/SessionStore';
-import { useDebouncedSummaryUpdate } from '@/hooks/useDebouncedSummaryUpdate';
+import { useSummaryUpdater } from '@/hooks/useSummaryUpdater';
+import { SummaryUpdateManager } from '../../../summary/SummaryUpdateManager';
 
 export interface ResultTabsProps {
   hostData: HostSession[];
@@ -87,19 +88,17 @@ export default function ResultTabs({
     }
   }, [resourceId, userData, storeUserData, addUserData]);
 
-  // Debounced summary update hook
-  const { schedule: scheduleSummaryUpdate, cancel: cancelSummaryUpdate } =
-    useDebouncedSummaryUpdate(resourceId, {
-      isProject,
-      sessionIds: hostData.map(h => h.id),
-      projectId: isProject ? resourceId : undefined,
-      onComplete: () => {
-        setNewSummaryContentAvailable(false);
-        setIsDebouncedUpdateScheduled(false);
-      },
-      onSchedule: () => setIsDebouncedUpdateScheduled(true),
-      onCancel: () => setIsDebouncedUpdateScheduled(false),
-    });
+  // Summary update hook (timestamp-based, no debouncing)
+  const { registerEdit } = useSummaryUpdater(resourceId, {
+    isProject,
+    sessionIds: hostData.map(h => h.id),
+    projectId: isProject ? resourceId : undefined,
+    onComplete: () => {
+      setNewSummaryContentAvailable(false);
+      setIsDebouncedUpdateScheduled(false);
+    },
+    onEdit: () => setIsDebouncedUpdateScheduled(true),
+  });
 
   // User management state
   const initialIncluded = currentUserData
@@ -133,9 +132,10 @@ export default function ResultTabs({
       // Update the store immediately for optimistic update
       updateUserData(resourceId, userSessionId, { include_in_summary: included });
       
-      // Update the field in the db...
+      // Update the field in the db and register the edit
       await db.updateUserSession(userSessionId, {
         include_in_summary: included,
+        last_edit: new Date(), // Keep row consistent
       });
 
       // Compare arrays ignoring order
@@ -145,13 +145,19 @@ export default function ResultTabs({
 
       setNewSummaryContentAvailable(hasNewMessages || haveIncludedUsersChanged);
       
-      // Schedule debounced summary update if users changed
+      // Register participant edit if users changed
       if (haveIncludedUsersChanged) {
-        console.log("Users have changed, scheduling summary ubpdaet")
-        scheduleSummaryUpdate();
+        console.log('[ResultTabs] Participant changed, registering edit');
+        await SummaryUpdateManager.registerEdit(resourceId, {
+          source: 'participants',
+          userSessionId,
+          isProject,
+          sessionIds: hostData.map(h => h.id),
+          projectId: isProject ? resourceId : undefined,
+        });
       }
     },
-    [currentUserData, setUpdatedUserIds, initialUserIds, hasNewMessages, updateUserData, resourceId, scheduleSummaryUpdate],
+    [currentUserData, setUpdatedUserIds, initialUserIds, hasNewMessages, updateUserData, resourceId, isProject, hostData],
   );
 
   const hasAnyIncludedUserMessages = useMemo(
@@ -186,7 +192,6 @@ export default function ResultTabs({
               (hasMinimumRole('editor') || visibilityConfig.showSummary) ?? true
             }
             showSessionRecap={visibilityConfig.showSessionRecap ?? true}
-            cancelScheduledUpdate={cancelSummaryUpdate}
             isDebouncedUpdateScheduled={isDebouncedUpdateScheduled}
           />
         ),

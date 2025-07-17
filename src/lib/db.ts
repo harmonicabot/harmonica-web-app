@@ -342,6 +342,8 @@ export async function getUserSessionById(id: string): Promise<s.UserSession | un
   }
 }
 
+
+
 export async function searchUserSessions(
   columnName: keyof s.UserSessionsTable,
   searchTerm: string,

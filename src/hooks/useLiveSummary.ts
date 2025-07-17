@@ -1,41 +1,46 @@
 import { useEffect, useRef } from 'react';
 import useSWR from 'swr';
-import { getSummaryVersion } from '@/lib/serverUtils';
+import { getSummaryVersion } from '@/lib/summaryActions';
+import { SummaryUpdateManager } from '../summary/SummaryUpdateManager';
 
 const serverActionFetcher = (resourceId: string) => getSummaryVersion(resourceId);
 
 export function useLiveSummary(resourceId: string) {
-  const cachedLastUpdated = useRef<string | null>(null);
+  const lastCheckedRef = useRef<number>(0);
 
   // Poll for summary version changes
   const { data: version } = useSWR(
     resourceId ? ['summary-version', resourceId] : null,
     ([_, id]) => serverActionFetcher(id),
     { 
-      refreshInterval: 10000, // Poll every 10 seconds
+      refreshInterval: 30000, // Poll every 30 seconds
       refreshWhenHidden: false,
       refreshWhenOffline: false,
       revalidateOnFocus: false
     }
   );
 
-  // When version changes, invalidate summary cache
+  // Check if summary needs updating and trigger automatic update
   useEffect(() => {
-    if (version?.lastUpdated && version.lastUpdated !== cachedLastUpdated.current) {
-      if (cachedLastUpdated.current !== null) {
-        // Don't trigger on initial load, only on actual changes
-        console.log('Summary version changed, refreshing summary data');
-        
-        // Refresh the page to get latest summary data
-        // This is a simple but effective approach
-        window.location.reload();
-      }
-      cachedLastUpdated.current = version.lastUpdated;
+    if (!version) return;
+    
+    const { last_edit, last_summary_update } = version;
+    
+    // Only trigger if we have actual timestamp data and edit is newer than summary
+    if (last_edit > last_summary_update && last_edit !== lastCheckedRef.current) {
+      console.log('Summary is stale, triggering automatic update');
+      
+      // Trigger automatic summary update
+      SummaryUpdateManager.updateNow(resourceId, { source: 'auto' })
+        .catch((error: any) => console.error('Auto-update failed:', error));
+      
+      // Track that we've processed this edit timestamp
+      lastCheckedRef.current = last_edit;
     }
-  }, [version?.lastUpdated, resourceId]);
+  }, [version, resourceId]);
 
   return {
-    lastUpdated: version?.lastUpdated,
+    version,
     isPolling: !!resourceId
   };
 }

@@ -5,7 +5,7 @@ import React, { useEffect } from 'react';
 import { mutate } from 'swr';
 
 import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
-import { createSummary } from '@/lib/serverUtils';
+import { SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
 
 import ResultTabs from './ResultTabs';
 import ExportSection from '../Export/ExportSection';
@@ -47,7 +47,7 @@ export default function SessionResultsSection({
         (new Date().getTime() - lastSummaryUpdate) / (1000 * 60);
       console.log(`Last summary created ${minutesAgo} minutes ago, 
         and new messages were received since then. Creating an updated one.`);
-      createSummary(hostData.id);
+      SummaryUpdateManager.updateNow(hostData.id);
       mutate(path);
     }
   }, [hasNewMessages, lastMessage, lastSummaryUpdate, hostData.id, resourceId]);

@@ -1,7 +1,8 @@
 'use client'
 import { HostSession } from '@/lib/schema';
 import { useEffect, useState } from 'react';
-import { createMultiSessionSummary, createSummary } from '@/lib/serverUtils';
+import { createMultiSessionSummary } from '@/lib/serverUtils';
+import { SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
 import { ExpandableWithExport, RefreshStatus } from './ExpandableWithExport';
 import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
 import * as db from '@/lib/db';
@@ -19,7 +20,6 @@ interface SessionResultSummaryProps {
   onUpdateSummary: () => void;
   showSummary?: boolean;
   showSessionRecap?: boolean;
-  cancelScheduledUpdate?: () => void;
   isDebouncedUpdateScheduled?: boolean;
 }
 
@@ -32,7 +32,6 @@ export default function SessionResultSummary({
   onUpdateSummary,
   showSummary = true,
   showSessionRecap = true,
-  cancelScheduledUpdate,
   isDebouncedUpdateScheduled = false,
 }: SessionResultSummaryProps) {
   const [isUpdating, setIsUpdating] = useState(false);
@@ -82,7 +81,6 @@ export default function SessionResultSummary({
   const refreshStatus = getRefreshStatus();
 
   const triggerSummaryUpdate = () => {
-    cancelScheduledUpdate?.(); // Cancel any pending auto-update
     setIsUpdating(true);
     if (isProject) {
       createMultiSessionSummary(
@@ -94,10 +92,10 @@ export default function SessionResultSummary({
         setSummary(summary.toString());
       });
     } else {
-      createSummary(hostData[0].id).then((summary) => {
+      SummaryUpdateManager.updateNow(hostData[0].id).then(() => {
         setIsUpdating(false);
         onUpdateSummary();
-        setSummary(summary.toString());
+        // Summary will be updated via live polling
       });
     }
   };
@@ -109,7 +107,7 @@ export default function SessionResultSummary({
           console.log(summary)
           setSummary(summary);
         } else {
-          triggerSummaryUpdate();
+          SummaryUpdateManager.updateNow(projectId!);
         }
       });
     }
