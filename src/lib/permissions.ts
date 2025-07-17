@@ -70,11 +70,6 @@ export function usePermissions(resourceId: string) {
     checkPermission();
   }, [resourceId, user, isLoading]);
 
-  function hasMinimumRole(currentRole: Role, requiredRole: Role): boolean {
-    // console.log('Checking role:', currentRole, requiredRole);
-    return ROLE_HIERARCHY[currentRole] >= ROLE_HIERARCHY[requiredRole];
-  }
-
   function getBiggerRole(currentRole: Role, newRole: Role): Role {
     return ROLE_HIERARCHY[currentRole] >= ROLE_HIERARCHY[newRole] ? currentRole : newRole;
   }
@@ -82,16 +77,23 @@ export function usePermissions(resourceId: string) {
   // Memoize the hasMinimumRole function so that it doesn't get recreated on every render
   const hasMinimumRoleCallback = useCallback(
     (requiredRole: Role) => {
-      const hasMinimumRole = ROLE_HIERARCHY[role] >= ROLE_HIERARCHY[requiredRole];
-      console.log(`Is ${role} at least ${requiredRole}?`, hasMinimumRole);
-      return hasMinimumRole;
+      return ROLE_HIERARCHY[role] >= ROLE_HIERARCHY[requiredRole];
     },
     [role] // Only recreate when role changes
+  );
+
+  const hasRoleHigherThanCallback = useCallback(
+    (requiredRole: Role) => {
+      return ROLE_HIERARCHY[role] > ROLE_HIERARCHY[requiredRole];
+    },
+    [role]
   );
 
   return {
     loading,
     isPublic,
-    hasMinimumRole: hasMinimumRoleCallback
+    hasMinimumRole: hasMinimumRoleCallback,
+    hasRoleHigherThan: hasRoleHigherThanCallback,
+    role,
   };
 }

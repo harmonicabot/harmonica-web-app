@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/resizable';
 import { SimScoreTab } from './SimScoreTab';
 import SessionFilesTable from '../SessionFilesTable';
+import { useSessionStore } from '@/stores/SessionStore';
 
 export interface ResultTabsProps {
   hostData: HostSession[];
@@ -74,8 +75,19 @@ export default function ResultTabs({
   const { responses, addResponse, removeResponse } =
     useCustomResponses(resourceId);
 
+  // Use SessionStore for userData with fallback to prop
+  const { userData: storeUserData, addUserData, updateUserData } = useSessionStore();
+  const currentUserData = storeUserData[resourceId] || userData;
+
+  // Initialize store if not present
+  useEffect(() => {
+    if (!storeUserData[resourceId] && userData.length > 0) {
+      addUserData(resourceId, userData);
+    }
+  }, [resourceId, userData, storeUserData, addUserData]);
+
   // User management state
-  const initialIncluded = userData
+  const initialIncluded = currentUserData
     .filter((user) => user.include_in_summary)
     .map((user) => user.id);
   const [userIdsIncludedInSummary, setUpdatedUserIds] =
@@ -88,8 +100,8 @@ export default function ResultTabs({
 
   // Participant Ids that should be included in the _summary_ and _simscore_ analysis
   const updateIncludedInAnalysisList = useCallback(
-    (userSessionId: string, included: boolean) => {
-      const includedIds = userData
+    async (userSessionId: string, included: boolean) => {
+      const includedIds = currentUserData
         .filter((user) => user.include_in_summary)
         .map((user) => user.id);
       if (included) {
@@ -98,11 +110,14 @@ export default function ResultTabs({
         includedIds.splice(includedIds.indexOf(userSessionId), 1);
       }
       setUpdatedUserIds(includedIds);
-      db.updateUserSession(userSessionId, {
+      
+      // Update the store immediately for optimistic update
+      updateUserData(resourceId, userSessionId, { include_in_summary: included });
+      
+      // Update the field in the db...
+      await db.updateUserSession(userSessionId, {
         include_in_summary: included,
       });
-      userData.find((user) => user.id === userSessionId)!.include_in_summary =
-        included;
 
       // Compare arrays ignoring order
       const haveIncludedUsersChanged =
@@ -111,7 +126,7 @@ export default function ResultTabs({
 
       setNewSummaryContentAvailable(hasNewMessages || haveIncludedUsersChanged);
     },
-    [userData, setUpdatedUserIds, initialUserIds, hasNewMessages],
+    [currentUserData, setUpdatedUserIds, initialUserIds, hasNewMessages, updateUserData, resourceId],
   );
 
   const hasAnyIncludedUserMessages = useMemo(
@@ -130,7 +145,7 @@ export default function ResultTabs({
           (visibilityConfig.showSummary ||
           visibilityConfig.showSessionRecap ||
           hasMinimumRole('editor')) &&
-          (hasAnyIncludedUserMessages || hasMinimumRole('editor') || draft),
+          (hasAnyIncludedUserMessages),
         content: (
           <SessionResultSummary
             hostData={hostData}
@@ -171,7 +186,7 @@ export default function ResultTabs({
         ) : (
           <SessionParticipantsTable
             sessionId={resourceId}
-            userData={userData}
+            userData={currentUserData}
             onIncludeInSummaryChange={updateIncludedInAnalysisList}
           />
         ),
@@ -247,7 +262,7 @@ export default function ResultTabs({
             </div>
           </Card>
         ) : (
-          <SimScoreTab userData={userData} resourceId={resourceId} />
+          <SimScoreTab userData={currentUserData} resourceId={resourceId} />
         ),
       },
     ];
@@ -424,7 +439,7 @@ export default function ResultTabs({
                     </Card>
                   ) : (
                     <SessionResultChat
-                      userData={userData}
+                      userData={currentUserData}
                       customMessageEnhancement={
                         visibilityConfig.allowCustomInsightsEditing
                           ? enhancedMessage
@@ -478,7 +493,7 @@ export default function ResultTabs({
                 </Card>
               ) : (
                 <SessionResultChat
-                  userData={userData}
+                  userData={currentUserData}
                   customMessageEnhancement={
                     visibilityConfig.allowCustomInsightsEditing
                       ? enhancedMessage
