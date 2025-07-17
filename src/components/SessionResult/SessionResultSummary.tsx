@@ -10,6 +10,8 @@ import { Card, CardContent } from '../ui/card';
 import { usePermissions } from '@/lib/permissions';
 import { useSessionStore } from '@/stores/SessionStore';
 import { useLiveSummary } from '@/hooks/useLiveSummary';
+import { useSummary } from '@/hooks/useSummary';
+import { mutate } from 'swr';
 
 interface SessionResultSummaryProps {
   hostData: HostSession[];
@@ -37,13 +39,14 @@ export default function SessionResultSummary({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExpandedPrompt, setIsExpandedPrompt] = useState(false);
   const [isExpandedSummary, setIsExpandedSummary] = useState(true);
-  const [summary, setSummary] = useState(
-    isProject ? '' : hostData[0]?.summary || '',
-  );
 
   const resourceId: string = isProject ? projectId! : hostData[0].id;
   const { hasMinimumRole } = usePermissions(resourceId);
   const userData = useSessionStore((state) => state.userData[resourceId] || []);
+  
+  // Use SWR to fetch summary content with initial data as fallback
+  const initialSummary = isProject ? '' : hostData[0]?.summary || '';
+  const { data: summary, isLoading: summaryLoading } = useSummary(resourceId, initialSummary, isProject);
 
   // Calculate refresh status
   const getRefreshStatus = (): RefreshStatus => {
@@ -89,29 +92,24 @@ export default function SessionResultSummary({
       ).then((summary) => {
         setIsUpdating(false);
         onUpdateSummary();
-        setSummary(summary.toString());
+        // Manually update SWR cache for projects
+        mutate(['summary-content', resourceId], summary.toString(), false);
       });
     } else {
       SummaryUpdateManager.updateNow(hostData[0].id).then(() => {
         setIsUpdating(false);
         onUpdateSummary();
-        // Summary will be updated via live polling
+        // Summary will be updated automatically via SWR
       });
     }
   };
 
   useEffect(() => {
-    if (isProject && projectId && !draft) {
-      db.getWorkspaceSummary(projectId!).then((summary) => {
-        if (summary) {
-          console.log(summary)
-          setSummary(summary);
-        } else {
-          SummaryUpdateManager.updateNow(projectId!);
-        }
-      });
+    if (isProject && projectId && !draft && !summary) {
+      // If no initial summary exists for project, trigger update
+      SummaryUpdateManager.updateNow(projectId!);
     }
-  }, [isProject, projectId]);
+  }, [isProject, projectId, draft, summary]);
 
   // Use live summary polling
   useLiveSummary(resourceId);
@@ -143,7 +141,7 @@ return (
         showRefreshButton={newSummaryContentAvailable || !summary || hasMinimumRole('editor')}
         onRefresh={triggerSummaryUpdate}
         isUpdating={isUpdating}
-        loading={!summary}
+        loading={summaryLoading || isUpdating}
         refreshStatus={refreshStatus}
       />
     ) : showDraftProjectCard ? (

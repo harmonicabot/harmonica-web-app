@@ -3,17 +3,15 @@ import useSWR from 'swr';
 import { getSummaryVersion } from '@/lib/summaryActions';
 import { SummaryUpdateManager } from '../summary/SummaryUpdateManager';
 
-const serverActionFetcher = (resourceId: string) => getSummaryVersion(resourceId);
-
 export function useLiveSummary(resourceId: string) {
   const lastCheckedRef = useRef<number>(0);
 
   // Poll for summary version changes
   const { data: version } = useSWR(
     resourceId ? ['summary-version', resourceId] : null,
-    ([_, id]) => serverActionFetcher(id),
+    ([_, id]) => getSummaryVersion(id),
     { 
-      refreshInterval: 30000, // Poll every 30 seconds
+      refreshInterval: 10000, // Poll every 10 seconds
       refreshWhenHidden: false,
       refreshWhenOffline: false,
       revalidateOnFocus: false

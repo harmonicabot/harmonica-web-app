@@ -1,4 +1,5 @@
 import { createSummary, createMultiSessionSummary } from '@/lib/serverUtils';
+import { getSummaryVersion } from '@/lib/summaryActions';
 import { mutate } from 'swr';
 
 export interface ManagerOpts {
@@ -69,13 +70,11 @@ class SummaryUpdateManagerClass {
         summary = await createSummary(resourceId);
       }
 
-      // Update last_summary_update timestamp
-      await this.updateLastSummaryUpdate(resourceId, opts.isProject);
-
-      // Invalidate SWR cache
+      // Update SWR cache with new summary content and invalidate version cache
+      mutate(['summary-content', resourceId], summary, false);
       mutate(key => 
         typeof key === 'string' && 
-        (key.includes(resourceId) || key.includes('summary'))
+        (key.includes('summary-version') || key.includes(resourceId))
       );
 
       console.log(`[SummaryUpdateManager] Update completed for ${resourceId}`);
@@ -93,7 +92,6 @@ class SummaryUpdateManagerClass {
    */
   async needsUpdate(resourceId: string, isProject = false): Promise<boolean> {
     try {
-      const { getSummaryVersion } = await import('@/lib/summaryActions');
       const version = await getSummaryVersion(resourceId, isProject);
       
       return version.last_edit > version.last_summary_update;
@@ -119,15 +117,6 @@ class SummaryUpdateManagerClass {
    */
   clearState(resourceId: string): void {
     this.updates.delete(resourceId);
-  }
-
-  private async updateLastSummaryUpdate(resourceId: string, isProject?: boolean): Promise<void> {
-    try {
-      const { updateLastSummaryUpdate } = await import('@/lib/summaryActions');
-      await updateLastSummaryUpdate(resourceId);
-    } catch (error) {
-      console.error('Failed to update last_summary_update:', error);
-    }
   }
 }
 
