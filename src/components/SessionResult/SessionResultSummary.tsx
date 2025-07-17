@@ -8,6 +8,7 @@ import * as db from '@/lib/db';
 import { Card, CardContent } from '../ui/card';
 import { usePermissions } from '@/lib/permissions';
 import { useSessionStore } from '@/stores/SessionStore';
+import { useLiveSummary } from '@/hooks/useLiveSummary';
 
 interface SessionResultSummaryProps {
   hostData: HostSession[];
@@ -18,7 +19,7 @@ interface SessionResultSummaryProps {
   onUpdateSummary: () => void;
   showSummary?: boolean;
   showSessionRecap?: boolean;
-
+  cancelScheduledUpdate?: () => void;
 }
 
 export default function SessionResultSummary({
@@ -30,6 +31,7 @@ export default function SessionResultSummary({
   onUpdateSummary,
   showSummary = true,
   showSessionRecap = true,
+  cancelScheduledUpdate,
 }: SessionResultSummaryProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExpandedPrompt, setIsExpandedPrompt] = useState(false);
@@ -73,6 +75,7 @@ export default function SessionResultSummary({
   const refreshStatus = getRefreshStatus();
 
   const triggerSummaryUpdate = () => {
+    cancelScheduledUpdate?.(); // Cancel any pending auto-update
     setIsUpdating(true);
     if (isProject) {
       createMultiSessionSummary(
@@ -104,6 +107,9 @@ export default function SessionResultSummary({
       });
     }
   }, [isProject, projectId]);
+
+  // Use live summary polling
+  useLiveSummary(resourceId);
 
 // Check which content will be shown
 const showSessionRecapContent = showSessionRecap && !isProject && hostData[0]?.prompt_summary;

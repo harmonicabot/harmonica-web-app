@@ -29,6 +29,7 @@ import {
 import { SimScoreTab } from './SimScoreTab';
 import SessionFilesTable from '../SessionFilesTable';
 import { useSessionStore } from '@/stores/SessionStore';
+import { useDebouncedSummaryUpdate } from '@/hooks/useDebouncedSummaryUpdate';
 
 export interface ResultTabsProps {
   hostData: HostSession[];
@@ -86,6 +87,15 @@ export default function ResultTabs({
     }
   }, [resourceId, userData, storeUserData, addUserData]);
 
+  // Debounced summary update hook
+  const { schedule: scheduleSummaryUpdate, cancel: cancelSummaryUpdate } =
+    useDebouncedSummaryUpdate(resourceId, {
+      isProject,
+      sessionIds: hostData.map(h => h.id),
+      projectId: isProject ? resourceId : undefined,
+      onComplete: () => setNewSummaryContentAvailable(false),
+    });
+
   // User management state
   const initialIncluded = currentUserData
     .filter((user) => user.include_in_summary)
@@ -125,8 +135,13 @@ export default function ResultTabs({
         !includedIds.every((id) => initialUserIds.includes(id));
 
       setNewSummaryContentAvailable(hasNewMessages || haveIncludedUsersChanged);
+      
+      // Schedule debounced summary update if users changed
+      if (haveIncludedUsersChanged) {
+        scheduleSummaryUpdate();
+      }
     },
-    [currentUserData, setUpdatedUserIds, initialUserIds, hasNewMessages, updateUserData, resourceId],
+    [currentUserData, setUpdatedUserIds, initialUserIds, hasNewMessages, updateUserData, resourceId, scheduleSummaryUpdate],
   );
 
   const hasAnyIncludedUserMessages = useMemo(
@@ -161,6 +176,7 @@ export default function ResultTabs({
               (hasMinimumRole('editor') || visibilityConfig.showSummary) ?? true
             }
             showSessionRecap={visibilityConfig.showSessionRecap ?? true}
+            cancelScheduledUpdate={cancelSummaryUpdate}
           />
         ),
       },
