@@ -50,6 +50,7 @@ export function useChat(options: UseChatOptions) {
     setShowRating,
     isHost = false,
     mainPanelRef,
+    questions
   } = options;
 
   const isTesting = false;
@@ -182,23 +183,6 @@ export function useChat(options: UseChatOptions) {
       // console.log('[i] Chat messages for context: ', chatMessages);
     }
 
-    const userContextPrompt = userContext
-      ? `IMPORTANT USER INFORMATION:\nPlease consider the following user details in your responses:\n${Object.entries(
-          userContext,
-        )
-          .map(([key, value]) => `- ${key}: ${value}`)
-          .join(
-            '\n',
-          )}\n\nPlease tailor your responses appropriately based on this user information.`
-      : '';
-
-    // let threadEntryMessage = userContextPrompt
-    //   ? {
-    //       role: 'user' as const,
-    //       content: userContextPrompt,
-    //     }
-    //   : undefined;
-    // handleCreateThread(threadEntryMessage, chatMessages)
     const threadId = crypto.randomUUID();
     console.log(`[i] Created threadId ${threadId} for session ${sessionId}`);
     threadIdRef.current = threadId;
@@ -222,14 +206,18 @@ export function useChat(options: UseChatOptions) {
         last_edit: new Date(),
       };
       //insert user formdata
+      const contextString = userContext
+        ? Object.entries(userContext)
+            .map(([key, value]) => {
+              const label = questions?.find(q => q.id === key)?.label || key;
+              return `${label}: ${value}`;
+            })
+            .join('; ')
+        : '';
       db.insertChatMessage({
         thread_id: threadIdRef.current,
         role: 'user',
-        content: `User shared the following context:\n${Object.entries(
-          userContext || {},
-        )
-          .map(([key, value]) => `${key}: ${value}`)
-          .join('; ')}`,
+        content: `User shared the following context:\n${contextString}`,
         created_at: new Date(),
       }).catch((error) => {
         console.log('Error in insertChatMessage: ', error);
