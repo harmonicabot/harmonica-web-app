@@ -49,14 +49,10 @@ export default function ParicipantSessionRow({
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [rating, setRating] = useState<SessionRating | null>(null);
-  const [includeInSummary, setIncludeInSummary] = useState(
-    tableData.includeInSummary,
-  );
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleIncludeInSummaryUpdate = async (updatedIncluded: boolean) => {
+  const handleIncludeInSummaryUpdate = (updatedIncluded: boolean) => {
     onIncludeChange(userData.id, updatedIncluded);
-    setIncludeInSummary(updatedIncluded);
   };
 
   const handleViewClick = async () => {
@@ -139,7 +135,7 @@ export default function ParicipantSessionRow({
         </TableCell>
         <TableCell className="hidden md:table-cell">
           <Switch
-            checked={includeInSummary}
+            checked={tableData.includeInSummary}
             onCheckedChange={handleIncludeInSummaryUpdate}
             onClick={(e) => e.stopPropagation()}
           />
