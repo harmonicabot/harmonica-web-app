@@ -20,7 +20,7 @@ export async function generateSummary(sessionIds: string[], summaryPrompt: strin
     // Get all messages from all sessions
     const sessionMessages = await Promise.all(
       sessionIds.map(async (sessionId) => {
-        // Get all messages for this session
+        // Get all messages for this session of users that should be included in the summary
         const messages = await db.getAllMessagesForSessionSorted(sessionId);
         return messages.map((msg) => ({ ...msg, sessionId })); // Tag messages with their sessionId
       }),
