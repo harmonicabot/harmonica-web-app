@@ -479,6 +479,7 @@ export async function getAllMessagesForSessionSorted(
       `${userTableName}.thread_id`,
     )
     .where(`${hostTableName}.id`, '=', sessionId)
+    .where(`${userTableName}.include_in_summary`, '=', true)
     .selectAll(`${messageTableName}`)
     .orderBy(`${messageTableName}.created_at`, 'asc')
     .execute();
