@@ -2,6 +2,7 @@
 
 import { OpenAIMessage } from '@/lib/types';
 import { ChatMessage } from '../ChatMessage';
+import { useEffect, useRef } from 'react';
 
 interface ChatMessagesProps {
   chat: {
@@ -32,8 +33,16 @@ export function ChatMessages({
     errorToastMessage,
     messagesEndRef,
   } = chat;
+  
+  const scrollPanelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollPanelRef?.current && messages.length > 1) {
+      scrollPanelRef.current.scrollTop = scrollPanelRef.current.scrollHeight;
+    }
+  }, [messages, scrollPanelRef]);
+
   return (
-    <div className={className}>
+    <div ref={scrollPanelRef} className={className}>
       {messages.map((message, index) => (
         <div key={index} className="group">
           {customMessageEnhancement ? (
