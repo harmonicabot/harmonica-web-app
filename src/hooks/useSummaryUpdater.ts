@@ -1,60 +1,59 @@
-import { useCallback, useEffect } from 'react';
-import { SummaryUpdateManager, type ManagerOpts } from '../summary/SummaryUpdateManager';
+import { useEffect, useRef } from 'react';
+import useSWR from 'swr';
+import { checkSummaryNeedsUpdating } from '@/lib/summaryActions';
+import { SummaryUpdateManager } from '../summary/SummaryUpdateManager';
+import { RefreshStatus } from '@/components/SessionResult/ExpandableWithExport';
 
-type Options = {
-  isProject?: boolean;
-  sessionIds?: string[];     // for workspace summary
-  projectId?: string;        // workspace id
-  onComplete?: () => void;   // notify UI when done
-  onEdit?: () => void;       // notify UI when edit is registered
-};
+export function useSummaryUpdater(resourceId: string) {
+  const lastCheckedRef = useRef<number>(0);
+  const statusRef = useRef(RefreshStatus.Unknown);  // TODO: Or an 'unknown' state might be better actually?
 
-export function useSummaryUpdater(
-  resourceId: string,        // sessionId or projectId
-  {
-    isProject = false,
-    sessionIds = [],
-    projectId,
-    onComplete,
-    onEdit,
-  }: Options = {},
-) {
-  const managerOpts: ManagerOpts = {
-    isProject,
-    sessionIds,
-    projectId,
-    source: 'ui'
-  };
+  // Poll for summary version changes
+  const { data: updateTimes } = useSWR(
+    resourceId ? ['summary-version', resourceId] : null,
+    ([_, id]) => checkSummaryNeedsUpdating(id),
+    { 
+      refreshInterval: 10000, // Poll every 10 seconds
+      refreshWhenHidden: false,
+      refreshWhenOffline: false,
+      revalidateOnFocus: false
+    }
+  );
 
-  const registerEdit = useCallback(async () => {
-    console.log('[useSummaryUpdater] Registering edit via SummaryUpdateManager');
-    await SummaryUpdateManager.registerEdit(resourceId, managerOpts);
-    onEdit?.();
-  }, [resourceId, onEdit]);
-
-  const flushUpdate = useCallback(async () => {
-    console.log('[useSummaryUpdater] Flushing update via SummaryUpdateManager');
-    await SummaryUpdateManager.updateNow(resourceId, managerOpts);
-    onComplete?.();
-  }, [resourceId, onComplete]);
-
-  const needsUpdate = useCallback(async () => {
-    return await SummaryUpdateManager.needsUpdate(resourceId, isProject);
-  }, [resourceId, isProject]);
-
-  // Clear on unmount
+  // Check if summary needs updating and trigger automatic update
   useEffect(() => {
-    return () => {
-      SummaryUpdateManager.clearState(resourceId);
-    };
-  }, [resourceId]);
+    if (!updateTimes) return;
+    
+    const { last_edit, last_summary_update } = updateTimes;
 
-  const state = SummaryUpdateManager.getState(resourceId);
+    if (lastCheckedRef.current === last_edit) {
+      return; // Update should be already in progress, don't send it again
+    }
 
-  return { 
-    registerEdit, 
-    flushUpdate, 
-    needsUpdate,
-    isRunning: state.isRunning 
+    const delay = 30000; // Only update if last edit is older than 30 seconds
+
+    // Only trigger if we have actual timestamp data and edit is newer than summary
+    if (last_edit > last_summary_update) {
+      statusRef.current = RefreshStatus.UpdatePending;
+
+      if (Date.now() - last_edit > delay) {
+        console.log('[i] Summary is stale, triggering automatic update');
+      
+        // Trigger automatic summary update
+        SummaryUpdateManager.updateNow(resourceId, { source: 'auto' })
+          .catch((error: any) => console.error('Auto-update failed:', error));
+      
+        // Track that we've processed this edit timestamp
+        lastCheckedRef.current = last_edit;
+      }
+    } else {
+      statusRef.current = RefreshStatus.UpToDate;
+    }
+  }, [updateTimes, resourceId]);
+
+  return {
+    version: updateTimes,
+    isPolling: !!resourceId,
+    status: statusRef.current,
   };
 }

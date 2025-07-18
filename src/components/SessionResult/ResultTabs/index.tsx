@@ -29,7 +29,6 @@ import {
 import { SimScoreTab } from './SimScoreTab';
 import SessionFilesTable from '../SessionFilesTable';
 import { useSessionStore } from '@/stores/SessionStore';
-import { useSummaryUpdater } from '@/hooks/useSummaryUpdater';
 import { SummaryUpdateManager } from '../../../summary/SummaryUpdateManager';
 
 export interface ResultTabsProps {
@@ -88,18 +87,6 @@ export default function ResultTabs({
     }
   }, [resourceId, userData, storeUserData, addUserData]);
 
-  // Summary update hook (timestamp-based, no debouncing)
-  const { registerEdit } = useSummaryUpdater(resourceId, {
-    isProject,
-    sessionIds: hostData.map(h => h.id),
-    projectId: isProject ? resourceId : undefined,
-    onComplete: () => {
-      setNewSummaryContentAvailable(false);
-      setIsDebouncedUpdateScheduled(false);
-    },
-    onEdit: () => setIsDebouncedUpdateScheduled(true),
-  });
-
   // User management state
   const initialIncluded = currentUserData
     .filter((user) => user.include_in_summary)
@@ -111,10 +98,6 @@ export default function ResultTabs({
 
   const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
     useState(hasNewMessages);
-
-  // Track if a debounced update is scheduled
-  const [isDebouncedUpdateScheduled, setIsDebouncedUpdateScheduled] =
-    useState(false);
 
   // Participant Ids that should be included in the _summary_ and _simscore_ analysis
   const updateIncludedInAnalysisList = useCallback(
@@ -135,7 +118,7 @@ export default function ResultTabs({
       // Update the field in the db and register the edit
       await db.updateUserSession(userSessionId, {
         include_in_summary: included,
-        last_edit: new Date(), // Keep row consistent
+        last_edit: new Date(),
       });
 
       // Compare arrays ignoring order
@@ -183,7 +166,6 @@ export default function ResultTabs({
             isProject={isProject}
             projectId={isProject ? resourceId : undefined}
             draft={draft}
-            newSummaryContentAvailable={newSummaryContentAvailable}
             onUpdateSummary={() => {
               setInitialUserIds(userIdsIncludedInSummary);
               setNewSummaryContentAvailable(false);
@@ -192,7 +174,6 @@ export default function ResultTabs({
               (hasMinimumRole('editor') || visibilityConfig.showSummary) ?? true
             }
             showSessionRecap={visibilityConfig.showSessionRecap ?? true}
-            isDebouncedUpdateScheduled={isDebouncedUpdateScheduled}
           />
         ),
       },

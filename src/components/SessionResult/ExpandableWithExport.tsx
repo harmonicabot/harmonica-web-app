@@ -12,9 +12,9 @@ import { ExportButton } from '../Export/ExportButton';
 import { Spinner } from '../icons';
 
 export enum RefreshStatus {
-  UpToDate = 'up-to-date',
-  NeedsRefresh = 'needs-refresh',
-  AutoRefreshPending = 'auto-refresh-pending'
+  UpToDate,
+  Unknown,
+  UpdatePending
 }
 
 interface CardProps {
@@ -35,9 +35,9 @@ const StatusIndicator = ({ status }: { status: RefreshStatus }) => {
     switch (status) {
       case RefreshStatus.UpToDate:
         return 'bg-green-500';
-      case RefreshStatus.NeedsRefresh:
+      case RefreshStatus.Unknown:
         return 'bg-red-500';
-      case RefreshStatus.AutoRefreshPending:
+      case RefreshStatus.UpdatePending:
         return 'bg-orange-500 animate-pulse';
       default:
         return 'bg-gray-400';
@@ -95,11 +95,11 @@ export const ExpandableWithExport = ({
                       ) : (
                         <div>
                           <p>Refresh {title}</p>
-                          {refreshStatus === RefreshStatus.AutoRefreshPending && (
+                          {refreshStatus === RefreshStatus.UpdatePending && (
                             <p className="text-xs text-orange-600">Auto-refreshing soon</p>
                           )}
-                          {refreshStatus === RefreshStatus.NeedsRefresh && (
-                            <p className="text-xs text-red-600">New content available</p>
+                          {refreshStatus === RefreshStatus.Unknown && (
+                            <p className="text-xs text-red-600">Unknown update status</p>
                           )}
                           {refreshStatus === RefreshStatus.UpToDate && (
                             <p className="text-xs text-green-600">Up to date</p>

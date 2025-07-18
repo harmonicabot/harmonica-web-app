@@ -6,6 +6,7 @@ export interface ManagerOpts {
   isProject?: boolean;
   sessionIds?: string[];
   projectId?: string;
+  // Check: Needed?
   source?: 'participants' | 'chat' | 'ui' | 'auto';
   userSessionId?: string;
 }
@@ -93,8 +94,8 @@ class SummaryUpdateManagerClass {
   async needsUpdate(resourceId: string, isProject = false): Promise<boolean> {
     try {
       const version = await checkSummaryNeedsUpdating(resourceId, isProject);
-      
-      return version.last_edit > version.last_summary_update;
+
+      return version.lastEdit > version.lastSummaryUpdate;
     } catch (error) {
       console.error('Failed to check if update needed:', error);
       return false;

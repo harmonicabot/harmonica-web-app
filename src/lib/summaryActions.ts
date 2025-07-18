@@ -26,9 +26,10 @@ export async function checkSummaryNeedsUpdating(resourceId: string, isProject = 
         return lastEditTime > latest ? lastEditTime : latest;
       }, 0);
     
+      const lastEdit = Math.max(lastMessage, lastUserEdit);
       return {
-        last_edit: Math.max(lastMessage, lastUserEdit),
-        last_summary_update: lastSummaryUpdate,
+        lastEdit,
+        lastSummaryUpdate,
         resourceId
       };
     } catch (error) {
