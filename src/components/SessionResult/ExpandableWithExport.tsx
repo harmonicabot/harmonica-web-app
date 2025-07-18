@@ -10,8 +10,11 @@ import {
 import ExpandableCard from '../ui/expandable-card';
 import { ExportButton } from '../Export/ExportButton';
 import { Spinner } from '../icons';
+import { RefreshStatus, SummaryUpdateManager } from 'summary/SummaryUpdateManager';
+import { useRef } from 'react';
 
 interface CardProps {
+  resourceId: string;
   title: string;
   content?: string;
   isExpanded: boolean;
@@ -23,7 +26,28 @@ interface CardProps {
   className?: string;
 }
 
+const StatusIndicator = ({ status }: { status: RefreshStatus | undefined }) => {
+  const getStatusColor = () => {
+    switch (status) {
+      case RefreshStatus.UpToDate:
+        return 'bg-lime-200';
+      case RefreshStatus.Outdated:
+        return 'bg-red-500';
+      case RefreshStatus.UpdatePending:
+        return 'bg-yellow-500 animate-pulse';
+      case RefreshStatus.Unknown:
+      default:
+        return 'bg-gray-400';
+    }
+  };
+
+  return (
+    <div className={`w-2 h-2 rounded-full ${getStatusColor()}`} />
+  );
+};
+
 export const ExpandableWithExport = ({
+  resourceId,
   title,
   content,
   isExpanded,
@@ -34,6 +58,13 @@ export const ExpandableWithExport = ({
   loading,
   className,
 }: CardProps) => {
+  const refreshStatusRef = useRef(SummaryUpdateManager.getState(resourceId).status);
+
+  // Only update if status actually changes
+  SummaryUpdateManager.subscribe(resourceId, (state) => {
+    console.log("[ExpandableComponent]: Updating status: ", state.status);
+    refreshStatusRef.current = state.status;
+  });
   return (
     <ExpandableCard
       title={
@@ -48,20 +79,39 @@ export const ExpandableWithExport = ({
                 <TooltipProvider>
                   <Tooltip delayDuration={50}>
                     <TooltipTrigger>
-                      <RefreshCw
-                        onClick={!isUpdating ? onRefresh : undefined}
-                        className={`h-5 w-5 text-gray-500 cursor-pointer hover:text-primary ${
-                          isUpdating
-                            ? 'animate-spin cursor-not-allowed opacity-50'
-                            : ''
-                        }`}
-                      />
+                      <div className="relative">
+                        <RefreshCw
+                          onClick={!isUpdating ? onRefresh : undefined}
+                          className={`h-5 w-5 text-gray-500 cursor-pointer hover:text-primary ${
+                            refreshStatusRef.current === RefreshStatus.UpdatePending
+                              ? 'animate-spin cursor-not-allowed opacity-50'
+                              : ''
+                          }`}
+                        />
+                        <div className="absolute -top-1 -right-1">
+                          <StatusIndicator status={refreshStatusRef.current} />
+                        </div>
+                      </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" align="end">
                       {isUpdating ? (
                         <p>Please wait while a {title} is generated</p>
                       ) : (
-                        <p>Refresh {title}</p>
+                        <div>
+                          <p>Refresh {title}</p>
+                          {refreshStatusRef.current === RefreshStatus.Unknown && (
+                            <p className="text-xs text-gray-600">Unknown update status</p>
+                          )}
+                          {refreshStatusRef.current === RefreshStatus.UpToDate && (
+                            <p className="text-xs text-green-600">Up to date</p>
+                          )}
+                          {refreshStatusRef.current === RefreshStatus.UpdatePending && (
+                            <p className="text-xs text-yellow-600">Auto-refreshing soon</p>
+                          )}
+                          {refreshStatusRef.current === RefreshStatus.Outdated && (
+                            <p className="text-xs text-red-600">Summary out of date</p>
+                          )}
+                        </div>
                       )}
                     </TooltipContent>
                   </Tooltip>

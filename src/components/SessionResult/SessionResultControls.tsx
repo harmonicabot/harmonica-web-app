@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoaderCircle, Settings, Copy, InfoIcon, Trash2 } from 'lucide-react';
 import * as db from '@/lib/db';
-import { createSummary } from '@/lib/serverUtils';
+import { SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
 import { cloneSession } from '@/lib/serverUtils';
 import { useRouter } from 'next/navigation';
 import { toast } from 'hooks/use-toast';
@@ -116,7 +116,7 @@ export default function SessionResultControls({
 
   const updateSummary = async () => {
     setLoadSummary(true);
-    await createSummary(id);
+    await SummaryUpdateManager.updateNow(id);
     setLoadSummary(false);
   };
 

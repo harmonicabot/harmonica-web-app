@@ -142,6 +142,29 @@ export async function createMultiSessionSummary(
   return summary;
 }
 
+export async function getSummaryVersion(resourceId: string) {
+  if (!resourceId) {
+    throw new Error('resourceId is required');
+  }
+
+  try {
+    // Only fetch the last_edit column for efficiency
+    const result = await db.getFromHostSession(resourceId, ['last_edit']);
+    
+    if (!result) {
+      throw new Error('Resource not found');
+    }
+
+    return {
+      lastUpdated: result.last_edit.toISOString(),
+      resourceId
+    };
+  } catch (error) {
+    console.error('Error fetching summary version:', error);
+    throw error;
+  }
+}
+
 export async function cloneSession(sessionId: string): Promise<string | null> {
   try {
     // Get the session to clone

@@ -87,6 +87,7 @@ export function useChat(options: UseChatOptions) {
     useState(false);
 
   useEffect(() => {
+    console.log('[Chat] Messages updated; should be scrolling to the bottom?');
     if (mainPanelRef?.current && messages.length > 1) {
       mainPanelRef.current.scrollTop = mainPanelRef.current.scrollHeight;
     }

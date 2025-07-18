@@ -29,6 +29,7 @@ import {
 import { SimScoreTab } from './SimScoreTab';
 import SessionFilesTable from '../SessionFilesTable';
 import { useSessionStore } from '@/stores/SessionStore';
+import { SummaryUpdateManager } from '../../../summary/SummaryUpdateManager';
 
 export interface ResultTabsProps {
   hostData: HostSession[];
@@ -86,6 +87,11 @@ export default function ResultTabs({
     }
   }, [resourceId, userData, storeUserData, addUserData]);
 
+  useEffect(() => {
+    SummaryUpdateManager.startPolling(resourceId, 10000); // Poll every 10 seconds
+    return () => SummaryUpdateManager.stopPolling(resourceId); // Clean up on unmount
+  }, [resourceId]);
+
   // User management state
   const initialIncluded = currentUserData
     .filter((user) => user.include_in_summary)
@@ -94,9 +100,6 @@ export default function ResultTabs({
     useState<string[]>(initialIncluded);
   const [initialUserIds, setInitialUserIds] =
     useState<string[]>(initialIncluded);
-
-  const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
-    useState(hasNewMessages);
 
   // Participant Ids that should be included in the _summary_ and _simscore_ analysis
   const updateIncludedInAnalysisList = useCallback(
@@ -114,19 +117,30 @@ export default function ResultTabs({
       // Update the store immediately for optimistic update
       updateUserData(resourceId, userSessionId, { include_in_summary: included });
       
-      // Update the field in the db...
+      // Update the field in the db and register the edit
       await db.updateUserSession(userSessionId, {
         include_in_summary: included,
+        last_edit: new Date(),
       });
 
       // Compare arrays ignoring order
       const haveIncludedUsersChanged =
         includedIds.length !== initialUserIds.length ||
         !includedIds.every((id) => initialUserIds.includes(id));
-
-      setNewSummaryContentAvailable(hasNewMessages || haveIncludedUsersChanged);
+      
+      // Register participant edit if users changed
+      if (haveIncludedUsersChanged) {
+        console.log('[ResultTabs] Participant changed, registering edit');
+        await SummaryUpdateManager.registerEdit(resourceId, {
+          source: 'participants',
+          userSessionId,
+          isProject,
+          sessionIds: hostData.map(h => h.id),
+          projectId: isProject ? resourceId : undefined,
+        });
+      }
     },
-    [currentUserData, setUpdatedUserIds, initialUserIds, hasNewMessages, updateUserData, resourceId],
+    [currentUserData, setUpdatedUserIds, initialUserIds, hasNewMessages, updateUserData, resourceId, isProject, hostData],
   );
 
   const hasAnyIncludedUserMessages = useMemo(
@@ -145,17 +159,15 @@ export default function ResultTabs({
           (visibilityConfig.showSummary ||
           visibilityConfig.showSessionRecap ||
           hasMinimumRole('editor')) &&
-          (hasAnyIncludedUserMessages),
+          hasAnyIncludedUserMessages,
         content: (
           <SessionResultSummary
             hostData={hostData}
             isProject={isProject}
             projectId={isProject ? resourceId : undefined}
             draft={draft}
-            newSummaryContentAvailable={newSummaryContentAvailable}
             onUpdateSummary={() => {
               setInitialUserIds(userIdsIncludedInSummary);
-              setNewSummaryContentAvailable(false);
             }}
             showSummary={
               (hasMinimumRole('editor') || visibilityConfig.showSummary) ?? true
@@ -269,7 +281,6 @@ export default function ResultTabs({
   }, [
     hasMinimumRole,
     hasAnyIncludedUserMessages,
-    newSummaryContentAvailable,
     userIdsIncludedInSummary,
     responses,
   ]);

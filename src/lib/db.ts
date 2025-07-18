@@ -53,6 +53,7 @@ const dbPromise = (async () => {
 })();
 
 export async function getDbInstance() {
+  console.log('[i] Database Operation: getDbInstance');
   return await dbPromise;
 }
 
@@ -61,8 +62,8 @@ export async function getHostSessions(
   page: number = 1,
   pageSize: number = 200,
 ): Promise<Partial<s.HostSession>[]> {
+  console.log('[i] Database Operation: getHostSessions');
   const db = await dbPromise;
-  console.log('Calling getHostSessions');
 
   try {
     const query = db
@@ -91,8 +92,8 @@ export async function getHostSessionsForIds(
   page: number = 1,
   pageSize: number = 100,
 ): Promise<s.HostSession[]> {
+  console.log('[i] Database Operation: getHostSessionsForIds');
   const db = await dbPromise;
-  console.log('Database call to getHostSessions at:', new Date().toISOString());
 
   try {
     // If no IDs provided, return empty array
@@ -124,8 +125,8 @@ export async function getHostSessionsForIds(
 export async function getHostSessionById(
   sessionId: string,
 ): Promise<s.HostSession> {
+  console.log(`[i] Database Operation: getHostSessionById(${sessionId})`);
   const db = await dbPromise;
-  console.log('Get Host Session Details for ID: ', sessionId);
   try {
     return await db
       .selectFrom(hostTableName)
@@ -142,6 +143,7 @@ export async function getFromHostSession(
   sessionId: string,
   columns: (keyof s.HostSessionsTable)[],
 ) {
+  console.log('[i] Database Operation: getFromHostSession');
   const db = await dbPromise;
   const result = await db
     .selectFrom(hostTableName)
@@ -154,13 +156,13 @@ export async function getFromHostSession(
 export async function insertHostSessions(
   data: s.NewHostSession | s.NewHostSession[],
 ): Promise<string[]> {
+  console.log('[i] Database Operation: insertHostSessions');
   const db = await dbPromise;
   try {
     // Due to GDPR, we don't want to store identifiable user data...
     // But, we kind of have to, otherwise we wouldn't be able to have 'private' sessions at all and all editing etc would be public :-/
     const session = await authGetSession();
     const userSub = session?.user?.sub || '';
-    console.log('Inserting host session with data:', data);
     const result = await db
       .insertInto(hostTableName)
       .values({ ...data, client: userSub })
@@ -186,6 +188,7 @@ export async function upsertHostSession(
   data: s.NewHostSession,
   onConflict: 'skip' | 'update' = 'skip',
 ): Promise<void> {
+  console.log('[i] Database Operation: upsertHostSession');
   const db = await dbPromise;
   try {
     // Due to GDPR we don't want to store identifiable user data
@@ -211,9 +214,9 @@ export async function updateHostSession(
   id: string,
   data: s.HostSessionUpdate,
 ): Promise<s.HostSession> {
+  console.log(`[i] Database Operation: updateHostSession(${id}, ${JSON.stringify(data)})`);
   const db = await dbPromise;
   try {
-    console.log('Updating host session with id:', id, ' with data:', data);
     const result = await db
       .updateTable(hostTableName)
       .set(data as any)
@@ -233,6 +236,7 @@ export async function increaseSessionsCount(
   id: string,
   toIncrease: 'num_sessions' | 'num_finished',
 ) {
+  console.log('[i] Database Operation: increaseSessionsCount');
   // This is a bit clumsy, but I couldn't find a way with kysely to do it in one go. Submitting sql`...` breaks it :-(
   const db = await dbPromise;
   const previousNum = (
@@ -246,6 +250,7 @@ export async function increaseSessionsCount(
 }
 
 export async function deleteHostSession(id: string): Promise<void> {
+  console.log('[i] Database Operation: deleteHostSession');
   try {
     const db = await dbPromise;
     await db.deleteFrom(hostTableName).where('id', '=', id).execute();
@@ -259,6 +264,7 @@ export async function getUsersBySessionId(
   sessionId: string,
   columns: (keyof s.UserSessionsTable)[] = [],
 ): Promise<s.UserSession[]> {
+  console.log('[i] Database Operation: getUsersBySessionId');
   try {
     const db = await dbPromise;
     let query = db
@@ -275,6 +281,7 @@ export async function getUsersBySessionId(
 export async function insertUserSessions(
   data: s.NewUserSession | s.NewUserSession[],
 ): Promise<string[]> {
+  console.log('[i] Database Operation: insertUserSessions');
   try {
     const db = await dbPromise;
     console.log('Inserting user session with data:', data);
@@ -294,6 +301,7 @@ export async function updateUserSession(
   id: string,
   data: s.UserSessionUpdate,
 ): Promise<void> {
+  console.log('[i] Database Operation: updateUserSession');
   try {
     const db = await dbPromise;
     console.log('Updating user session with id:', id, ' with data:', data);
@@ -309,6 +317,7 @@ export async function updateUserSession(
 }
 
 export async function deleteUserSession(id: string): Promise<void> {
+  console.log('[i] Database Operation: deleteUserSession');
   try {
     const db = await dbPromise;
     await db.deleteFrom(userTableName).where('id', '=', id).execute();
@@ -319,6 +328,7 @@ export async function deleteUserSession(id: string): Promise<void> {
 }
 
 export async function getUserSessionById(id: string): Promise<s.UserSession | undefined> {
+  console.log('[i] Database Operation: getUserSessionById');
   try {
     const db = await dbPromise;
     return await db
@@ -332,10 +342,13 @@ export async function getUserSessionById(id: string): Promise<s.UserSession | un
   }
 }
 
+
+
 export async function searchUserSessions(
   columnName: keyof s.UserSessionsTable,
   searchTerm: string,
 ): Promise<s.UserSession[]> {
+  console.log('[i] Database Operation: searchUserSessions');
   try {
     const db = await dbPromise;
     return await db
@@ -350,6 +363,7 @@ export async function searchUserSessions(
 }
 
 export async function getNumUsersAndMessages(sessionIds: string[]) {
+  console.log('[i] Database Operation: getNumUsersAndMessages');
   if (sessionIds.length === 0) return {};
 
   const db = await dbPromise;
@@ -406,7 +420,7 @@ export async function getNumUsersAndMessages(sessionIds: string[]) {
 }
 
 export async function insertChatMessage(message: s.NewMessage) {
-  console.log('Inserting chat message: ', JSON.stringify(message));
+  console.log(`[i] Database Operation: insertChatMessage(${JSON.stringify(message)})`);
   try {
     const db = await dbPromise;
     await db.insertInto(messageTableName).values(message).execute();
@@ -416,6 +430,7 @@ export async function insertChatMessage(message: s.NewMessage) {
 }
 
 export async function getAllChatMessagesInOrder(threadId: string) {
+  console.log('[i] Database Operation: getAllChatMessagesInOrder');
   const db = await dbPromise;
   return await db
     .selectFrom(messageTableName)
@@ -428,6 +443,7 @@ export async function getAllChatMessagesInOrder(threadId: string) {
 export async function getAllMessagesForUsersSorted(
   users: s.UserSession[],
 ): Promise<s.Message[]> {
+  console.log('[i] Database Operation: getAllMessagesForUsersSorted');
   if (users.length === 0) return [];
   const db = await dbPromise;
   const messages = await db
@@ -446,6 +462,7 @@ export async function getAllMessagesForUsersSorted(
 export async function getAllMessagesForSessionSorted(
   sessionId: string,
 ): Promise<s.Message[]> {
+  console.log('[i] Database Operation: getAllMessagesForSessionSorted');
   if (!sessionId) return [];
 
   const db = await dbPromise;
@@ -471,6 +488,7 @@ export async function getAllMessagesForSessionSorted(
 }
 
 export async function deleteSessionById(id: string): Promise<boolean> {
+  console.log('[i] Database Operation: deleteSessionById');
   try {
     // before deleting, we need to get the assistant id so that we can delete that as well.
     const db = await dbPromise;
@@ -495,6 +513,7 @@ export async function deleteSessionById(id: string): Promise<boolean> {
 export async function deactivateHostSession(
   sessionId: string,
 ): Promise<boolean> {
+  console.log('[i] Database Operation: deactivateHostSession');
   try {
     const db = await dbPromise;
     const result = await db
@@ -513,6 +532,7 @@ export async function deactivateHostSession(
 export async function createCustomResponse(
   customResponse: s.NewCustomResponse,
 ): Promise<s.CustomResponse | null> {
+  console.log('[i] Database Operation: createCustomResponse');
   try {
     const db = await dbPromise;
     const result = await db
@@ -531,6 +551,7 @@ export async function createCustomResponse(
 export async function getCustomResponseById(
   id: string,
 ): Promise<s.CustomResponse | null> {
+  console.log('[i] Database Operation: getCustomResponseById');
   try {
     const db = await dbPromise;
     const result = await db
@@ -550,6 +571,7 @@ export async function getCustomResponsesByResourceIdAndType(
   sessionId: string,
   responseType: string = 'CUSTOM',
 ): Promise<s.CustomResponse[]> {
+  console.log('[i] Database Operation: getCustomResponsesByResourceIdAndType');
   try {
     const db = await dbPromise;
     const responses = await db
@@ -571,6 +593,7 @@ export async function updateCustomResponse(
   id: string,
   update: s.CustomResponseUpdate,
 ): Promise<s.CustomResponse | null> {
+  console.log('[i] Database Operation: updateCustomResponse');
   try {
     const db = await dbPromise;
     const result = await db
@@ -588,6 +611,7 @@ export async function updateCustomResponse(
 }
 
 export async function deleteCustomResponse(id: string): Promise<boolean> {
+  console.log('[i] Database Operation: deleteCustomResponse');
   try {
     const db = await dbPromise;
     await db
@@ -606,7 +630,7 @@ export async function deleteCustomResponse(id: string): Promise<boolean> {
 export async function createWorkspace(
   workspace: s.NewWorkspace,
 ): Promise<s.Workspace | null> {
-  console.log('Creating new workspace: ', workspace);
+  console.log('[i] Database Operation: createWorkspace');
   try {
     const db = await dbPromise;
     const result = await db
@@ -625,6 +649,7 @@ export async function createWorkspace(
 export async function getWorkspaceSummary(
   workspaceId: string,
 ): Promise<string> {
+  console.log('[i] Database Operation: getWorkspaceSummary');
   const db = await dbPromise;
   const result = await db
     .selectFrom('workspaces')
@@ -635,6 +660,7 @@ export async function getWorkspaceSummary(
 }
 
 export async function hasWorkspace(id: string): Promise<boolean> {
+  console.log('[i] Database Operation: hasWorkspace');
   try {
     const db = await dbPromise;
     const result = await db
@@ -654,6 +680,7 @@ export async function hasWorkspace(id: string): Promise<boolean> {
 export async function getWorkspaceById(
   id: string,
 ): Promise<s.Workspace | null> {
+  console.log('[i] Database Operation: getWorkspaceById');
   try {
     const db = await dbPromise;
     const result = await db
@@ -670,6 +697,7 @@ export async function getWorkspaceById(
 }
 
 export async function getAllWorkspaces(): Promise<s.Workspace[]> {
+  console.log('[i] Database Operation: getAllWorkspaces');
   try {
     const db = await dbPromise;
     const result = await db.selectFrom('workspaces').selectAll().execute();
@@ -685,6 +713,7 @@ export async function updateWorkspace(
   id: string,
   update: s.WorkspaceUpdate,
 ): Promise<s.Workspace | null> {
+  console.log('[i] Database Operation: updateWorkspace');
   try {
     const db = await dbPromise;
     const result = await db
@@ -711,6 +740,7 @@ export async function upsertWorkspace(
   id: string,
   data: s.WorkspaceUpdate & Partial<s.NewWorkspace>,
 ): Promise<s.Workspace | null> {
+  console.log('[i] Database Operation: upsertWorkspace');
   try {
     const db = await dbPromise;
 
@@ -769,6 +799,7 @@ export async function upsertWorkspace(
 }
 
 export async function deleteWorkspace(id: string): Promise<boolean> {
+  console.log('[i] Database Operation: deleteWorkspace');
   try {
     const db = await dbPromise;
     await db.deleteFrom('workspaces').where('id', '=', id).execute();
@@ -785,6 +816,7 @@ export async function addSessionToWorkspace(
   workspaceId: string,
   sessionId: string,
 ): Promise<boolean> {
+  console.log('[i] Database Operation: addSessionToWorkspace');
   try {
     const db = await dbPromise;
     await db
@@ -803,6 +835,7 @@ export async function removeSessionFromWorkspace(
   workspaceId: string,
   sessionId: string,
 ): Promise<boolean> {
+  console.log('[i] Database Operation: removeSessionFromWorkspace');
   try {
     const db = await dbPromise;
     await db
@@ -821,6 +854,7 @@ export async function removeSessionFromWorkspace(
 export async function getWorkspaceSessionIds(
   workspaceId: string,
 ): Promise<string[]> {
+  console.log('[i] Database Operation: getWorkspaceSessionIds');
   try {
     const db = await dbPromise;
     const results = await db
@@ -839,7 +873,7 @@ export async function getWorkspaceSessionIds(
 export async function getWorkspacesForSession(
   sessionId: string,
 ): Promise<Pick<s.Workspace, 'id' | 'title'>[]> {
-  console.log(`Getting workspaces for `, sessionId);
+  console.log('[i] Database Operation: getWorkspacesForSession');
   try {
     const db = await dbPromise;
     const workspaces = await db
@@ -866,6 +900,7 @@ export async function getRoleForUser(
   userId: string,
   resourceType?: 'SESSION' | 'WORKSPACE',
 ): Promise<{ role: Role } | null> {
+  console.log('[i] Database Operation: getRoleForUser');
   try {
     const db = await dbPromise;
     let query = db
@@ -890,6 +925,7 @@ export async function getPermissions(
   resourceId: string,
   resourceType?: 'SESSION' | 'WORKSPACE',
 ): Promise<{ user_id: string; role: Role }[]> {
+  console.log('[i] Database Operation: getPermissions');
   try {
     const db = await dbPromise;
     let query = db
@@ -914,10 +950,8 @@ export async function setPermission(
   resourceType: 'SESSION' | 'WORKSPACE' = 'SESSION',
   userId?: string, // Defaults to whatever user is currently logged in
 ): Promise<boolean> {
+  console.log('[i] Database Operation: setPermission');
   try {
-    console.log(
-      `Setting permissions: \nResources: ${resourceId}\nUser: ${userId}\nRole: ${role}\nResource Type: ${resourceType}`,
-    );
     if (!userId) {
       const session = await authGetSession();
       userId = session?.user?.sub;
@@ -982,6 +1016,7 @@ export async function removePermission(
   userId: string,
   resourceType?: 'SESSION' | 'WORKSPACE',
 ): Promise<boolean> {
+  console.log('[i] Database Operation: removePermission');
   try {
     const db = await dbPromise;
     let query = db
@@ -1007,6 +1042,7 @@ export async function canEdit(
   resourceId: string,
   resourceType?: 'SESSION' | 'WORKSPACE',
 ): Promise<boolean> {
+  console.log('[i] Database Operation: canEdit');
   const db = await dbPromise;
   let query = db
     .selectFrom('permissions')
@@ -1032,6 +1068,7 @@ export async function getResourcesForUser(
   resourceType?: 'SESSION' | 'WORKSPACE',
   columns: (keyof s.Permission)[] = ['resource_id', 'resource_type', 'role'],
 ): Promise<s.Permission[]> {
+  console.log('[i] Database Operation: getResourcesForUser');
   try {
     const db = await dbPromise;
     // Check for global permissions first
@@ -1065,6 +1102,7 @@ export async function updateVisibilitySettings(
   resourceId: string,
   settings: ResultTabsVisibilityConfig,
 ): Promise<void> {
+  console.log('[i] Database Operation: updateVisibilitySettings');
   try {
     const db = await dbPromise;
 
@@ -1100,6 +1138,7 @@ export async function updateVisibilitySettings(
 export async function createInvitation(
   invitation: s.NewInvitation,
 ): Promise<s.Invitation | null> {
+  console.log('[i] Database Operation: createInvitation');
   try {
     const db = await dbPromise;
     const session = await authGetSession();
@@ -1124,6 +1163,7 @@ export async function createInvitation(
 export async function getInvitationsByEmail(
   email: string,
 ): Promise<s.Invitation[]> {
+  console.log('[i] Database Operation: getInvitationsByEmail');
   try {
     const db = await dbPromise;
     const invitations = await db
@@ -1144,6 +1184,7 @@ export async function getInvitationsByResource(
   resourceId: string,
   resourceType: 'SESSION' | 'WORKSPACE',
 ): Promise<s.Invitation[]> {
+  console.log('[i] Database Operation: getInvitationsByResource');
   try {
     const db = await dbPromise;
     const invitations = await db
@@ -1163,6 +1204,7 @@ export async function getInvitationsByResource(
 export async function markInvitationAsAccepted(
   invitationId: string,
 ): Promise<boolean> {
+  console.log('[i] Database Operation: markInvitationAsAccepted');
   try {
     const db = await dbPromise;
     await db
@@ -1179,6 +1221,7 @@ export async function markInvitationAsAccepted(
 }
 
 export async function deleteInvitation(invitationId: string): Promise<boolean> {
+  console.log('[i] Database Operation: deleteInvitation');
   try {
     const db = await dbPromise;
     await db
@@ -1197,6 +1240,7 @@ export async function getWorkspacesForIds(
   workspaceIds: string[],
   columns: (keyof s.WorkspacesTable)[] = [],
 ): Promise<s.Workspace[]> {
+  console.log('[i] Database Operation: getWorkspacesForIds');
   try {
     if (!workspaceIds.length) return [];
 
@@ -1220,6 +1264,7 @@ export async function getWorkspacesForIds(
  * Create or update a user profile based on Auth0 data
  */
 export async function upsertUser(userData: s.NewUser): Promise<s.User | null> {
+  console.log('[i] Database Operation: upsertUser');
   try {
     const db = await dbPromise;
     const result = await db
@@ -1252,6 +1297,7 @@ export async function upsertUser(userData: s.NewUser): Promise<s.User | null> {
  * Get a user by ID (Auth0 sub)
  */
 export async function getUserById(id: string): Promise<s.User | null> {
+  console.log('[i] Database Operation: getUserById');
   try {
     const db = await dbPromise;
     const result = await db
@@ -1271,6 +1317,7 @@ export async function getUserById(id: string): Promise<s.User | null> {
  * Get a user by email
  */
 export async function getUserByEmail(email: string): Promise<s.User | null> {
+  console.log('[i] Database Operation: getUserByEmail');
   try {
     const db = await dbPromise;
     const result = await db
@@ -1290,6 +1337,7 @@ export async function getUserByEmail(email: string): Promise<s.User | null> {
  * Get multiple users by their IDs
  */
 export async function getUsersByIds(ids: string[]): Promise<s.User[]> {
+  console.log('[i] Database Operation: getUsersByIds');
   try {
     if (!ids.length) return [];
 
@@ -1316,6 +1364,7 @@ export async function getUsersWithPermissionsForResource(
   resourceId: string,
   resourceType?: 'SESSION' | 'WORKSPACE',
 ): Promise<Array<UserAndRole>> {
+  console.log('[i] Database Operation: getUsersWithPermissionsForResource');
   try {
     const db = await dbPromise;
     let query = db
@@ -1354,6 +1403,7 @@ export async function getUsersWithPermissionsForResource(
  * (This would typically be sessions the user has access to)
  */
 export async function getAvailableSessionsForUser(userId: string) {
+  console.log('[i] Database Operation: getAvailableSessionsForUser');
   const db = await dbPromise;
 
   try {
@@ -1384,6 +1434,7 @@ export type PromptWithType = s.Prompt & { type_name: string };
 // Cached function to get active prompt by type with default fallback
 export const getActivePromptByType = cache(
   async (typeId: string): Promise<PromptWithType | null> => {
+    console.log('[i] Database Operation: getActivePromptByType');
     // First, try to find by direct ID match
     const db = await dbPromise;
     const rows = await db
@@ -1411,6 +1462,7 @@ export const getActivePromptByType = cache(
 );
 
 export async function getAllPrompts(): Promise<PromptWithType[]> {
+  console.log('[i] Database Operation: getAllPrompts');
   const db = await dbPromise;
   const rows = await db
     .selectFrom('prompts as p')
@@ -1431,6 +1483,7 @@ export async function getAllPrompts(): Promise<PromptWithType[]> {
 export async function createDraftWorkspace(
   title: string = 'New Workspace',
 ): Promise<s.Workspace | null> {
+  console.log('[i] Database Operation: createDraftWorkspace');
   try {
     const db = await dbPromise;
     console.log('Creating draft workspace');
@@ -1473,6 +1526,7 @@ export async function createDraftWorkspace(
 export async function cleanupDraftWorkspaces(
   olderThanHours: number = 30 * 24,
 ): Promise<number> {
+  console.log('[i] Database Operation: cleanupDraftWorkspaces');
   try {
     const db = await dbPromise;
     const cutoffDate = new Date();
@@ -1505,6 +1559,7 @@ export async function updateUserSubscription(
     stripe_customer_id?: string;
   },
 ): Promise<void> {
+  console.log('[i] Database Operation: updateUserSubscription');
   try {
     const db = await dbPromise;
     console.log('Updating user subscription:', { userId, data });
@@ -1527,6 +1582,7 @@ export async function updateUserSubscription(
  * Get user's subscription details
  */
 export async function getUserSubscription(userId: string) {
+  console.log('[i] Database Operation: getUserSubscription');
   try {
     const db = await dbPromise;
     const result = await db
@@ -1551,6 +1607,7 @@ export async function getUserSubscription(userId: string) {
  * Remove user's subscription (revert to FREE)
  */
 export async function removeUserSubscription(userId: string): Promise<void> {
+  console.log('[i] Database Operation: removeUserSubscription');
   try {
     const db = await dbPromise;
     await db
@@ -1578,6 +1635,7 @@ export async function insertFileMetadata(data: {
   metadata?: JSON;
   file_purpose?: 'TRANSCRIPT' | 'KNOWLEDGE';
 }) {
+  console.log('[i] Database Operation: insertFileMetadata');
   const db = await dbPromise;
   const result = await db
     .insertInto('session_files')
@@ -1588,6 +1646,7 @@ export async function insertFileMetadata(data: {
 }
 
 export async function getSessionFiles(sessionId: string) {
+  console.log('[i] Database Operation: getSessionFiles');
   const db = await dbPromise;
   return db
     .selectFrom('session_files')
@@ -1602,6 +1661,7 @@ export async function updateSessionFile(
   fileId: number,
   data: { is_deleted: boolean },
 ) {
+  console.log('[i] Database Operation: updateSessionFile');
   const db = await dbPromise;
   return db
     .updateTable('session_files')
@@ -1612,6 +1672,7 @@ export async function updateSessionFile(
 }
 
 export async function getExtendedWorkspaceData(workspaceId: string) {
+  console.log('[i] Database Operation: getExtendedWorkspaceData');
   try {
     const response = await fetch(`/api/workspaces/${workspaceId}/extended`);
     if (!response.ok) {
@@ -1635,6 +1696,7 @@ export async function createThreadRating({
   feedback?: string;
   userId?: string;
 }): Promise<s.SessionRating> {
+  console.log('[i] Database Operation: createThreadRating');
   try {
     const db = await dbPromise;
     const result = await db
@@ -1658,6 +1720,7 @@ export async function createThreadRating({
 export async function getThreadRating(
   threadId: string,
 ): Promise<s.SessionRating | null> {
+  console.log('[i] Database Operation: getThreadRating');
   try {
     const db = await dbPromise;
     const result = await db
@@ -1681,6 +1744,7 @@ export async function updateThreadRating(
     feedback?: string;
   },
 ): Promise<s.SessionRating | null> {
+  console.log('[i] Database Operation: updateThreadRating');
   try {
     const db = await dbPromise;
     const result = await db
