@@ -5,6 +5,7 @@ import { mutate } from 'swr';
 
 export enum RefreshStatus {
   Unknown,
+  Outdated,
   UpdatePending,
   UpToDate,
 }
@@ -106,6 +107,8 @@ class SummaryUpdateManagerClass {
   async registerEdit(resourceId: string, opts: ManagerOpts = {}): Promise<void> {
     try {
       const { source = 'ui', userSessionId } = opts;
+      const state = this.getOrCreateState(resourceId);
+      state.status = RefreshStatus.Outdated;
       
       if (source === 'participants' && userSessionId) {
         await updateUserLastEdit(userSessionId);
@@ -113,11 +116,7 @@ class SummaryUpdateManagerClass {
         await updateHostLastEdit(resourceId);
       }
       
-      // Update local state (for UI loading state management)
-      const state = this.getOrCreateState(resourceId);
-      state.lastEditTimestamp = Date.now();
-      this.updates.set(resourceId, state);
-      
+      state.lastEditTimestamp = Date.now(); // Do this after we've updated, just in case it fails
       console.log(`[SummaryUpdateManager] Registered edit for ${resourceId} (source: ${source})`);
     } catch (error) {
       console.error('Failed to register edit:', error);

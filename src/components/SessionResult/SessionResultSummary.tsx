@@ -75,7 +75,6 @@ export default function SessionResultSummary({
           showRefreshButton={hasMinimumRole('editor')}
           onRefresh={manuallyTriggerSummaryUpdate}
           loading={summaryLoading || isUpdating}
-          refreshStatus={isUpdating?RefreshStatus.UpdatePending:RefreshStatus.Unknown}
         />
       ) : showDraftProjectCard ? (
         <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">

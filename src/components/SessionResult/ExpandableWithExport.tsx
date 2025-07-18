@@ -24,18 +24,18 @@ interface CardProps {
   isUpdating?: boolean;
   loading?: boolean;
   className?: string;
-  refreshStatus?: RefreshStatus
 }
 
 const StatusIndicator = ({ status }: { status: RefreshStatus | undefined }) => {
   const getStatusColor = () => {
     switch (status) {
       case RefreshStatus.UpToDate:
-        return 'bg-green-500';
-      case RefreshStatus.Unknown:
+        return 'bg-lime-200';
+      case RefreshStatus.Outdated:
         return 'bg-red-500';
       case RefreshStatus.UpdatePending:
-        return 'bg-orange-500 animate-pulse';
+        return 'bg-yellow-500 animate-pulse';
+      case RefreshStatus.Unknown:
       default:
         return 'bg-gray-400';
     }
@@ -57,9 +57,8 @@ export const ExpandableWithExport = ({
   isUpdating,
   loading,
   className,
-  refreshStatus = RefreshStatus.UpToDate,
 }: CardProps) => {
-  const refreshStatusRef = useRef(isUpdating ? RefreshStatus.UpdatePending : undefined);
+  const refreshStatusRef = useRef(SummaryUpdateManager.getState(resourceId).status);
 
   // Only update if status actually changes
   SummaryUpdateManager.subscribe(resourceId, (state) => {
@@ -84,7 +83,7 @@ export const ExpandableWithExport = ({
                         <RefreshCw
                           onClick={!isUpdating ? onRefresh : undefined}
                           className={`h-5 w-5 text-gray-500 cursor-pointer hover:text-primary ${
-                            isUpdating
+                            refreshStatusRef.current === RefreshStatus.UpdatePending
                               ? 'animate-spin cursor-not-allowed opacity-50'
                               : ''
                           }`}
@@ -100,14 +99,17 @@ export const ExpandableWithExport = ({
                       ) : (
                         <div>
                           <p>Refresh {title}</p>
-                          {refreshStatusRef.current === RefreshStatus.UpdatePending && (
-                            <p className="text-xs text-orange-600">Auto-refreshing soon</p>
-                          )}
                           {refreshStatusRef.current === RefreshStatus.Unknown && (
-                            <p className="text-xs text-red-600">Unknown update status</p>
+                            <p className="text-xs text-gray-600">Unknown update status</p>
                           )}
                           {refreshStatusRef.current === RefreshStatus.UpToDate && (
                             <p className="text-xs text-green-600">Up to date</p>
+                          )}
+                          {refreshStatusRef.current === RefreshStatus.UpdatePending && (
+                            <p className="text-xs text-yellow-600">Auto-refreshing soon</p>
+                          )}
+                          {refreshStatusRef.current === RefreshStatus.Outdated && (
+                            <p className="text-xs text-red-600">Summary out of date</p>
                           )}
                         </div>
                       )}

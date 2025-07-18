@@ -101,9 +101,6 @@ export default function ResultTabs({
   const [initialUserIds, setInitialUserIds] =
     useState<string[]>(initialIncluded);
 
-  const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
-    useState(hasNewMessages);
-
   // Participant Ids that should be included in the _summary_ and _simscore_ analysis
   const updateIncludedInAnalysisList = useCallback(
     async (userSessionId: string, included: boolean) => {
@@ -130,8 +127,6 @@ export default function ResultTabs({
       const haveIncludedUsersChanged =
         includedIds.length !== initialUserIds.length ||
         !includedIds.every((id) => initialUserIds.includes(id));
-
-      setNewSummaryContentAvailable(hasNewMessages || haveIncludedUsersChanged);
       
       // Register participant edit if users changed
       if (haveIncludedUsersChanged) {
@@ -164,7 +159,7 @@ export default function ResultTabs({
           (visibilityConfig.showSummary ||
           visibilityConfig.showSessionRecap ||
           hasMinimumRole('editor')) &&
-          (hasAnyIncludedUserMessages),
+          hasAnyIncludedUserMessages,
         content: (
           <SessionResultSummary
             hostData={hostData}
@@ -173,7 +168,6 @@ export default function ResultTabs({
             draft={draft}
             onUpdateSummary={() => {
               setInitialUserIds(userIdsIncludedInSummary);
-              setNewSummaryContentAvailable(false);
             }}
             showSummary={
               (hasMinimumRole('editor') || visibilityConfig.showSummary) ?? true
@@ -287,7 +281,6 @@ export default function ResultTabs({
   }, [
     hasMinimumRole,
     hasAnyIncludedUserMessages,
-    newSummaryContentAvailable,
     userIdsIncludedInSummary,
     responses,
   ]);
