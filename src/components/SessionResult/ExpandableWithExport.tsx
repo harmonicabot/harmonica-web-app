@@ -10,14 +10,11 @@ import {
 import ExpandableCard from '../ui/expandable-card';
 import { ExportButton } from '../Export/ExportButton';
 import { Spinner } from '../icons';
-
-export enum RefreshStatus {
-  UpToDate,
-  Unknown,
-  UpdatePending
-}
+import { RefreshStatus, SummaryUpdateManager } from 'summary/SummaryUpdateManager';
+import { useRef } from 'react';
 
 interface CardProps {
+  resourceId: string;
   title: string;
   content?: string;
   isExpanded: boolean;
@@ -27,10 +24,10 @@ interface CardProps {
   isUpdating?: boolean;
   loading?: boolean;
   className?: string;
-  refreshStatus?: RefreshStatus;
+  refreshStatus?: RefreshStatus
 }
 
-const StatusIndicator = ({ status }: { status: RefreshStatus }) => {
+const StatusIndicator = ({ status }: { status: RefreshStatus | undefined }) => {
   const getStatusColor = () => {
     switch (status) {
       case RefreshStatus.UpToDate:
@@ -50,6 +47,7 @@ const StatusIndicator = ({ status }: { status: RefreshStatus }) => {
 };
 
 export const ExpandableWithExport = ({
+  resourceId,
   title,
   content,
   isExpanded,
@@ -61,6 +59,13 @@ export const ExpandableWithExport = ({
   className,
   refreshStatus = RefreshStatus.UpToDate,
 }: CardProps) => {
+  const refreshStatusRef = useRef(isUpdating ? RefreshStatus.UpdatePending : undefined);
+
+  // Only update if status actually changes
+  SummaryUpdateManager.subscribe(resourceId, (state) => {
+    console.log("[ExpandableComponent]: Updating status: ", state.status);
+    refreshStatusRef.current = state.status;
+  });
   return (
     <ExpandableCard
       title={
@@ -85,7 +90,7 @@ export const ExpandableWithExport = ({
                           }`}
                         />
                         <div className="absolute -top-1 -right-1">
-                          <StatusIndicator status={refreshStatus} />
+                          <StatusIndicator status={refreshStatusRef.current} />
                         </div>
                       </div>
                     </TooltipTrigger>
@@ -95,13 +100,13 @@ export const ExpandableWithExport = ({
                       ) : (
                         <div>
                           <p>Refresh {title}</p>
-                          {refreshStatus === RefreshStatus.UpdatePending && (
+                          {refreshStatusRef.current === RefreshStatus.UpdatePending && (
                             <p className="text-xs text-orange-600">Auto-refreshing soon</p>
                           )}
-                          {refreshStatus === RefreshStatus.Unknown && (
+                          {refreshStatusRef.current === RefreshStatus.Unknown && (
                             <p className="text-xs text-red-600">Unknown update status</p>
                           )}
-                          {refreshStatus === RefreshStatus.UpToDate && (
+                          {refreshStatusRef.current === RefreshStatus.UpToDate && (
                             <p className="text-xs text-green-600">Up to date</p>
                           )}
                         </div>

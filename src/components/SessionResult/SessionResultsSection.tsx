@@ -36,22 +36,6 @@ export default function SessionResultsSection({
   const { hasNewMessages, lastMessage, lastSummaryUpdate } =
     checkSummaryAndMessageTimes(hostData, userData);
 
-  // Automatically update the summary if there's new content and the last update was more than 10 minutes ago
-  useEffect(() => {
-    if (
-      hasNewMessages &&
-      lastMessage > lastSummaryUpdate &&
-      new Date().getTime() - lastSummaryUpdate > 1000 * 60 * 10
-    ) {
-      const minutesAgo =
-        (new Date().getTime() - lastSummaryUpdate) / (1000 * 60);
-      console.log(`Last summary created ${minutesAgo} minutes ago, 
-        and new messages were received since then. Creating an updated one.`);
-      SummaryUpdateManager.updateNow(hostData.id);
-      mutate(path);
-    }
-  }, [hasNewMessages, lastMessage, lastSummaryUpdate, hostData.id, resourceId]);
-
   visibilityConfig.showChat = visibilityConfig.showChat && hasMessages;
 
   return (

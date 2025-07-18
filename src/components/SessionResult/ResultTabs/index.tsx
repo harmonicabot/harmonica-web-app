@@ -87,6 +87,11 @@ export default function ResultTabs({
     }
   }, [resourceId, userData, storeUserData, addUserData]);
 
+  useEffect(() => {
+    SummaryUpdateManager.startPolling(resourceId, 10000); // Poll every 10 seconds
+    return () => SummaryUpdateManager.stopPolling(resourceId); // Clean up on unmount
+  }, [resourceId]);
+
   // User management state
   const initialIncluded = currentUserData
     .filter((user) => user.include_in_summary)
