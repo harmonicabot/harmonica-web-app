@@ -95,3 +95,19 @@
     min-height: -webkit-fill-available;
   }
 }
+
+@keyframes bounce-y {
+  0%, 50% { 
+    transform: translateY(0); 
+  }
+  25%, 75% { 
+    transform: translateY(1rem); 
+  }
+  100% { 
+    transform: translateY(0); 
+  }
+}
+
+.animate-bounce-y {
+  animation: bounce-y 2s ease-in-out infinite;
+}

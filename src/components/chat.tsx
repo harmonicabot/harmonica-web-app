@@ -558,6 +558,7 @@ export default function Chat({
                 isSessionPublic={isSessionPublic}
                 sessionId={providedSessionId}
                 showButtons={true}
+                isLoading={isLoading && index === messages.length - 1}
               />
             )}
           </div>
@@ -568,17 +569,14 @@ export default function Chat({
           </div>
         )}
         {isLoading && (
-          <div className="flex">
-            <img
-              className="h-10 w-10 flex-none rounded-full"
-              src="/hm-chat-icon.svg"
-              alt=""
+          <div className="group">
+            <ChatMessage
+              message={{ role: 'assistant', content: '' }}
+              isSessionPublic={isSessionPublic}
+              sessionId={providedSessionId}
+              showButtons={false}
+              isLoading={true}
             />
-            <div className="ps-2 flex space-x-1 justify-center items-center dark:invert">
-              <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-              <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-              <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce"></div>
-            </div>
           </div>
         )}
         <div ref={messagesEndRef} />
