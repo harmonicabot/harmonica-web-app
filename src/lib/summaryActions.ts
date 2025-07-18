@@ -3,7 +3,7 @@
 import * as db from '@/lib/db';
 import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
 
-export async function getSummaryVersion(resourceId: string, isProject = false) {
+export async function checkSummaryNeedsUpdating(resourceId: string, isProject = false) {
   if (!resourceId) {
     throw new Error('resourceId is required');
   }

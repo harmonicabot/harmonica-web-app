@@ -1,5 +1,5 @@
 import { createSummary, createMultiSessionSummary } from '@/lib/serverUtils';
-import { getSummaryVersion } from '@/lib/summaryActions';
+import { checkSummaryNeedsUpdating } from '@/lib/summaryActions';
 import { mutate } from 'swr';
 
 export interface ManagerOpts {
@@ -92,7 +92,7 @@ class SummaryUpdateManagerClass {
    */
   async needsUpdate(resourceId: string, isProject = false): Promise<boolean> {
     try {
-      const version = await getSummaryVersion(resourceId, isProject);
+      const version = await checkSummaryNeedsUpdating(resourceId, isProject);
       
       return version.last_edit > version.last_summary_update;
     } catch (error) {

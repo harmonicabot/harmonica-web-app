@@ -1,15 +1,15 @@
 import { useEffect, useRef } from 'react';
 import useSWR from 'swr';
-import { getSummaryVersion } from '@/lib/summaryActions';
+import { checkSummaryNeedsUpdating } from '@/lib/summaryActions';
 import { SummaryUpdateManager } from '../summary/SummaryUpdateManager';
 
-export function useLiveSummary(resourceId: string) {
+export function useSummaryUpdater(resourceId: string) {
   const lastCheckedRef = useRef<number>(0);
 
   // Poll for summary version changes
   const { data: version } = useSWR(
     resourceId ? ['summary-version', resourceId] : null,
-    ([_, id]) => getSummaryVersion(id),
+    ([_, id]) => checkSummaryNeedsUpdating(id),
     { 
       refreshInterval: 10000, // Poll every 10 seconds
       refreshWhenHidden: false,

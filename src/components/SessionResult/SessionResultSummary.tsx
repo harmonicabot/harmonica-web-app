@@ -9,7 +9,7 @@ import * as db from '@/lib/db';
 import { Card, CardContent } from '../ui/card';
 import { usePermissions } from '@/lib/permissions';
 import { useSessionStore } from '@/stores/SessionStore';
-import { useLiveSummary } from '@/hooks/useLiveSummary';
+import { useSummaryUpdater } from '@/hooks/useLiveSummary';
 import { useSummary } from '@/hooks/useSummary';
 import { mutate } from 'swr';
 
@@ -112,7 +112,7 @@ export default function SessionResultSummary({
   }, [isProject, projectId, draft, summary]);
 
   // Use live summary polling
-  useLiveSummary(resourceId);
+  useSummaryUpdater(resourceId);
 
 // Check which content will be shown
 const showSessionRecapContent = showSessionRecap && !isProject && hostData[0]?.prompt_summary;
