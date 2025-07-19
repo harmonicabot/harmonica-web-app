@@ -25,11 +25,9 @@ export type ParticipantsTableData = {
 export default function SessionParticipantsTable({
   sessionId,
   userData,
-  onIncludeInSummaryChange,
 }: {
   sessionId: string;
   userData: UserSession[];
-  onIncludeInSummaryChange: (userId: string, included: boolean) => void;
 }) {
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -77,7 +75,6 @@ export default function SessionParticipantsTable({
       <ParticipantSessionRow
         key={index}
         tableData={sortableData}
-        onIncludeChange={onIncludeInSummaryChange}
       />
     );
   };
@@ -111,7 +108,7 @@ export default function SessionParticipantsTable({
               tableHeaders={tableHeaders}
               getTableRow={getTableRow}
               data={sortableData}
-              defaultSort={{ column: 'updatedDate', direction: 'desc' }}
+              defaultSort={{ column: 'createdDate', direction: 'desc' }}
             />
           )}
         </CardContent>

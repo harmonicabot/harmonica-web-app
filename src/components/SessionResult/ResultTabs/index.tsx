@@ -77,76 +77,16 @@ export default function ResultTabs({
     useCustomResponses(resourceId);
 
   // Use SessionStore for userData with fallback to prop
-  const { userData: storeUserData, addUserData, updateUserData } = useSessionStore();
-  const currentUserData = storeUserData[resourceId] || userData;
-
-  // Initialize store if not present
-  useEffect(() => {
-    if (!storeUserData[resourceId] && userData.length > 0) {
-      addUserData(resourceId, userData);
-    }
-  }, [resourceId, userData, storeUserData, addUserData]);
-
+  const { userData: storeUserData } = useSessionStore();
+  const currentUserData =
+    storeUserData[resourceId] && storeUserData[resourceId].length > 0
+      ? storeUserData[resourceId]
+      : userData; // ONLY ON FIRST RENDER userData might be present while the data isn't available in the store yet.
+  
   useEffect(() => {
     SummaryUpdateManager.startPolling(resourceId, 10000); // Poll every 10 seconds
     return () => SummaryUpdateManager.stopPolling(resourceId); // Clean up on unmount
   }, [resourceId]);
-
-  // User management state
-  const initialIncluded = currentUserData
-    .filter((user) => user.include_in_summary)
-    .map((user) => user.id);
-  const [userIdsIncludedInSummary, setUpdatedUserIds] =
-    useState<string[]>(initialIncluded);
-  const [initialUserIds, setInitialUserIds] =
-    useState<string[]>(initialIncluded);
-
-  // Participant Ids that should be included in the _summary_ and _simscore_ analysis
-  const updateIncludedInAnalysisList = useCallback(
-    async (userSessionId: string, included: boolean) => {
-      const includedIds = currentUserData
-        .filter((user) => user.include_in_summary)
-        .map((user) => user.id);
-      if (included) {
-        includedIds.push(userSessionId);
-      } else {
-        includedIds.splice(includedIds.indexOf(userSessionId), 1);
-      }
-      setUpdatedUserIds(includedIds);
-      
-      // Update the store immediately for optimistic update
-      updateUserData(resourceId, userSessionId, { include_in_summary: included });
-      
-      // Update the field in the db and register the edit
-      await db.updateUserSession(userSessionId, {
-        include_in_summary: included,
-        last_edit: new Date(),
-      });
-
-      // Compare arrays ignoring order
-      const haveIncludedUsersChanged =
-        includedIds.length !== initialUserIds.length ||
-        !includedIds.every((id) => initialUserIds.includes(id));
-      
-      // Register participant edit if users changed
-      if (haveIncludedUsersChanged) {
-        console.log('[ResultTabs] Participant changed, registering edit');
-        await SummaryUpdateManager.registerEdit(resourceId, {
-          source: 'participants',
-          userSessionId,
-          isProject,
-          sessionIds: hostData.map(h => h.id),
-          projectId: isProject ? resourceId : undefined,
-        });
-      }
-    },
-    [currentUserData, setUpdatedUserIds, initialUserIds, hasNewMessages, updateUserData, resourceId, isProject, hostData],
-  );
-
-  const hasAnyIncludedUserMessages = useMemo(
-    () => userIdsIncludedInSummary.length > 0,
-    [userIdsIncludedInSummary],
-  );
 
   // Define available tabs and their visibility conditions in one place
   const availableTabs = useMemo(() => {
@@ -158,17 +98,13 @@ export default function ResultTabs({
         isVisible:
           (visibilityConfig.showSummary ||
           visibilityConfig.showSessionRecap ||
-          hasMinimumRole('editor')) &&
-          hasAnyIncludedUserMessages,
+          hasMinimumRole('editor')),
         content: (
           <SessionResultSummary
             hostData={hostData}
             isProject={isProject}
             projectId={isProject ? resourceId : undefined}
             draft={draft}
-            onUpdateSummary={() => {
-              setInitialUserIds(userIdsIncludedInSummary);
-            }}
             showSummary={
               (hasMinimumRole('editor') || visibilityConfig.showSummary) ?? true
             }
@@ -199,7 +135,6 @@ export default function ResultTabs({
           <SessionParticipantsTable
             sessionId={resourceId}
             userData={currentUserData}
-            onIncludeInSummaryChange={updateIncludedInAnalysisList}
           />
         ),
       },
@@ -280,9 +215,8 @@ export default function ResultTabs({
     ];
   }, [
     hasMinimumRole,
-    hasAnyIncludedUserMessages,
-    userIdsIncludedInSummary,
     responses,
+    currentUserData
   ]);
 
   // Get visible tabs
@@ -368,10 +302,10 @@ export default function ResultTabs({
   };
 
   // If all tabs are disabled, or no replies are available yet, show some empty message.
-  // (For new workspaces, we'll show a placeholder instead of this)
+  // (For new projects, we'll show a placeholder instead of this)
   if (
     visibleTabs.length === 0 ||
-    (!hasAnyIncludedUserMessages && !draft && !hasMinimumRole('editor'))
+    (!draft && !hasMinimumRole('editor'))
   ) {
     return (
       <Card className="w-full">

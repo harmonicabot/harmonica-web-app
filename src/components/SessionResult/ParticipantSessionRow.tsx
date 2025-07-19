@@ -9,6 +9,8 @@ import { ParticipantsTableData } from './SessionParticipantsTable';
 import { Spinner } from '../icons';
 import { Switch } from '../ui/switch';
 import { MessageSquare, Star, X } from 'lucide-react';
+import * as db from '@/lib/db';
+import { useSessionStore } from '@/stores/SessionStore';
 
 const EMOJI_RATINGS = [
   {
@@ -40,19 +42,26 @@ const EMOJI_RATINGS = [
 
 export default function ParicipantSessionRow({
   tableData,
-  onIncludeChange,
 }: {
   tableData: ParticipantsTableData;
-  onIncludeChange: (userId: string, included: boolean) => void;
 }) {
   const userData = tableData.userData;
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [rating, setRating] = useState<SessionRating | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { updateUserData } = useSessionStore();
+  
 
-  const handleIncludeInSummaryUpdate = (updatedIncluded: boolean) => {
-    onIncludeChange(userData.id, updatedIncluded);
+  const handleIncludeInSummaryUpdate = async (included: boolean) => {
+    // Update the store immediately for optimistic update
+    updateUserData(userData.session_id, userData.id, { include_in_summary: included });
+    
+    // Update the field in the db
+    await db.updateUserSession(userData.id, {
+      include_in_summary: included,
+      last_edit: new Date(),
+    });
   };
 
   const handleViewClick = async () => {
@@ -137,7 +146,7 @@ export default function ParicipantSessionRow({
           <Switch
             checked={tableData.includeInSummary}
             onCheckedChange={handleIncludeInSummaryUpdate}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}  // Stops the 'View' popping up
           />
         </TableCell>
         <TableCell className="hidden md:table-cell">

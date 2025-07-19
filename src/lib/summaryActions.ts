@@ -41,7 +41,7 @@ export async function checkSummaryNeedsUpdating(resourceId: string, isProject = 
 
 export async function updateUserLastEdit(userSessionId: string) {
   if (!userSessionId) {
-    throw new Error('userSessionId is required');
+    throw new Error('userId is required');
   }
 
   try {

@@ -35,6 +35,7 @@ class SummaryUpdateManagerClass {
     this.stopPolling(resourceId); // Ensure no duplicate intervals
     console.log("Start polling for", resourceId);
     const poll = async () => {
+      console.log(`[SummaryUpdateManager] Polling for ${resourceId}`);
       this.handleUpdateTimes(resourceId);
     };
 
@@ -102,31 +103,9 @@ class SummaryUpdateManagerClass {
   }
 
   /**
-   * Marks a resource as having new edits by updating the appropriate timestamp
-   */
-  async registerEdit(resourceId: string, opts: ManagerOpts = {}): Promise<void> {
-    try {
-      const { source = 'ui', userSessionId } = opts;
-      const state = this.getOrCreateState(resourceId);
-      state.status = RefreshStatus.Outdated;
-      
-      if (source === 'participants' && userSessionId) {
-        await updateUserLastEdit(userSessionId);
-      } else {
-        await updateHostLastEdit(resourceId);
-      }
-      
-      state.lastEditTimestamp = Date.now(); // Do this after we've updated, just in case it fails
-      console.log(`[SummaryUpdateManager] Registered edit for ${resourceId} (source: ${source})`);
-    } catch (error) {
-      console.error('Failed to register edit:', error);
-    }
-  }
-
-  /**
    * Execute summary update now
    */
-  async updateNow(resourceId: string, opts: ManagerOpts = {}): Promise<void> {
+  async updateNow(resourceId: string, opts: ManagerOpts = {}): Promise<string | undefined> {
     const state = this.getOrCreateState(resourceId);
     if (state.isRunning) {
       console.log(`[SummaryUpdateManager] Update already running for ${resourceId}`);
@@ -156,6 +135,7 @@ class SummaryUpdateManagerClass {
       );
 
       console.log(`[SummaryUpdateManager] Update completed for ${resourceId}`);
+      return summary;
       
     } catch (error) {
       console.error(`[SummaryUpdateManager] Update failed for ${resourceId}:`, error);
@@ -179,13 +159,3 @@ class SummaryUpdateManagerClass {
 
 // Export singleton instance
 export const SummaryUpdateManager = new SummaryUpdateManagerClass();
-
-// React hook for convenient access
-export function useSummaryUpdate(resourceId: string, opts: ManagerOpts = {}) {
-  return {
-    registerEdit: () => SummaryUpdateManager.registerEdit(resourceId, opts),
-    updateNow: () => SummaryUpdateManager.updateNow(resourceId, opts),
-    getState: () => SummaryUpdateManager.getState(resourceId),
-    clearState: () => SummaryUpdateManager.clearState(resourceId)
-  };
-}

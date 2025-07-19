@@ -12,7 +12,6 @@ interface SessionResultSummaryProps {
   isProject: boolean;
   projectId?: string;
   draft: boolean;
-  onUpdateSummary: () => void;
   showSummary?: boolean;
   showSessionRecap?: boolean;
 }
@@ -22,7 +21,6 @@ export default function SessionResultSummary({
   isProject = false,
   projectId,
   draft = false,
-  onUpdateSummary,
   showSummary = true,
   showSessionRecap = true,
 }: SessionResultSummaryProps) {
@@ -39,9 +37,8 @@ export default function SessionResultSummary({
   
   const manuallyTriggerSummaryUpdate = () => {
     setIsUpdating(true);
-    SummaryUpdateManager.updateNow(hostData[0].id).then(() => {
+    SummaryUpdateManager.updateNow(hostData[0].id).then((_summary) => {
       setIsUpdating(false);
-      onUpdateSummary();
       // Summary will be updated automatically via SWR
     });
   };
