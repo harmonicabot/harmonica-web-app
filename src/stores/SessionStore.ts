@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { HostSession, Message, UserSession } from '@/lib/schema';
 
 interface SessionStore {
+  workspaceData: Record<string, string[]> // workspaceId to session IDs
+  addWorkspaceData: (workspaceId: string, hostSessionIds: string[]) => void
   hostData: Record<string, HostSession>
   addHostData: (id: string, data: HostSession) => void
   userData: Record<string, UserSession[]>
@@ -13,6 +15,10 @@ interface SessionStore {
 }
 
 export const useSessionStore = create<SessionStore>((set) => ({
+  workspaceData: {},
+  addWorkspaceData: (workspaceId, hostSessionIds) => set((state) => ({
+    workspaceData: { ...state.workspaceData, [workspaceId]: hostSessionIds }
+  })),
   hostData: {},
   addHostData: (sessionId, data) => set((state) => ({
     hostData: { ...state.hostData, [sessionId]: data }

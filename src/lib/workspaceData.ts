@@ -68,8 +68,7 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
     const usersWithChat = allUserData.map((sessionUsers) =>
       sessionUsers.filter(
         (user) =>
-          stats[user.session_id][user.id].num_messages > 2 &&
-          user.include_in_summary,
+          stats[user.session_id][user.id].num_messages > 2
       ),
     );
 

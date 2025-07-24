@@ -16,6 +16,7 @@ import { PromptSettings } from '@/components/SessionResult/ResultTabs/components
 import { toast } from 'hooks/use-toast';
 import * as db from '@/lib/db';
 import { Loader2 } from 'lucide-react';
+import { useSessionStore } from '@/stores/SessionStore';
 
 // Default visibility configuration for workspaces
 const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
@@ -37,23 +38,33 @@ export default function WorkspaceContent({
   extendedWorkspaceData,
   workspaceId,
 }: WorkspaceContentProps) {
-  const initialWorkspaceData = extendedWorkspaceData?.workspace;
+  const initialWorkspaceData = extendedWorkspaceData.workspace;
   const [workspaceData, setWorkspaceData] = useState<Workspace | NewWorkspace>(
     initialWorkspaceData,
   );
   const [extendedData, setExtendedData] = useState(extendedWorkspaceData);
-
+  
   // Update state when initialWorkspaceData changes
   useEffect(() => {
     if (initialWorkspaceData) {
       setWorkspaceData(initialWorkspaceData);
     }
   }, [initialWorkspaceData]);
-
+  
   // Update extended data when props change
   useEffect(() => {
     setExtendedData(extendedWorkspaceData);
   }, [extendedWorkspaceData]);
+  
+  const { addHostData, addUserData, addWorkspaceData} = useSessionStore()
+  useEffect(() => {
+    console.log("Adding workspace data to the store: ", extendedWorkspaceData.workspace.id)
+    addWorkspaceData(workspaceId, extendedWorkspaceData.hostSessions.map(hs => hs.id))
+    extendedWorkspaceData.hostSessions.forEach(hostSession => {
+      addHostData(hostSession.id, hostSession);
+      addUserData(hostSession.id, extendedWorkspaceData.userData.filter(user => user.session_id === hostSession.id))
+    })
+  }, [addHostData, addUserData, extendedWorkspaceData])
 
   const {
     hasMinimumRole,
