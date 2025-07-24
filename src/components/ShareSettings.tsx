@@ -20,14 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Globe, Settings } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import { Share2, Loader2, X, UserCog, Copy, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from 'hooks/use-toast';
@@ -46,8 +39,6 @@ import {
 import { Role, usePermissions, ROLE_HIERARCHY } from '@/lib/permissions';
 import { Invitation, PermissionsTable, User, ResultTabsVisibilityConfig } from '@/lib/schema';
 import { encryptId } from '@/lib/encryptionUtils';
-import { Spinner } from './icons';
-import { Description } from '@radix-ui/react-alert-dialog';
 
 interface ShareSettingProps {
   resourceId: string;
@@ -119,8 +110,6 @@ export default function ShareSettings({
     viewer: { label: "Viewer", description: "can view and participate" },
     none: { label: "None", description: "Should not be able to access this resource" },
   };
-
-  console.log("Assignable roles: ", assignableRoles)
   
   const handleOpenChange = (open: boolean) => {
     if (!open && onClose) {

@@ -32,11 +32,8 @@ import { useSessionStore } from '@/stores/SessionStore';
 import { SummaryUpdateManager } from '../../../summary/SummaryUpdateManager';
 
 export interface ResultTabsProps {
-  hostData: HostSession[];
-  userData: UserSession[];
   resourceId: string;
   isWorkspace?: boolean;
-  hasNewMessages: boolean;
   sessionIds?: string[];
   chatEntryMessage?: OpenAIMessage;
   visibilityConfig: ResultTabsVisibilityConfig;
@@ -55,11 +52,8 @@ const defaultVisibilityConfig: ResultTabsVisibilityConfig = {
 };
 
 export default function ResultTabs({
-  hostData, // zero or more (e.g. if workspace)
-  userData, // all user data related to all hostData; might be empty
   resourceId,
   isWorkspace: isProject = false,
-  hasNewMessages,
   visibilityConfig = defaultVisibilityConfig,
   chatEntryMessage,
   sessionIds = [],
@@ -76,13 +70,11 @@ export default function ResultTabs({
   const { responses, addResponse, removeResponse } =
     useCustomResponses(resourceId);
 
-  // Use SessionStore for userData with fallback to prop
-  const { userData: storeUserData } = useSessionStore();
-  const currentUserData =
-    storeUserData[resourceId] && storeUserData[resourceId].length > 0
-      ? storeUserData[resourceId]
-      : userData; // ONLY ON FIRST RENDER userData might be present while the data isn't available in the store yet.
-  
+  const { hostData, userData: currentUserData } = useSessionStore((state) => ({
+    hostData: Object.values(state.hostData),
+    userData: state.userData,
+  }));    
+
   useEffect(() => {
     SummaryUpdateManager.startPolling(resourceId, 10000); // Poll every 10 seconds
     return () => SummaryUpdateManager.stopPolling(resourceId); // Clean up on unmount

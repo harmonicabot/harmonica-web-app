@@ -1,20 +1,14 @@
 'use client';
 
 import { HostSession, UserSession } from '@/lib/schema';
-import React, { useEffect } from 'react';
-import { mutate } from 'swr';
-
-import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
-import { SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
+import React from 'react';
 
 import ResultTabs from './ResultTabs';
 import ExportSection from '../Export/ExportSection';
 import { OpenAIMessage } from '@/lib/types';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
-import { usePathname } from 'next/navigation';
 import ShareSettings from '../ShareSettings';
-
 
 export default function SessionResultsSection({
   hostData,
@@ -31,10 +25,7 @@ export default function SessionResultsSection({
   chatEntryMessage?: OpenAIMessage;
 }) {
   const { loading, hasMinimumRole } = usePermissions(resourceId);
-  const path = usePathname();
   const hasMessages = userData.length > 0;
-  const { hasNewMessages, lastMessage, lastSummaryUpdate } =
-    checkSummaryAndMessageTimes(hostData, userData);
 
   visibilityConfig.showChat = visibilityConfig.showChat && hasMessages;
 
@@ -53,7 +44,6 @@ export default function SessionResultsSection({
             hostData={[hostData]}
             userData={userData}
             resourceId={resourceId}
-            hasNewMessages={hasNewMessages}
             visibilityConfig={visibilityConfig}
             chatEntryMessage={chatEntryMessage}
           />

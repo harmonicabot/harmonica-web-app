@@ -20,9 +20,8 @@ export default function SessionResultHeader({
   status,  
 }: SessionResultHeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [newTopic, setNewTopic] = useState(topic);
   const editableRef = useRef<HTMLHeadingElement>(null);
-  const addHostData = useSessionStore(state => state.addHostData);
+  const { addHostData } = useSessionStore();
   const { hasMinimumRole } = usePermissions(sessionId);
   const isEditable = hasMinimumRole('editor');
 
