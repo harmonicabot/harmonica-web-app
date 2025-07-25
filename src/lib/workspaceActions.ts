@@ -2,6 +2,8 @@
 
 import * as db from '@/lib/db';
 
+// TODO: we could use the tanstack store to wrap & cache this as well. Not sure whether it's necessary though.
+
 /**
  * Links one or more sessions to a workspace
  */

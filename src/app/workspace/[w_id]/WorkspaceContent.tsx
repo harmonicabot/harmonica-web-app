@@ -4,19 +4,17 @@ import ResultTabs from '@/components/SessionResult/ResultTabs';
 import WorkspaceHero from '@/components/workspace/WorkspaceHero';
 import ShareSettings from '@/components/ShareSettings';
 import {
-  NewWorkspace,
   ResultTabsVisibilityConfig,
   Workspace,
 } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { ExtendedWorkspaceData } from '@/lib/types';
 import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 import { PromptSettings } from '@/components/SessionResult/ResultTabs/components/PromptSettings';
 import { toast } from 'hooks/use-toast';
 import * as db from '@/lib/db';
 import { Loader2 } from 'lucide-react';
-import { useSessionStore } from '@/stores/SessionStore';
 
 // Default visibility configuration for workspaces
 const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
@@ -38,32 +36,6 @@ export default function WorkspaceContent({
   extendedWorkspaceData,
   workspaceId,
 }: WorkspaceContentProps) {
-  // Prime the store with initial data if needed (SSR hydration)
-  const {
-    workspaceMapping,
-    workspaceData,
-    addHostData,
-    addUserData,
-    addWorkspaceData,
-  } = useSessionStore((state) => ({
-    ...state,
-    workspaceMapping: state.workspaceMapping[workspaceId],
-    workspaceData: state.workspaceData[workspaceId]
-  }));
-
-  // Hydrate store on mount if not already present
-  useEffect(() => {
-    if (!workspaceMapping) {
-      addWorkspaceData(workspaceId, extendedWorkspaceData.workspace,extendedWorkspaceData.hostSessions.map(hs => hs.id));
-      extendedWorkspaceData.hostSessions.forEach(hostSession => {
-        addHostData(hostSession.id, hostSession);
-        addUserData(hostSession.id, extendedWorkspaceData.userData.filter(user => user.session_id === hostSession.id));
-      });
-    }
-  }, [addHostData, addUserData, addWorkspaceData, extendedWorkspaceData, workspaceId, workspaceMapping]);
-
-  // We still need the 'extendedData' object as separate var to keep track of linked sessions & exist status etc...
-  const [extendedData, setExtendedData] = useState(extendedWorkspaceData);
 
   const {
     hasMinimumRole,
@@ -88,7 +60,7 @@ export default function WorkspaceContent({
     [isPublic],
   );
 
-  const exists = extendedData.exists;
+  const exists = extendedWorkspaceData.exists;
 
   // Memoize permission checks
   const isEditable = useMemo(
@@ -134,40 +106,19 @@ export default function WorkspaceContent({
     [workspaceId],
   );
 
-  const handlePromptChangeSession = async (
-      newPrompt: string,
-      type: 'facilitation' | 'summary',
-    ) => {
-      try {
-        const updateData =
-          type === 'facilitation'
-            ? { prompt: newPrompt }
-            : { summary_prompt: newPrompt };
-  
-        await db.updateHostSession(id, updateData);
-      } catch (error) {
-        console.error('Failed to update prompt:', error);
-        toast({
-          title: 'Failed to update prompt',
-          description: 'An error occurred while updating the prompt.',
-          variant: 'destructive',
-        });
-      }
-    };
-
   // Memoize the chat entry message
   const chatEntryMessage = useMemo(
     () => ({
       role: 'assistant' as const,
       content: `Welcome to ${
-        workspaceData?.title || 'this project'
+        extendedWorkspaceData.workspace.title || 'this project'
       }! I'm here to help you understand the learnings across the linked discussions.
 
 Here are some questions you might want to ask:
   - What were the main themes discussed during the sessions?
   - What was controversial, and where did participants agree?`,
     }),
-    [workspaceData?.title],
+    [extendedWorkspaceData],
   );
 
   if (loadingUserInfo) {
@@ -187,13 +138,13 @@ Here are some questions you might want to ask:
         <WorkspaceHero
           workspaceId={workspaceId}
           exists={exists}
-          title={workspaceData?.title}
-          description={workspaceData?.description}
-          location={workspaceData?.location}
-          bannerImageUrl={workspaceData?.bannerImage}
-          initialGradientFrom={workspaceData?.gradientFrom}
-          initialGradientTo={workspaceData?.gradientTo}
-          initialUseGradient={workspaceData?.useGradient}
+          title={extendedWorkspaceData.workspace?.title}
+          description={extendedWorkspaceData.workspace?.description}
+          location={extendedWorkspaceData.workspace?.location}
+          bannerImageUrl={extendedWorkspaceData.workspace?.bannerImage}
+          initialGradientFrom={extendedWorkspaceData.workspace?.gradientFrom}
+          initialGradientTo={extendedWorkspaceData.workspace?.gradientTo}
+          initialUseGradient={extendedWorkspaceData.workspace?.useGradient}
           isEditable={isEditable}
           onUpdate={handleWorkspaceUpdate}
         />
@@ -201,7 +152,7 @@ Here are some questions you might want to ask:
           <div className="flex items-center gap-4 self-end mt-4">
             <PromptSettings
               isProject={false}
-              summaryPrompt={workspaceData.summary_prompt}
+              summaryPrompt={extendedWorkspaceData.workspace.summary_prompt}
               onPromptChange={handlePromptChange}
             />
             <ShareSettings resourceId={workspaceId} resourceType="WORKSPACE" />
@@ -214,19 +165,17 @@ Here are some questions you might want to ask:
           resourceId={workspaceId}
           isWorkspace={true}
           visibilityConfig={
-            workspaceData?.visibility_settings || visibilityConfig
+            extendedWorkspaceData.workspace?.visibility_settings || visibilityConfig
           }
-          sessionIds={extendedData.sessionIds}
+          sessionIds={extendedWorkspaceData.sessionIds}
           chatEntryMessage={chatEntryMessage}
           showEdit={canEdit}
           draft={!exists}
         >
           <SessionInsightsGrid
-            hostSessions={extendedData.hostSessions}
-            userData={extendedData.userData}
             workspaceId={workspaceId}
             showEdit={!exists || canEdit}
-            availableSessions={extendedData.availableSessions}
+            availableSessions={extendedWorkspaceData.availableSessions}
           />
         </ResultTabs>
       </div>

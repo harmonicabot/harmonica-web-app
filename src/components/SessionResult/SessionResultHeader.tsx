@@ -4,9 +4,10 @@ import { Check, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { updateHostSession } from '@/lib/db';
-import { useSessionStore } from '@/stores/SessionStore';
+import { useHostSession, useUpsertHostSession } from '@/stores/SessionStore';
 import { usePermissions } from '@/lib/permissions';
 import { SessionStatus } from '@/lib/clientUtils';
+import { NewHostSession } from '@/lib/schema';
 
 interface SessionResultHeaderProps {
   sessionId: string;
@@ -21,7 +22,8 @@ export default function SessionResultHeader({
 }: SessionResultHeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
   const editableRef = useRef<HTMLHeadingElement>(null);
-  const { addHostData } = useSessionStore();
+  const { data: hostData } = useHostSession(sessionId);
+  const upsertHostSession = useUpsertHostSession();
   const { hasMinimumRole } = usePermissions(sessionId);
   const isEditable = hasMinimumRole('editor');
 
@@ -47,7 +49,7 @@ export default function SessionResultHeader({
       await updateHostSession(sessionId, { topic: content });
 
       // Update the local state in the SessionStore
-      addHostData(sessionId, { id: sessionId, topic: content } as any);
+      upsertHostSession.mutate({ id: sessionId, topic: content } as NewHostSession);
       
       setIsEditing(false);
     } catch (error) {

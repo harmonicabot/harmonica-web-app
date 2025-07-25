@@ -187,7 +187,7 @@ export async function insertHostSessions(
 export async function upsertHostSession(
   data: s.NewHostSession,
   onConflict: 'skip' | 'update' = 'skip',
-): Promise<void> {
+): Promise<s.HostSession> {
   console.log('[i] Database Operation: upsertHostSession');
   const db = await dbPromise;
   try {
@@ -195,7 +195,7 @@ export async function upsertHostSession(
     // But, we kind of have to, otherwise we wouldn't be able to have 'private' sessions at all and all editing etc would be public :-/
     const session = await authGetSession();
     const userSub = session?.user?.sub || '';
-    await db
+    const result = await db
       .insertInto(hostTableName)
       .values({ ...data, client: userSub })
       .onConflict((oc) =>
@@ -203,7 +203,9 @@ export async function upsertHostSession(
           ? oc.column('id').doNothing()
           : oc.column('id').doUpdateSet(data),
       )
-      .execute();
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return result;
   } catch (error) {
     console.error('Error upserting host session:', error);
     throw error;
@@ -293,6 +295,30 @@ export async function insertUserSessions(
     return result.map((row) => row.id);
   } catch (error) {
     console.error('Error inserting user sessions:', error);
+    throw error;
+  }
+}
+
+export async function upsertUserSessions(
+  data: s.NewUserSession | s.NewUserSession[],
+  onConflict: 'skip' | 'update' = 'update',
+): Promise<s.UserSession[]> {
+  console.log('[i] Database Operation: upsertUserSessions');
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .insertInto(userTableName)
+      .values(data)
+      .onConflict((oc) =>
+        onConflict === 'skip'
+          ? oc.column('id').doNothing()
+          : oc.column('id').doUpdateSet(data),
+      )
+      .returningAll()
+      .execute();
+    return result;
+  } catch (error) {
+    console.error('Error upserting user session:', error);
     throw error;
   }
 }

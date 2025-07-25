@@ -7,7 +7,6 @@ import { OpenAIMessage } from '@/lib/types';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
 import { SessionStatus } from '@/lib/clientUtils';
 import { useEffect } from 'react';
-import { useSessionStore } from '@/stores/SessionStore';
 
 interface SessionPageProps {
   data: SessionData;
@@ -23,13 +22,6 @@ export default function SessionPage({
   chatEntryMessage,
 }: SessionPageProps) {
   const { hostData, usersWithChat, stats } = data;
-  const { addHostData, addUserData } = useSessionStore()
-
-  useEffect(() => {
-    console.log("Adding data to the store: ", hostData.id)
-    addHostData(hostData.id, hostData);
-    addUserData(hostData.id, data.userData);
-  }, [addHostData, addUserData, hostData, data])
 
   const status =
     !hostData.active || hostData.final_report_sent

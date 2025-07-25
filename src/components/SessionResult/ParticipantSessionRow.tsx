@@ -10,7 +10,7 @@ import { Spinner } from '../icons';
 import { Switch } from '../ui/switch';
 import { MessageSquare, Star, X } from 'lucide-react';
 import * as db from '@/lib/db';
-import { useSessionStore } from '@/stores/SessionStore';
+import { useUpsertUserSessions } from '@/stores/SessionStore';
 
 const EMOJI_RATINGS = [
   {
@@ -49,18 +49,15 @@ export default function ParicipantSessionRow({
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [rating, setRating] = useState<SessionRating | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const { updateUserData } = useSessionStore();
-  
+  const [isLoading, setIsLoading] = useState(false);  
+  const updateUserSession = useUpsertUserSessions();
 
   const handleIncludeInSummaryUpdate = async (included: boolean) => {
-    // Update the store immediately for optimistic update
-    updateUserData(userData.session_id, userData.id, { include_in_summary: included });
-    
-    // Update the field in the db
-    await db.updateUserSession(userData.id, {
+    // Updates the store & db
+    updateUserSession.mutate({
+      ...userData,
       include_in_summary: included,
-      last_edit: new Date(),
+      last_edit: new Date()
     });
   };
 

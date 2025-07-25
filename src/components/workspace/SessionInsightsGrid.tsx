@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import SessionSummaryCard from '@/components/SessionResult/SessionSummaryCard';
 import { HostSession, UserSession } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
-import { LinkIcon, Pencil, Plus } from 'lucide-react';
+import { LinkIcon, Loader, Pencil, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import {
@@ -21,43 +21,41 @@ import {
 } from '@/lib/workspaceActions';
 import { useToast } from 'hooks/use-toast';
 import * as db from '@/lib/db';
-import { useSessionStore } from '@/stores/SessionStore';
+import {
+  useUpsertWorkspace,
+  useUpsertHostSession,
+  useUpsertUserSessions,
+  useHostSession,
+  useWorkspace,
+  useLinkSessionsToWorkspace,
+  useUnlinkSessionFromWorkspace,
+} from '@/stores/SessionStore';
 
 interface SessionInsightsGridProps {
-  hostSessions: HostSession[];
-  userData: UserSession[];
   workspaceId: string;
   showEdit?: boolean;
   availableSessions?: Pick<HostSession, 'id' | 'topic' | 'start_time'>[];
 }
 
 export default function SessionInsightsGrid({
-  hostSessions,
-  userData,
   workspaceId,
   showEdit = false,
   availableSessions = [],
 }: SessionInsightsGridProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { data: projectData, isLoading, isError } = useWorkspace(workspaceId);
+  const localHostSessions = projectData?.hostSessions ?? [];
+  const localUserData = projectData?.userData ?? [];
+
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
   const [isLinking, setIsLinking] = useState(false);
-  const [localHostSessions, setLocalHostSessions] =
-    useState<HostSession[]>(hostSessions);
-  const [localUserData, setLocalUserData] = useState<UserSession[]>(userData);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { upsertWorkspaces, upsertHostData, upsertUserData, hostData, userData: storeUserData } = useSessionStore()
-
-  // Update local state when props change
-  useEffect(() => {
-    setLocalHostSessions(hostSessions);
-    setLocalUserData(userData);
-  }, [hostSessions, userData]);
 
   // Filter out sessions that are already in the workspace
   const sessionsToLink = availableSessions.filter(
     (session) =>
-      !localHostSessions.some((hostSession) => hostSession.id === session.id),
+      !localHostSessions.some((hostSession) => hostSession.id === session.id)
   );
 
   const handleCreateSession = () => {
@@ -68,105 +66,39 @@ export default function SessionInsightsGrid({
     setSelectedSessions((prev) =>
       prev.includes(sessionId)
         ? prev.filter((id) => id !== sessionId)
-        : [...prev, sessionId],
+        : [...prev, sessionId]
     );
   };
 
+  const linkSessions = useLinkSessionsToWorkspace();
   const handleLinkSessions = async () => {
-    if (selectedSessions.length === 0) return;
-
-    setIsLinking(true);
-    try {
-      // First, link the sessions to the workspace
-      await linkSessionsToWorkspace(workspaceId, selectedSessions);
-
-      // Determine which sessions are not already in the store
-      const sessionsToFetch = selectedSessions.filter(
-        (sessionId) => !hostData[sessionId]
-      );
-
-      let newSessionsData: HostSession[] = [];
-      let newUserData: UserSession[][] = [];
-
-      if (sessionsToFetch.length > 0) {
-        // Fetch only missing session data and user data
-        [newSessionsData, newUserData] = await Promise.all([
-          Promise.all(
-            sessionsToFetch.map(async (sessionId) => {
-              const sessionData = await db.getHostSessionById(sessionId);
-              return sessionData;
-            })
-          ),
-          Promise.all(
-            sessionsToFetch.map(async (sessionId) => {
-              const users = await db.getUsersBySessionId(sessionId);
-              return users;
-            })
-          ),
-        ]);
-
-        // Update local state with the new session data
-        setLocalHostSessions((prev) => [...prev, ...newSessionsData]);
-
-        // Update local user data
-        const flattenedUserData = newUserData.flat();
-        setLocalUserData((prev) => [...prev, ...flattenedUserData]);
-
-        // Update the store with new data
-        newSessionsData.forEach((host, idx) => {
-          upsertHostData(host.id, host);
-          upsertUserData(host.id, newUserData[idx]);
-        });
-      }
-
-      // Always update workspace mapping in the store
-      upsertWorkspaces(workspaceId, {}, selectedSessions);
-
-      setDialogOpen(false);
-      toast({
-        title: 'Success',
-        description: 'Sessions linked successfully',
-      });
-    } catch (error) {
-      console.error('Failed to link sessions:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to link sessions to project',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLinking(false);
-      setSelectedSessions([]);
-    }
+    linkSessions.mutate({ workspaceId, sessionIds: selectedSessions });
+    if (linkSessions.isPending) return <Loader />;
+    if (linkSessions.isError)
+      toast({ title: 'Error', description: linkSessions.error.message });
+    if (linkSessions.isSuccess)
+      toast({ title: 'Success', description: 'Sessions linked!' });
   };
 
+  const unlinkSession = useUnlinkSessionFromWorkspace();
   const handleRemoveSession = async (sessionId: string) => {
-    try {
-      // Update local state immediately
-      setLocalHostSessions((prev) =>
-        prev.filter((session) => session.id !== sessionId),
-      );
+    unlinkSession.mutate({ workspaceId, sessionId });
 
-      // Perform the actual unlinking
-      await unlinkSessionFromWorkspace(workspaceId, sessionId);
-
-      // Update links in the store (but don't remove fetched sessions, it won't be visible but available faster if the user visits it again...)
-      upsertWorkspaces(workspaceId, {}, [...selectedSessions.filter(session => session !== sessionId)]);
-
+    if (unlinkSession.isPending) return <Loader />;
+    if (unlinkSession.isError) {
+      toast({
+        title: 'Error',
+        description:
+          'Failed to remove session from project\n' +
+          unlinkSession.error.message,
+        variant: 'destructive',
+      });
+    }
+    if (unlinkSession.isSuccess) {
       toast({
         title: 'Session removed',
         description: 'The session has been removed from this project',
       });
-    } catch (error) {
-      console.error('Failed to remove session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to remove session from project',
-        variant: 'destructive',
-      });
-
-      // Revert the local state change if the operation failed
-      setLocalHostSessions(hostSessions);
     }
   };
 
@@ -181,7 +113,7 @@ export default function SessionInsightsGrid({
           {localHostSessions.map((hostData) => {
             // Get the corresponding user data for this session
             const sessionUserData = localUserData.filter(
-              (user) => user.session_id === hostData.id,
+              (user) => user.session_id === hostData.id
             );
 
             // Calculate the number of participants
@@ -273,7 +205,7 @@ export default function SessionInsightsGrid({
                               </Label>
                               <p className="text-sm text-gray-500">
                                 {new Date(
-                                  session.start_time,
+                                  session.start_time
                                 ).toLocaleDateString()}
                               </p>
                             </div>

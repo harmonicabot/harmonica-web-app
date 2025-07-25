@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/resizable';
 import { SimScoreTab } from './SimScoreTab';
 import SessionFilesTable from '../SessionFilesTable';
-import { useSessionStore } from '@/stores/SessionStore';
+import { useHostSession, useUserSessions, useWorkspace } from '@/stores/SessionStore';
 import { SummaryUpdateManager } from '../../../summary/SummaryUpdateManager';
 
 export interface ResultTabsProps {
@@ -70,10 +70,19 @@ export default function ResultTabs({
   const { responses, addResponse, removeResponse } =
     useCustomResponses(resourceId);
 
-  const { hostData, userData: currentUserData } = useSessionStore((state) => ({
-    hostData: Object.values(state.hostData),
-    userData: state.userData,
-  }));    
+  let hostData, userData
+  if (isProject) {
+    const { data: workspaceData, isLoading: isLoadingWspace } = useWorkspace(resourceId);
+    hostData = workspaceData?.hostSessions || []
+    userData = workspaceData?.userData || []
+  } else {
+    const { data: hData } = useHostSession(resourceId);
+    hostData = hData ? [hData] : []
+    const { data: uData } = useUserSessions(resourceId);
+    userData = uData ? uData : []
+  }
+  
+  const currentUserData = userData;
 
   useEffect(() => {
     SummaryUpdateManager.startPolling(resourceId, 10000); // Poll every 10 seconds

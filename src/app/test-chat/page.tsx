@@ -3,7 +3,7 @@
 import { memo, useEffect, useState, useRef } from 'react';
 
 import { useSearchParams } from 'next/navigation';
-import { useSessionStore } from '@/stores/SessionStore';
+import { useHostSession, useUpsertHostSession } from '@/stores/SessionStore';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Loader2, HelpCircle } from 'lucide-react';
@@ -33,15 +33,17 @@ Please type your name or "anonymous" if you prefer
   const sessionId = searchParams.get('s');
   const assistantId = searchParams.get('a');
 
-  const [hostData, addHostData] = useSessionStore((state) => [
-    sessionId ? state.hostData[sessionId] : null,
-    state.addHostData,
-  ]);
+  const {data: hostData, isLoading: loadingHostData, error} = useHostSession(sessionId || '')
+  const upsertHostSession = useUpsertHostSession()
+  // const [hostData, addHostData] = useSessionStore((state) => [
+  //   sessionId ? state.hostData[sessionId] : null,
+  //   state.addHostData,
+  // ]);
 
   const [userSessionId, setUserSessionId] = useState<string>();
   const [showModal, setShowModal] = useState(true);
   const [userFinished, setUserFinished] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(loadingHostData);
   const [isFirstMessage, setIsFirstMessage] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -89,7 +91,6 @@ Please type your name or "anonymous" if you prefer
     if (sessionId && !hostData) {
       setIsLoading(true);
       getHostSessionById(sessionId).then((data) => {
-        addHostData(sessionId, data);
         setIsLoading(false);
       });
     } else {

@@ -32,8 +32,6 @@ export default function SessionLayout({
 async function ProjectBar({ sessionId }: { sessionId: string }) {
   const projects = await getWorkspacesForSession(sessionId);
 
-
-
   return (
     <div className="flex items-center space-x-2 overflow-x-auto">
       {projects.length > 0 && (
