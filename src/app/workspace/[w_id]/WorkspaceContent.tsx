@@ -38,33 +38,32 @@ export default function WorkspaceContent({
   extendedWorkspaceData,
   workspaceId,
 }: WorkspaceContentProps) {
-  const initialWorkspaceData = extendedWorkspaceData.workspace;
-  const [workspaceData, setWorkspaceData] = useState<Workspace | NewWorkspace>(
-    initialWorkspaceData,
-  );
-  const [extendedData, setExtendedData] = useState(extendedWorkspaceData);
-  
-  // Update state when initialWorkspaceData changes
+  // Prime the store with initial data if needed (SSR hydration)
+  const {
+    workspaceMapping,
+    workspaceData,
+    addHostData,
+    addUserData,
+    addWorkspaceData,
+  } = useSessionStore((state) => ({
+    ...state,
+    workspaceMapping: state.workspaceMapping[workspaceId],
+    workspaceData: state.workspaceData[workspaceId]
+  }));
+
+  // Hydrate store on mount if not already present
   useEffect(() => {
-    if (initialWorkspaceData) {
-      setWorkspaceData(initialWorkspaceData);
+    if (!workspaceMapping) {
+      addWorkspaceData(workspaceId, extendedWorkspaceData.workspace,extendedWorkspaceData.hostSessions.map(hs => hs.id));
+      extendedWorkspaceData.hostSessions.forEach(hostSession => {
+        addHostData(hostSession.id, hostSession);
+        addUserData(hostSession.id, extendedWorkspaceData.userData.filter(user => user.session_id === hostSession.id));
+      });
     }
-  }, [initialWorkspaceData]);
-  
-  // Update extended data when props change
-  useEffect(() => {
-    setExtendedData(extendedWorkspaceData);
-  }, [extendedWorkspaceData]);
-  
-  const { addHostData, addUserData, addWorkspaceData} = useSessionStore()
-  useEffect(() => {
-    console.log("Adding workspace data to the store: ", extendedWorkspaceData.workspace.id)
-    addWorkspaceData(workspaceId, extendedWorkspaceData.hostSessions.map(hs => hs.id))
-    extendedWorkspaceData.hostSessions.forEach(hostSession => {
-      addHostData(hostSession.id, hostSession);
-      addUserData(hostSession.id, extendedWorkspaceData.userData.filter(user => user.session_id === hostSession.id))
-    })
-  }, [addHostData, addUserData, extendedWorkspaceData])
+  }, [addHostData, addUserData, addWorkspaceData, extendedWorkspaceData, workspaceId, workspaceMapping]);
+
+  // We still need the 'extendedData' object as separate var to keep track of linked sessions & exist status etc...
+  const [extendedData, setExtendedData] = useState(extendedWorkspaceData);
 
   const {
     hasMinimumRole,
@@ -101,10 +100,8 @@ export default function WorkspaceContent({
 
   // Memoize the handleWorkspaceUpdate callback
   const handleWorkspaceUpdate = useCallback((updates: Workspace) => {
-    setWorkspaceData((prev) => ({
-      ...prev,
-      ...updates,
-    }));
+    // TODO check where this is used!
+    throw new ReferenceError("This method is not implemented yet; it should update the store directly where it's called. See second-last element in the stack.")
   }, []);
 
   // Memoize the handlePromptChange callback
@@ -115,10 +112,8 @@ export default function WorkspaceContent({
         const result = await db.updateWorkspace(workspaceId, updateData);
 
         if (result) {
-          setWorkspaceData((prev) => ({
-            ...prev,
-            summary_prompt: newPrompt,
-          }));
+          // TODO check where this is used!
+          throw new ReferenceError("This method is not implemented yet; it should update the store directly where it's called. See second-last element in the stack.")
         } else {
           toast({
             title: 'Failed to update prompt',
@@ -139,23 +134,26 @@ export default function WorkspaceContent({
     [workspaceId],
   );
 
-  // Handle session updates
-  const handleSessionsUpdate = useCallback(async () => {
-    try {
-      // Fetch updated workspace data
-      const updatedData = await db.getExtendedWorkspaceData(workspaceId);
-      if (updatedData) {
-        setExtendedData(updatedData);
+  const handlePromptChangeSession = async (
+      newPrompt: string,
+      type: 'facilitation' | 'summary',
+    ) => {
+      try {
+        const updateData =
+          type === 'facilitation'
+            ? { prompt: newPrompt }
+            : { summary_prompt: newPrompt };
+  
+        await db.updateHostSession(id, updateData);
+      } catch (error) {
+        console.error('Failed to update prompt:', error);
+        toast({
+          title: 'Failed to update prompt',
+          description: 'An error occurred while updating the prompt.',
+          variant: 'destructive',
+        });
       }
-    } catch (error) {
-      console.error('Failed to update workspace data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to refresh workspace data',
-        variant: 'destructive',
-      });
-    }
-  }, [workspaceId]);
+    };
 
   // Memoize the chat entry message
   const chatEntryMessage = useMemo(
@@ -213,11 +211,8 @@ Here are some questions you might want to ask:
 
       <div className="mt-8 flex flex-col lg:flex-row gap-4">
         <ResultTabs
-          hostData={extendedData.hostSessions}
-          userData={extendedData.userData}
           resourceId={workspaceId}
           isWorkspace={true}
-          hasNewMessages={false}
           visibilityConfig={
             workspaceData?.visibility_settings || visibilityConfig
           }
@@ -232,7 +227,6 @@ Here are some questions you might want to ask:
             workspaceId={workspaceId}
             showEdit={!exists || canEdit}
             availableSessions={extendedData.availableSessions}
-            onSessionsUpdate={handleSessionsUpdate}
           />
         </ResultTabs>
       </div>

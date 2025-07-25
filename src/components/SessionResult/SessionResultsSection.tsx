@@ -41,8 +41,6 @@ export default function SessionResultsSection({
       )}
       <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
           <ResultTabs
-            hostData={[hostData]}
-            userData={userData}
             resourceId={resourceId}
             visibilityConfig={visibilityConfig}
             chatEntryMessage={chatEntryMessage}

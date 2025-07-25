@@ -1,42 +1,59 @@
 import { create } from 'zustand'
-import { HostSession, Message, UserSession } from '@/lib/schema';
+import { HostSession, Message, NewWorkspace, UserSession, Workspace } from '@/lib/schema';
 
 interface SessionStore {
-  workspaceData: Record<string, string[]> // workspaceId to session IDs
-  addWorkspaceData: (workspaceId: string, hostSessionIds: string[]) => void
+  workspaceData: Record<string, Workspace | NewWorkspace>
+  workspaceMapping: Record<string, string[]> // workspaceId to session IDs
+  upsertWorkspaceData: (workspaceId: string, workspaceData: Workspace | NewWorkspace, hostSessionIds: string[]) => void
+  upsertWorkspaces: (workspaceId: string, updates: Partial<Workspace | NewWorkspace>, hostSessionIds: string[]) => void
   hostData: Record<string, HostSession>
-  addHostData: (id: string, data: HostSession) => void
+  upsertHostData: (id: string, data: HostSession) => void
   userData: Record<string, UserSession[]>
-  addUserData: (id: string, data: UserSession[]) => void
-  updateUserData: (sessionId: string, userId: string, updates: Partial<UserSession>) => void
+  upsertUserData: (sessionId: string, data: UserSession[]) => void
   messageData: Record<string, Message[]>
-  addMessageData: (id: string, data: Message[]) => void
+  upsertMessageData: (id: string, data: Message[]) => void
   removeSession: (id: string) => void
 }
 
 export const useSessionStore = create<SessionStore>((set) => ({
   workspaceData: {},
-  addWorkspaceData: (workspaceId, hostSessionIds) => set((state) => ({
-    workspaceData: { ...state.workspaceData, [workspaceId]: hostSessionIds }
+  workspaceMapping: {},
+  upsertWorkspaceData: (workspaceId, workspaceData, hostSessionIds) => set((state) => ({
+    workspaceData: { ...state.workspaceData, [workspaceId]: workspaceData },
+    workspaceMapping: { ...state.workspaceMapping, [workspaceId]: hostSessionIds }
+  })),
+  upsertWorkspaces: (workspaceId, updates, hostSessionIds) => set((state) => ({
+    workspaceData: {
+      ...state.workspaceData,
+      [workspaceId]: {
+        ...state.workspaceData[workspaceId],
+        ...updates
+      }
+    },
+    workspaceMapping: { ...state.workspaceMapping, [workspaceId]: hostSessionIds }
   })),
   hostData: {},
-  addHostData: (sessionId, data) => set((state) => ({
+  upsertHostData: (sessionId, data) => set((state) => ({
     hostData: { ...state.hostData, [sessionId]: data }
   })),
   userData: {},
-  addUserData: (sessionId, data) => set((state) => ({
-    userData: { ...state.userData, [sessionId]: data }
-  })),
-  updateUserData: (sessionId, userId, updates) => set((state) => ({
-    userData: {
-      ...state.userData,
-      [sessionId]: state.userData[sessionId]?.map(user =>
-        user.id === userId ? { ...user, ...updates } : user
-      ) || []
-    }
-  })),
+  upsertUserData: (sessionId, data) => set((state) => {
+    const existingUsers = state.userData[sessionId] || [];
+    // Create a map for quick lookup
+    const existingMap = new Map(existingUsers.map(user => [user.id, user]));
+    // Merge: update existing, add new
+    data.forEach(user => {
+      existingMap.set(user.id, { ...existingMap.get(user.id), ...user });
+    });
+    return {
+      userData: {
+        ...state.userData,
+        [sessionId]: Array.from(existingMap.values()),
+      }
+    };
+  }),
   messageData: {},
-  addMessageData: (threadId, data) => set((state) => ({
+  upsertMessageData: (threadId, data) => set((state) => ({
     messageData: { ...state.messageData, [threadId]: data }
   })),
   removeSession: (sessionId) => set((state) => {

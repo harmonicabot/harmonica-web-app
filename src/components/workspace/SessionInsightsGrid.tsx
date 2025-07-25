@@ -21,6 +21,7 @@ import {
 } from '@/lib/workspaceActions';
 import { useToast } from 'hooks/use-toast';
 import * as db from '@/lib/db';
+import { useSessionStore } from '@/stores/SessionStore';
 
 interface SessionInsightsGridProps {
   hostSessions: HostSession[];
@@ -28,7 +29,6 @@ interface SessionInsightsGridProps {
   workspaceId: string;
   showEdit?: boolean;
   availableSessions?: Pick<HostSession, 'id' | 'topic' | 'start_time'>[];
-  onSessionsUpdate?: () => void;
 }
 
 export default function SessionInsightsGrid({
@@ -37,7 +37,6 @@ export default function SessionInsightsGrid({
   workspaceId,
   showEdit = false,
   availableSessions = [],
-  onSessionsUpdate,
 }: SessionInsightsGridProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -47,6 +46,7 @@ export default function SessionInsightsGrid({
     useState<HostSession[]>(hostSessions);
   const [localUserData, setLocalUserData] = useState<UserSession[]>(userData);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { upsertWorkspaces, upsertHostData, upsertUserData, hostData, userData: storeUserData } = useSessionStore()
 
   // Update local state when props change
   useEffect(() => {
@@ -80,33 +80,47 @@ export default function SessionInsightsGrid({
       // First, link the sessions to the workspace
       await linkSessionsToWorkspace(workspaceId, selectedSessions);
 
-      // Fetch complete session data and user data for the newly linked sessions
-      const [newSessionsData, newUserData] = await Promise.all([
-        // Fetch session data
-        Promise.all(
-          selectedSessions.map(async (sessionId) => {
-            const sessionData = await db.getHostSessionById(sessionId);
-            return sessionData;
-          }),
-        ),
-        // Fetch user data
-        Promise.all(
-          selectedSessions.map(async (sessionId) => {
-            const users = await db.getUsersBySessionId(sessionId);
-            return users;
-          }),
-        ),
-      ]);
+      // Determine which sessions are not already in the store
+      const sessionsToFetch = selectedSessions.filter(
+        (sessionId) => !hostData[sessionId]
+      );
 
-      // Update local state with the complete session data
-      setLocalHostSessions((prev) => [...prev, ...newSessionsData]);
+      let newSessionsData: HostSession[] = [];
+      let newUserData: UserSession[][] = [];
 
-      // Update local user data
-      const flattenedUserData = newUserData.flat();
-      setLocalUserData((prev) => [...prev, ...flattenedUserData]);
+      if (sessionsToFetch.length > 0) {
+        // Fetch only missing session data and user data
+        [newSessionsData, newUserData] = await Promise.all([
+          Promise.all(
+            sessionsToFetch.map(async (sessionId) => {
+              const sessionData = await db.getHostSessionById(sessionId);
+              return sessionData;
+            })
+          ),
+          Promise.all(
+            sessionsToFetch.map(async (sessionId) => {
+              const users = await db.getUsersBySessionId(sessionId);
+              return users;
+            })
+          ),
+        ]);
 
-      // Notify parent component to refresh all data
-      onSessionsUpdate?.();
+        // Update local state with the new session data
+        setLocalHostSessions((prev) => [...prev, ...newSessionsData]);
+
+        // Update local user data
+        const flattenedUserData = newUserData.flat();
+        setLocalUserData((prev) => [...prev, ...flattenedUserData]);
+
+        // Update the store with new data
+        newSessionsData.forEach((host, idx) => {
+          upsertHostData(host.id, host);
+          upsertUserData(host.id, newUserData[idx]);
+        });
+      }
+
+      // Always update workspace mapping in the store
+      upsertWorkspaces(workspaceId, {}, selectedSessions);
 
       setDialogOpen(false);
       toast({
@@ -136,8 +150,8 @@ export default function SessionInsightsGrid({
       // Perform the actual unlinking
       await unlinkSessionFromWorkspace(workspaceId, sessionId);
 
-      // Notify parent component
-      onSessionsUpdate?.();
+      // Update links in the store (but don't remove fetched sessions, it won't be visible but available faster if the user visits it again...)
+      upsertWorkspaces(workspaceId, {}, [...selectedSessions.filter(session => session !== sessionId)]);
 
       toast({
         title: 'Session removed',
