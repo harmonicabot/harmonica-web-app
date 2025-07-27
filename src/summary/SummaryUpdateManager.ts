@@ -50,6 +50,7 @@ class SummaryUpdateManagerClass {
     if (state?.pollingIntervalId) {
       clearInterval(state.pollingIntervalId);
       state.pollingIntervalId = undefined;
+      console.log("Stopped polling for", resourceId);
     }
   }
 
@@ -80,7 +81,6 @@ class SummaryUpdateManagerClass {
           state.lastEditTimestamp = updateTimes.lastEdit;
         }
       } else {
-        console.log(`[SummaryUpdateManager] No update needed for ${resourceId}`);
         state.status = RefreshStatus.UpToDate;
       }
     } catch (error) {
@@ -95,9 +95,12 @@ class SummaryUpdateManagerClass {
     return () => this.getOrCreateState(resourceId).listeners.delete(listener);
   }
 
-  private notify(resourceId: string) {
+  private notify(resourceId: string, message?: string) {
     const state = this.updates.get(resourceId);
     if (state) {
+      if (message) {
+        console.log(`[SummaryUpdateManager] Notifying listeners for ${resourceId}: ${message}`);
+      }
       state.listeners.forEach((fn) => fn(state));
     }
   }
@@ -112,7 +115,7 @@ class SummaryUpdateManagerClass {
       return;
     }
     state.isRunning = true;
-    this.notify(resourceId);
+    this.notify(resourceId, "Update started");
 
     try {
       console.log(`[SummaryUpdateManager] Executing update for ${resourceId}`, opts);
@@ -143,7 +146,7 @@ class SummaryUpdateManagerClass {
       // Clean up state
       state.isRunning = false;
       state.status = RefreshStatus.UpToDate;
-      this.notify(resourceId);
+      this.notify(resourceId, "Update finished");
     }
   }
 

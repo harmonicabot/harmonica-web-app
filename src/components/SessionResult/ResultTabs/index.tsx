@@ -14,7 +14,7 @@ import {
   UserSession,
 } from '@/lib/schema';
 import { OpenAIMessage } from '@/lib/types';
-import { CirclePlusIcon } from 'lucide-react';
+import { CirclePlusIcon, Loader, Loader2 } from 'lucide-react';
 import { CustomResponseCard } from './components/CustomResponseCard';
 import { TabContent } from './components/TabContent';
 import { useCustomResponses } from './hooks/useCustomResponses';
@@ -70,16 +70,18 @@ export default function ResultTabs({
   const { responses, addResponse, removeResponse } =
     useCustomResponses(resourceId);
 
-  let hostData, userData
+  let hostData, userData, isLoadingData
   if (isProject) {
-    const { data: workspaceData, isLoading: isLoadingWspace } = useWorkspace(resourceId);
+    const { data: workspaceData, isLoading } = useWorkspace(resourceId);
+    isLoadingData = isLoading
     hostData = workspaceData?.hostSessions || []
     userData = workspaceData?.userData || []
   } else {
-    const { data: hData } = useHostSession(resourceId);
+    const { data: hData, isLoading } = useHostSession(resourceId);
     hostData = hData ? [hData] : []
     const { data: uData } = useUserSessions(resourceId);
     userData = uData ? uData : []
+    isLoadingData = isLoading
   }
   
   const currentUserData = userData;
@@ -304,17 +306,19 @@ export default function ResultTabs({
 
   // If all tabs are disabled, or no replies are available yet, show some empty message.
   // (For new projects, we'll show a placeholder instead of this)
-  if (
-    visibleTabs.length === 0 ||
-    (!draft && !hasMinimumRole('editor'))
+  if (isLoadingData ||
+    (visibleTabs.length === 0 ||
+    (!draft && !hasMinimumRole('editor')))
   ) {
     return (
       <Card className="w-full">
         <CardContent className="text-center">
-          Nothing to see yet ¯\_(ツ)_/¯
+          <div className="flex items-center justify-center py-8">
+            Loading data... <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   return (

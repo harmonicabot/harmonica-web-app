@@ -62,7 +62,6 @@ export const ExpandableWithExport = ({
 
   // Only update if status actually changes
   SummaryUpdateManager.subscribe(resourceId, (state) => {
-    console.log("[ExpandableComponent]: Updating status: ", state.status);
     refreshStatusRef.current = state.status;
   });
   return (

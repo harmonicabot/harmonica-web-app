@@ -6,6 +6,7 @@ import { PostHogProvider } from 'posthog-js/react';
 import { useEffect } from 'react';
 import { useToast } from 'hooks/use-toast';
 import { processUserInvitations } from './actions/process-invitations';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 if (typeof window !== 'undefined') {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
@@ -15,6 +16,8 @@ if (typeof window !== 'undefined') {
     capture_pageview: false, // Disable automatic pageview capture, as we capture manually
   });
 }
+
+const queryClient = new QueryClient();
 
 // Component to handle automatic invitation processing
 function InvitationProcessor() {
@@ -54,10 +57,12 @@ function InvitationProcessor() {
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider>
-      <PostHogProvider client={posthog}>
-        <InvitationProcessor />
-        {children}
-      </PostHogProvider>
+      <QueryClientProvider client={queryClient}>
+        <PostHogProvider client={posthog}>
+          <InvitationProcessor />
+          {children}
+        </PostHogProvider>
+      </QueryClientProvider>
     </UserProvider>
   );
 }
