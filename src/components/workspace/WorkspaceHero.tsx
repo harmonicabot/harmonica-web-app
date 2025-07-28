@@ -12,10 +12,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useState, useCallback } from 'react';
-import { deleteWorkspace, updateWorkspaceDetails } from 'app/workspace/[w_id]/actions';
+import { deleteWorkspace } from 'app/workspace/[w_id]/actions';
 import { useDropzone } from 'react-dropzone';
 import { WorkspaceUpdate } from '@/lib/schema';
 import { useRouter } from 'next/navigation';
+import { useUpsertWorkspace } from '@/stores/SessionStore';
 
 interface WorkspaceHeroProps {
   workspaceId: string;
@@ -28,7 +29,6 @@ interface WorkspaceHeroProps {
   initialGradientFrom?: string;
   initialGradientTo?: string;
   initialUseGradient?: boolean;
-  onUpdate?: (updates: any) => void;
 }
 
 export default function WorkspaceHero({
@@ -42,7 +42,6 @@ export default function WorkspaceHero({
   initialGradientFrom,
   initialGradientTo,
   initialUseGradient,
-  onUpdate,
 }: WorkspaceHeroProps) {
   const [bannerImage, setBannerImage] = useState<string | undefined>(
     bannerImageUrl
@@ -55,6 +54,7 @@ export default function WorkspaceHero({
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const router = useRouter();
+  const upsertWorkspace = useUpsertWorkspace();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -72,7 +72,7 @@ export default function WorkspaceHero({
     }
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getInputProps } = useDropzone({
     onDrop,
     accept: { 'image/*': [] },
     maxFiles: 1,
@@ -123,11 +123,7 @@ export default function WorkspaceHero({
         setBannerImage(finalBannerImage);
       }
 
-      if (onUpdate) {
-        onUpdate(updateData);
-      }
-
-      await updateWorkspaceDetails(workspaceId, updateData);
+      await upsertWorkspace.mutateAsync({ id: workspaceId, data: updateData });
     } catch (error) {
       console.error('Error updating project:', error);
     }

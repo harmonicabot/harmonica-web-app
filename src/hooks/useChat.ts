@@ -1,14 +1,13 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import * as db from '@/lib/db';
 import * as llama from '../app/api/llamaUtils';
 import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
 import { UserProfile, useUser } from '@auth0/nextjs-auth0/client';
 import { Message, NewUserSession } from '@/lib/schema';
 import { getUserNameFromContext } from '@/lib/clientUtils';
-import { getUserSessionById, getAllChatMessagesInOrder } from '@/lib/db';
 import { useInsertMessages, useMessages, useUpsertUserSessions, useUserSession } from '@/stores/SessionStore';
+import { getAllMessagesForUsersSorted } from '@/lib/db';
 
 export interface UseChatOptions {
   sessionIds?: string[];
@@ -66,6 +65,7 @@ export function useChat(options: UseChatOptions) {
   const { data: existingUserSession, isLoading: isLoadingUserSession } = useUserSession(userSessionId || '');
   const threadId = existingUserSession?.thread_id || '';
   const { data: existingMessages = [], isLoading: isLoadingMessages } = useMessages(threadId);
+  const upsertUserSessions = useUpsertUserSessions();
 
   const placeholder = placeholderText
     ? placeholderText
@@ -166,7 +166,11 @@ export function useChat(options: UseChatOptions) {
     console.log(`[i] Start creating thread`);
     const chatMessages = [];
     if (context?.userData) {
-      const allUsersMessages = await db.getAllMessagesForUsersSorted(
+      // Note: It is difficult to use SessionStore here, because hooks should only be called on the top level,
+      // but at that time we don't know yet whether we should even fetch these threads;
+      // and we can't have hooks in a loop anyway because react doesn't like that.
+      // So let's just stick with using the db directly here.
+      const allUsersMessages = await getAllMessagesForUsersSorted(
         context.userData,
       );
       const messagesByThread = allUsersMessages.reduce(
@@ -228,11 +232,11 @@ export function useChat(options: UseChatOptions) {
         created_at: new Date(),
       });
       console.log('Inserting new session with initial data: ', data);
-      return db
-        .insertUserSessions(data)
-        .then((userIds) => {
-          if (userIds[0] && setUserSessionId) setUserSessionId(userIds[0]);
-          return userIds[0]; // Return the userId, just in case setUserSessionId is not fast enough
+      return upsertUserSessions.mutateAsync(data)
+        .then((users) => {
+          const userId = users[0]?.id;
+          if (userId && setUserSessionId) setUserSessionId(userId);
+          return userId; // Return the userId, just in case setUserSessionId is not fast enough
         })
         .catch((error) => {
           console.error('[!] error creating user session -> ', error);

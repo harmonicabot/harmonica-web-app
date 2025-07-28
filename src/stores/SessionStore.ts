@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
-import { NewHostSession, NewMessage, NewUserSession, NewWorkspace, Workspace, HostSession, UserSession } from '@/lib/schema';
+import { NewHostSession, NewMessage, NewUserSession, NewWorkspace, Workspace, HostSession, UserSession, User } from '@/lib/schema';
 import { fetchWorkspaceData } from '@/lib/workspaceData';
 import { linkSessionsToWorkspace, unlinkSessionFromWorkspace } from '@/lib/workspaceActions';
 import { checkSummaryNeedsUpdating, fetchSummary, updateUserLastEdit, updateHostLastEdit, updateWorkspaceLastModified } from '@/lib/summaryActions';
@@ -112,6 +112,27 @@ export function useAvailableSessions() {
   });
 }
 
+export function useAvailableWorkspaces() {
+  return useQuery({
+    queryKey: ['available-workspaces-for-user'],
+    queryFn: async () => {
+      const session = await getSession();
+      const userId = session?.user?.sub;
+      
+      if (!userId) {
+        return [];
+      }
+      
+      const resources = await db.getResourcesForUser(userId, 'WORKSPACE');
+      if (!resources.length) return [];
+      
+      const workspaceIds = resources.map(resource => resource.resource_id);
+      return await db.getWorkspacesForIds(workspaceIds, ['id', 'title']);
+    },
+    staleTime,
+  });
+}
+
 // --- Mutations ---
 export function useUpsertWorkspace() {
   const queryClient = useQueryClient();
@@ -206,7 +227,7 @@ export function useUnlinkSessionFromWorkspace() {
 // --- Summary Operations ---
 
 
-export function useSummaryStatusOptimized(sessionId: string, isProject = false) {
+export function useSummaryStatus(sessionId: string, isProject = false) {
   const queryClient = useQueryClient();
   
   return useQuery({

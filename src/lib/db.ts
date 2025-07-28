@@ -92,7 +92,7 @@ export async function getHostSessionsForIds(
   page: number = 1,
   pageSize: number = 100,
 ): Promise<s.HostSession[]> {
-  console.log('[i] Database Operation: getHostSessionsForIds');
+  console.log('[i] Database Operation: getHostSessionsForIds', ids);
   const db = await dbPromise;
 
   try {
@@ -143,7 +143,7 @@ export async function getFromHostSession(
   sessionId: string,
   columns: (keyof s.HostSessionsTable)[],
 ) {
-  console.log('[i] Database Operation: getFromHostSession');
+  console.log('[i] Database Operation: getFromHostSession', sessionId);
   const db = await dbPromise;
   const result = await db
     .selectFrom(hostTableName)
@@ -234,11 +234,12 @@ export async function updateHostSession(
   }
 }
 
+// TODO: Do we still need this? Is it actually used? (I think it was broken at some point; and instead of relying on the db field, we're calculating it on the fly?)
 export async function increaseSessionsCount(
   id: string,
   toIncrease: 'num_sessions' | 'num_finished',
 ) {
-  console.log('[i] Database Operation: increaseSessionsCount');
+  console.log('[i] Database Operation: increaseSessionsCount', id);
   // This is a bit clumsy, but I couldn't find a way with kysely to do it in one go. Submitting sql`...` breaks it :-(
   const db = await dbPromise;
   const previousNum = (
@@ -266,7 +267,7 @@ export async function getUsersBySessionId(
   sessionId: string,
   columns: (keyof s.UserSessionsTable)[] = [],
 ): Promise<s.UserSession[]> {
-  console.log('[i] Database Operation: getUsersBySessionId');
+  console.log('[i] Database Operation: getUsersBySessionId', sessionId);
   try {
     const db = await dbPromise;
     let query = db
@@ -354,7 +355,7 @@ export async function deleteUserSession(id: string): Promise<void> {
 }
 
 export async function getUserSessionById(id: string): Promise<s.UserSession | undefined> {
-  console.log('[i] Database Operation: getUserSessionById');
+  console.log('[i] Database Operation: getUserSessionById', id);
   try {
     const db = await dbPromise;
     return await db
@@ -367,8 +368,6 @@ export async function getUserSessionById(id: string): Promise<s.UserSession | un
     throw error;
   }
 }
-
-
 
 export async function searchUserSessions(
   columnName: keyof s.UserSessionsTable,
@@ -389,7 +388,7 @@ export async function searchUserSessions(
 }
 
 export async function getNumUsersAndMessages(sessionIds: string[]) {
-  console.log('[i] Database Operation: getNumUsersAndMessages');
+  console.log('[i] Database Operation: getNumUsersAndMessages', sessionIds);
   if (sessionIds.length === 0) return {};
 
   const db = await dbPromise;
@@ -456,7 +455,7 @@ export async function insertChatMessage(message: s.NewMessage) {
 }
 
 export async function getAllChatMessagesInOrder(threadId: string) {
-  console.log('[i] Database Operation: getAllChatMessagesInOrder');
+  console.log('[i] Database Operation: getAllChatMessagesInOrder', threadId);
   const db = await dbPromise;
   return await db
     .selectFrom(messageTableName)

@@ -4,15 +4,12 @@ import { memo, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { OpenAIMessage } from '@/lib/types';
-import {
-  increaseSessionsCount,
-  updateUserSession,
-} from '@/lib/db';
 import { LoadingOverlay } from '@/components/chat/LoadingOverlay';
 import { SessionModal } from '@/components/chat/SessionModal';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { QuestionInfo } from 'app/create/types';
-import { useHostSession } from '@/stores/SessionStore';
+import { useHostSession, useUpsertUserSessions } from '@/stores/SessionStore';
+import { NewUserSession } from '@/lib/schema';
 
 const StandaloneChat = () => {
   const [message, setMessage] = useState<OpenAIMessage>({
@@ -25,7 +22,6 @@ Please type your name or "anonymous" if you prefer
   const { user } = useUser();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('s');
-  const assistantId = searchParams.get('a');
   const { data: hostData } = useHostSession(sessionId || '');
 
   const [userSessionId, setUserSessionId] = useState<string | undefined>(() => {
@@ -52,6 +48,8 @@ Please type your name or "anonymous" if you prefer
     return {};
   });
 
+  const upsertUserSession = useUpsertUserSessions();
+
   useEffect(() => {
     setIsMounted(true);
     const loadData = async () => {
@@ -64,13 +62,11 @@ Please type your name or "anonymous" if you prefer
   const finishSession = () => {
     setIsLoading(true);
     setShowModal(true);
-    updateUserSession(userSessionId!, {
+    upsertUserSession.mutateAsync({
+      id: userSessionId!,
       active: false,
       last_edit: new Date(),
-    })
-      .then(() => {
-        increaseSessionsCount(sessionId!, 'num_finished');
-      })
+    } as NewUserSession)
       .then(() => {
         setIsLoading(false);
         setUserFinished(true);
@@ -182,7 +178,6 @@ Please type your name or "anonymous" if you prefer
           isMounted={isMounted}
           isLoading={isLoading}
           message={message}
-          assistantId={assistantId ?? undefined}
           userContext={userContext}
           questions={hostData?.questions}
         />

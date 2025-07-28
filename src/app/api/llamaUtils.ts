@@ -6,9 +6,7 @@ import { ChatMessage } from 'llamaindex';
 import { NextResponse } from 'next/server';
 import {
   getAllChatMessagesInOrder,
-  getHostSessionById,
-  updateUserSession,
-  increaseSessionsCount,
+  getHostSessionById
 } from '@/lib/db';
 import { initializeCrossPollination } from '@/lib/crossPollination';
 import { getLLM } from '@/lib/modelConfig';

@@ -14,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { deleteWorkspace } from './actions';
-import { updateWorkspaceDetails } from '../workspace/[w_id]/actions';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import {
@@ -23,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useUpsertWorkspace } from '@/stores/SessionStore';
 
 function CreateWorkspaceButton({ text = 'New Project' }: { text?: string }) {
   return (
@@ -46,6 +46,7 @@ function ProjectCard({ workspace }: { workspace: WorkspaceWithSessions }) {
   const [isRenaming, setIsRenaming] = React.useState(false);
   const [newTitle, setNewTitle] = React.useState(workspace.title);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = React.useState(false);
+  const upsertWorkspace = useUpsertWorkspace();
   
   // Update newTitle when workspace title changes
   React.useEffect(() => {
@@ -76,7 +77,8 @@ function ProjectCard({ workspace }: { workspace: WorkspaceWithSessions }) {
     
     setIsRenaming(true);
     try {
-      await updateWorkspaceDetails(workspace.id, { title: newTitle.trim() });
+      await upsertWorkspace.mutateAsync({ id: workspace.id, data: { title: newTitle.trim() } });
+
       setIsRenameDialogOpen(false);
       // Refresh the page to update the list
       router.refresh();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSummaryStatusOptimized, useUpdateSummary } from '@/stores/SessionStore';
+import { useSummaryStatus, useUpdateSummary } from '@/stores/SessionStore';
 
 export enum RefreshStatus {
   Unknown,
@@ -38,7 +38,7 @@ export function useSummaryUpdateManager(
     isLoading, 
     error,
     refetch 
-  } = useSummaryStatusOptimized(resourceId, isProject);
+  } = useSummaryStatus(resourceId, isProject);
   
   const updateSummary = useUpdateSummary();
 

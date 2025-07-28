@@ -1,5 +1,5 @@
 'use client';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Tabs } from '@radix-ui/react-tabs';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,16 +9,13 @@ import SessionParticipantsTable from '../SessionParticipantsTable';
 import SessionResultSummary from '../SessionResultSummary';
 import { ChatMessage } from '../../ChatMessage';
 import {
-  HostSession,
   ResultTabsVisibilityConfig,
-  UserSession,
 } from '@/lib/schema';
 import { OpenAIMessage } from '@/lib/types';
-import { CirclePlusIcon, Loader, Loader2 } from 'lucide-react';
+import { CirclePlusIcon, Loader2 } from 'lucide-react';
 import { CustomResponseCard } from './components/CustomResponseCard';
 import { TabContent } from './components/TabContent';
 import { useCustomResponses } from './hooks/useCustomResponses';
-import * as db from '@/lib/db';
 import { ExportButton } from '@/components/Export/ExportButton';
 import { usePermissions } from '@/lib/permissions';
 import {
@@ -245,37 +242,6 @@ export default function ResultTabs({
       setActiveTab(visibleTabs[0].id);
     }
   }, [visibleTabs, activeTab]);
-
-  const handlePromptChange = async (
-    newPrompt: string,
-    type: 'facilitation' | 'summary',
-  ) => {
-    try {
-      console.log('Updating prompt:', { type, newPrompt });
-
-      const updateData =
-        type === 'facilitation'
-          ? { prompt: newPrompt }
-          : { prompt_summary: newPrompt };
-
-      console.log('Update data:', updateData);
-
-      await db.updateHostSession(resourceId, updateData);
-
-      // Update the local state
-      if (hostData[0]) {
-        if (type === 'facilitation') {
-          hostData[0].prompt = newPrompt;
-        } else {
-          hostData[0].prompt_summary = newPrompt;
-        }
-        console.log('Updated hostData:', hostData[0]);
-      }
-    } catch (error) {
-      console.error('Failed to update prompt:', error);
-      throw error;
-    }
-  };
 
   // Message enhancement for chat
   const enhancedMessage = (message: OpenAIMessage, key: number) => {

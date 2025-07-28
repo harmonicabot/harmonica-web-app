@@ -10,9 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
-  getAvailableWorkspaces,
   addSessionToWorkspaces,
   removeSessionFromWorkspace,
 } from '@/lib/sessionWorkspaceActions';
@@ -20,6 +18,8 @@ import { useToast } from 'hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { FolderPlus, X } from 'lucide-react';
 import { getWorkspacesForSession } from '@/lib/db';
+
+import { useAvailableWorkspaces } from '@/stores/SessionStore';
 
 interface AddToProjectDialogProps {
   sessionId: string;
@@ -39,8 +39,9 @@ export function AddToProjectDialog({
   open,
   onOpenChange,
 }: AddToProjectDialogProps) {
+  const { data: availableWorkspacesToUser = [] } = useAvailableWorkspaces();
   const [availableWorkspaces, setAvailableWorkspaces] = useState<Workspace[]>(
-    []
+    availableWorkspacesToUser
   );
   const [currentWorkspaces, setCurrentWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspaces, setSelectedWorkspaces] = useState<string[]>([]);
@@ -71,16 +72,11 @@ export function AddToProjectDialog({
 
   const loadWorkspaces = async () => {
     try {
-      // We need to modify the sessionWorkspaceActions.ts to add a function to get workspaces for a session
-      // For now, we'll assume we have this function
-      const allWorkspaces = await getAvailableWorkspaces();
-
-      // For this implementation, we'll need to add a new server action to get workspaces for a session
-      // This is a placeholder - we'll need to implement this function
+      // TODO: Use Store?
       const sessionWorkspaces = await getWorkspacesForSession(sessionId);
 
       // Filter out workspaces that the session is already part of
-      const availableWorkspacesFiltered = allWorkspaces.filter(
+      const availableWorkspacesFiltered = availableWorkspacesToUser.filter(
         (workspace) => !sessionWorkspaces.some((sw) => sw.id === workspace.id)
       );
 

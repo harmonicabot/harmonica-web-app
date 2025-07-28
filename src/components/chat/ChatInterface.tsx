@@ -3,11 +3,11 @@ import Link from 'next/link';
 import { HelpCircle, ChevronDown } from 'lucide-react';
 import { FullscreenChat } from './FullscreenChat';
 import { OpenAIMessage } from '@/lib/types';
-import { PoweredByHarmonica } from '@/components/icons';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { RatingModal } from './RatingModal';
 import { useState, useEffect, useRef } from 'react';
-import { updateUserSession, increaseSessionsCount } from '@/lib/db';
+import { useUpsertUserSessions } from '@/stores/SessionStore';
+import { NewUserSession } from '@/lib/schema';
 
 interface ChatInterfaceProps {
   hostData: {
@@ -24,7 +24,6 @@ interface ChatInterfaceProps {
   isMounted: boolean;
   isLoading: boolean;
   message: OpenAIMessage;
-  assistantId?: string;
   userContext?: Record<string, string>;
   questions?: JSON;
 }
@@ -37,7 +36,6 @@ export const ChatInterface = ({
   isMounted,
   isLoading,
   message,
-  assistantId,
   userContext,
   questions,
 }: ChatInterfaceProps) => {
@@ -85,18 +83,19 @@ export const ChatInterface = ({
     }
   }, [message?.is_final, threadId, message]);
 
+  const upsertUserSession = useUpsertUserSessions()
+
   useEffect(() => {
     const updateSession = async () => {
       if (showRating && userSessionId) {
         try {
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-
-          await updateUserSession(userSessionId, {
+          // What's the purpose of this? 
+          // await new Promise((resolve) => setTimeout(resolve, 3000));
+          await upsertUserSession.mutateAsync({
+            id: userSessionId, 
             active: false,
             last_edit: new Date(),
-          });
-
-          await increaseSessionsCount(userSessionId, 'num_finished');
+          } as NewUserSession);
         } catch (error) {
           console.error('Error updating session:', error);
         }

@@ -2,17 +2,6 @@
 
 import { put } from '@vercel/blob';
 import * as db from '@/lib/db';
-import { WorkspaceUpdate } from '@/lib/schema';
-
-export async function updateWorkspaceDetails(id: string, data: WorkspaceUpdate) {
-  try {
-    const workspaceOrNull = await db.upsertWorkspace(id, data);
-    return { success: workspaceOrNull != null };
-  } catch (error) {
-    console.error('Error updating workspace details:', error);
-    return { success: false, error: 'Failed to update workspace details' };
-  }
-}
 
 export async function deleteWorkspace(id: string) {
   try {

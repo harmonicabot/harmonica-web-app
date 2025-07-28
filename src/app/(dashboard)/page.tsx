@@ -1,8 +1,6 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChevronRight, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SessionsTable } from './sessions-table';
-import { WorkspacesTable } from './workspaces-table';
 import * as db from '@/lib/db';
 import Link from 'next/link';
 import { cache } from 'react';
@@ -13,7 +11,6 @@ import { HostSession, Workspace } from '@/lib/schema';
 import DonateBanner from '@/components/DonateBanner';
 import { getSession } from '@auth0/nextjs-auth0';
 import ProjectsGrid from './ProjectsGrid';
-import { Textarea } from '@/components/ui/textarea';
 import CreateSessionInputClient from './CreateSessionInputClient';
 
 export const dynamic = 'force-dynamic'; // getHostSessions is using auth, which can only be done client side

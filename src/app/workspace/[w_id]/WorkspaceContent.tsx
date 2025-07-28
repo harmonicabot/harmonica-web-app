@@ -3,18 +3,15 @@
 import ResultTabs from '@/components/SessionResult/ResultTabs';
 import WorkspaceHero from '@/components/workspace/WorkspaceHero';
 import ShareSettings from '@/components/ShareSettings';
-import {
-  ResultTabsVisibilityConfig,
-  Workspace,
-} from '@/lib/schema';
+import { ResultTabsVisibilityConfig } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
 import { useMemo, useCallback } from 'react';
 import { ExtendedWorkspaceData } from '@/lib/types';
 import SessionInsightsGrid from '@/components/workspace/SessionInsightsGrid';
 import { PromptSettings } from '@/components/SessionResult/ResultTabs/components/PromptSettings';
 import { toast } from 'hooks/use-toast';
-import * as db from '@/lib/db';
 import { Loader2 } from 'lucide-react';
+import { useUpsertWorkspace } from '@/stores/SessionStore';
 
 // Default visibility configuration for workspaces
 const defaultWorkspaceVisibilityConfig: ResultTabsVisibilityConfig = {
@@ -70,30 +67,16 @@ export default function WorkspaceContent({
 
   const canEdit = useMemo(() => hasMinimumRole('editor'), [hasMinimumRole]);
 
-  // Memoize the handleWorkspaceUpdate callback
-  const handleWorkspaceUpdate = useCallback((updates: Workspace) => {
-    // TODO check where this is used!
-    throw new ReferenceError("This method is not implemented yet; it should update the store directly where it's called. See second-last element in the stack.")
-  }, []);
-
+  const upsertWorkspace = useUpsertWorkspace();
   // Memoize the handlePromptChange callback
   const handlePromptChange = useCallback(
     async (newPrompt: string) => {
+      // This method usually also takes a 'type', 
+      // but projects never have facilitation prompts, 
+      // so no need to handle that!
       try {
         const updateData = { summary_prompt: newPrompt };
-        const result = await db.updateWorkspace(workspaceId, updateData);
-
-        if (result) {
-          // TODO check where this is used!
-          throw new ReferenceError("This method is not implemented yet; it should update the store directly where it's called. See second-last element in the stack.")
-        } else {
-          toast({
-            title: 'Failed to update prompt',
-            description:
-              'An error occurred while updating the prompt. Changes were not saved.',
-            variant: 'destructive',
-          });
-        }
+        await upsertWorkspace.mutateAsync({ id: workspaceId, data: updateData })
       } catch (error) {
         console.error('Failed to update prompt:', error);
         toast({
@@ -146,7 +129,6 @@ Here are some questions you might want to ask:
           initialGradientTo={extendedWorkspaceData.workspace?.gradientTo}
           initialUseGradient={extendedWorkspaceData.workspace?.useGradient}
           isEditable={isEditable}
-          onUpdate={handleWorkspaceUpdate}
         />
         {isEditable && (
           <div className="flex items-center gap-4 self-end mt-4">
