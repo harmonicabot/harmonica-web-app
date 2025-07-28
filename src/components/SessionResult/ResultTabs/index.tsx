@@ -199,6 +199,7 @@ export default function ResultTabs({
           <SessionParticipantsTable
             sessionId={resourceId}
             userData={currentUserData}
+            hostData={hostData[0]}
             onIncludeInSummaryChange={updateIncludedInAnalysisList}
           />
         ),
