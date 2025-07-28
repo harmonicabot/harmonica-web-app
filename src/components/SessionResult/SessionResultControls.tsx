@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoaderCircle, Settings, Copy, InfoIcon, Trash2 } from 'lucide-react';
 import * as db from '@/lib/db';
-import { SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
+import { useUpdateSummary } from '@/stores/SessionStore';
 import { cloneSession } from '@/lib/serverUtils';
 import { useRouter } from 'next/navigation';
 import { toast } from 'hooks/use-toast';
@@ -53,6 +53,7 @@ export default function SessionResultControls({
   const [localCrossPollination, setLocalCrossPollination] =
     useState(crossPollination);
   const router = useRouter();
+  const updateSummaryMutation = useUpdateSummary();
 
   const handlePromptChange = async (
     newPrompt: string,
@@ -116,8 +117,11 @@ export default function SessionResultControls({
 
   const updateSummary = async () => {
     setLoadSummary(true);
-    await SummaryUpdateManager.updateNow(id);
-    setLoadSummary(false);
+    try {
+      await updateSummaryMutation.mutateAsync({ sessionId: id });
+    } finally {
+      setLoadSummary(false);
+    }
   };
 
   const handleCloneSession = async () => {

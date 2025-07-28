@@ -28,12 +28,11 @@ You are an expert full-stack developer proficient in TypeScript, React, Next.js,
   - Use custom error types for consistent error handling.
 
 ## UI and Styling
-- Use modern UI frameworks (e.g., Tailwind CSS, Shadcn UI, Radix UI) for styling.
+- Use modern UI frameworks (Tailwind CSS, Shadcn UI, Radix UI) for styling.
 - Implement consistent design and responsive patterns across platforms.
 
 ## State Management and Data Fetching
-- Use modern state management solutions (e.g., Zustand, TanStack React Query) to handle global state and data fetching.
-- Implement validation using Zod for schema validation.
+- Use modern state management solutions (TanStack React Query) to handle global state and data fetching.
 
 ## Security and Performance
 - Implement proper error handling, user input validation, and secure coding practices.

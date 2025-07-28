@@ -1,12 +1,35 @@
 import * as db from '@/lib/db';
 import { ExtendedWorkspaceData } from '@/lib/types';
 import { getSession } from '@auth0/nextjs-auth0';
-import { NewWorkspace } from './schema';
+import { NewWorkspace, HostSession, UserSession } from './schema';
 import { hasAccessToResource } from './serverUtils';
+import { QueryClient } from '@tanstack/react-query';
 
-export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedWorkspaceData> {
+
+async function getAllAvailableSessionIds() {
+  // Fetch available sessions for linking if the user is logged in
+  const session = await getSession();
+  const userId = session?.user?.sub;    
+  const availableResources = await db.getResourcesForUser(userId, "SESSION", ["resource_id"]);
+  const availableSessionsIds = availableResources.map((r) => r.resource_id).filter((id) => id !== 'global');
+  let availableSessions: ExtendedWorkspaceData["availableSessions"] = [];
+  if (availableSessionsIds.length > 0) {
+    availableSessions = await db.getHostSessionsForIds(availableSessionsIds, [
+      'id',
+      'topic',
+      'start_time'
+    ]);
+  }
+  return availableSessions;
+}
+
+export async function fetchWorkspaceData(
+  workspaceId: string, 
+  queryClient?: QueryClient
+): Promise<ExtendedWorkspaceData> {
   try {
-    console.log("Fetching initial project data for workspace ", workspaceId);
+    console.log("Fetching optimized project data for workspace ", workspaceId);
+    
     // First, check whether this workspace exists at all. If not, add a 'draft' mode with the current user as the owner:
     const workspaceExists = await db.hasWorkspace(workspaceId);
     if (!workspaceExists) {
@@ -54,10 +77,40 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
     console.log(`Found Project ${workspaceId}!`);
     // Fetch all necessary data for existing workspace
     const sessionIds = await db.getWorkspaceSessionIds(workspaceId);
-    const [hostSessions, allUserData] = await Promise.all([
-      Promise.all(sessionIds.map((id) => db.getHostSessionById(id))),
-      Promise.all(sessionIds.map((id) => db.getUsersBySessionId(id))),
-    ]);
+    
+    let hostSessions: HostSession[];
+    let allUserData: UserSession[][];
+    
+    // Try to get from cache first if queryClient is provided
+    if (queryClient) {
+      console.log("Attempting to use cached session data...");
+      const cachedHosts = sessionIds.map(id => 
+        queryClient.getQueryData<HostSession>(['host', id])
+      );
+      const cachedUsers = sessionIds.map(id => 
+        queryClient.getQueryData<UserSession[]>(['users', id])
+      );
+      
+      // Use cached data if all sessions are cached
+      if (cachedHosts.every(h => h) && cachedUsers.every(u => u)) {
+        console.log("Using cached session data for performance optimization");
+        hostSessions = cachedHosts as HostSession[];
+        allUserData = cachedUsers as UserSession[][];
+      } else {
+        console.log("Cache miss - falling back to database queries");
+        // Fallback to database if cache miss
+        [hostSessions, allUserData] = await Promise.all([
+          Promise.all(sessionIds.map((id) => db.getHostSessionById(id))),
+          Promise.all(sessionIds.map((id) => db.getUsersBySessionId(id))),
+        ]);
+      }
+    } else {
+      // No queryClient provided, use database directly
+      [hostSessions, allUserData] = await Promise.all([
+        Promise.all(sessionIds.map((id) => db.getHostSessionById(id))),
+        Promise.all(sessionIds.map((id) => db.getUsersBySessionId(id))),
+      ]);
+    }
 
     hostSessions.sort((a, b) => a.topic.localeCompare(b.topic));
 
@@ -83,28 +136,11 @@ export async function fetchWorkspaceData(workspaceId: string): Promise<ExtendedW
       availableSessions,
     };
   } catch (error) {
-    console.error(`Error occurred fetching Project data: `, error);
+    console.error(`Error occurred fetching optimized Project data: `, error);
     // Check if this is an access denied error
     if (error instanceof Error && error.message.includes('Access denied')) {
       throw new Error('Access denied: You do not have permission to view this Project');
     }
     throw error; // Re-throw to let the component handle it
   }
-}
-
-async function getAllAvailableSessionIds() {
-  // Fetch available sessions for linking if the user is logged in
-  const session = await getSession();
-  const userId = session?.user?.sub;    
-  const availableResources = await db.getResourcesForUser(userId, "SESSION", ["resource_id"]);
-  const availableSessionsIds = availableResources.map((r) => r.resource_id).filter((id) => id !== 'global');
-  let availableSessions: ExtendedWorkspaceData["availableSessions"] = [];
-  if (availableSessionsIds.length > 0) {
-    availableSessions = await db.getHostSessionsForIds(availableSessionsIds, [
-      'id',
-      'topic',
-      'start_time'
-    ]);
-  }
-  return availableSessions;
 }

@@ -29,7 +29,7 @@ import {
 import { SimScoreTab } from './SimScoreTab';
 import SessionFilesTable from '../SessionFilesTable';
 import { useHostSession, useUserSessions, useWorkspace } from '@/stores/SessionStore';
-import { SummaryUpdateManager } from '../../../summary/SummaryUpdateManager';
+import { useSummaryUpdateManager } from '@/hooks/useSummaryUpdateManager';
 
 export interface ResultTabsProps {
   resourceId: string;
@@ -86,10 +86,14 @@ export default function ResultTabs({
   
   const currentUserData = userData;
 
-  useEffect(() => {
-    SummaryUpdateManager.startPolling(resourceId, 10000); // Poll every 10 seconds
-    return () => SummaryUpdateManager.stopPolling(resourceId); // Clean up on unmount
-  }, [resourceId]);
+  // Use the new TanStack Query-based summary update manager
+  useSummaryUpdateManager(resourceId, {
+    isProject,
+    sessionIds,
+    projectId: resourceId,
+    enablePolling: true,
+    pollingInterval: 10000, // Poll every 10 seconds
+  });
 
   // Define available tabs and their visibility conditions in one place
   const availableTabs = useMemo(() => {

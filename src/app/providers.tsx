@@ -6,7 +6,7 @@ import { PostHogProvider } from 'posthog-js/react';
 import { useEffect } from 'react';
 import { useToast } from 'hooks/use-toast';
 import { processUserInvitations } from './actions/process-invitations';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { isServer, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 if (typeof window !== 'undefined') {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
@@ -17,7 +17,32 @@ if (typeof window !== 'undefined') {
   });
 }
 
-const queryClient = new QueryClient();
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        // set some default staleTime above 0 to avoid refetching immediately on the client
+        staleTime: 60 * 1000,
+      },
+    },
+  })
+}
+
+let browserQueryClient: QueryClient | undefined = undefined
+
+function getQueryClient() {
+  if (isServer) {
+    // Server: always make a new query client
+    return makeQueryClient()
+  } else {
+    // Browser: reuse the existing query client if possible
+    // This is very important, so we don't re-make a new client if React
+    // suspends during the initial render. This may not be needed if we
+    // have a suspense boundary BELOW the creation of the query client
+    if (!browserQueryClient) browserQueryClient = makeQueryClient()
+    return browserQueryClient
+  }
+}
 
 // Component to handle automatic invitation processing
 function InvitationProcessor() {
@@ -55,6 +80,7 @@ function InvitationProcessor() {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const queryClient = getQueryClient();
   return (
     <UserProvider>
       <QueryClientProvider client={queryClient}>

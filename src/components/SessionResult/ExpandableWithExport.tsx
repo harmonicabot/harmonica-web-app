@@ -10,8 +10,7 @@ import {
 import ExpandableCard from '../ui/expandable-card';
 import { ExportButton } from '../Export/ExportButton';
 import { Spinner } from '../icons';
-import { RefreshStatus, SummaryUpdateManager } from 'summary/SummaryUpdateManager';
-import { useRef } from 'react';
+import { RefreshStatus, useSummaryUpdateManager } from '@/hooks/useSummaryUpdateManager';
 
 interface CardProps {
   resourceId: string;
@@ -58,12 +57,7 @@ export const ExpandableWithExport = ({
   loading,
   className,
 }: CardProps) => {
-  const refreshStatusRef = useRef(SummaryUpdateManager.getState(resourceId).status);
-
-  // Only update if status actually changes
-  SummaryUpdateManager.subscribe(resourceId, (state) => {
-    refreshStatusRef.current = state.status;
-  });
+  const summaryManager = useSummaryUpdateManager(resourceId);
   return (
     <ExpandableCard
       title={
@@ -82,13 +76,13 @@ export const ExpandableWithExport = ({
                         <RefreshCw
                           onClick={!isUpdating ? onRefresh : undefined}
                           className={`h-5 w-5 text-gray-500 cursor-pointer hover:text-primary ${
-                            refreshStatusRef.current === RefreshStatus.UpdatePending
+                            summaryManager.status === RefreshStatus.UpdatePending
                               ? 'animate-spin cursor-not-allowed opacity-50'
                               : ''
                           }`}
                         />
                         <div className="absolute -top-1 -right-1">
-                          <StatusIndicator status={refreshStatusRef.current} />
+                          <StatusIndicator status={summaryManager.status} />
                         </div>
                       </div>
                     </TooltipTrigger>
@@ -98,16 +92,16 @@ export const ExpandableWithExport = ({
                       ) : (
                         <div>
                           <p>Refresh {title}</p>
-                          {refreshStatusRef.current === RefreshStatus.Unknown && (
+                          {summaryManager.status === RefreshStatus.Unknown && (
                             <p className="text-xs text-gray-600">Unknown update status</p>
                           )}
-                          {refreshStatusRef.current === RefreshStatus.UpToDate && (
+                          {summaryManager.status === RefreshStatus.UpToDate && (
                             <p className="text-xs text-green-600">Up to date</p>
                           )}
-                          {refreshStatusRef.current === RefreshStatus.UpdatePending && (
+                          {summaryManager.status === RefreshStatus.UpdatePending && (
                             <p className="text-xs text-yellow-600">Auto-refreshing soon</p>
                           )}
-                          {refreshStatusRef.current === RefreshStatus.Outdated && (
+                          {summaryManager.status === RefreshStatus.Outdated && (
                             <p className="text-xs text-red-600">Summary out of date</p>
                           )}
                         </div>

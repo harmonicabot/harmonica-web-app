@@ -1,7 +1,8 @@
 'use client'
 import { HostSession } from '@/lib/schema';
 import { useEffect, useState } from 'react';
-import { RefreshStatus, SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
+import { RefreshStatus } from '@/hooks/useSummaryUpdateManager';
+import { useUpdateSummary } from '@/stores/SessionStore';
 import { ExpandableWithExport } from './ExpandableWithExport';
 import { Card, CardContent } from '../ui/card';
 import { usePermissions } from '@/lib/permissions';
@@ -30,17 +31,23 @@ export default function SessionResultSummary({
 
   const resourceId: string = isProject ? projectId! : hostData[0].id;
   const { hasMinimumRole } = usePermissions(resourceId);
+  const updateSummaryMutation = useUpdateSummary();
   
   // Use SWR to fetch summary content with initial data as fallback
   const initialSummary = isProject ? '' : hostData[0]?.summary || '';
   const { data: summary, isLoading: summaryLoading } = useSummary(resourceId, initialSummary, isProject);
   
-  const manuallyTriggerSummaryUpdate = () => {
+  const manuallyTriggerSummaryUpdate = async () => {
     setIsUpdating(true);
-    SummaryUpdateManager.updateNow(hostData[0].id).then((_summary) => {
+    try {
+      await updateSummaryMutation.mutateAsync({ 
+        sessionId: hostData[0].id,
+        isProject,
+        projectId 
+      });
+    } finally {
       setIsUpdating(false);
-      // Summary will be updated automatically via SWR
-    });
+    }
   };
 
   // Check which content will be shown

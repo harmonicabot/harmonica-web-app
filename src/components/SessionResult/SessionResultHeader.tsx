@@ -3,7 +3,6 @@ import { Badge } from '@/components/ui/badge';
 import { Check, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { updateHostSession } from '@/lib/db';
 import { useHostSession, useUpsertHostSession } from '@/stores/SessionStore';
 import { usePermissions } from '@/lib/permissions';
 import { SessionStatus } from '@/lib/clientUtils';
@@ -45,10 +44,7 @@ export default function SessionResultHeader({
         return;
       }
       
-      // Update the topic in the database
-      await updateHostSession(sessionId, { topic: content });
-
-      // Update the local state in the SessionStore
+      // Use TanStack Query mutation which handles both DB update and cache invalidation
       upsertHostSession.mutate({ id: sessionId, topic: content } as NewHostSession);
       
       setIsEditing(false);
