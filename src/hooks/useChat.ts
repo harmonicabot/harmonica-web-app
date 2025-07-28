@@ -135,18 +135,9 @@ export function useChat(options: UseChatOptions) {
     }
   };
 
-  function concatenateMessages(messagesFromOneUser: Message[]) {
-    messagesFromOneUser.sort(
-      (a, b) => a.created_at.getTime() - b.created_at.getTime(),
-    );
-    return messagesFromOneUser
-      .map((message) => `${message.role} : ${message.content}`)
-      .join('\n\n');
-  }
-
   /**
-   * Creates a new thread that will be used for the chat.
-   * @param context Initial message and context for the thread
+   * Create a new identifier for this chat. 
+   * This would always only be called for facilitation sessions, not for AskAI.
    * @param sessionId Current session identifier
    * @param user User object
    * @param userName Optional display name
@@ -154,7 +145,6 @@ export function useChat(options: UseChatOptions) {
    * @returns {Promise<string>} The unique identifier for this **user** session
    */
   async function createThread(
-    context: OpenAIMessageWithContext | undefined,
     sessionId: string | undefined,
     user: UserProfile | string,
     userName?: string,
@@ -163,39 +153,7 @@ export function useChat(options: UseChatOptions) {
     if (isTesting) {
       return undefined;
     }
-    console.log(`[i] Start creating thread`);
-    const chatMessages = [];
-    if (context?.userData) {
-      // Note: It is difficult to use SessionStore here, because hooks should only be called on the top level,
-      // but at that time we don't know yet whether we should even fetch these threads;
-      // and we can't have hooks in a loop anyway because react doesn't like that.
-      // So let's just stick with using the db directly here.
-      const allUsersMessages = await getAllMessagesForUsersSorted(
-        context.userData,
-      );
-      const messagesByThread = allUsersMessages.reduce(
-        (acc, message) => {
-          acc[message.thread_id] = acc[message.thread_id] || []; // to make sure this array exists
-          acc[message.thread_id].push(message);
-          return acc;
-        },
-        {} as Record<string, Message[]>,
-      );
-      chatMessages.push('\n----START CHAT HISTORY for CONTEXT----\n');
-      const concatenatedUserMessages = Object.entries(messagesByThread).map(
-        ([threadId, messages]) => {
-          return `\n----START NEXT USER CHAT----\n${concatenateMessages(
-            messages,
-          )}\n----END USER CHAT----\n`;
-        },
-      );
-      chatMessages.push(...concatenatedUserMessages);
-      chatMessages.push('\n----END CHAT HISTORY for CONTEXT----\n');
-      // console.log('[i] Chat messages for context: ', chatMessages);
-    }
-
     const threadId = crypto.randomUUID();
-    console.log(`[i] Created threadId ${threadId} for session ${sessionId}`);
     threadIdRef.current = threadId;
     if (onThreadIdReceived) {
       onThreadIdReceived(threadId);
@@ -286,9 +244,11 @@ export function useChat(options: UseChatOptions) {
         }
       } else if (!userSessionId || (!existingUserSession && !isLoadingUserSession) || (!existingMessages && isLoadingMessages)) {
         // No existing session or session not found, create new thread
+        if (!sessionIds || sessionIds.length != 1) {
+          throw new Error('Cannot create a thread without a session ID or with multiple session IDs.');
+        }
         createThread(
-          context,
-          sessionIds && sessionIds.length ? sessionIds[0] : undefined,
+          sessionIds[0],
           user ? user : 'id',
           userName,
           userContext,
