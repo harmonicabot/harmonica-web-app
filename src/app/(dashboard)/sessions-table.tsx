@@ -5,7 +5,7 @@ import { Session } from './session';
 import { Key, useEffect, useState } from 'react';
 import SortableTable from '@/components/SortableTable';
 import { HostSession } from '@/lib/schema';
-import { useWorkspaceStats } from '@/stores/SessionStore';
+import { useSessionsStats } from '@/stores/SessionStore';
 import { getUserStats, SessionStatus } from '@/lib/clientUtils';
 
 export type SessionTableData = {
@@ -56,7 +56,7 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
 
 
   const sessionIds = sessions.map((s) => s.id);
-  const { data: sessionToUserStats } = useWorkspaceStats(sessionIds);
+  const { data: sessionToUserStats } = useSessionsStats(sessionIds);
 
   useEffect(() => {
     if (sessionToUserStats) {

@@ -12,16 +12,13 @@ import { Button } from '../ui/button';
 import { usePermissions } from '@/lib/permissions';
 import { useCustomResponses } from '../SessionResult/ResultTabs/hooks/useCustomResponses';
 import { OpenAIMessage } from '@/lib/types';
+import { useHostSession, useUserSessions } from '@/stores/SessionStore';
 
 // ExportSection.tsx
 export default function ExportSection({
-  hostData,
-  userData,
   id,
   className,
 }: {
-  hostData: HostSession;
-  userData: UserSession[];
   id: string;
   className?: string;
 }) {
@@ -29,6 +26,8 @@ export default function ExportSection({
   const [exportInProgress, setExportInProgress] = useState(false);
   const [isExportPopupVisible, setIsExportPopupVisible] = useState(false);
   const [exportInstructions, setExportInstructions] = useState('');
+  const { data: hostData } = useHostSession(id);
+  const { data: userData = []} = useUserSessions(id);
 
   const exportSessionResults = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +43,7 @@ export default function ExportSection({
       type: 'application/json',
     });
     const link = document.createElement('a');
-    exportAndDownload(blob, link, `Harmonica_${hostData.topic ?? id}.json`);
+    exportAndDownload(blob, link, `Harmonica_${hostData?.topic ?? id}.json`);
 
     setExportInProgress(false);
     setIsExportPopupVisible(false);
@@ -75,7 +74,7 @@ export default function ExportSection({
         type: 'application/json',
       }),
       document.createElement('a'),
-      `Harmonica_${hostData.topic ?? id}_allData.json`,
+      `Harmonica_${hostData?.topic ?? id}_allData.json`,
     );
     setExportInProgress(false);
     setIsExportPopupVisible(false);

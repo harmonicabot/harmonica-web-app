@@ -11,7 +11,6 @@ export default function SessionResultsOverview({
   startTime,
   numSessions,
   completedSessions,
-  showShare = true,
   currentPrompt,
   summaryPrompt,
   crossPollination,
@@ -21,7 +20,6 @@ export default function SessionResultsOverview({
   startTime: Date;
   numSessions: number;
   completedSessions: number;
-  showShare?: boolean;
   currentPrompt?: string;
   summaryPrompt?: string;
   crossPollination?: boolean;
@@ -45,14 +43,12 @@ export default function SessionResultsOverview({
         numSessions={numSessions}
         completedSessions={completedSessions}
       />
-      {showShare && (
-        <SessionResultParticipants
-          sessionId={id}
-          numSessions={numSessions}
-          completedSessions={completedSessions}
-          isFinished={status === SessionStatus.FINISHED}
-        />
-      )}
+      <SessionResultParticipants
+        sessionId={id}
+        numSessions={numSessions}
+        completedSessions={completedSessions}
+        isFinished={status === SessionStatus.FINISHED}
+      />
     </div>
   );
 }

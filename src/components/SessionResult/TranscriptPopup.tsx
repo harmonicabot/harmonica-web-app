@@ -36,7 +36,7 @@ const EMOJI_RATINGS = [
   },
 ];
 
-export default async function TranscriptPopup({
+export default function TranscriptPopup({
   threadId,
   handleCloseClick,
   tableData,
@@ -50,11 +50,7 @@ export default async function TranscriptPopup({
 
   useEffect(() => {
     getThreadRating(threadId).then((rating) => setRating(rating));
-  });
-
-  if (isLoading) {
-    return <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />;
-  }
+  }, [threadId]);
 
   return (
     <div

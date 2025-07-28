@@ -83,7 +83,6 @@ export default function ResultTabs({
   
   const currentUserData = userData;
 
-  // Use the new TanStack Query-based summary update manager
   useSummaryUpdateManager(resourceId, {
     isProject,
     sessionIds,

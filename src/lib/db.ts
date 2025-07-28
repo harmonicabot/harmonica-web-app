@@ -73,11 +73,6 @@ export async function getHostSessions(
       .limit(pageSize)
       .offset(Math.max(0, page - 1) * pageSize);
 
-    // Log the SQL query
-    const sql = query.compile();
-    console.log('SQL Query:', sql.sql);
-    console.log('SQL Parameters:', sql.parameters);
-
     const result = await query.execute();
     return result;
   } catch (error) {
@@ -92,7 +87,7 @@ export async function getHostSessionsForIds(
   page: number = 1,
   pageSize: number = 100,
 ): Promise<s.HostSession[]> {
-  console.log('[i] Database Operation: getHostSessionsForIds', ids);
+  console.log('[i] Database Operation: getHostSessionsForIds', ids.length, 'ids');
   const db = await dbPromise;
 
   try {
@@ -109,11 +104,6 @@ export async function getHostSessionsForIds(
       .limit(pageSize)
       .offset(Math.max(0, page - 1) * pageSize);
 
-    // Log the SQL query
-    const sql = query.compile();
-    console.log('SQL Query:', sql.sql);
-    console.log('SQL Parameters:', sql.parameters);
-
     const result = await query.execute();
     return result;
   } catch (error) {
@@ -125,7 +115,8 @@ export async function getHostSessionsForIds(
 export async function getHostSessionById(
   sessionId: string,
 ): Promise<s.HostSession> {
-  console.log(`[i] Database Operation: getHostSessionById(${sessionId})`);
+  logCallerLocation('getHostSessionById', { sessionId });
+  // console.log(`[i] Database Operation: getHostSessionById(${sessionId})`);
   const db = await dbPromise;
   try {
     return await db
@@ -267,7 +258,8 @@ export async function getUsersBySessionId(
   sessionId: string,
   columns: (keyof s.UserSessionsTable)[] = [],
 ): Promise<s.UserSession[]> {
-  console.log('[i] Database Operation: getUsersBySessionId', sessionId);
+  logCallerLocation('getUsersBySessionId', { sessionId, columns });
+  // console.log('[i] Database Operation: getUsersBySessionId', sessionId);
   try {
     const db = await dbPromise;
     let query = db
@@ -1783,5 +1775,17 @@ export async function updateThreadRating(
   } catch (error) {
     console.error('Error updating thread rating:', error);
     return null;
+  }
+}
+
+function logCallerLocation(functionName: string, params?: any) {
+  // Only log stack trace if in development
+  if (process.env.NODE_ENV !== 'production') {
+    const err = new Error();
+    // Only show stack after the first two lines
+    const splitStack = err.stack?.split('\n');
+    const stack = splitStack?.slice(2, 6).filter((line) => !line.includes('node'));
+    console.log(`[trace] called with params:`, params);
+    console.debug(`Stack: `, stack);
   }
 }

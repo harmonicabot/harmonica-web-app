@@ -9,17 +9,17 @@ import * as db from '@/lib/db';
 import { getSession } from '@auth0/nextjs-auth0';
 
 // Increase the maximum execution time for this function on vercel
-export const maxDuration = 300; // in seconds
-export const revalidate = 0; // Disable caching for this page
+// export const maxDuration = 300; // in seconds
+// export const revalidate = 0; // Disable caching for this page
 
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { w_id: string };
-}): Promise<Metadata> {
-  return getGeneratedMetadata(`/workspace/${params.w_id}`);
-}
+// export async function generateMetadata({
+//   params,
+// }: {
+//   params: { w_id: string };
+// }): Promise<Metadata> {
+//   return getGeneratedMetadata(`/workspace/${params.w_id}`);
+// }
 
 export default async function Workspace({
   params,
@@ -27,7 +27,8 @@ export default async function Workspace({
   params: { w_id: string };
 }) {
   const queryClient = new QueryClient();
-  
+  console.log(`Call stack in Workspace page.tsx:`, new Error("Debugging Workspace Page").stack);
+
   try {
     // First prefetch workspace data
     await queryClient.prefetchQuery({

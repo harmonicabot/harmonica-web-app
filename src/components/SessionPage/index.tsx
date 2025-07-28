@@ -1,28 +1,26 @@
 'use client';
-import { SessionData } from '@/lib/hooks/useSessionData';
 import SessionResultHeader from '@/components/SessionResult/SessionResultHeader';
 import SessionResultsOverview from '@/components/SessionResult/SessionResultsOverview';
 import SessionResultsSection from '@/components/SessionResult/SessionResultsSection';
-import { OpenAIMessage } from '@/lib/types';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
-import { SessionStatus } from '@/lib/clientUtils';
-import { useEffect } from 'react';
+import { getUserStats, SessionStatus } from '@/lib/clientUtils';
+import { useHostSession, useSessionsStats, useUserSessions } from '@/stores/SessionStore';
+import { Loader2 } from 'lucide-react';
 
-interface SessionPageProps {
-  data: SessionData;
-  visibilityConfig: ResultTabsVisibilityConfig;
-  showShare?: boolean;
-  chatEntryMessage?: OpenAIMessage;
-}
+export default function SessionPage({ sessionId }: { sessionId: string }) {
+  const { data: hostData, isLoading } = useHostSession(sessionId)
+  const { data: userData } = useUserSessions(sessionId)
+  const { data: messageStats } = useSessionsStats([sessionId])
 
-export default function SessionPage({
-  data,
-  visibilityConfig,
-  showShare = true,
-  chatEntryMessage,
-}: SessionPageProps) {
-  const { hostData, usersWithChat, stats } = data;
-
+  if (isLoading || !hostData || !userData || !messageStats) {
+    return <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+  }
+  
+  const usersWithChat = userData.filter(
+    (user) => messageStats[sessionId][user.id].num_messages > 2
+  );
+  console.log('message stats: ', messageStats, sessionId)
+  const stats = getUserStats(messageStats, sessionId)
   const status =
     !hostData.active || hostData.final_report_sent
       ? SessionStatus.FINISHED
@@ -30,6 +28,17 @@ export default function SessionPage({
         ? SessionStatus.DRAFT
         : SessionStatus.ACTIVE;
 
+  const visibilityConfig: ResultTabsVisibilityConfig = hostData.visibility_settings || {
+    showSummary: true,
+    showResponses: true,
+    showCustomInsights: true,
+    showChat: true,
+    allowCustomInsightsEditing: true,
+    showSessionRecap: true,
+  };
+
+  visibilityConfig.showChat = usersWithChat.length > 0
+  
   return (
     <div className="p-4 md:p-8">
       <SessionResultHeader
@@ -43,18 +52,13 @@ export default function SessionPage({
         startTime={hostData.start_time}
         numSessions={stats.totalUsers}
         completedSessions={stats.finishedUsers}
-        showShare={showShare}
         currentPrompt={hostData.prompt}
         summaryPrompt={hostData.summary_prompt}
         crossPollination={hostData.cross_pollination}
       />
       <SessionResultsSection
-        hostData={hostData}
-        userData={usersWithChat}
         resourceId={hostData.id}
         visibilityConfig={visibilityConfig}
-        showShare={showShare}
-        chatEntryMessage={chatEntryMessage}
       />
     </div>
   );

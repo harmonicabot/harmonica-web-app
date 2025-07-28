@@ -1,40 +1,29 @@
 'use client';
 
-import { HostSession, UserSession } from '@/lib/schema';
 import React from 'react';
-
 import ResultTabs from './ResultTabs';
 import ExportSection from '../Export/ExportSection';
-import { OpenAIMessage } from '@/lib/types';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
 import ShareSettings from '../ShareSettings';
 
 export default function SessionResultsSection({
-  hostData,
-  userData,
   resourceId,
   visibilityConfig,
-  chatEntryMessage,
 }: {
-  hostData: HostSession;
-  userData: UserSession[];
   resourceId: string;
   visibilityConfig: ResultTabsVisibilityConfig;
-  showShare?: boolean;
-  chatEntryMessage?: OpenAIMessage;
 }) {
   const { loading, hasMinimumRole } = usePermissions(resourceId);
-  const hasMessages = userData.length > 0;
-
-  visibilityConfig.showChat = visibilityConfig.showChat && hasMessages;
+  const showExport = visibilityConfig.showChat; // Show chat will be false if there aren't any messages yet, 
+                                                // in which case we also don't need to show the export button.
 
   return (
     <>
       {!loading && hasMinimumRole('editor') && (
         <div className="flex w-full justify-end mt-4 -mb-14">
           <ShareSettings 
-            resourceId={hostData.id} 
+            resourceId={resourceId} 
             resourceType="SESSION"
           />
         </div>
@@ -43,12 +32,9 @@ export default function SessionResultsSection({
           <ResultTabs
             resourceId={resourceId}
             visibilityConfig={visibilityConfig}
-            chatEntryMessage={chatEntryMessage}
           />
-          {visibilityConfig.showResponses && hasMinimumRole('editor') && hasMessages && (
+          {visibilityConfig.showResponses && hasMinimumRole('editor') && showExport && (
             <ExportSection
-              hostData={hostData}
-              userData={userData}
               id={resourceId}
               className="mt-4"
             />

@@ -1,11 +1,10 @@
 import { Metadata } from 'next/dist/lib/metadata/types/metadata-interface';
 import { getGeneratedMetadata } from 'app/api/metadata';
 import { decryptId } from '@/lib/encryptionUtils';
-import SessionDataProvider from '@/components/SessionPage/SessionDataProvider';
-import { ResultTabsVisibilityConfig } from '@/lib/schema';
 import { QueryClient, HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import { checkSummaryNeedsUpdating, fetchSummary } from '@/lib/summaryActions';
+import SessionPage from '@/components/SessionPage';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 60; // in seconds
@@ -24,11 +23,14 @@ export default async function SessionResult({
 }) {
   const decryptedId = decryptId(params.id);
   const queryClient = new QueryClient();
+  console.debug(new Error("Debugging Session Page").stack);
 
   // Prefetch all session-related data for optimal performance
   // (This is a server component, data is being prefetched on the server and then dehydrated, passed to the client and then further updates will happen there)
   // TanStack is taking care of the hydration magic.
   try {
+    console.log(`Prefetching data...`);
+
     await Promise.allSettled([
       // Prefetch host session data
       queryClient.prefetchQuery({
@@ -59,20 +61,10 @@ export default async function SessionResult({
     console.warn('Failed to prefetch session data:', error);
   }
 
-  const visibilityConfig: ResultTabsVisibilityConfig = {
-    showSummary: true,
-    showResponses: true,
-    showCustomInsights: true,
-    showChat: true,
-    allowCustomInsightsEditing: true,
-  };
-
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <SessionDataProvider
+      <SessionPage
         sessionId={decryptedId}
-        showShare={true}
-        visibilityConfig={visibilityConfig}
       />
     </HydrationBoundary>
   );

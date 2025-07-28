@@ -18,7 +18,7 @@ const summaryStatusKey = (sessionId: string) => ['summary-status', sessionId];
 const summaryContentKey = (sessionId: string) => ['summary-content', sessionId];
 // Workspace-specific query keys
 const workspaceSessionsKey = (workspaceId: string) => ['workspace-sessions', workspaceId];
-const workspaceStatsKey = (sessionIds: string[]) => ['workspace-stats', sessionIds.sort()];
+const sessionsStatsKey = (sessionIds: string[]) => ['workspace-stats', sessionIds.sort()];
 const availableSessionsKey = () => ['available-sessions'];
 const staleTime = 1000 * 60; // 1 minute
 
@@ -82,9 +82,9 @@ export function useWorkspaceSessionIds(workspaceId: string) {
   });
 }
 
-export function useWorkspaceStats(sessionIds: string[]) {
+export function useSessionsStats(sessionIds: string[]) {
   return useQuery({
-    queryKey: workspaceStatsKey(sessionIds),
+    queryKey: sessionsStatsKey(sessionIds),
     queryFn: () => db.getNumUsersAndMessages(sessionIds),
     enabled: sessionIds.length > 0,
     staleTime,
