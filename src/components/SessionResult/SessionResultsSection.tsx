@@ -8,7 +8,7 @@ import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
 import { SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
 
 import ResultTabs from './ResultTabs';
-import ExportSection from '../Export/ExportSection';
+
 import { OpenAIMessage } from '@/lib/types';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
@@ -57,14 +57,7 @@ export default function SessionResultsSection({
             visibilityConfig={visibilityConfig}
             chatEntryMessage={chatEntryMessage}
           />
-          {visibilityConfig.showResponses && hasMinimumRole('editor') && hasMessages && (
-            <ExportSection
-              hostData={hostData}
-              userData={userData}
-              id={resourceId}
-              className="mt-4"
-            />
-          )}
+
     </>
   );
 }
