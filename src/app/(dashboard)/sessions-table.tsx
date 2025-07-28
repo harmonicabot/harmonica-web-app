@@ -5,7 +5,7 @@ import { Session } from './session';
 import { Key, useEffect, useState } from 'react';
 import SortableTable from '@/components/SortableTable';
 import { HostSession } from '@/lib/schema';
-import * as db from '@/lib/db';
+import { useWorkspaceStats } from '@/stores/SessionStore';
 import { getUserStats, SessionStatus } from '@/lib/clientUtils';
 
 export type SessionTableData = {
@@ -54,14 +54,17 @@ export function SessionsTable({ sessions }: { sessions: HostSession[] }) {
 
   const [tableSessions, setTableSessions] = useState<SessionTableData[]>([]);
 
-  useEffect(() => {
-    setAsSessionTableData(sessions);
-  }, []);
 
-  async function setAsSessionTableData(sessions: HostSession[]) {
-    const sessionToUserStats = await db.getNumUsersAndMessages(
-      sessions.map((s) => s.id),
-    );
+  const sessionIds = sessions.map((s) => s.id);
+  const { data: sessionToUserStats } = useWorkspaceStats(sessionIds);
+
+  useEffect(() => {
+    if (sessionToUserStats) {
+      setAsSessionTableData(sessions, sessionToUserStats);
+    }
+  }, [sessions, sessionToUserStats]);
+
+  function setAsSessionTableData(sessions: HostSession[], sessionToUserStats: any) {
     const asSessionTableData = sessions
       .map((session) => {
         const { totalUsers, finishedUsers } = getUserStats(

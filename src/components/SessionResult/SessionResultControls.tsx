@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoaderCircle, Settings, Copy, InfoIcon, Trash2 } from 'lucide-react';
-import * as db from '@/lib/db';
-import { useUpdateSummary } from '@/stores/SessionStore';
+import { useUpdateSummary, useUpsertHostSession, useRemoveSession } from '@/stores/SessionStore';
 import { cloneSession } from '@/lib/serverUtils';
 import { useRouter } from 'next/navigation';
 import { toast } from 'hooks/use-toast';
@@ -26,6 +25,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { NewHostSession } from '@/lib/schema';
 
 interface SessionResultControlsProps {
   id: string;
@@ -54,6 +54,8 @@ export default function SessionResultControls({
     useState(crossPollination);
   const router = useRouter();
   const updateSummaryMutation = useUpdateSummary();
+  const upsertHostSessionMutation = useUpsertHostSession();
+  const removeSessionMutation = useRemoveSession();
 
   const handlePromptChange = async (
     newPrompt: string,
@@ -65,7 +67,10 @@ export default function SessionResultControls({
           ? { prompt: newPrompt }
           : { summary_prompt: newPrompt };
 
-      await db.updateHostSession(id, updateData);
+      await upsertHostSessionMutation.mutateAsync({ 
+        id, 
+        ...updateData 
+      } as NewHostSession);
     } catch (error) {
       console.error('Failed to update prompt:', error);
       toast({
@@ -82,7 +87,10 @@ export default function SessionResultControls({
       setLocalCrossPollination(checked);
 
       // Update database
-      await db.updateHostSession(id, { cross_pollination: checked });
+      await upsertHostSessionMutation.mutateAsync({ 
+        id, 
+        cross_pollination: checked 
+      } as NewHostSession);
 
       // Show success toast
       toast({
@@ -107,12 +115,18 @@ export default function SessionResultControls({
   };
 
   const finishSession = async () => {
-    await db.deactivateHostSession(id);
+    await upsertHostSessionMutation.mutateAsync({ 
+      id, 
+      active: false 
+    } as NewHostSession);
   };
 
   const reopenSession = async () => {
     console.log('Reopening session');
-    await db.updateHostSession(id, { active: true });
+    await upsertHostSessionMutation.mutateAsync({ 
+      id, 
+      active: true 
+    } as NewHostSession);
   };
 
   const updateSummary = async () => {
@@ -156,7 +170,7 @@ export default function SessionResultControls({
   const handleDeleteSession = async () => {
     setIsDeleting(true);
     try {
-      await db.deleteHostSession(id);
+      await removeSessionMutation.mutateAsync(id);
       toast({
         title: 'Session deleted',
         description: 'The session has been successfully deleted.',

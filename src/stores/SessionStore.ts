@@ -25,7 +25,6 @@ const staleTime = 1000 * 60; // 1 minute
 // --- Fetchers ---
 export function useWorkspace(workspaceId: string) {
   const queryClient = useQueryClient();
-  
   return useQuery({
     queryKey: workspaceKey(workspaceId),
     queryFn: () => fetchWorkspaceData(workspaceId, queryClient),
@@ -51,6 +50,15 @@ export function useUserSessions(sessionId: string) {
     queryFn: () => db.getUsersBySessionId(sessionId),
     select: (data) => data ?? [],
     enabled: !!sessionId,
+    staleTime,
+  });
+}
+
+export function useUserSession(userSessionId: string) {
+  return useQuery({
+    queryKey: ['user-session', userSessionId],
+    queryFn: () => db.getUserSessionById(userSessionId),
+    enabled: !!userSessionId,
     staleTime,
   });
 }
@@ -140,7 +148,7 @@ export function useUpsertUserSessions() {
   });
 }
 
-export function useUpsertMessages() {
+export function useInsertMessages() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (message: NewMessage) => db.insertChatMessage(message),

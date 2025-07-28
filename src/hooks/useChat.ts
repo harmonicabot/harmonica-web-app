@@ -5,9 +5,10 @@ import * as db from '@/lib/db';
 import * as llama from '../app/api/llamaUtils';
 import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
 import { UserProfile, useUser } from '@auth0/nextjs-auth0/client';
-import { Message } from '@/lib/schema';
+import { Message, NewUserSession } from '@/lib/schema';
 import { getUserNameFromContext } from '@/lib/clientUtils';
 import { getUserSessionById, getAllChatMessagesInOrder } from '@/lib/db';
+import { useInsertMessages, useMessages, useUpsertUserSessions, useUserSession } from '@/stores/SessionStore';
 
 export interface UseChatOptions {
   sessionIds?: string[];
@@ -60,6 +61,11 @@ export function useChat(options: UseChatOptions) {
   } | null>(null);
   const [errorToastMessage, setErrorToastMessage] = useState('');
   const { user } = useUser();
+  
+  // Get existing user session data if userSessionId is provided
+  const { data: existingUserSession, isLoading: isLoadingUserSession } = useUserSession(userSessionId || '');
+  const threadId = existingUserSession?.thread_id || '';
+  const { data: existingMessages = [], isLoading: isLoadingMessages } = useMessages(threadId);
 
   const placeholder = placeholderText
     ? placeholderText
@@ -81,6 +87,7 @@ export function useChat(options: UseChatOptions) {
   };
 
   const [isLoading, setIsLoading] = useState(false);
+  const messageInserter = useInsertMessages();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isParticipantSuggestionLoading, setIsParticipantSuggestionLoading] =
@@ -214,16 +221,11 @@ export function useChat(options: UseChatOptions) {
             })
             .join('; ')
         : '';
-      db.insertChatMessage({
+      messageInserter.mutate({
         thread_id: threadIdRef.current,
         role: 'user',
         content: `User shared the following context:\n${contextString}`,
         created_at: new Date(),
-      }).catch((error) => {
-        console.log('Error in insertChatMessage: ', error);
-        showErrorToast(
-          'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can',
-        );
       });
       console.log('Inserting new session with initial data: ', data);
       return db
@@ -258,23 +260,28 @@ export function useChat(options: UseChatOptions) {
       createThreadInProgressRef.current = true;
       
       // Check if we have an existing userSessionId to restore
-      if (userSessionId) {
-        restoreExistingThread(userSessionId).then((restored: boolean) => {
-          if (!restored) {
-            // Fallback to creating new thread if restoration fails
-            createThread(
-              context,
-              sessionIds && sessionIds.length ? sessionIds[0] : undefined,
-              user ? user : 'id',
-              userName,
-              userContext,
-            ).then((threadSessionId) => {
-              handleSubmit(undefined, true, threadSessionId);
-            });
-          }
-        });
-      } else {
-        // No existing session, create new thread
+      if (userSessionId && existingUserSession && !isLoadingUserSession) {
+        // Restore existing thread
+        threadIdRef.current = existingUserSession.thread_id;
+        if (onThreadIdReceived) {
+          onThreadIdReceived(existingUserSession.thread_id);
+        }
+        
+        // Filter out the initial context message if present
+        if (existingMessages) {
+          const filteredMessages = existingMessages.filter(
+            msg => !(msg.role === 'user' && msg.content?.startsWith('User shared the following context:'))
+          ).map(msg => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+            is_final: msg.is_final,
+          }));
+        
+          setMessages(filteredMessages);
+          console.log(`[i] Successfully restored ${existingMessages.length} messages for thread ${existingUserSession.thread_id}`);
+        }
+      } else if (!userSessionId || (!existingUserSession && !isLoadingUserSession) || (!existingMessages && isLoadingMessages)) {
+        // No existing session or session not found, create new thread
         createThread(
           context,
           sessionIds && sessionIds.length ? sessionIds[0] : undefined,
@@ -286,52 +293,8 @@ export function useChat(options: UseChatOptions) {
         });
       }
     }
-  }, [userContext]);
+  }, [userContext, userSessionId, existingUserSession, isLoadingUserSession]);
 
-  /**
-   * Restores an existing thread from a userSessionId
-   * @param userSessionId The existing user session ID
-   * @returns {Promise<boolean>} True if restoration was successful
-   */
-  async function restoreExistingThread(userSessionId: string): Promise<boolean> {
-    try {
-      console.log(`[i] Attempting to restore thread for userSessionId: ${userSessionId}`);
-      
-      // Get the existing user session
-      const existingSession = await getUserSessionById(userSessionId);
-      if (!existingSession) {
-        console.log(`[i] No existing session found for userSessionId: ${userSessionId}`);
-        return false;
-      }
-      
-      // Set the thread ID to the existing one
-      threadIdRef.current = existingSession.thread_id;
-      if (onThreadIdReceived) {
-        onThreadIdReceived(existingSession.thread_id);
-      }
-      
-      // Load existing messages for this thread
-      const existingMessages = await getAllChatMessagesInOrder(existingSession.thread_id);
-
-      // Filter out the initial context message if present
-      const filteredMessages = existingMessages.filter(
-        msg => !(msg.role === 'user' && msg.content?.startsWith('User shared the following context:'))
-      ).map(msg => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-        is_final: msg.is_final,
-      }));
-      
-      setMessages(filteredMessages);
-      
-      console.log(`[i] Successfully restored ${existingMessages.length} messages for thread ${existingSession.thread_id}`);
-      return true;
-      
-    } catch (error) {
-      console.error('[!] Error restoring existing thread:', error);
-      return false;
-    }
-  }
 
   const handleSubmit = async (
     e?: React.FormEvent,
@@ -377,16 +340,11 @@ export function useChat(options: UseChatOptions) {
         console.log(
           `[i] Inserting chat message for user session ${userSessionId}`,
         );
-        db.insertChatMessage({
+        messageInserter.mutate({
           thread_id: threadIdRef.current,
           role: 'user',
           content: messageText,
           created_at: now,
-        }).catch((error) => {
-          console.log('Error in insertChatMessage: ', error);
-          showErrorToast(
-            'Oops, something went wrong storing your message. This is uncomfortable; but please just continue if you can',
-          );
         });
       }
 
@@ -436,18 +394,16 @@ export function useChat(options: UseChatOptions) {
 
             if (userSessionId || userSessionIdFromThread) {
               Promise.all([
-                db.insertChatMessage({
+                messageInserter.mutateAsync({
                   ...answer,
                   thread_id: threadIdRef.current,
                   created_at: now,
                 }),
                 userSessionId || userSessionIdFromThread
-                  ? db.updateUserSession(
-                      userSessionId || userSessionIdFromThread!,
-                      {
-                        last_edit: now,
-                      },
-                    )
+                  ? useUpsertUserSessions().mutateAsync({
+                      id: userSessionId || userSessionIdFromThread!,
+                      last_edit: now,
+                    } as NewUserSession)  // It is not a _new_ user session, but this type allows us to omit all the other fields!
                   : Promise.resolve(),
               ]).catch((error) => {
                 console.log(

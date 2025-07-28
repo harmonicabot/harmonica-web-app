@@ -706,7 +706,7 @@ export async function hasWorkspace(id: string): Promise<boolean> {
 export async function getWorkspaceById(
   id: string,
 ): Promise<s.Workspace | null> {
-  console.log('[i] Database Operation: getWorkspaceById');
+  console.log(`[i] Database Operation: getWorkspaceById(${id})`);
   try {
     const db = await dbPromise;
     const result = await db
@@ -880,7 +880,7 @@ export async function removeSessionFromWorkspace(
 export async function getWorkspaceSessionIds(
   workspaceId: string,
 ): Promise<string[]> {
-  console.log('[i] Database Operation: getWorkspaceSessionIds');
+  console.log(`[i] Database Operation: getWorkspaceSessionIds(${workspaceId})`);
   try {
     const db = await dbPromise;
     const results = await db
@@ -899,7 +899,7 @@ export async function getWorkspaceSessionIds(
 export async function getWorkspacesForSession(
   sessionId: string,
 ): Promise<Pick<s.Workspace, 'id' | 'title'>[]> {
-  console.log('[i] Database Operation: getWorkspacesForSession');
+  console.log(`[i] Database Operation: getWorkspacesForSession(${sessionId})`);
   try {
     const db = await dbPromise;
     const workspaces = await db
