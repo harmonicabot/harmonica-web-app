@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useSummaryStatus, useUpdateSummary } from '@/stores/SessionStore';
+import { create } from 'zustand';
 
 export enum RefreshStatus {
   Unknown,
@@ -11,96 +12,156 @@ export enum RefreshStatus {
   UpToDate,
 }
 
+// Define a global store for managing active updates,
+// so that we don't schedule multiple updates from different components
+interface UpdateManagerStore {
+  // Add status for each resourceId
+  status: Record<string, RefreshStatus>;
+  lastRegisteredEdit: Record<string, number>;
+  // Add actions to update status
+  setStatus: (resourceId: string, status: RefreshStatus) => void;
+  setLastRegisteredEdit: (resourceId: string, lastEdit: number) => void;
+}
+
+const useUpdateManagerStore = create<UpdateManagerStore>((set) => ({
+  status: {},
+  lastRegisteredEdit: {},
+  setStatus: (resourceId, status) =>
+    set((state) => {
+      console.debug(`[UpdateManagerStore] Setting status for ${resourceId} to ${Object.keys(RefreshStatus).filter(k => isNaN(Number(k)))[status]}`);
+      if (state.status[resourceId] === status) return state; // No change if status is the same; necessary to prevent infinite rerender loops
+      return ({
+        status: { ...state.status, [resourceId]: status },
+      })
+    }),
+  setLastRegisteredEdit: (resourceId, lastEdit) => 
+    set((state) => ({ lastRegisteredEdit: { ...state.lastRegisteredEdit, [resourceId]: lastEdit }}))
+}));
+
 export function useSummaryUpdateManager(
   resourceId: string,
-  sessionIds?: string[],  // Provided for projects
+  sessionIds?: string[] // Provided for projects
 ) {
 
-  const [status, setStatus] = useState(RefreshStatus.Unknown)
-
   // Use optimized summary status that leverages cached data
+  // This will be the main source of truth for incoming edits,
+  // the only other thing that should trigger an update is manually.
   const {
     data: summaryStatus,
     isLoading,
-    error
+    error,
   } = useSummaryStatus(resourceId, sessionIds && sessionIds.length > 0);
 
   const summaryUpdater = useUpdateSummary();
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
+  const { status, setStatus, lastRegisteredEdit, setLastRegisteredEdit } = useUpdateManagerStore();
 
   useEffect(() => {
-    // Clear any existing timeout when dependencies change or component unmounts
     return () => {
       if (timeoutIdRef.current) {
         clearTimeout(timeoutIdRef.current);
       }
     };
-  }, []); // Empty dependency array ensures this cleanup runs only on unmount
+  }, [resourceId]);
 
-  useEffect(() => {
-    if (isLoading || !summaryStatus) {
-      setStatus(RefreshStatus.Unknown);
+  const startUpdateNow = useCallback(async () => {
+    // Prevent starting if already running globally or if this instance thinks it's started
+    if (
+      summaryUpdater.isPending ||
+      status[resourceId] === RefreshStatus.UpdateStarted
+    ) {
+      console.debug(`[useSummaryUpdateManager] Update already running for ${resourceId}.`);
       return;
     }
 
-    const delay = 30000; // 30 seconds
+    setStatus(resourceId, RefreshStatus.UpdateStarted);
 
-    if (summaryStatus.lastEdit > summaryStatus.lastSummaryUpdate) {
-      console.log(`[useSummaryUpdateManager] Registered some edit. Schedule summary update for ${resourceId}`);
-      // We only get here if there was some sort of edit. So let's reschedule any previously scheduled update
-      if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
-
-      setStatus(RefreshStatus.UpdatePending);
-      timeoutIdRef.current = setTimeout(() => {
-        startUpdateNow();
-      }, delay); // Calculate remaining time
-    } else {
-      setStatus(RefreshStatus.UpToDate);
-    }
-  }, [summaryStatus, resourceId, sessionIds]);
-
-  const startUpdateNow = async () => {
-    if (summaryUpdater.isPending || status === RefreshStatus.UpdateStarted) {
-      console.log(`[useSummaryUpdateManager] Update already running for ${resourceId}`);
-      return;
-    }
-    setStatus(RefreshStatus.UpdateStarted);
-    console.log(`[useSummaryUpdateManager] Update triggered for ${resourceId}`);
-
+    console.debug(`[useSummaryUpdateManager] Update triggered for ${resourceId}`);
     try {
       const result = await summaryUpdater.mutateAsync({
         resourceId,
         sessionIds,
       });
 
-      console.log(`[useSummaryUpdateManager] Update completed for ${resourceId}`);
+      console.debug(`[useSummaryUpdateManager] Update completed for ${resourceId}`);
       return result;
     } catch (error) {
-      console.error(`[useSummaryUpdateManager] Update failed for ${resourceId}:`, error);
+      console.error(
+        `[useSummaryUpdateManager] Update failed for ${resourceId}:`,
+        error
+      );
       throw error;
+    } finally {
+      setStatus(resourceId, RefreshStatus.UpToDate);
     }
-  };
+  }, [
+    resourceId,
+    sessionIds,
+    summaryUpdater,
+    setStatus,
+    status[resourceId],
+  ]);
+
+  // Effect to schedule the summary update
+  useEffect(() => {
+    if (isLoading || !summaryStatus) {
+      console.debug(`[useSummaryUpdateManager] No summary status or loading for ${resourceId}`);
+      setStatus(resourceId, RefreshStatus.Unknown);
+      return; // Do nothing if loading or no summary status
+    }
+
+    // Only schedule if no update is currently in progress globally
+    if (status[resourceId] === RefreshStatus.UpdateStarted) {
+      console.debug(`[useSummaryUpdateManager] Update already started for ${resourceId}`);
+      return; // Don't schedule if an update is already running
+    }
+
+    if (summaryStatus.lastSummaryUpdate > summaryStatus.lastEdit) {
+      setStatus(resourceId, RefreshStatus.UpToDate);
+      return;
+    }
+    
+    const delay = 30000; // 30 seconds
+    console.debug(
+      `[useSummaryUpdateManager] lastRegisteredEdit for ${resourceId}: ${lastRegisteredEdit[resourceId] ?? 0}`
+    )
+    if (summaryStatus.lastEdit > (lastRegisteredEdit[resourceId] ?? 0)) {
+      console.debug(
+        `[useSummaryUpdateManager] Registered some edit. Schedule summary update for ${resourceId}.
+Last edit:            ${summaryStatus.lastEdit}
+Last summary update:  ${summaryStatus.lastSummaryUpdate}`
+      );
+      
+      setLastRegisteredEdit(resourceId, summaryStatus.lastEdit);
+      
+      // Reset existing timers
+      if (timeoutIdRef.current) {
+        console.debug(`[useSummaryUpdateManager] Replacing existing timeout for ${resourceId}`);
+        clearTimeout(timeoutIdRef.current);
+      }
+
+      // Schedule the update
+      timeoutIdRef.current = setTimeout(() => {
+        startUpdateNow();
+      }, delay);
+      setStatus(resourceId, RefreshStatus.UpdatePending);
+    }
+  }, [
+    startUpdateNow,
+    summaryStatus,
+    isLoading,
+    resourceId,
+    setStatus,
+    setLastRegisteredEdit,
+  ]);
 
   return {
     // State
-    status,
-    isRunning: summaryUpdater.isPending,
+    status: status[resourceId] || RefreshStatus.Unknown,
     isLoading,
     error: error || summaryUpdater.error,
-    lastEditTimestamp: summaryStatus?.lastEdit,
-    version: summaryStatus ? {
-      lastEdit: summaryStatus.lastEdit,
-      lastSummaryUpdate: summaryStatus.lastSummaryUpdate
-    } : undefined,
 
     // Actions to trigger updates manually
     startUpdateNow,
-
-    // React-specific
-    subscribe: () => {
-      // In React hooks, subscriptions are handled by the hook itself
-      // Return a no-op cleanup function for compatibility
-      return () => {};
-    },
   };
 }

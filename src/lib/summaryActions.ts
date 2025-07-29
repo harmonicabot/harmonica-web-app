@@ -4,7 +4,6 @@ import * as db from '@/lib/db';
 import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
 
 export async function checkSummaryNeedsUpdating(resourceId: string, isProject = false) {
-  // console.debug(new Error("Debug checkSummaryNeedsUpdating calls").stack);  
   if (!resourceId) {
     throw new Error('resourceId is required');
   }

@@ -1,12 +1,10 @@
 'use client'
 import { HostSession } from '@/lib/schema';
 import { useState } from 'react';
-import { useUpdateSummary } from '@/stores/SessionStore';
 import { ExpandableWithExport } from './ExpandableWithExport';
 import { Card, CardContent } from '../ui/card';
 import { usePermissions } from '@/lib/permissions';
 import { useSummary } from '@/hooks/useSummary';
-import { useSummaryUpdateManager } from '@/hooks/useSummaryUpdateManager';
 
 interface SessionResultSummaryProps {
   hostData: HostSession[];
@@ -15,6 +13,7 @@ interface SessionResultSummaryProps {
   draft: boolean;
   showSummary?: boolean;
   showSessionRecap?: boolean;
+  onSummaryUpdateTrigger?: () => void;
 }
 
 export default function SessionResultSummary({
@@ -24,6 +23,7 @@ export default function SessionResultSummary({
   draft = false,
   showSummary = true,
   showSessionRecap = true,
+  onSummaryUpdateTrigger
 }: SessionResultSummaryProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExpandedPrompt, setIsExpandedPrompt] = useState(false);
@@ -31,20 +31,11 @@ export default function SessionResultSummary({
 
   const resourceId: string = isProject ? projectId! : hostData[0].id;
   const { hasMinimumRole } = usePermissions(resourceId);
-  const summaryUpdateManager = useSummaryUpdateManager(resourceId, isProject ? hostData.map(h => h.id) : undefined)
+  
   // Use SWR to fetch summary content with initial data as fallback
   const initialSummary = isProject ? '' : hostData[0]?.summary || '';
   const { data: summary, isLoading: summaryLoading } = useSummary(resourceId, initialSummary, isProject);
   
-  const manuallyTriggerSummaryUpdate = async () => {
-    setIsUpdating(true);
-    try {      
-      await summaryUpdateManager.startUpdateNow()
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
   // Check which content will be shown
   const showSessionRecapContent = showSessionRecap && !isProject && hostData[0]?.prompt_summary;
   const showSummaryContent = showSummary && summary;
@@ -73,7 +64,7 @@ export default function SessionResultSummary({
           isExpanded={isExpandedSummary}
           onExpandedChange={setIsExpandedSummary}
           showRefreshButton={hasMinimumRole('editor')}
-          onRefresh={manuallyTriggerSummaryUpdate}
+          onRefresh={onSummaryUpdateTrigger}
           loading={summaryLoading || isUpdating}
         />
       ) : showDraftProjectCard ? (

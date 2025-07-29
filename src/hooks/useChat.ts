@@ -209,7 +209,6 @@ export function useChat(options: UseChatOptions) {
   }
 
   useEffect(() => {
-    console.log('[i] User context: ', userContext);
     if (
       userContext &&
       !threadIdRef.current &&

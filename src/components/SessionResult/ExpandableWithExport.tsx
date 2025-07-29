@@ -34,6 +34,7 @@ const StatusIndicator = ({ status }: { status: RefreshStatus | undefined }) => {
       case RefreshStatus.Outdated:
         return 'bg-red-500';
       case RefreshStatus.UpdatePending:
+      case RefreshStatus.UpdateStarted:
         return 'bg-yellow-500 animate-pulse';
       case RefreshStatus.Unknown:
       default:
