@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronRight, PlusCircle } from 'lucide-react';
+import { ChevronRight, PlusCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SessionsTable } from './sessions-table';
 import { WorkspacesTable } from './workspaces-table';
@@ -211,7 +211,15 @@ export default async function Dashboard({
         </div>
         {/* Right column */}
         <div className="flex-1 flex flex-col justify-center">
-          <label htmlFor="dashboard-objective" className="block text-base font-medium mb-2">Create a new session</label>
+          <div className="flex items-center justify-between mb-2">
+            <label htmlFor="dashboard-objective" className="block text-base font-medium">What do you want to find out?</label>
+            <Link href="/create">
+              <Button variant="ghost" size="sm">
+                <FileText className="w-4 h-4" />
+                Templates
+              </Button>
+            </Link>
+          </div>
           <CreateSessionInputClient />
         </div>
       </div>
