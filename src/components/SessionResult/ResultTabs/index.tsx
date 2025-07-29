@@ -83,13 +83,7 @@ export default function ResultTabs({
   
   const currentUserData = userData;
 
-  useSummaryUpdateManager(resourceId, {
-    isProject,
-    sessionIds,
-    projectId: resourceId,
-    enablePolling: true,
-    pollingInterval: 10000, // Poll every 10 seconds
-  });
+  useSummaryUpdateManager(resourceId, sessionIds);
 
   // Define available tabs and their visibility conditions in one place
   const availableTabs = useMemo(() => {

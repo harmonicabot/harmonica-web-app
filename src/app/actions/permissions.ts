@@ -23,8 +23,6 @@ export async function updateResourcePermission(
         error: 'Authentication required' 
       };
     }
-
-    // TODO: Add permission check to ensure current user can modify permissions
     
     const result = await setPermission(resourceId, role, resourceType, userId);
     return { success: result };
@@ -55,7 +53,6 @@ export async function removeResourcePermission(
       };
     }
 
-    // TODO: Add permission check to ensure current user can remove permissions
     // TODO: Add check to prevent removing the last owner
 
     const result = await removePermission(resourceId, userId, resourceType);
@@ -139,8 +136,6 @@ export async function cancelInvitation(
         error: 'Authentication required' 
       };
     }
-
-    // TODO: Add permission check to ensure current user can cancel invitations
     
     const result = await deleteInvitation(invitationId);
     return { success: result };

@@ -227,28 +227,23 @@ export function useUnlinkSessionFromWorkspace() {
 // --- Summary Operations ---
 
 
-export function useSummaryStatus(sessionId: string, isProject = false) {
+export function useSummaryStatus(resourceId: string, isProject = false) {
   const queryClient = useQueryClient();
   
   return useQuery({
-    queryKey: summaryStatusKey(sessionId),
+    queryKey: summaryStatusKey(resourceId),
     queryFn: async () => {
       // For projects, we need different caching strategy
       if (isProject) {
         // For workspaces, check if we have workspace data cached
-        const cachedWorkspace = queryClient.getQueryData(workspaceKey(sessionId));
-        if (cachedWorkspace) {
-          // We have workspace data, but still need to call server action
-          // for complex multi-session timestamp calculation
-          return checkSummaryNeedsUpdating(sessionId, true);
-        }
+        // const cachedWorkspace = queryClient.getQueryData(workspaceKey(sessionId));
         // No workspace cache, fallback to server action
-        return checkSummaryNeedsUpdating(sessionId, true);
+        return checkSummaryNeedsUpdating(resourceId, true);
       }
       
       // For sessions, try to use cached data first to avoid database calls
-      const cachedHost = queryClient.getQueryData<HostSession>(hostKey(sessionId));
-      const cachedUsers = queryClient.getQueryData<UserSession[]>(userKey(sessionId));
+      const cachedHost = queryClient.getQueryData<HostSession>(hostKey(resourceId));
+      const cachedUsers = queryClient.getQueryData<UserSession[]>(userKey(resourceId));
       
       if (cachedHost && cachedUsers) {
         const { lastMessage, lastSummaryUpdate } = checkSummaryAndMessageTimes(cachedHost, cachedUsers);
@@ -260,14 +255,14 @@ export function useSummaryStatus(sessionId: string, isProject = false) {
         return {
           lastEdit: Math.max(lastMessage, lastUserEdit),
           lastSummaryUpdate,
-          resourceId: sessionId
+          resourceId: resourceId
         };
       }
       
       // Fallback to server action if no cached data
-      return checkSummaryNeedsUpdating(sessionId, false);
+      return checkSummaryNeedsUpdating(resourceId, false);
     },
-    enabled: !!sessionId,
+    enabled: !!resourceId,
     staleTime: 10000,
     refetchInterval: 10000,
   });
@@ -285,28 +280,26 @@ export function useSummaryContent(sessionId: string) {
 export function useUpdateSummary() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ sessionId, isProject = false, sessionIds, projectId }: {
-      sessionId: string;
-      isProject?: boolean;
+    mutationFn: ({ resourceId, sessionIds }: {
+      resourceId: string;
       sessionIds?: string[];
-      projectId?: string;
     }) => {
-      if (isProject) {
+      if (sessionIds && sessionIds.length > 1) {
         return createMultiSessionSummary(
-          sessionIds?.length ? sessionIds : [sessionId],
-          projectId ?? sessionId
+          sessionIds,
+          resourceId
         );
       } else {
-        return createSummary(sessionId);
+        return createSummary(resourceId);
       }
     },
     onSuccess: (summary, variables) => {
       // Update cache with new summary content
-      queryClient.setQueryData(summaryContentKey(variables.sessionId), summary);
+      queryClient.setQueryData(summaryContentKey(variables.resourceId), summary);
       // Invalidate status to reflect that summary is now up to date
-      queryClient.invalidateQueries({ queryKey: summaryStatusKey(variables.sessionId) });
+      queryClient.invalidateQueries({ queryKey: summaryStatusKey(variables.resourceId) });
       // Invalidate host session to update last_summary_update timestamp
-      queryClient.invalidateQueries({ queryKey: hostKey(variables.sessionId) });
+      queryClient.invalidateQueries({ queryKey: hostKey(variables.resourceId) });
     },
   });
 }

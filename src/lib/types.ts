@@ -1,7 +1,3 @@
-// TODO: Clean up types to make them more concise and intuitive.
-//  There's just too much going on right now and the separation between
-//  UserData, SessionData & AccumulatedData isn't clear enough.
-
 import {
   UserSession,
   Message,

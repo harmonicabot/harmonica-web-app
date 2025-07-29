@@ -34,7 +34,6 @@ interface SessionResultControlsProps {
   currentPrompt?: string;
   summaryPrompt?: string;
   crossPollination?: boolean;
-  sessionTopic?: string;
 }
 
 export default function SessionResultControls({
@@ -44,7 +43,6 @@ export default function SessionResultControls({
   currentPrompt = '',
   summaryPrompt = '',
   crossPollination = true,
-  sessionTopic = '',
 }: SessionResultControlsProps) {
   const [loadSummary, setLoadSummary] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
@@ -132,7 +130,7 @@ export default function SessionResultControls({
   const updateSummary = async () => {
     setLoadSummary(true);
     try {
-      await updateSummaryMutation.mutateAsync({ sessionId: id });
+      await updateSummaryMutation.mutateAsync({ resourceId: id });
     } finally {
       setLoadSummary(false);
     }

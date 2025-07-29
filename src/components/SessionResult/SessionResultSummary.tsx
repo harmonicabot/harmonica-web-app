@@ -1,12 +1,12 @@
 'use client'
 import { HostSession } from '@/lib/schema';
-import { useEffect, useState } from 'react';
-import { RefreshStatus } from '@/hooks/useSummaryUpdateManager';
+import { useState } from 'react';
 import { useUpdateSummary } from '@/stores/SessionStore';
 import { ExpandableWithExport } from './ExpandableWithExport';
 import { Card, CardContent } from '../ui/card';
 import { usePermissions } from '@/lib/permissions';
 import { useSummary } from '@/hooks/useSummary';
+import { useSummaryUpdateManager } from '@/hooks/useSummaryUpdateManager';
 
 interface SessionResultSummaryProps {
   hostData: HostSession[];
@@ -31,20 +31,15 @@ export default function SessionResultSummary({
 
   const resourceId: string = isProject ? projectId! : hostData[0].id;
   const { hasMinimumRole } = usePermissions(resourceId);
-  const updateSummaryMutation = useUpdateSummary();
-  
+  const summaryUpdateManager = useSummaryUpdateManager(resourceId, isProject ? hostData.map(h => h.id) : undefined)
   // Use SWR to fetch summary content with initial data as fallback
   const initialSummary = isProject ? '' : hostData[0]?.summary || '';
   const { data: summary, isLoading: summaryLoading } = useSummary(resourceId, initialSummary, isProject);
   
   const manuallyTriggerSummaryUpdate = async () => {
     setIsUpdating(true);
-    try {
-      await updateSummaryMutation.mutateAsync({ 
-        sessionId: hostData[0].id,
-        isProject,
-        projectId 
-      });
+    try {      
+      await summaryUpdateManager.startUpdateNow()
     } finally {
       setIsUpdating(false);
     }
@@ -72,6 +67,7 @@ export default function SessionResultSummary({
       {showSummaryContent ? (
         <ExpandableWithExport
           resourceId={resourceId}
+          sessionIds={isProject ? hostData.map(h => h.id) : undefined}
           title={isProject ? "Project Summary" : "Session Summary"}
           content={summary}
           isExpanded={isExpandedSummary}

@@ -9,15 +9,11 @@ import Link from 'next/link';
 import { Loader2, HelpCircle } from 'lucide-react';
 import {
   getHostSessionById,
-  increaseSessionsCount,
-  updateHostSession,
   updateUserSession,
 } from '@/lib/db';
-import { sql } from 'kysely';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { OpenAIMessage } from '@/lib/types';
 import { encryptId } from '@/lib/encryptionUtils';
-import { PoweredByHarmonica } from '@/components/icons';
 
 const StandaloneChat = () => {
   const [message, setMessage] = useState<OpenAIMessage>({
@@ -70,9 +66,6 @@ Please type your name or "anonymous" if you prefer
       active: false,
       last_edit: new Date(),
     })
-      .then(() => {
-        increaseSessionsCount(sessionId!, 'num_finished');
-      })
       .then(() => {
         setIsLoading(false);
         setUserFinished(true);

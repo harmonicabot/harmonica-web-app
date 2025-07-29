@@ -225,24 +225,6 @@ export async function updateHostSession(
   }
 }
 
-// TODO: Do we still need this? Is it actually used? (I think it was broken at some point; and instead of relying on the db field, we're calculating it on the fly?)
-export async function increaseSessionsCount(
-  id: string,
-  toIncrease: 'num_sessions' | 'num_finished',
-) {
-  console.log('[i] Database Operation: increaseSessionsCount', id);
-  // This is a bit clumsy, but I couldn't find a way with kysely to do it in one go. Submitting sql`...` breaks it :-(
-  const db = await dbPromise;
-  const previousNum = (
-    await db
-      .selectFrom(hostTableName)
-      .where('id', '=', id)
-      .select(toIncrease)
-      .executeTakeFirstOrThrow()
-  )[toIncrease];
-  updateHostSession(id, { [toIncrease]: previousNum + 1 });
-}
-
 export async function deleteHostSession(id: string): Promise<void> {
   console.log('[i] Database Operation: deleteHostSession');
   try {
@@ -974,7 +956,8 @@ export async function setPermission(
       userId = session?.user?.sub;
     }
     if (!userId) {
-      console.warn('Could not get user info. Will store session as anonymous.');
+      console.warn('Could not get user info; not setting permissions!');
+      return false;
     }
 
     const db = await dbPromise;
@@ -991,7 +974,7 @@ export async function setPermission(
             .insertInto(permissionsTableName)
             .values({
               resource_id: sessionId,
-              user_id: userId || 'anonymous',
+              user_id: userId!,
               role,
               resource_type: 'SESSION',
             })
@@ -1010,7 +993,7 @@ export async function setPermission(
       .insertInto(permissionsTableName)
       .values({
         resource_id: resourceId,
-        user_id: userId || 'anonymous',
+        user_id: userId,
         role,
         resource_type: resourceType,
       })

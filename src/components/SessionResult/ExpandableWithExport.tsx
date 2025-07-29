@@ -14,6 +14,7 @@ import { RefreshStatus, useSummaryUpdateManager } from '@/hooks/useSummaryUpdate
 
 interface CardProps {
   resourceId: string;
+  sessionIds?: string[],
   title: string;
   content?: string;
   isExpanded: boolean;
@@ -47,6 +48,7 @@ const StatusIndicator = ({ status }: { status: RefreshStatus | undefined }) => {
 
 export const ExpandableWithExport = ({
   resourceId,
+  sessionIds,
   title,
   content,
   isExpanded,
@@ -57,7 +59,7 @@ export const ExpandableWithExport = ({
   loading,
   className,
 }: CardProps) => {
-  const summaryManager = useSummaryUpdateManager(resourceId);
+  const summaryManager = useSummaryUpdateManager(resourceId, sessionIds);
   return (
     <ExpandableCard
       title={
