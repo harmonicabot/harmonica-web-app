@@ -1,10 +1,10 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import SessionSummaryCard from '@/components/SessionResult/SessionSummaryCard';
-import { HostSession, UserSession } from '@/lib/schema';
+import { HostSession } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
-import { LinkIcon, Loader, Pencil, Plus } from 'lucide-react';
+import { LinkIcon, Loader, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,17 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import {
-  linkSessionsToWorkspace,
-  unlinkSessionFromWorkspace,
-} from '@/lib/workspaceActions';
 import { useToast } from 'hooks/use-toast';
-import * as db from '@/lib/db';
 import {
-  useUpsertWorkspace,
-  useUpsertHostSession,
-  useUpsertUserSessions,
-  useHostSession,
   useWorkspace,
   useLinkSessionsToWorkspace,
   useUnlinkSessionFromWorkspace,

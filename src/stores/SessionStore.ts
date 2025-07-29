@@ -158,11 +158,16 @@ export function useUpsertHostSession() {
 export function useUpsertUserSessions() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: NewUserSession | NewUserSession[]) => db.upsertUserSessions(data),
-    onSuccess: (result, _input) => {
+    mutationFn: (data: NewUserSession) => {
+      if (!data.id) {
+        return db.insertUserSessions(data);
+      } else {
+       return db.updateUserSession(data.id, data)
+      }
+    },
+    onSuccess: (results, _input) => {
       // Invalidate all affected session queries so that if we query for a session it will be fetched
-      const sessionIds = result.map(v => v.session_id);
-      sessionIds.forEach(sessionId => {
+      results.forEach(sessionId => {
         queryClient.invalidateQueries({ queryKey: userKey(sessionId) });
       });
     },

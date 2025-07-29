@@ -274,43 +274,21 @@ export async function insertUserSessions(
   }
 }
 
-export async function upsertUserSessions(
-  data: s.NewUserSession | s.NewUserSession[],
-  onConflict: 'skip' | 'update' = 'update',
-): Promise<s.UserSession[]> {
-  console.log('[i] Database Operation: upsertUserSessions');
-  try {
-    const db = await dbPromise;
-    const result = await db
-      .insertInto(userTableName)
-      .values(data)
-      .onConflict((oc) =>
-        onConflict === 'skip'
-          ? oc.column('id').doNothing()
-          : oc.column('id').doUpdateSet(data),
-      )
-      .returningAll()
-      .execute();
-    return result;
-  } catch (error) {
-    console.error('Error upserting user session:', error);
-    throw error;
-  }
-}
-
 export async function updateUserSession(
   id: string,
   data: s.UserSessionUpdate,
-): Promise<void> {
+): Promise<string[]> {
   console.log('[i] Database Operation: updateUserSession');
   try {
     const db = await dbPromise;
     console.log('Updating user session with id:', id, ' with data:', data);
-    await db
+    const result = await db
       .updateTable(userTableName)
       .set(data)
       .where('id', '=', id)
+      .returningAll()
       .execute();
+    return result.map((row) => row.id);
   } catch (error) {
     console.error('Error updating user session:', error);
     throw error;

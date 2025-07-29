@@ -4,10 +4,9 @@ import { useEffect, useState, useRef } from 'react';
 import * as llama from '../app/api/llamaUtils';
 import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
 import { UserProfile, useUser } from '@auth0/nextjs-auth0/client';
-import { Message, NewUserSession } from '@/lib/schema';
+import { NewUserSession } from '@/lib/schema';
 import { getUserNameFromContext } from '@/lib/clientUtils';
 import { useInsertMessages, useMessages, useUpsertUserSessions, useUserSession } from '@/stores/SessionStore';
-import { getAllMessagesForUsersSorted } from '@/lib/db';
 
 export interface UseChatOptions {
   sessionIds?: string[];
@@ -191,10 +190,9 @@ export function useChat(options: UseChatOptions) {
       });
       console.log('Inserting new session with initial data: ', data);
       return upsertUserSessions.mutateAsync(data)
-        .then((users) => {
-          const userId = users[0]?.id;
-          if (userId && setUserSessionId) setUserSessionId(userId);
-          return userId; // Return the userId, just in case setUserSessionId is not fast enough
+        .then((newUserIds) => {
+          if (newUserIds && newUserIds.length == 1 && setUserSessionId) setUserSessionId(newUserIds[0]);
+          return newUserIds[0]; // Return the userId, just in case setUserSessionId is not fast enough
         })
         .catch((error) => {
           console.error('[!] error creating user session -> ', error);
@@ -363,7 +361,7 @@ export function useChat(options: UseChatOptions) {
                   created_at: now,
                 }),
                 userSessionId || userSessionIdFromThread
-                  ? useUpsertUserSessions().mutateAsync({
+                  ? upsertUserSessions.mutateAsync({
                       id: userSessionId || userSessionIdFromThread!,
                       last_edit: now,
                     } as NewUserSession)  // It is not a _new_ user session, but this type allows us to omit all the other fields!
