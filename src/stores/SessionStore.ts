@@ -50,33 +50,35 @@ export function useHostSession(sessionId: string) {
 }
 
 export function useUserSessions(hostSessionId: string) {
-  // First, get the user IDs for this host session
+  const queryClient = useQueryClient();
+  
+  // Fetch user IDs and populate individual user caches in one go
   const userIdsQuery = useQuery({
     queryKey: hostUserIdsKey(hostSessionId),
     queryFn: async () => {
       const users = await db.getUsersBySessionId(hostSessionId);
+      
+      // Populate individual user entity caches with the data we already have
+      users.forEach(user => {
+        queryClient.setQueryData(userObjectKey(user.id), user);
+      });
+      
       return users.map(user => user.id);
     },
     enabled: !!hostSessionId,
     staleTime,
   });
 
-  // Then, get the full user entities
-  const userEntitiesQueries = useQueries({
-    queries: (userIdsQuery.data || []).map(userId => ({
-      queryKey: userObjectKey(userId),
-      queryFn: () => db.getUserSessionById(userId),
-      enabled: !!userId,
-      staleTime,
-    }))
-  });
+  // Get user entities from cache (they should be populated by the query above)
+  const userSessions = (userIdsQuery.data || [])
+    .map(userId => queryClient.getQueryData<UserSession>(userObjectKey(userId)))
+    .filter(Boolean) as UserSession[];
 
-  // Combine the results
   return {
-    data: userEntitiesQueries.map(query => query.data).filter(Boolean) as UserSession[],
-    isLoading: userIdsQuery.isLoading || userEntitiesQueries.some(query => query.isLoading),
-    isError: userIdsQuery.isError || userEntitiesQueries.some(query => query.isError),
-    error: userIdsQuery.error || userEntitiesQueries.find(query => query.error)?.error,
+    data: userSessions,
+    isLoading: userIdsQuery.isLoading,
+    isError: userIdsQuery.isError,
+    error: userIdsQuery.error,
   };
 }
 
