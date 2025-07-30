@@ -60,6 +60,7 @@ export async function handleGenerateAnswer(
     ? await getAllChatMessagesInOrder(messageData.threadId)
     : [];
 
+  console.log(`[i] Fetched messages:\n`, messages);
   // Skip cross-pollination logic entirely if it's disabled
   if (crossPollinationEnabled) {
     // Only attempt cross-pollination if there are enough messages and we're not in skip mode

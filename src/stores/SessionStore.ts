@@ -238,6 +238,7 @@ export function useSummaryStatus(resourceId: string, isProject = false) {
   return useQuery({
     queryKey: summaryStatusKey(resourceId),
     queryFn: async () => {
+      console.log(`[i] Using SummaryStatus for resourceId: ${resourceId}`);
       // For projects, we need different caching strategy
       if (isProject) {
         // For workspaces, check if we have workspace data cached
@@ -256,16 +257,18 @@ export function useSummaryStatus(resourceId: string, isProject = false) {
           const lastEditTime = new Date(user.last_edit).getTime();
           return lastEditTime > latest ? lastEditTime : latest;
         }, 0);
-        
+        console.log(`[i] Cached Summary status: Last Message: ${lastMessage}, Last Summary Update: ${lastSummaryUpdate}, Last User Edit: ${lastUserEdit}`);
         return {
           lastEdit: Math.max(lastMessage, lastUserEdit),
           lastSummaryUpdate,
           resourceId: resourceId
         };
       }
-      
+
       // Fallback to server action if no cached data
-      return checkSummaryNeedsUpdating(resourceId, false);
+      const results = await checkSummaryNeedsUpdating(resourceId, false);
+      console.log(`[i] Server Summary status: Last ediy: ${results.lastEdit}, Last Summary Update: ${results.lastSummaryUpdate}`);
+      return results;
     },
     enabled: !!resourceId,
     staleTime: 10000,

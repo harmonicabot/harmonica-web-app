@@ -301,7 +301,10 @@ export function useChat(options: UseChatOptions) {
         console.log(
           `[i] Inserting chat message for user session ${userSessionId}`,
         );
-        messageInserter.mutate({
+        // Need to do await here, because we process this chat on the server 
+        // and we need to wait here until it actually is written to the database; 
+        // i.e. optimistic client-side updates won't be enough!
+        await messageInserter.mutateAsync({
           thread_id: threadIdRef.current,
           role: 'user',
           content: messageText,
@@ -337,11 +340,11 @@ export function useChat(options: UseChatOptions) {
           messageText,
           sessionId: sessionIds?.[0] || '',
         };
-
+        console.log(`[i] Generating answer for message: ${messageText}`);
         llama
           .handleGenerateAnswer(
             messageData,
-            !isAskAi && sessionIds?.length === 1 && crossPollination,
+            sessionIds?.length === 1 && crossPollination,
           )
           .then((answer) => {
             if (answer.is_final && setShowRating) {

@@ -66,6 +66,7 @@ export function useSummaryUpdateManager(
 
   const startUpdateNow = useCallback(async () => {
     // Prevent starting if already running globally or if this instance thinks it's started
+    console.debug(`[useSummaryUpdateManager] startUpdateNow called for ${resourceId} with status: ${status[resourceId]}`);
     if (
       summaryUpdater.isPending ||
       status[resourceId] === RefreshStatus.UpdateStarted
@@ -76,7 +77,7 @@ export function useSummaryUpdateManager(
 
     setStatus(resourceId, RefreshStatus.UpdateStarted);
 
-    console.debug(`[useSummaryUpdateManager] Update triggered for ${resourceId}`);
+    console.debug(`[useSummaryUpdateManager] Update triggered for ${resourceId} from `, new Error().stack);
     try {
       const result = await summaryUpdater.mutateAsync({
         resourceId,
