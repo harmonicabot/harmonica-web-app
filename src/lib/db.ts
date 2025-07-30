@@ -1741,12 +1741,12 @@ export async function updateThreadRating(
 
 function logCallerLocation(functionName: string, params?: any) {
   // Only log stack trace if in development
-  if (process.env.NODE_ENV !== 'production') {
-    const err = new Error();
-    // Only show stack after the first two lines
-    const splitStack = err.stack?.split('\n');
-    const stack = splitStack?.slice(2, 6).filter((line) => !line.includes('node'));
-    console.log(`[trace] called with params:`, params);
-    console.debug(`Stack: `, stack);
-  }
+  // if (process.env.NODE_ENV !== 'production') {
+  //   const err = new Error();
+  //   // Only show stack after the first two lines
+  //   const splitStack = err.stack?.split('\n');
+  //   const stack = splitStack?.slice(2, 6).filter((line) => !line.includes('node'));
+  //   console.log(`[trace] called with params:`, params);
+  //   console.debug(`Stack: `, stack);
+  // }
 }

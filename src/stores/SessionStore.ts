@@ -10,20 +10,20 @@ import { getSession } from '@auth0/nextjs-auth0';
 
 
 // --- Query Keys ---
-const workspaceObjectKey = (id: string) => ['workspace-objects', id];
-const hostObjectKey = (id: string) => ['host-session-objects', id];
-const userObjectKey = (sessionId: string) => ['user-session-objects', sessionId];
+const workspaceObjectKey = (wspaceId: string) => ['workspace-objects', wspaceId];
+const hostObjectKey = (hostId: string) => ['host-session-objects', hostId];
+const userObjectKey = (userSessionId: string) => ['user-session-objects', userSessionId];
 
 // --- Mapping of hostIds -> userIds ---
-const hostUserIdsKey = (hostId: string) => ['host-user-ids', hostId];
+const hostToUserIdsKey = (hostId: string) => ['host-user-ids', hostId];
 
 const messagesKey = (threadId: string) => ['messages', threadId];
-const summaryStatusKey = (sessionId: string) => ['summary-status', sessionId];
-const summaryContentKey = (sessionId: string) => ['summary-content', sessionId];
+const summaryStatusKey = (hostSessionId: string) => ['summary-status', hostSessionId];
+const summaryContentKey = (hostSessionId: string) => ['summary-content', hostSessionId];
 
 // Workspace-specific query keys
 const workspaceSessionsKey = (workspaceId: string) => ['workspace-sessions', workspaceId];
-const sessionsStatsKey = (sessionIds: string[]) => ['workspace-stats', sessionIds.sort()];
+const sessionsStatsKey = (hostSessionIds: string[]) => ['workspace-stats', hostSessionIds.sort()];
 const availableSessionsKey = () => ['available-sessions'];
 const staleTime = 1000 * 60; // 1 minute
 
@@ -39,12 +39,12 @@ export function useWorkspace(workspaceId: string) {
   });
 }
 
-export function useHostSession(sessionId: string) {
+export function useHostSession(hostSessionId: string) {
   return useQuery({
-    queryKey: hostObjectKey(sessionId),
-    queryFn: () => db.getHostSessionById(sessionId),
+    queryKey: hostObjectKey(hostSessionId),
+    queryFn: () => db.getHostSessionById(hostSessionId),
     select: (data) => data ?? [],
-    enabled: !!sessionId,
+    enabled: !!hostSessionId,
     staleTime,
   });
 }
@@ -54,7 +54,7 @@ export function useUserSessions(hostSessionId: string) {
   
   // Fetch user IDs and populate individual user caches in one go
   const userIdsQuery = useQuery({
-    queryKey: hostUserIdsKey(hostSessionId),
+    queryKey: hostToUserIdsKey(hostSessionId),
     queryFn: async () => {
       const users = await db.getUsersBySessionId(hostSessionId);
       
@@ -63,6 +63,9 @@ export function useUserSessions(hostSessionId: string) {
         queryClient.setQueryData(userObjectKey(user.id), user);
       });
       
+      // The return value is what's mapped & cached against the hostSessionId; 
+      // we only want to return/map userSessionIds, not whole objects.
+      // (We still return all objects later on in the outer return!)
       return users.map(user => user.id);
     },
     enabled: !!hostSessionId,
@@ -190,18 +193,21 @@ export function useUpsertUserSession() {
       if (!data.id) {
         return (await db.insertUserSessions(data))[0];
       } else {
+        console.log('[i] Updating existing user session:', data);
         return (await db.updateUserSession(data.id, data))[0];
       }
     },
     onSuccess: (userSessionId, input) => {
       // Invalidate individual user entity caches
+      console.log(`Successfully updated user session, now we invalidate the cache for ${userSessionId}`);
       queryClient.invalidateQueries({ queryKey: userObjectKey(userSessionId) });
       
       // Get host session ID from input data or from local cache to invalidate host-user mapping
       const hostSessionId = input.session_id
         || queryClient.getQueryData<UserSession>(userObjectKey(userSessionId))?.session_id;
       if (hostSessionId) {
-        queryClient.invalidateQueries({ queryKey: hostUserIdsKey(hostSessionId) });
+        console.log(`Invalidating parent hostSession to userId mapping & summaryStatus keys for ${hostSessionId}`);
+        queryClient.invalidateQueries({ queryKey: hostToUserIdsKey(hostSessionId) });
         queryClient.invalidateQueries({ queryKey: summaryStatusKey(hostSessionId) });
       }
     },
@@ -282,22 +288,24 @@ export function useSummaryStatus(resourceId: string, isProject = false) {
       
       // For sessions, try to use cached data first to avoid database calls
       const cachedHost = queryClient.getQueryData<HostSession>(hostObjectKey(resourceId));
-      const cachedUserIds = queryClient.getQueryData<string[]>(hostUserIdsKey(resourceId));
+      const cachedUserIds = queryClient.getQueryData<string[]>(hostToUserIdsKey(resourceId));
       
       if (cachedHost && cachedUserIds) {
         // Get all user sessions from the normalized cache
+        console.log(`[1] Checking UserSessions for resourceId: ${resourceId}, sessionIds:`, cachedUserIds);
         const cachedUserSessions = cachedUserIds
           .map(userId => queryClient.getQueryData<UserSession>(userObjectKey(userId)))
           .filter(Boolean) as UserSession[];
         
         // TODO: Maybe we could just fetch the missing ones and do this routine...?
         if (cachedUserSessions.length === cachedUserIds.length) {
+          console.log(`[2] Found all required cached user sessions.`)
           const { lastMessage, lastSummaryUpdate } = checkSummaryAndMessageTimes(cachedHost, cachedUserSessions);
           const lastUserEdit = cachedUserSessions.reduce((latest: number, user: UserSession) => {
             const lastEditTime = new Date(user.last_edit).getTime();
             return lastEditTime > latest ? lastEditTime : latest;
           }, 0);
-          console.log(`[i] Cached Summary status for ${resourceId}: Last User Edit: ${lastUserEdit}`);
+          console.log(`[3] Cached Summary status for ${resourceId}: Last User Edit: ${lastUserEdit}`);
           return {
             lastEdit: Math.max(lastMessage, lastUserEdit),
             lastSummaryUpdate,
