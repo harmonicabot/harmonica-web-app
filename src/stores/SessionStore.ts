@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import { NewHostSession, NewMessage, NewUserSession, NewWorkspace, Workspace, HostSession, UserSession, User } from '@/lib/schema';
 import { fetchWorkspaceData } from '@/lib/workspaceData';
@@ -10,12 +10,17 @@ import { getSession } from '@auth0/nextjs-auth0';
 
 
 // --- Query Keys ---
-const workspaceKey = (id: string) => ['workspace', id];
-const hostKey = (id: string) => ['host', id];
-const userKey = (sessionId: string) => ['users', sessionId];
-const messageKey = (threadId: string) => ['messages', threadId];
+const workspaceObjectKey = (id: string) => ['workspace-objects', id];
+const hostObjectKey = (id: string) => ['host-session-objects', id];
+const userObjectKey = (sessionId: string) => ['user-session-objects', sessionId];
+
+// --- Mapping of hostIds -> userIds ---
+const hostUserIdsKey = (hostId: string) => ['host-user-ids', hostId];
+
+const messagesKey = (threadId: string) => ['messages', threadId];
 const summaryStatusKey = (sessionId: string) => ['summary-status', sessionId];
 const summaryContentKey = (sessionId: string) => ['summary-content', sessionId];
+
 // Workspace-specific query keys
 const workspaceSessionsKey = (workspaceId: string) => ['workspace-sessions', workspaceId];
 const sessionsStatsKey = (sessionIds: string[]) => ['workspace-stats', sessionIds.sort()];
@@ -26,7 +31,7 @@ const staleTime = 1000 * 60; // 1 minute
 export function useWorkspace(workspaceId: string) {
   const queryClient = useQueryClient();
   return useQuery({
-    queryKey: workspaceKey(workspaceId),
+    queryKey: workspaceObjectKey(workspaceId),
     queryFn: () => fetchWorkspaceData(workspaceId, queryClient),
     select: (data) => data ?? [], // Returns an empty array if data isn't available yet
     enabled: !!workspaceId,
@@ -36,7 +41,7 @@ export function useWorkspace(workspaceId: string) {
 
 export function useHostSession(sessionId: string) {
   return useQuery({
-    queryKey: hostKey(sessionId),
+    queryKey: hostObjectKey(sessionId),
     queryFn: () => db.getHostSessionById(sessionId),
     select: (data) => data ?? [],
     enabled: !!sessionId,
@@ -45,18 +50,39 @@ export function useHostSession(sessionId: string) {
 }
 
 export function useUserSessions(hostSessionId: string) {
-  return useQuery({
-    queryKey: userKey(hostSessionId),
-    queryFn: () => db.getUsersBySessionId(hostSessionId),
-    select: (data) => data ?? [],
+  // First, get the user IDs for this host session
+  const userIdsQuery = useQuery({
+    queryKey: hostUserIdsKey(hostSessionId),
+    queryFn: async () => {
+      const users = await db.getUsersBySessionId(hostSessionId);
+      return users.map(user => user.id);
+    },
     enabled: !!hostSessionId,
     staleTime,
   });
+
+  // Then, get the full user entities
+  const userEntitiesQueries = useQueries({
+    queries: (userIdsQuery.data || []).map(userId => ({
+      queryKey: userObjectKey(userId),
+      queryFn: () => db.getUserSessionById(userId),
+      enabled: !!userId,
+      staleTime,
+    }))
+  });
+
+  // Combine the results
+  return {
+    data: userEntitiesQueries.map(query => query.data).filter(Boolean) as UserSession[],
+    isLoading: userIdsQuery.isLoading || userEntitiesQueries.some(query => query.isLoading),
+    isError: userIdsQuery.isError || userEntitiesQueries.some(query => query.isError),
+    error: userIdsQuery.error || userEntitiesQueries.find(query => query.error)?.error,
+  };
 }
 
 export function useUserSession(userSessionId: string) {
   return useQuery({
-    queryKey: ['user-session', userSessionId],
+    queryKey: userObjectKey(userSessionId),
     queryFn: () => db.getUserSessionById(userSessionId),
     enabled: !!userSessionId,
     staleTime,
@@ -65,7 +91,7 @@ export function useUserSession(userSessionId: string) {
 
 export function useMessages(threadId: string) {
   return useQuery({
-    queryKey: messageKey(threadId),
+    queryKey: messagesKey(threadId),
     queryFn: () => db.getAllChatMessagesInOrder(threadId),
     enabled: !!threadId,
   });
@@ -140,7 +166,7 @@ export function useUpsertWorkspace() {
     mutationFn: ({ id, data }: { id: string; data: Partial<Workspace | NewWorkspace> }) =>
       db.upsertWorkspace(id, data),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: workspaceKey(variables.id) });
+      queryClient.invalidateQueries({ queryKey: workspaceObjectKey(variables.id) });
     },
   });
 }
@@ -150,31 +176,32 @@ export function useUpsertHostSession() {
   return useMutation({
     mutationFn: (data: NewHostSession) => db.upsertHostSession(data, 'update'),
     onSuccess: (result, _data) => {
-      queryClient.invalidateQueries({ queryKey: hostKey(result.id) });
+      queryClient.invalidateQueries({ queryKey: hostObjectKey(result.id) });
     },
   });
 }
 
-export function useUpsertUserSessions() {
+export function useUpsertUserSession() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: NewUserSession) => {
       if (!data.id) {
-        return await db.insertUserSessions(data);
+        return (await db.insertUserSessions(data))[0];
       } else {
-        return await db.updateUserSession(data.id, data);
+        return (await db.updateUserSession(data.id, data))[0];
       }
     },
-    onSuccess: (result, _input) => {
-      result.forEach(userSessionId => {
-        queryClient.invalidateQueries({ queryKey: userKey(userSessionId) });
-      });
-      // Also invalidate summary status for the host session, as user edits affect it
-      userSessions.forEach(userSession => {
-        if (userSession.host_session_id) {
-          queryClient.invalidateQueries({ queryKey: summaryStatusKey(userSession.host_session_id) });
-        }
-      });
+    onSuccess: (userSessionId, input) => {
+      // Invalidate individual user entity caches
+      queryClient.invalidateQueries({ queryKey: userObjectKey(userSessionId) });
+      
+      // Get host session ID from input data or from local cache to invalidate host-user mapping
+      const hostSessionId = input.session_id
+        || queryClient.getQueryData<UserSession>(userObjectKey(userSessionId))?.session_id;
+      if (hostSessionId) {
+        queryClient.invalidateQueries({ queryKey: hostUserIdsKey(hostSessionId) });
+        queryClient.invalidateQueries({ queryKey: summaryStatusKey(hostSessionId) });
+      }
     },
   });
 }
@@ -184,7 +211,7 @@ export function useInsertMessages() {
   return useMutation({
     mutationFn: (message: NewMessage) => db.insertChatMessage(message),
     onSuccess: (_result, input) => {
-      queryClient.invalidateQueries({ queryKey: messageKey(input.thread_id) });
+      queryClient.invalidateQueries({ queryKey: messagesKey(input.thread_id) });
     },
   });
 }
@@ -194,12 +221,12 @@ export function useRemoveSession() {
   return useMutation({
     mutationFn: (sessionId: string) => db.deleteSessionById(sessionId),
     onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: hostKey(sessionId) });
-      queryClient.invalidateQueries({ queryKey: userKey(sessionId) });
+      queryClient.invalidateQueries({ queryKey: hostObjectKey(sessionId) });
+      queryClient.invalidateQueries({ queryKey: userObjectKey(sessionId) });
       // Invalidate available sessions since this session was deleted
       queryClient.invalidateQueries({ queryKey: availableSessionsKey() });
       // Invalidate all workspace queries since they might reference this session
-      queryClient.invalidateQueries({ queryKey: ['workspace'] });
+      queryClient.invalidateQueries({ queryKey: ['workspace-object'] });
       queryClient.invalidateQueries({ queryKey: ['workspace-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['workspace-stats'] });
     },
@@ -212,7 +239,7 @@ export function useLinkSessionsToWorkspace() {
     mutationFn: async ({ workspaceId, sessionIds }: { workspaceId: string; sessionIds: string[] }) =>
       await linkSessionsToWorkspace(workspaceId, sessionIds),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({ queryKey: workspaceKey(variables.workspaceId) });
+      queryClient.invalidateQueries({ queryKey: workspaceObjectKey(variables.workspaceId) });
       queryClient.invalidateQueries({ queryKey: workspaceSessionsKey(variables.workspaceId) });
       // Invalidate workspace stats for the new session configuration
       queryClient.invalidateQueries({ queryKey: ['workspace-stats'] });
@@ -226,7 +253,7 @@ export function useUnlinkSessionFromWorkspace() {
     mutationFn: async ({ workspaceId, sessionId }: { workspaceId: string; sessionId: string }) =>
       await unlinkSessionFromWorkspace(workspaceId, sessionId),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({ queryKey: workspaceKey(variables.workspaceId) });
+      queryClient.invalidateQueries({ queryKey: workspaceObjectKey(variables.workspaceId) });
       queryClient.invalidateQueries({ queryKey: workspaceSessionsKey(variables.workspaceId) });
       // Invalidate workspace stats for the new session configuration
       queryClient.invalidateQueries({ queryKey: ['workspace-stats'] });
@@ -252,27 +279,34 @@ export function useSummaryStatus(resourceId: string, isProject = false) {
       }
       
       // For sessions, try to use cached data first to avoid database calls
-      const cachedHost = queryClient.getQueryData<HostSession>(hostKey(resourceId));
-      const cachedUsersForResource = queryClient.getQueryData<UserSession[]>(userKey(resourceId));
-      const cachedUsersIndividual = cachedUsersForResource?.map(user => queryClient.getQueryData<UserSession[]>(userKey(user.id)));
+      const cachedHost = queryClient.getQueryData<HostSession>(hostObjectKey(resourceId));
+      const cachedUserIds = queryClient.getQueryData<string[]>(hostUserIdsKey(resourceId));
       
-      if (cachedHost && cachedUsersForResource) {
-        const { lastMessage, lastSummaryUpdate } = checkSummaryAndMessageTimes(cachedHost, cachedUsersForResource);
-        const lastUserEdit = cachedUsersForResource.reduce((latest: number, user: UserSession) => {
-          const lastEditTime = new Date(user.last_edit).getTime();
-          return lastEditTime > latest ? lastEditTime : latest;
-        }, 0);
-        console.log(`[i] Cached Summary status for ${resourceId}: Last User Edit: ${lastUserEdit}`);
-        return {
-          lastEdit: Math.max(lastMessage, lastUserEdit),
-          lastSummaryUpdate,
-          resourceId: resourceId
-        };
+      if (cachedHost && cachedUserIds) {
+        // Get all user sessions from the normalized cache
+        const cachedUserSessions = cachedUserIds
+          .map(userId => queryClient.getQueryData<UserSession>(userObjectKey(userId)))
+          .filter(Boolean) as UserSession[];
+        
+        // TODO: Maybe we could just fetch the missing ones and do this routine...?
+        if (cachedUserSessions.length === cachedUserIds.length) {
+          const { lastMessage, lastSummaryUpdate } = checkSummaryAndMessageTimes(cachedHost, cachedUserSessions);
+          const lastUserEdit = cachedUserSessions.reduce((latest: number, user: UserSession) => {
+            const lastEditTime = new Date(user.last_edit).getTime();
+            return lastEditTime > latest ? lastEditTime : latest;
+          }, 0);
+          console.log(`[i] Cached Summary status for ${resourceId}: Last User Edit: ${lastUserEdit}`);
+          return {
+            lastEdit: Math.max(lastMessage, lastUserEdit),
+            lastSummaryUpdate,
+            resourceId: resourceId
+          };
+        }
       }
 
-      // Fallback to server action if no cached data
+      // Fallback to server action if not all cached data is available
       const results = await checkSummaryNeedsUpdating(resourceId, false);
-      console.log(`[i] Server Summary status: Last ediy: ${results.lastEdit}, Last Summary Update: ${results.lastSummaryUpdate}`);
+      console.log(`[i] Live Server Summary status: Last edit: ${results.lastEdit}, Last Summary Update: ${results.lastSummaryUpdate}`);
       return results;
     },
     enabled: !!resourceId,
@@ -312,7 +346,7 @@ export function useUpdateSummary() {
       // Invalidate status to reflect that summary is now up to date
       queryClient.invalidateQueries({ queryKey: summaryStatusKey(variables.resourceId) });
       // Invalidate host session to update last_summary_update timestamp
-      queryClient.invalidateQueries({ queryKey: hostKey(variables.resourceId) });
+      queryClient.invalidateQueries({ queryKey: hostObjectKey(variables.resourceId) });
     },
   });
 }
@@ -335,7 +369,7 @@ export function useUpdateHostLastEdit() {
   return useMutation({
     mutationFn: (sessionId: string) => updateHostLastEdit(sessionId),
     onSuccess: (_result, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: hostKey(sessionId) });
+      queryClient.invalidateQueries({ queryKey: hostObjectKey(sessionId) });
       queryClient.invalidateQueries({ queryKey: summaryStatusKey(sessionId) });
     },
   });
@@ -346,7 +380,7 @@ export function useUpdateWorkspaceLastModified() {
   return useMutation({
     mutationFn: (workspaceId: string) => updateWorkspaceLastModified(workspaceId),
     onSuccess: (_result, workspaceId) => {
-      queryClient.invalidateQueries({ queryKey: workspaceKey(workspaceId) });
+      queryClient.invalidateQueries({ queryKey: workspaceObjectKey(workspaceId) });
       queryClient.invalidateQueries({ queryKey: summaryStatusKey(workspaceId) });
     },
   });

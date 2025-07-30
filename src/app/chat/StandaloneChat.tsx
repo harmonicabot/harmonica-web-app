@@ -8,7 +8,7 @@ import { LoadingOverlay } from '@/components/chat/LoadingOverlay';
 import { SessionModal } from '@/components/chat/SessionModal';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { QuestionInfo } from 'app/create/types';
-import { useHostSession, useUpsertUserSessions } from '@/stores/SessionStore';
+import { useHostSession, useUpsertUserSession } from '@/stores/SessionStore';
 import { NewUserSession } from '@/lib/schema';
 
 const StandaloneChat = () => {
@@ -48,7 +48,7 @@ Please type your name or "anonymous" if you prefer
     return {};
   });
 
-  const upsertUserSession = useUpsertUserSessions();
+  const upsertUserSession = useUpsertUserSession();
 
   useEffect(() => {
     setIsMounted(true);

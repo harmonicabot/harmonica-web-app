@@ -4,7 +4,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { useEffect, useState } from 'react';
 import { ParticipantsTableData } from './SessionParticipantsTable';
 import { Switch } from '../ui/switch';
-import { useUpsertUserSessions } from '@/stores/SessionStore';
+import { useUpsertUserSession } from '@/stores/SessionStore';
 import TranscriptPopup from './TranscriptPopup';
 
 export default function ParicipantSessionRow({
@@ -14,7 +14,7 @@ export default function ParicipantSessionRow({
 }) {
   const userData = tableData.userData;
   const [isPopupVisible, setIsPopupVisible] = useState(false);
-  const updateUserSession = useUpsertUserSessions();
+  const updateUserSession = useUpsertUserSession();
 
   const handleIncludeInSummaryUpdate = async (included: boolean) => {
     // Updates the store & db

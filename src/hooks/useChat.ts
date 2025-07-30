@@ -6,7 +6,7 @@ import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
 import { UserProfile, useUser } from '@auth0/nextjs-auth0/client';
 import { NewUserSession } from '@/lib/schema';
 import { getUserNameFromContext } from '@/lib/clientUtils';
-import { useInsertMessages, useMessages, useUpsertUserSessions, useUserSession } from '@/stores/SessionStore';
+import { useInsertMessages, useMessages, useUpsertUserSession, useUserSession } from '@/stores/SessionStore';
 
 export interface UseChatOptions {
   sessionIds?: string[];
@@ -64,7 +64,7 @@ export function useChat(options: UseChatOptions) {
   const { data: existingUserSession, isLoading: isLoadingUserSession } = useUserSession(userSessionId || '');
   const threadId = existingUserSession?.thread_id || '';
   const { data: existingMessages = [], isLoading: isLoadingMessages } = useMessages(threadId);
-  const upsertUserSessions = useUpsertUserSessions();
+  const upsertUserSessions = useUpsertUserSession();
   const messageInserter = useInsertMessages();
 
   const placeholder = placeholderText

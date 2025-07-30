@@ -6,7 +6,7 @@ import { OpenAIMessage } from '@/lib/types';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { RatingModal } from './RatingModal';
 import { useState, useEffect, useRef } from 'react';
-import { useUpsertUserSessions } from '@/stores/SessionStore';
+import { useUpsertUserSession } from '@/stores/SessionStore';
 import { NewUserSession } from '@/lib/schema';
 
 interface ChatInterfaceProps {
@@ -83,7 +83,7 @@ export const ChatInterface = ({
     }
   }, [message?.is_final, threadId, message]);
 
-  const upsertUserSession = useUpsertUserSessions()
+  const upsertUserSession = useUpsertUserSession()
 
   useEffect(() => {
     const updateSession = async () => {
