@@ -44,12 +44,12 @@ export function useHostSession(sessionId: string) {
   });
 }
 
-export function useUserSessions(sessionId: string) {
+export function useUserSessions(hostSessionId: string) {
   return useQuery({
-    queryKey: userKey(sessionId),
-    queryFn: () => db.getUsersBySessionId(sessionId),
+    queryKey: userKey(hostSessionId),
+    queryFn: () => db.getUsersBySessionId(hostSessionId),
     select: (data) => data ?? [],
-    enabled: !!sessionId,
+    enabled: !!hostSessionId,
     staleTime,
   });
 }
@@ -158,17 +158,22 @@ export function useUpsertHostSession() {
 export function useUpsertUserSessions() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: NewUserSession) => {
+    mutationFn: async (data: NewUserSession) => {
       if (!data.id) {
-        return db.insertUserSessions(data);
+        return await db.insertUserSessions(data);
       } else {
-       return db.updateUserSession(data.id, data)
+        return await db.updateUserSession(data.id, data);
       }
     },
-    onSuccess: (results, _input) => {
-      // Invalidate all affected session queries so that if we query for a session it will be fetched
-      results.forEach(sessionId => {
-        queryClient.invalidateQueries({ queryKey: userKey(sessionId) });
+    onSuccess: (result, _input) => {
+      result.forEach(userSessionId => {
+        queryClient.invalidateQueries({ queryKey: userKey(userSessionId) });
+      });
+      // Also invalidate summary status for the host session, as user edits affect it
+      userSessions.forEach(userSession => {
+        if (userSession.host_session_id) {
+          queryClient.invalidateQueries({ queryKey: summaryStatusKey(userSession.host_session_id) });
+        }
       });
     },
   });
@@ -238,7 +243,6 @@ export function useSummaryStatus(resourceId: string, isProject = false) {
   return useQuery({
     queryKey: summaryStatusKey(resourceId),
     queryFn: async () => {
-      console.log(`[i] Using SummaryStatus for resourceId: ${resourceId}`);
       // For projects, we need different caching strategy
       if (isProject) {
         // For workspaces, check if we have workspace data cached
@@ -249,15 +253,16 @@ export function useSummaryStatus(resourceId: string, isProject = false) {
       
       // For sessions, try to use cached data first to avoid database calls
       const cachedHost = queryClient.getQueryData<HostSession>(hostKey(resourceId));
-      const cachedUsers = queryClient.getQueryData<UserSession[]>(userKey(resourceId));
+      const cachedUsersForResource = queryClient.getQueryData<UserSession[]>(userKey(resourceId));
+      const cachedUsersIndividual = cachedUsersForResource?.map(user => queryClient.getQueryData<UserSession[]>(userKey(user.id)));
       
-      if (cachedHost && cachedUsers) {
-        const { lastMessage, lastSummaryUpdate } = checkSummaryAndMessageTimes(cachedHost, cachedUsers);
-        const lastUserEdit = cachedUsers.reduce((latest: number, user: UserSession) => {
+      if (cachedHost && cachedUsersForResource) {
+        const { lastMessage, lastSummaryUpdate } = checkSummaryAndMessageTimes(cachedHost, cachedUsersForResource);
+        const lastUserEdit = cachedUsersForResource.reduce((latest: number, user: UserSession) => {
           const lastEditTime = new Date(user.last_edit).getTime();
           return lastEditTime > latest ? lastEditTime : latest;
         }, 0);
-        console.log(`[i] Cached Summary status: Last Message: ${lastMessage}, Last Summary Update: ${lastSummaryUpdate}, Last User Edit: ${lastUserEdit}`);
+        console.log(`[i] Cached Summary status for ${resourceId}: Last User Edit: ${lastUserEdit}`);
         return {
           lastEdit: Math.max(lastMessage, lastUserEdit),
           lastSummaryUpdate,

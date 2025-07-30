@@ -65,6 +65,7 @@ export function useChat(options: UseChatOptions) {
   const threadId = existingUserSession?.thread_id || '';
   const { data: existingMessages = [], isLoading: isLoadingMessages } = useMessages(threadId);
   const upsertUserSessions = useUpsertUserSessions();
+  const messageInserter = useInsertMessages();
 
   const placeholder = placeholderText
     ? placeholderText
@@ -86,7 +87,6 @@ export function useChat(options: UseChatOptions) {
   };
 
   const [isLoading, setIsLoading] = useState(false);
-  const messageInserter = useInsertMessages();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isParticipantSuggestionLoading, setIsParticipantSuggestionLoading] =
@@ -191,7 +191,9 @@ export function useChat(options: UseChatOptions) {
       console.log('Inserting new session with initial data: ', data);
       return upsertUserSessions.mutateAsync(data)
         .then((newUserIds) => {
-          if (newUserIds && newUserIds.length == 1 && setUserSessionId) setUserSessionId(newUserIds[0]);
+          if (newUserIds && newUserIds.length == 1 && setUserSessionId) {
+            setUserSessionId(newUserIds[0]);
+          }
           return newUserIds[0]; // Return the userId, just in case setUserSessionId is not fast enough
         })
         .catch((error) => {
@@ -297,9 +299,11 @@ export function useChat(options: UseChatOptions) {
         await waitForThreadCreation(threadIdRef, setErrorMessage);
       }
 
-      if (userSessionId && !isAutomatic && !isAskAi) {
+      const currentUserSessionId = userSessionId || userSessionIdFromThread;
+
+      if (currentUserSessionId && !isAutomatic && !isAskAi) {
         console.log(
-          `[i] Inserting chat message for user session ${userSessionId}`,
+          `[i] Inserting chat message for user session ${currentUserSessionId}`,
         );
         // Need to do await here, because we process this chat on the server 
         // and we need to wait here until it actually is written to the database; 
@@ -356,19 +360,18 @@ export function useChat(options: UseChatOptions) {
             const now = new Date();
             addMessage(answer);
 
-            if (userSessionId || userSessionIdFromThread) {
+            console.log(`Got reply; updating messages and upserting user session: ${currentUserSessionId}`);
+            if (currentUserSessionId) {
               Promise.all([
                 messageInserter.mutateAsync({
                   ...answer,
                   thread_id: threadIdRef.current,
                   created_at: now,
                 }),
-                userSessionId || userSessionIdFromThread
-                  ? upsertUserSessions.mutateAsync({
-                      id: userSessionId || userSessionIdFromThread!,
-                      last_edit: now,
-                    } as NewUserSession)  // It is not a _new_ user session, but this type allows us to omit all the other fields!
-                  : Promise.resolve(),
+                upsertUserSessions.mutateAsync({
+                    id: currentUserSessionId,
+                    last_edit: now,
+                  } as NewUserSession) // This will now trigger invalidation of the host session's user list
               ]).catch((error) => {
                 console.log(
                   'Error storing answer or updating last edit: ',
