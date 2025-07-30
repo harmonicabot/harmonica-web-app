@@ -23,7 +23,6 @@ export default async function SessionResult({
 }) {
   const decryptedId = decryptId(params.id);
   const queryClient = new QueryClient();
-  console.debug(new Error("Debugging Session Page").stack);
 
   // Prefetch all session-related data for optimal performance
   // (This is a server component, data is being prefetched on the server and then dehydrated, passed to the client and then further updates will happen there)
