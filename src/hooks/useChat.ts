@@ -66,6 +66,7 @@ export function useChat(options: UseChatOptions) {
   const { data: existingMessages = [], isLoading: isLoadingMessages } = useMessages(threadId);
   const upsertUserSessions = useUpsertUserSession();
   const messageInserter = useInsertMessages();
+  console.log(`loading chat with usersessionId: ${userSessionId}, data: `, existingUserSession);
 
   const placeholder = placeholderText
     ? placeholderText
@@ -189,21 +190,11 @@ export function useChat(options: UseChatOptions) {
         created_at: new Date(),
       });
       console.log('Inserting new session with initial data: ', data);
-      return upsertUserSessions.mutateAsync(data)
-        .then((newUserIds) => {
-          if (newUserIds && newUserIds.length == 1 && setUserSessionId) {
-            setUserSessionId(newUserIds[0]);
-          }
-          return newUserIds[0]; // Return the userId, just in case setUserSessionId is not fast enough
-        })
-        .catch((error) => {
-          console.error('[!] error creating user session -> ', error);
-          setErrorMessage({
-            title: 'Failed to create session',
-            message: 'Oops, that should not have happened. Please try again.',
-          });
-          throw error; // Re-throw the error to be caught by the caller
-        });
+      const userSessionIdFromThreadCreation = await upsertUserSessions.mutateAsync(data)
+      if (setUserSessionId) {
+        setUserSessionId(userSessionIdFromThreadCreation);
+      }
+      return userSessionIdFromThreadCreation; // Return the userId, just in case setUserSessionId is not fast enough
     }
     return undefined; // Return undefined if no sessionId was provided
   }
