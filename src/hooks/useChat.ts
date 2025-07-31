@@ -63,10 +63,11 @@ export function useChat(options: UseChatOptions) {
   // Get existing user session data if userSessionId is provided
   const { data: existingUserSession, isLoading: isLoadingUserSession } = useUserSession(userSessionId || '');
   const threadId = existingUserSession?.thread_id || '';
+  console.log(`[i] Using threadId: ${threadId} for userSessionId: ${userSessionId}`);
+  const threadIdRef = useRef<string>(threadId);
   const { data: existingMessages = [], isLoading: isLoadingMessages } = useMessages(threadId);
   const upsertUserSessions = useUpsertUserSession();
   const messageInserter = useInsertMessages();
-  console.log(`loading chat with usersessionId: ${userSessionId}, data: `, existingUserSession);
 
   const placeholder = placeholderText
     ? placeholderText
@@ -75,8 +76,24 @@ export function useChat(options: UseChatOptions) {
   const [formData, setFormData] = useState<{ messageText: string }>({
     messageText: '',
   });
-  const threadIdRef = useRef<string>('');
   const [messages, setMessages] = useState<OpenAIMessage[]>([]);
+
+  useEffect(() => {
+    // Filter out the initial context message if present
+    console.log(`[i] Restoring messages with initial state isLoading: ${isLoadingMessages}, existingMessages: ${existingMessages.length}, messages: ${messages.length}  `);
+    if (!isLoadingMessages && existingMessages.length > 0 && messages.length === 0) {
+      const filteredMessages = existingMessages.filter(
+        msg => !(msg.role === 'user' && msg.content?.startsWith('User shared the following context:'))
+      ).map(msg => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        is_final: msg.is_final,
+      }));
+    
+      setMessages(filteredMessages);
+      console.log(`[i] Successfully restored ${filteredMessages.length} messages`);
+    }
+  }, [isLoadingMessages, setMessages]);
 
   const addMessage = (newMessage: OpenAIMessage) => {
     console.log('[Chat] Adding new message:', {
@@ -87,11 +104,23 @@ export function useChat(options: UseChatOptions) {
     setMessages((prevMessages) => [...prevMessages, newMessage]);
   };
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(isLoadingUserSession || isLoadingMessages);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isParticipantSuggestionLoading, setIsParticipantSuggestionLoading] =
     useState(false);
+
+  // Effect to update isLoading based on data fetching states
+  useEffect(() => {
+    setIsLoading(isLoadingUserSession || isLoadingMessages);
+  }, [isLoadingUserSession, isLoadingMessages]);
+
+  // Effect to synchronize threadIdRef with the actual threadId from existingUserSession
+  useEffect(() => {
+    if (existingUserSession?.thread_id) {
+      threadIdRef.current = existingUserSession.thread_id;
+    }
+  }, [existingUserSession?.thread_id]);
 
   useEffect(() => {
     if (mainPanelRef?.current && messages.length > 1) {
@@ -99,8 +128,15 @@ export function useChat(options: UseChatOptions) {
     }
   }, [messages, mainPanelRef]);
 
+  // Focus the textarea when the component mounts and show entry message
   useEffect(() => {
-    console.log('[i] Chat loading: ');
+    const textarea = textareaRef.current;
+    if (entryMessage && messages.length === 0) {
+      addMessage(entryMessage);
+    }
+    if (textarea) {
+      textarea.focus(); // Automatically focus the textarea
+    }
   }, []);
 
   const handleInputChange = (
@@ -441,17 +477,6 @@ export function useChat(options: UseChatOptions) {
       console.log(`Waiting ${waitedCycles} cycles for thread to be created...`);
     }
   }
-
-  // Focus the textarea when the component mounts and show entry message
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (entryMessage && messages.length === 0) {
-      addMessage(entryMessage);
-    }
-    if (textarea) {
-      textarea.focus(); // Automatically focus the textarea
-    }
-  }, []);
 
   return {
     // State

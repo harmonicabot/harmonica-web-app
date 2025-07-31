@@ -84,6 +84,7 @@ export default function ResultTabs({
   const currentUserData = userData;
 
   // Declaring this here so that we don't redeclare it whenever the summary tab gets loaded
+  console.log(`[HOOK Creation - Index] using useSummaryUpdateManager hook`);
   const summaryUpdateManager = useSummaryUpdateManager(resourceId, sessionIds);
   const manuallyTriggerSummaryUpdate = async () => {
       await summaryUpdateManager.startUpdateNow()

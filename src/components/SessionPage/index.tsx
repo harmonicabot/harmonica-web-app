@@ -17,7 +17,7 @@ export default function SessionPage({ sessionId }: { sessionId: string }) {
   }
   
   const usersWithChat = userData.filter(
-    (user) => messageStats[sessionId][user.id].num_messages ?? 0 > 2
+    (user) => (messageStats[sessionId]?.[user.id]?.num_messages ?? 0) > 2
   );
   console.log('message stats: ', messageStats, sessionId)
   const stats = getUserStats(messageStats, sessionId)

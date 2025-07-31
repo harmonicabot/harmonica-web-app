@@ -4,6 +4,7 @@ import { useChat, UseChatOptions } from '../../hooks/useChat';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
 import ErrorPage from '../Error';
+import { Loader2 } from 'lucide-react';
 
 export function FullscreenChat(props: UseChatOptions) {
   const chat = useChat(props);
@@ -11,6 +12,8 @@ export function FullscreenChat(props: UseChatOptions) {
   if (chat.errorMessage) {
     return <ErrorPage {...chat.errorMessage} />;
   }
+
+  console.log(`Showing chat with ${chat.messages.length} messages`)
 
   return (
     <div className="flex flex-col h-full min-h-0">

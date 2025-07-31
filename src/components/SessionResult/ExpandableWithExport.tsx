@@ -10,7 +10,9 @@ import {
 import ExpandableCard from '../ui/expandable-card';
 import { ExportButton } from '../Export/ExportButton';
 import { Spinner } from '../icons';
-import { RefreshStatus, useSummaryUpdateManager } from '@/hooks/useSummaryUpdateManager';
+import { useSummaryUpdateManager } from '@/hooks/useSummaryUpdateManager';
+import { RefreshStatus } from '@/lib/summary-update-manager';
+
 
 interface CardProps {
   resourceId: string;
@@ -34,6 +36,7 @@ const StatusIndicator = ({ status }: { status: RefreshStatus | undefined }) => {
       case RefreshStatus.Outdated:
         return 'bg-red-500';
       case RefreshStatus.UpdatePending:
+        return 'bg-yellow-500';
       case RefreshStatus.UpdateStarted:
         return 'bg-yellow-500 animate-pulse';
       case RefreshStatus.Unknown:
@@ -60,6 +63,7 @@ export const ExpandableWithExport = ({
   loading,
   className,
 }: CardProps) => {
+  console.log(`[HOOK Creation - Expandable] using useSummaryUpdateManager hook`);
   const summaryManager = useSummaryUpdateManager(resourceId, sessionIds);
   return (
     <ExpandableCard
@@ -79,7 +83,7 @@ export const ExpandableWithExport = ({
                         <RefreshCw
                           onClick={!isUpdating ? onRefresh : undefined}
                           className={`h-5 w-5 text-gray-500 cursor-pointer hover:text-primary ${
-                            summaryManager.status === RefreshStatus.UpdatePending
+                            summaryManager.status === RefreshStatus.UpdatePending || summaryManager.status === RefreshStatus.UpdateStarted
                               ? 'animate-spin cursor-not-allowed opacity-50'
                               : ''
                           }`}
@@ -102,10 +106,13 @@ export const ExpandableWithExport = ({
                             <p className="text-xs text-green-600">Up to date</p>
                           )}
                           {summaryManager.status === RefreshStatus.UpdatePending && (
-                            <p className="text-xs text-yellow-600">Auto-refreshing soon</p>
+                            <p className="text-xs text-yellow-600">Refreshing soon</p>
+                          )}
+                          {summaryManager.status === RefreshStatus.UpdateStarted && (
+                            <p className="text-xs text-yellow-600">Fetching updates...</p>
                           )}
                           {summaryManager.status === RefreshStatus.Outdated && (
-                            <p className="text-xs text-red-600">Summary out of date</p>
+                            <p className="text-xs text-red-600">Out of date</p>
                           )}
                         </div>
                       )}

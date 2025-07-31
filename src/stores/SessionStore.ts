@@ -275,10 +275,12 @@ export function useUnlinkSessionFromWorkspace() {
 export function useSummaryStatus(resourceId: string, isProject = false) {  
   return useQuery({
     queryKey: summaryStatusKey(resourceId),
-    queryFn: () => checkSummaryNeedsUpdating(resourceId, isProject),
+    queryFn: () => {
+      console.log(`Fetching summary status for ${resourceId}`);
+      return checkSummaryNeedsUpdating(resourceId, isProject)
+    },
     enabled: !!resourceId,
-    staleTime,
-    refetchInterval: 30000, // Check external changes
+    refetchInterval: 30000,
   });
 }
 

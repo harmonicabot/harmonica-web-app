@@ -1,168 +1,126 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useSummaryStatus, useUpdateSummary } from '@/stores/SessionStore';
-import { create } from 'zustand';
+// Import the singleton instance and its RefreshStatus enum
+import { summaryUpdateManager, RefreshStatus } from '@/lib/summary-update-manager';
+import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient for potential invalidation
 
-export enum RefreshStatus {
-  Unknown,
-  Outdated,
-  UpdatePending,
-  UpdateStarted,
-  UpToDate,
-}
-
-// Define a global store for managing active updates,
-// so that we don't schedule multiple updates from different components
-interface UpdateManagerStore {
-  // Add status for each resourceId
-  status: Record<string, RefreshStatus>;
-  lastRegisteredEdit: Record<string, number>;
-  // Add actions to update status
-  setStatus: (resourceId: string, status: RefreshStatus) => void;
-  setLastRegisteredEdit: (resourceId: string, lastEdit: number) => void;
-}
-
-const useUpdateManagerStore = create<UpdateManagerStore>((set) => ({
-  status: {},
-  lastRegisteredEdit: {},
-  setStatus: (resourceId, status) =>
-    set((state) => {
-      console.debug(`[UpdateManagerStore] Setting status for ${resourceId} to ${Object.keys(RefreshStatus).filter(k => isNaN(Number(k)))[status]}`);
-      if (state.status[resourceId] === status) return state; // No change if status is the same; necessary to prevent infinite rerender loops
-      return ({
-        status: { ...state.status, [resourceId]: status },
-      })
-    }),
-  setLastRegisteredEdit: (resourceId, lastEdit) => 
-    set((state) => ({ lastRegisteredEdit: { ...state.lastRegisteredEdit, [resourceId]: lastEdit }}))
-}));
-
+/**
+ * A React hook to manage the status and triggering of summary updates for a given resource.
+ * It integrates with the global SummaryUpdateManager singleton for debounced updates
+ * and provides status feedback to components.
+ *
+ * @param resourceId The unique identifier for the resource (e.g., session ID, workspace ID).
+ * @param sessionIds Optional array of session IDs if the resource is a project/workspace.
+ * @returns An object containing the current refresh status, loading state, error, and a function to trigger an update immediately.
+ */
 export function useSummaryUpdateManager(
   resourceId: string,
   sessionIds?: string[] // Provided for projects
 ) {
+  const queryClient = useQueryClient(); // Get query client for potential invalidation
 
-  // Use optimized summary status that leverages cached data
-  // This will be the main source of truth for incoming edits,
-  // the only other thing that should trigger an update is manually.
+  // Use TanStack Query to fetch the summary status (lastEdit, lastSummaryUpdate)
+  // This is the primary source of truth for detecting if an update is needed.
   const {
     data: summaryStatus,
-    isLoading,
-    error,
+    isLoading: isSummaryStatusLoading,
+    error: summaryStatusError,
   } = useSummaryStatus(resourceId, sessionIds && sessionIds.length > 0);
 
+  // TanStack Query mutation hook for performing the actual summary update
   const summaryUpdater = useUpdateSummary();
-  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
-  const { status, setStatus, lastRegisteredEdit, setLastRegisteredEdit } = useUpdateManagerStore();
 
+  // Local React state to reflect the RefreshStatus from the singleton.
+  // This ensures the component re-renders when the status changes.
+  const [currentStatus, setCurrentStatus] = useState<RefreshStatus>(
+    summaryUpdateManager.getStatus(resourceId)
+  );
+
+  /**
+   * Effect to subscribe to status changes from the SummaryUpdateManager singleton.
+   * The callback updates the local React state, causing component re-renders.
+   */
   useEffect(() => {
+    const unsubscribe = summaryUpdateManager.subscribe(resourceId, (status) => {
+      setCurrentStatus(status);
+    });
+
+    // Cleanup function: unsubscribe when the component unmounts or resourceId changes.
+    // Optionally, you might call summaryUpdateManager.cleanup(resourceId) here
+    // if this hook instance is the definitive lifecycle owner for this resourceId.
+    // However, if multiple components might use the same resourceId,
+    // cleanup should be managed at a higher level (e.g., when the resource is truly deleted).
     return () => {
-      if (timeoutIdRef.current) {
-        clearTimeout(timeoutIdRef.current);
-      }
+      unsubscribe();
     };
-  }, [resourceId]);
+  }, [resourceId]); // Re-subscribe if resourceId changes
 
-  const startUpdateNow = useCallback(async () => {
-    // Prevent starting if already running globally or if this instance thinks it's started
-    console.debug(`[useSummaryUpdateManager] startUpdateNow called for ${resourceId} with status: ${status[resourceId]}`);
-    if (
-      summaryUpdater.isPending ||
-      status[resourceId] === RefreshStatus.UpdateStarted
-    ) {
-      console.debug(`[useSummaryUpdateManager] Update already running for ${resourceId}.`);
-      return;
-    }
-
-    setStatus(resourceId, RefreshStatus.UpdateStarted);
-
-    console.debug(`[useSummaryUpdateManager] Update triggered for ${resourceId} from `, new Error().stack);
+  /**
+   * Callback function that performs the actual summary update via TanStack Query mutation.
+   * This function is passed to the singleton, so it can execute the update when needed.
+   */
+  const startUpdateMutation = useCallback(async () => {
     try {
       const result = await summaryUpdater.mutateAsync({
         resourceId,
         sessionIds,
       });
-
-      console.debug(`[useSummaryUpdateManager] Update completed for ${resourceId}`);
+      // After a successful update, invalidate the summary status query
+      // to ensure the latest lastSummaryUpdate timestamp is fetched.
+      console.log(`Update successful, invalidating summary stats`)
+      await queryClient.invalidateQueries({ queryKey: ['summary-status', resourceId] });
       return result;
     } catch (error) {
-      console.error(
-        `[useSummaryUpdateManager] Update failed for ${resourceId}:`,
-        error
-      );
-      throw error;
-    } finally {
-      setStatus(resourceId, RefreshStatus.UpToDate);
+      console.error(`[useSummaryUpdateManager] Mutation failed for ${resourceId}:`, error);
+      throw error; // Re-throw to allow singleton to handle status
     }
-  }, [
-    resourceId,
-    sessionIds,
-    summaryUpdater,
-    setStatus,
-    status[resourceId],
-  ]);
+  }, [resourceId, sessionIds, summaryUpdater, queryClient]);
 
-  // Effect to schedule the summary update
+  /**
+   * Effect to trigger the singleton's scheduleUpdate method.
+   * This runs whenever `summaryStatus` data changes (indicating a potential edit)
+   * or when the hook's dependencies change.
+   */
   useEffect(() => {
-    if (isLoading || !summaryStatus) {
-      console.debug(`[useSummaryUpdateManager] No summary status or loading for ${resourceId}`);
-      setStatus(resourceId, RefreshStatus.Unknown);
-      return; // Do nothing if loading or no summary status
-    }
-
-    // Only schedule if no update is currently in progress globally
-    if (status[resourceId] === RefreshStatus.UpdateStarted) {
-      console.debug(`[useSummaryUpdateManager] Update already started for ${resourceId}`);
-      return; // Don't schedule if an update is already running
-    }
-
-    if (summaryStatus.lastSummaryUpdate > summaryStatus.lastEdit) {
-      setStatus(resourceId, RefreshStatus.UpToDate);
+    // Guard: Do not schedule if summary status data is still loading or not available.
+    if (isSummaryStatusLoading || !summaryStatus) {
       return;
     }
-    
-    const delay = 30000; // 30 seconds
-    console.debug(
-      `[useSummaryUpdateManager] lastRegisteredEdit for ${resourceId}: ${lastRegisteredEdit[resourceId] ?? 0}`
-    )
-    if (summaryStatus.lastEdit > (lastRegisteredEdit[resourceId] ?? 0)) {
-      console.debug(
-        `[useSummaryUpdateManager] Registered some edit. Schedule summary update for ${resourceId}.
-Last edit:            ${summaryStatus.lastEdit}
-Last summary update:  ${summaryStatus.lastSummaryUpdate}`
-      );
-      
-      setLastRegisteredEdit(resourceId, summaryStatus.lastEdit);
-      
-      // Reset existing timers
-      if (timeoutIdRef.current) {
-        console.debug(`[useSummaryUpdateManager] Replacing existing timeout for ${resourceId}`);
-        clearTimeout(timeoutIdRef.current);
-      }
 
-      // Schedule the update
-      timeoutIdRef.current = setTimeout(() => {
-        startUpdateNow();
-      }, delay);
-      setStatus(resourceId, RefreshStatus.UpdatePending);
-    }
+    // Pass the current summary status data and the mutation callback to the singleton.
+    // The singleton will handle the debouncing and actual update scheduling.
+    summaryUpdateManager.scheduleUpdate(resourceId, summaryStatus, startUpdateMutation);
   }, [
-    startUpdateNow,
-    summaryStatus,
-    isLoading,
+    summaryStatus, // Trigger when lastEdit or lastSummaryUpdate changes
+    isSummaryStatusLoading,
     resourceId,
-    setStatus,
-    setLastRegisteredEdit,
+    startUpdateMutation, // Ensure the latest callback is used
   ]);
 
-  return {
-    // State
-    status: status[resourceId] || RefreshStatus.Unknown,
-    isLoading,
-    error: error || summaryUpdater.error,
+  /**
+   * Function to manually trigger a summary update immediately, bypassing the debounce.
+   * This is typically called by a UI action (e.g., a "Refresh" button).
+   */
+  const startUpdateNow = useCallback(async () => {
+    try {
+      // Delegate the immediate update logic to the singleton.
+      await summaryUpdateManager.startUpdateNow(resourceId, startUpdateMutation);
+    } catch (err) {
+      // Error is already logged by the singleton, re-throw if the component needs to catch it.
+      throw err;
+    }
+  }, [resourceId, startUpdateMutation]);
 
-    // Actions to trigger updates manually
+  return {
+    // The current refresh status, synchronized from the singleton.
+    status: currentStatus,
+    // Loading state for the initial summary status query.
+    isLoading: isSummaryStatusLoading,
+    // Combined error from summary status query or the update mutation.
+    error: summaryStatusError || summaryUpdater.error,
+    // Function to manually trigger an update.
     startUpdateNow,
   };
 }
