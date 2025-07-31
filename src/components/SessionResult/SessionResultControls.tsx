@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoaderCircle, Settings, Copy, InfoIcon, Trash2 } from 'lucide-react';
+import { LoaderCircle, Settings, Copy, InfoIcon, Trash2, MoreHorizontal } from 'lucide-react';
 import * as db from '@/lib/db';
 import { SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
 import { cloneSession } from '@/lib/serverUtils';
@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'hooks/use-toast';
 import { encryptId } from '@/lib/encryptionUtils';
 import { PromptSettings } from './ResultTabs/components/PromptSettings';
+import { SessionOverviewModal } from './ResultTabs/components/SessionOverviewModal';
 import { Switch } from '@/components/ui/switch';
 import {
   Tooltip,
@@ -26,6 +27,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface SessionResultControlsProps {
   id: string;
@@ -35,6 +42,15 @@ interface SessionResultControlsProps {
   summaryPrompt?: string;
   crossPollination?: boolean;
   sessionTopic?: string;
+  sessionData?: {
+    topic: string;
+    goal: string;
+    critical: string;
+    context: string;
+    crossPollination: boolean;
+    promptSummary: string;
+    facilitationPrompt?: string;
+  };
 }
 
 export default function SessionResultControls({
@@ -45,11 +61,13 @@ export default function SessionResultControls({
   summaryPrompt = '',
   crossPollination = true,
   sessionTopic = '',
+  sessionData,
 }: SessionResultControlsProps) {
   const [loadSummary, setLoadSummary] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showSessionOverviewModal, setShowSessionOverviewModal] = useState(false);
   const [localCrossPollination, setLocalCrossPollination] =
     useState(crossPollination);
   const router = useRouter();
@@ -171,21 +189,82 @@ export default function SessionResultControls({
     }
   };
 
+  const handleSessionUpdate = async (updates: any) => {
+    try {
+      // Map the field names to database field names
+      const dbUpdates: any = {};
+      if (updates.sessionName) dbUpdates.topic = updates.sessionName;
+      if (updates.goal) dbUpdates.goal = updates.goal;
+      if (updates.critical) dbUpdates.critical = updates.critical;
+      if (updates.context) dbUpdates.context = updates.context;
+      if (updates.crossPollination !== undefined) dbUpdates.cross_pollination = updates.crossPollination;
+
+      await db.updateHostSession(id, dbUpdates);
+      
+      toast({
+        title: 'Session updated',
+        description: 'The session details have been successfully updated.',
+      });
+      
+      // Refresh the page to show updated data
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to update session:', error);
+      toast({
+        title: 'Failed to update session',
+        description: 'An error occurred while updating the session.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleUpdatePrompt = async (prompt: string) => {
+    try {
+      await db.updateHostSession(id, { prompt });
+      toast({
+        title: 'Prompt updated',
+        description: 'The facilitation prompt has been successfully updated.',
+      });
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to update prompt:', error);
+      toast({
+        title: 'Failed to update prompt',
+        description: 'An error occurred while updating the prompt.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleEditSession = () => {
+    // TODO: Navigate to the review step of the create session flow
+    // This will need to be implemented to take users to the refine step
+    // with the current session data pre-populated
+    toast({
+      title: 'Edit Session',
+      description: 'This will take you to the session editing flow.',
+    });
+  };
+
   return (
-    <Card className="flex-grow">
+    <Card className="flex-grow flex flex-col">
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle className="text-md">Session Controls</CardTitle>
           <Settings className="w-4 h-4 text-muted-foreground" />
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2">
+      <CardContent className="flex-1 flex flex-col">
+        <div className="flex-1">
+          {/* Content area - can be used for future controls */}
+        </div>
+        
+        <div className="flex flex-wrap gap-2 mt-auto pt-4">
           <Button
             onClick={() => (isFinished ? reopenSession() : finishSession())}
             disabled={loadSummary || isCloning || isDeleting}
           >
-            {isFinished ? 'Reopen' : 'Finish'}
+            {isFinished ? 'Reopen' : 'End Session'}
           </Button>
           {readyToGetSummary && (
             <Button
@@ -202,56 +281,37 @@ export default function SessionResultControls({
 
           <Button
             variant="outline"
-            onClick={handleCloneSession}
+            onClick={() => setShowSessionOverviewModal(true)}
             disabled={isCloning || isDeleting}
           >
-            {isCloning ? (
-              <LoaderCircle className="mr-2 w-4 w-4 animate-spin" />
-            ) : (
-              <Copy className="mr-2 h-4 w-4" />
-            )}
-            Clone Session
+            <Settings className="h-4 w-4" />
+            Edit Session
           </Button>
-
-          <PromptSettings
-            isProject={false}
-            sessionFacilitationPrompt={currentPrompt}
-            summaryPrompt={summaryPrompt}
-            onPromptChange={handlePromptChange}
-          />
-
-          <Button
-            variant="destructive"
-            onClick={() => setShowDeleteDialog(true)}
-            disabled={isCloning || isDeleting}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete Session
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={isCloning || isDeleting}>
+                More
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleCloneSession} disabled={isCloning}>
+                <Copy className="h-4 w-4 mr-2" />
+                Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setShowDeleteDialog(true)} 
+                disabled={isDeleting}
+                className="text-red-600 focus:text-red-600 focus:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Cross Pollination</span>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <InfoIcon className="h-4 w-4 text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-[300px]">
-                <p>
-                  Enable cross-pollination to allow participants to see and
-                  build upon each other's responses. This feature promotes
-                  collaborative thinking and can lead to more diverse and
-                  innovative ideas.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <Switch
-            checked={localCrossPollination}
-            onCheckedChange={handleCrossPollination}
-          />
-        </div>
 
         <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <DialogContent>
@@ -280,6 +340,17 @@ export default function SessionResultControls({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {sessionData && (
+          <SessionOverviewModal
+            isOpen={showSessionOverviewModal}
+            onClose={() => setShowSessionOverviewModal(false)}
+            sessionData={sessionData}
+            onUpdateSession={handleSessionUpdate}
+            onUpdatePrompt={handleUpdatePrompt}
+            onEditSession={handleEditSession}
+          />
+        )}
       </CardContent>
     </Card>
   );

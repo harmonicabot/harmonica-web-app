@@ -118,7 +118,7 @@ function SessionRow({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
                 <Share2 className="mr-2 h-4 w-4" />
-                <span>Share</span>
+                <span>Invite Team</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleRemoveSession}
@@ -221,7 +221,7 @@ function WorkspaceRow({ workspace }: { workspace: WorkspaceWithSessions }) {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
                   <Share2 className="mr-2 h-4 w-4" />
-                  <span>Share</span>
+                  <span>Invite Team</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleDelete}

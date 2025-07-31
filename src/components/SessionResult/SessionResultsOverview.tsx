@@ -15,6 +15,7 @@ export default function SessionResultsOverview({
   currentPrompt,
   summaryPrompt,
   crossPollination,
+  sessionData,
 }: {
   id: string;
   status: SessionStatus;
@@ -25,6 +26,14 @@ export default function SessionResultsOverview({
   currentPrompt?: string;
   summaryPrompt?: string;
   crossPollination?: boolean;
+  sessionData?: {
+    topic: string;
+    goal: string;
+    critical: string;
+    context: string;
+    crossPollination: boolean;
+    promptSummary: string;
+  };
 }) {
   const { hasMinimumRole, loading } = usePermissions(id);
   return (
@@ -37,6 +46,7 @@ export default function SessionResultsOverview({
           currentPrompt={currentPrompt}
           summaryPrompt={summaryPrompt}
           crossPollination={crossPollination}
+          sessionData={sessionData}
         />
       )}
       <SessionResultStatus
