@@ -272,56 +272,13 @@ export function useUnlinkSessionFromWorkspace() {
 // --- Summary Operations ---
 
 
-export function useSummaryStatus(resourceId: string, isProject = false) {
-  const queryClient = useQueryClient();
-  
+export function useSummaryStatus(resourceId: string, isProject = false) {  
   return useQuery({
     queryKey: summaryStatusKey(resourceId),
-    queryFn: async () => {
-      // For projects, we need different caching strategy
-      if (isProject) {
-        // For workspaces, check if we have workspace data cached
-        // const cachedWorkspace = queryClient.getQueryData(workspaceKey(sessionId));
-        // No workspace cache, fallback to server action
-        return checkSummaryNeedsUpdating(resourceId, true);
-      }
-      
-      // For sessions, try to use cached data first to avoid database calls
-      const cachedHost = queryClient.getQueryData<HostSession>(hostObjectKey(resourceId));
-      const cachedUserIds = queryClient.getQueryData<string[]>(hostToUserIdsKey(resourceId));
-      
-      if (cachedHost && cachedUserIds) {
-        // Get all user sessions from the normalized cache
-        console.log(`[1] Checking UserSessions for resourceId: ${resourceId}, sessionIds:`, cachedUserIds);
-        const cachedUserSessions = cachedUserIds
-          .map(userId => queryClient.getQueryData<UserSession>(userObjectKey(userId)))
-          .filter(Boolean) as UserSession[];
-        
-        // TODO: Maybe we could just fetch the missing ones and do this routine...?
-        if (cachedUserSessions.length === cachedUserIds.length) {
-          console.log(`[2] Found all required cached user sessions.`)
-          const { lastMessage, lastSummaryUpdate } = checkSummaryAndMessageTimes(cachedHost, cachedUserSessions);
-          const lastUserEdit = cachedUserSessions.reduce((latest: number, user: UserSession) => {
-            const lastEditTime = new Date(user.last_edit).getTime();
-            return lastEditTime > latest ? lastEditTime : latest;
-          }, 0);
-          console.log(`[3] Cached Summary status for ${resourceId}: Last User Edit: ${lastUserEdit}`);
-          return {
-            lastEdit: Math.max(lastMessage, lastUserEdit),
-            lastSummaryUpdate,
-            resourceId: resourceId
-          };
-        }
-      }
-
-      // Fallback to server action if not all cached data is available
-      const results = await checkSummaryNeedsUpdating(resourceId, false);
-      console.log(`[i] Live Server Summary status: Last edit: ${results.lastEdit}, Last Summary Update: ${results.lastSummaryUpdate}`);
-      return results;
-    },
+    queryFn: () => checkSummaryNeedsUpdating(resourceId, isProject),
     enabled: !!resourceId,
-    staleTime: 10000,
-    refetchInterval: 10000,
+    staleTime,
+    refetchInterval: 30000, // Check external changes
   });
 }
 
