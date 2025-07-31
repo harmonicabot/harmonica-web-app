@@ -28,7 +28,7 @@ export default async function SessionResult({
   // (This is a server component, data is being prefetched on the server and then dehydrated, passed to the client and then further updates will happen there)
   // TanStack is taking care of the hydration magic.
   try {
-    console.log(`Prefetching data...`);
+    console.log(`Prefetching session data...`);
 
     await Promise.allSettled([
       // Prefetch host session data

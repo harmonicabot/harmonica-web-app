@@ -1,15 +1,16 @@
-import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import { NewHostSession, NewMessage, NewUserSession, NewWorkspace, Workspace, HostSession, UserSession, User } from '@/lib/schema';
 import { fetchWorkspaceData } from '@/lib/workspaceData';
 import { linkSessionsToWorkspace, unlinkSessionFromWorkspace } from '@/lib/workspaceActions';
 import { checkSummaryNeedsUpdating, fetchSummary, updateUserLastEdit, updateHostLastEdit, updateWorkspaceLastModified } from '@/lib/summaryActions';
-import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
 import { createSummary, createMultiSessionSummary } from '@/lib/serverUtils';
 import { getSession } from '@auth0/nextjs-auth0';
 
 
 // --- Query Keys ---
+// Note: resourceId can be wspaceId OR hostId; everything else can only be what it says.
+// hostId == hostSessionId, they're used interchangeably
 const workspaceObjectKey = (wspaceId: string) => ['workspace-objects', wspaceId];
 const hostObjectKey = (hostId: string) => ['host-session-objects', hostId];
 const userObjectKey = (userSessionId: string) => ['user-session-objects', userSessionId];
@@ -18,12 +19,12 @@ const userObjectKey = (userSessionId: string) => ['user-session-objects', userSe
 const hostToUserIdsKey = (hostId: string) => ['host-user-ids', hostId];
 
 const messagesKey = (threadId: string) => ['messages', threadId];
-const summaryStatusKey = (hostSessionId: string) => ['summary-status', hostSessionId];
-const summaryContentKey = (hostSessionId: string) => ['summary-content', hostSessionId];
+const summaryStatusKey = (resourceId: string) => ['summary-status', resourceId];
+const summaryContentKey = (resourceId: string) => ['summary-content', resourceId];
 
 // Workspace-specific query keys
 const workspaceSessionsKey = (workspaceId: string) => ['workspace-sessions', workspaceId];
-const sessionsStatsKey = (hostSessionIds: string[]) => ['workspace-stats', hostSessionIds.sort()];
+const sessionsStatsKey = (hostIds: string[]) => ['workspace-stats', hostIds.sort()];
 const availableSessionsKey = () => ['available-sessions'];
 const staleTime = 1000 * 60; // 1 minute
 
@@ -193,20 +194,17 @@ export function useUpsertUserSession() {
       if (!data.id) {
         return (await db.insertUserSessions(data))[0];
       } else {
-        console.log('[i] Updating existing user session:', data);
         return (await db.updateUserSession(data.id, data))[0];
       }
     },
     onSuccess: (userSessionId, input) => {
       // Invalidate individual user entity caches
-      console.log(`Successfully updated user session, now we invalidate the cache for ${userSessionId}`);
       queryClient.invalidateQueries({ queryKey: userObjectKey(userSessionId) });
       
       // Get host session ID from input data or from local cache to invalidate host-user mapping
       const hostSessionId = input.session_id
         || queryClient.getQueryData<UserSession>(userObjectKey(userSessionId))?.session_id;
       if (hostSessionId) {
-        console.log(`Invalidating parent hostSession to userId mapping & summaryStatus keys for ${hostSessionId}`);
         queryClient.invalidateQueries({ queryKey: hostToUserIdsKey(hostSessionId) });
         queryClient.invalidateQueries({ queryKey: summaryStatusKey(hostSessionId) });
       }
@@ -276,20 +274,23 @@ export function useSummaryStatus(resourceId: string, isProject = false) {
   return useQuery({
     queryKey: summaryStatusKey(resourceId),
     queryFn: () => {
-      console.log(`Fetching summary status for ${resourceId}`);
+      console.debug(`Fetching summary status for ${resourceId}`);
       return checkSummaryNeedsUpdating(resourceId, isProject)
     },
     enabled: !!resourceId,
     refetchInterval: 30000,
+    refetchOnWindowFocus: true
   });
 }
 
-export function useSummaryContent(sessionId: string) {
+export function useSummary(resourceId: string, initialSummary?: string, isProject = false) {
   return useQuery({
-    queryKey: summaryContentKey(sessionId),
-    queryFn: () => fetchSummary(sessionId),
-    enabled: !!sessionId,
+    queryKey: summaryContentKey(resourceId),
+    queryFn: () => fetchSummary(resourceId, isProject),
+    enabled: !!resourceId,
+    initialData: initialSummary,
     staleTime,
+    refetchOnWindowFocus: false,
   });
 }
 

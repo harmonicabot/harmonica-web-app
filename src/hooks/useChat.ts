@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import * as llama from '../app/api/llamaUtils';
-import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
+import { OpenAIMessage } from '@/lib/types';
 import { UserProfile, useUser } from '@auth0/nextjs-auth0/client';
 import { NewUserSession } from '@/lib/schema';
 import { getUserNameFromContext } from '@/lib/clientUtils';
@@ -13,7 +13,6 @@ export interface UseChatOptions {
   setUserSessionId?: (id: string) => void;
   userSessionId?: string;
   entryMessage?: OpenAIMessage;
-  context?: OpenAIMessageWithContext;
   placeholderText?: string;
   userContext?: Record<string, string>;
   isAskAi?: boolean;
@@ -34,11 +33,11 @@ export interface UseChatOptions {
 export function useChat(options: UseChatOptions) {
   const {
     sessionIds,
-    setUserSessionId,
-    userSessionId,
-    entryMessage,
-    context,
-    placeholderText,
+    setUserSessionId,   // setUserSessionId is set when createThread is called (here); so when useChat is first called 
+    userSessionId,      // userSessionId will always be empty, only on later iterations it will be available; 
+                        // OR it might be available if it's restored from local storage (set in the setUserSessionid setter!)
+    entryMessage,       
+    placeholderText = 'Type your message here...',
     userContext,
     isAskAi = false,
     crossPollination = false,
@@ -60,51 +59,29 @@ export function useChat(options: UseChatOptions) {
   const [errorToastMessage, setErrorToastMessage] = useState('');
   const { user } = useUser();
   
-  // Get existing user session data if userSessionId is provided
+  // Get existing user session data if userSessionId is provided.
+  // Because messages rely on threadId, this might go through multiple re-renders,
+  // so we need to make sure to load some of the data properly in useEffects.
+  // TODO: unify userSessionId & threadId; they're basically both the same just a different column in the db.
+  // (but wait for AI to be good enough to replace it and unify!)
+  
+  // If we don't have a userSessionId then much of this wouldn't be necessary, but unfortunately we can't make it conditional, that would break react stuff.
   const { data: existingUserSession, isLoading: isLoadingUserSession } = useUserSession(userSessionId || '');
   const threadId = existingUserSession?.thread_id || '';
-  console.log(`[i] Using threadId: ${threadId} for userSessionId: ${userSessionId}`);
   const threadIdRef = useRef<string>(threadId);
+  const createThreadInProgressRef = useRef(false);
   const { data: existingMessages = [], isLoading: isLoadingMessages } = useMessages(threadId);
   const upsertUserSessions = useUpsertUserSession();
   const messageInserter = useInsertMessages();
-
-  const placeholder = placeholderText
-    ? placeholderText
-    : 'Type your message here...';
-
+  const [messages, setMessages] = useState<OpenAIMessage[]>([]);
+  const addMessage = (newMessage: OpenAIMessage) => {
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+  };
+  const [isLoading, setIsLoading] = useState(isLoadingUserSession || isLoadingMessages);
   const [formData, setFormData] = useState<{ messageText: string }>({
     messageText: '',
   });
-  const [messages, setMessages] = useState<OpenAIMessage[]>([]);
 
-  useEffect(() => {
-    // Filter out the initial context message if present
-    console.log(`[i] Restoring messages with initial state isLoading: ${isLoadingMessages}, existingMessages: ${existingMessages.length}, messages: ${messages.length}  `);
-    if (!isLoadingMessages && existingMessages.length > 0 && messages.length === 0) {
-      const filteredMessages = existingMessages.filter(
-        msg => !(msg.role === 'user' && msg.content?.startsWith('User shared the following context:'))
-      ).map(msg => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-        is_final: msg.is_final,
-      }));
-    
-      setMessages(filteredMessages);
-      console.log(`[i] Successfully restored ${filteredMessages.length} messages`);
-    }
-  }, [isLoadingMessages, setMessages]);
-
-  const addMessage = (newMessage: OpenAIMessage) => {
-    console.log('[Chat] Adding new message:', {
-      content: newMessage.content?.slice(0, 100) + '...',
-      is_final: newMessage.is_final,
-      role: newMessage.role,
-    });
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-  };
-
-  const [isLoading, setIsLoading] = useState(isLoadingUserSession || isLoadingMessages);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isParticipantSuggestionLoading, setIsParticipantSuggestionLoading] =
@@ -122,30 +99,70 @@ export function useChat(options: UseChatOptions) {
     }
   }, [existingUserSession?.thread_id]);
 
+  // Focus the textarea when the component mounts
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.focus(); // Automatically focus the textarea
+    }
+  }, []);
+
+  // Scroll to the bottom of the chat when new messages are added
   useEffect(() => {
     if (mainPanelRef?.current && messages.length > 1) {
       mainPanelRef.current.scrollTop = mainPanelRef.current.scrollHeight;
     }
   }, [messages, mainPanelRef]);
 
-  // Focus the textarea when the component mounts and show entry message
+  // Setup initial messages: either restore existing messages, 
+  // or set the entry message (if available, usually for AskAI)
   useEffect(() => {
-    const textarea = textareaRef.current;
-    if (entryMessage && messages.length === 0) {
-      addMessage(entryMessage);
+    // Filter out the initial context message if present
+    console.log(`Has entry message? ${!!entryMessage}: ${entryMessage}`);
+    if (!isLoadingMessages && messages.length === 0) {
+      if (existingMessages.length > 0) {
+        const filteredMessages = existingMessages.filter(
+          msg => !(msg.role === 'user' && msg.content?.startsWith('User shared the following context:'))
+        ).map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+          is_final: msg.is_final,
+        }));
+    
+        setMessages(filteredMessages);
+      } else if (entryMessage) {
+        addMessage(entryMessage);
+      }
+    } 
+  }, [isLoadingMessages, setMessages]);
+
+  // Hook to create a new thread (and with that also a userSessionId; threads & userSessionId are tightly coupled and should be unified to one in a future iteration) 
+  useEffect(() => {
+    if (!userSessionId && !createThreadInProgressRef.current) {
+      if (!sessionIds || sessionIds.length != 1) {
+        // We have this as a separate check mainly for compiler warnings, it would be flagged otherwise.
+        throw new Error('Cannot create a thread without a session ID or with multiple session IDs.');
+      }
+      if (!userContext) {
+        throw new Error('User context screen was skipt in some way')
+      }
+      const userName = getUserNameFromContext(userContext);
+      createThread(
+        sessionIds[0],
+        user ? user : 'id',
+        userName,
+        userContext,
+      ).then((newUserSessionId) => {
+        handleSubmit(undefined, true, newUserSessionId); // first AI message
+      });
     }
-    if (textarea) {
-      textarea.focus(); // Automatically focus the textarea
-    }
-  }, []);
+  }, [userSessionId]);  // purposely only passing in userSessionId just to make clear that this is the only relevant var here and for thread creation!
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
-  const createThreadInProgressRef = useRef(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !isLoading) {
@@ -189,6 +206,14 @@ export function useChat(options: UseChatOptions) {
     if (isTesting) {
       return undefined;
     }
+
+    createThreadInProgressRef.current = true;
+    
+    // TODO: I think we can actually replace separate threadIds with the ID that's created when the db entry is inserted,
+    // or vice versa. They're always both created here, both are equally unique, and there's always a one-one mapping.
+    // However, it will require a bit of updates and checking where everything is used, 
+    // and probably the removal of the threadId column in the db, which is just a bit work. 
+    // (But wait until AI is a bit better than it is right now, and then let AI just to all of this menial work ;-))
     const threadId = crypto.randomUUID();
     threadIdRef.current = threadId;
     if (onThreadIdReceived) {
@@ -200,9 +225,8 @@ export function useChat(options: UseChatOptions) {
         ? user + '_' + crypto.randomUUID()
         : user.sub || 'unknown';
 
-    if (sessionId) {
       const data = {
-        session_id: sessionId,
+        session_id: sessionId!,
         user_id: userId,
         user_name: userName,
         thread_id: threadId,
@@ -210,6 +234,7 @@ export function useChat(options: UseChatOptions) {
         start_time: new Date(),
         last_edit: new Date(),
       };
+    
       //insert user formdata
       const contextString = userContext
         ? Object.entries(userContext)
@@ -225,66 +250,13 @@ export function useChat(options: UseChatOptions) {
         content: `User shared the following context:\n${contextString}`,
         created_at: new Date(),
       });
-      console.log('Inserting new session with initial data: ', data);
+      console.debug('Inserting new session with initial data: ', data);
       const userSessionIdFromThreadCreation = await upsertUserSessions.mutateAsync(data)
       if (setUserSessionId) {
         setUserSessionId(userSessionIdFromThreadCreation);
       }
       return userSessionIdFromThreadCreation; // Return the userId, just in case setUserSessionId is not fast enough
-    }
-    return undefined; // Return undefined if no sessionId was provided
   }
-
-  useEffect(() => {
-    if (
-      userContext &&
-      !threadIdRef.current &&
-      !createThreadInProgressRef.current &&
-      !isAskAi // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
-      // Also, AskAI doesn't use the userContext, so this parameter combination should never be triggered (unless maybe on page load?), but just for clarity we put it here anyway.
-    ) {
-      const userName = getUserNameFromContext(userContext);
-
-      createThreadInProgressRef.current = true;
-      
-      // Check if we have an existing userSessionId to restore
-      if (userSessionId && existingUserSession && !isLoadingUserSession) {
-        // Restore existing thread
-        threadIdRef.current = existingUserSession.thread_id;
-        if (onThreadIdReceived) {
-          onThreadIdReceived(existingUserSession.thread_id);
-        }
-        
-        // Filter out the initial context message if present
-        if (existingMessages) {
-          const filteredMessages = existingMessages.filter(
-            msg => !(msg.role === 'user' && msg.content?.startsWith('User shared the following context:'))
-          ).map(msg => ({
-            role: msg.role as 'user' | 'assistant',
-            content: msg.content,
-            is_final: msg.is_final,
-          }));
-        
-          setMessages(filteredMessages);
-          console.log(`[i] Successfully restored ${existingMessages.length} messages for thread ${existingUserSession.thread_id}`);
-        }
-      } else if (!userSessionId || (!existingUserSession && !isLoadingUserSession) || (!existingMessages && isLoadingMessages)) {
-        // No existing session or session not found, create new thread
-        if (!sessionIds || sessionIds.length != 1) {
-          throw new Error('Cannot create a thread without a session ID or with multiple session IDs.');
-        }
-        createThread(
-          sessionIds[0],
-          user ? user : 'id',
-          userName,
-          userContext,
-        ).then((threadSessionId) => {
-          handleSubmit(undefined, true, threadSessionId);
-        });
-      }
-    }
-  }, [userContext, userSessionId, existingUserSession, isLoadingUserSession]);
-
 
   const handleSubmit = async (
     e?: React.FormEvent,
@@ -295,7 +267,7 @@ export function useChat(options: UseChatOptions) {
       e.preventDefault();
     }
 
-    if (isLoading) return;
+    if (isLoading) return;  // We're not ready yet. There might be an existing 
     setIsLoading(true);
     if (isTesting) {
       addMessage({
@@ -321,30 +293,24 @@ export function useChat(options: UseChatOptions) {
         textareaRef.current?.focus();
       }
 
-      const now = new Date();
       if (!isAskAi) {
         await waitForThreadCreation(threadIdRef, setErrorMessage);
       }
-
+      
       const currentUserSessionId = userSessionId || userSessionIdFromThread;
-
+      
       if (currentUserSessionId && !isAutomatic && !isAskAi) {
-        console.log(
-          `[i] Inserting chat message for user session ${currentUserSessionId}`,
-        );
-        // Need to do await here, because we process this chat on the server 
-        // and we need to wait here until it actually is written to the database; 
-        // i.e. optimistic client-side updates won't be enough!
+        // Need to do await here, because we process this chat on the server and we need to wait 
+        // until it actually is written to the database, otherwise the response will be empty. 
         await messageInserter.mutateAsync({
           thread_id: threadIdRef.current,
           role: 'user',
           content: messageText,
-          created_at: now,
+          created_at: new Date(),
         });
       }
 
       if (isAskAi) {
-        console.log(`[i] Asking AI for response`);
         const response = await fetch('/api/llama', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -371,7 +337,6 @@ export function useChat(options: UseChatOptions) {
           messageText,
           sessionId: sessionIds?.[0] || '',
         };
-        console.log(`[i] Generating answer for message: ${messageText}`);
         llama
           .handleGenerateAnswer(
             messageData,
@@ -387,7 +352,6 @@ export function useChat(options: UseChatOptions) {
             const now = new Date();
             addMessage(answer);
 
-            console.log(`Got reply; updating messages and upserting user session: ${currentUserSessionId}`);
             if (currentUserSessionId) {
               Promise.all([
                 messageInserter.mutateAsync({
@@ -474,7 +438,7 @@ export function useChat(options: UseChatOptions) {
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
       waitedCycles++;
-      console.log(`Waiting ${waitedCycles} cycles for thread to be created...`);
+      console.warn(`Waited ${waitedCycles} cycles for thread to be created...`);
     }
   }
 
@@ -486,7 +450,7 @@ export function useChat(options: UseChatOptions) {
     isParticipantSuggestionLoading,
     errorMessage,
     errorToastMessage,
-    placeholder,
+    placeholder: placeholderText,
     
     // Refs
     textareaRef,

@@ -53,15 +53,6 @@ export const ChatInterface = ({
     setThreadId(id);
   };
 
-  const handleFinish = () => {
-    setIsSessionFinished(true);
-    onFinish();
-    // Show rating modal after 2 seconds
-    setTimeout(() => {
-      setShowRating(true);
-    }, 2000);
-  };
-
   useEffect(() => {
     console.log('[ChatInterface] Message or state changed:', {
       messageContent: message?.content?.slice(0, 100) + '...',
@@ -72,12 +63,8 @@ export const ChatInterface = ({
     });
 
     if (message?.is_final && threadId) {
-      console.log(
-        '[ChatInterface] Final message detected, showing rating modal in 2s',
-      );
       // Show rating modal after 2 seconds when final message is received
       setTimeout(() => {
-        console.log('[ChatInterface] Showing rating modal now');
         setShowRating(true);
       }, 2000);
     }

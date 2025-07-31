@@ -19,7 +19,6 @@ export default function SessionPage({ sessionId }: { sessionId: string }) {
   const usersWithChat = userData.filter(
     (user) => (messageStats[sessionId]?.[user.id]?.num_messages ?? 0) > 2
   );
-  console.log('message stats: ', messageStats, sessionId)
   const stats = getUserStats(messageStats, sessionId)
   const status =
     !hostData.active || hostData.final_report_sent

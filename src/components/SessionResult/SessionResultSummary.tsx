@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ExpandableWithExport } from './ExpandableWithExport';
 import { Card, CardContent } from '../ui/card';
 import { usePermissions } from '@/lib/permissions';
-import { useSummary } from '@/hooks/useSummary';
+import { useSummary } from '@/stores/SessionStore';
 
 interface SessionResultSummaryProps {
   hostData: HostSession[];
@@ -13,7 +13,6 @@ interface SessionResultSummaryProps {
   draft: boolean;
   showSummary?: boolean;
   showSessionRecap?: boolean;
-  onSummaryUpdateTrigger?: () => void;
 }
 
 export default function SessionResultSummary({
@@ -23,9 +22,7 @@ export default function SessionResultSummary({
   draft = false,
   showSummary = true,
   showSessionRecap = true,
-  onSummaryUpdateTrigger
 }: SessionResultSummaryProps) {
-  const [isUpdating, setIsUpdating] = useState(false);
   const [isExpandedPrompt, setIsExpandedPrompt] = useState(false);
   const [isExpandedSummary, setIsExpandedSummary] = useState(true);
 
@@ -64,8 +61,7 @@ export default function SessionResultSummary({
           isExpanded={isExpandedSummary}
           onExpandedChange={setIsExpandedSummary}
           showRefreshButton={hasMinimumRole('editor')}
-          onRefresh={onSummaryUpdateTrigger}
-          loading={summaryLoading || isUpdating}
+          loading={summaryLoading}
         />
       ) : showDraftProjectCard ? (
         <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">

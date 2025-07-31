@@ -11,10 +11,8 @@ export function useCustomResponses(
 
   useEffect(() => {
     setIsLoading(true);
-    console.log(`Getting custom blocks for ressource ${id} - ${responseType}`);
     db.getCustomResponsesByResourceIdAndType(id, responseType)
       .then((response) => {
-        console.log(`Got ${response.length} responses`);
         setResponses(response);
       })
       .catch((err) => {

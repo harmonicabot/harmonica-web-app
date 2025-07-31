@@ -27,8 +27,7 @@ export default async function Workspace({
   params: { w_id: string };
 }) {
   const queryClient = new QueryClient();
-  console.log(`Call stack in Workspace page.tsx:`, new Error("Debugging Workspace Page").stack);
-
+  
   try {
     // First prefetch workspace data
     await queryClient.prefetchQuery({
@@ -41,7 +40,7 @@ export default async function Workspace({
     
     // Only prefetch individual session data if workspace exists and has sessions
     if (data.exists && data.sessionIds.length > 0) {
-      console.log(`Prefetching data for ${data.sessionIds.length} sessions...`);
+      console.log(`Prefetching workspace data for ${data.sessionIds.length} sessions...`);
       
       await Promise.allSettled([
         // Prefetch all individual session data for cache reuse
@@ -88,7 +87,7 @@ export default async function Workspace({
         })
       ]);
       
-      console.log('Prefetching completed successfully');
+      console.log('Prefetching workspaces completed successfully');
     }
     
     return (

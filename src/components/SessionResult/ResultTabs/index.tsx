@@ -83,17 +83,8 @@ export default function ResultTabs({
   
   const currentUserData = userData;
 
-  // Declaring this here so that we don't redeclare it whenever the summary tab gets loaded
-  console.log(`[HOOK Creation - Index] using useSummaryUpdateManager hook`);
-  const summaryUpdateManager = useSummaryUpdateManager(resourceId, sessionIds);
-  const manuallyTriggerSummaryUpdate = async () => {
-      await summaryUpdateManager.startUpdateNow()
-  };
-
-
   // Define available tabs and their visibility conditions in one place
   const availableTabs = useMemo(() => {
-    console.log('Computing available tabs!');
     return [
       {
         id: 'SUMMARY',
@@ -112,7 +103,6 @@ export default function ResultTabs({
               (hasMinimumRole('editor') || visibilityConfig.showSummary) ?? true
             }
             showSessionRecap={visibilityConfig.showSessionRecap ?? true}
-            onSummaryUpdateTrigger={manuallyTriggerSummaryUpdate}
           />
         ),
       },

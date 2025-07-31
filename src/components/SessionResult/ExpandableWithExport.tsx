@@ -58,12 +58,10 @@ export const ExpandableWithExport = ({
   isExpanded,
   onExpandedChange,
   showRefreshButton,
-  onRefresh,
   isUpdating,
   loading,
   className,
 }: CardProps) => {
-  console.log(`[HOOK Creation - Expandable] using useSummaryUpdateManager hook`);
   const summaryManager = useSummaryUpdateManager(resourceId, sessionIds);
   return (
     <ExpandableCard
@@ -81,7 +79,7 @@ export const ExpandableWithExport = ({
                     <TooltipTrigger>
                       <div className="relative">
                         <RefreshCw
-                          onClick={!isUpdating ? onRefresh : undefined}
+                          onClick={!isUpdating ? summaryManager.startUpdateNow : undefined}
                           className={`h-5 w-5 text-gray-500 cursor-pointer hover:text-primary ${
                             summaryManager.status === RefreshStatus.UpdatePending || summaryManager.status === RefreshStatus.UpdateStarted
                               ? 'animate-spin cursor-not-allowed opacity-50'

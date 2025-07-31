@@ -42,11 +42,6 @@ Here are a few examples of what you can ask me:
       <CardContent className="h-full flex flex-col overflow-y-auto pb-0">
         {userData && userData.length > 0 && (
           <EmbeddedChat
-            context={{
-              role: 'assistant',
-              content: `You will be asked questions based on the session data. Answer short.`,
-              userData: userData.filter((user) => user.include_in_summary),
-            }}
             sessionIds={
               sessionIds && sessionIds.length > 0
                 ? sessionIds

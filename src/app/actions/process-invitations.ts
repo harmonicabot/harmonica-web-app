@@ -21,7 +21,6 @@ export async function processUserInvitations(): Promise<{
     // Get the authenticated user
     const session = await getSession();
     if (!session || !session.user) {
-      console.log(`User session not available`);
 
       return {
         success: false,
@@ -42,7 +41,7 @@ export async function processUserInvitations(): Promise<{
     const userId = session.user.sub;
 
     if (!userEmail || !userId) {
-      console.log(
+      console.warn(
         `User email or ID (sub) not available: `,
         JSON.stringify(session.user, null, 2)
       );
@@ -59,9 +58,6 @@ export async function processUserInvitations(): Promise<{
 
     // Find pending invitations for this email
     const invitations = await getInvitationsByEmail(userEmail);
-    console.log(
-      `Found ${invitations.length} pending invitations for ${userEmail}`
-    );
     let processed = 0;
 
     // Process each invitation
@@ -81,7 +77,6 @@ export async function processUserInvitations(): Promise<{
       }
     }
 
-    console.log(`Processed ${processed} invitations for user ${userEmail}`);
     return {
       success: true,
       processed,
