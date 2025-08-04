@@ -118,7 +118,7 @@ export function useChat(options: UseChatOptions) {
   // or set the entry message (if available, usually for AskAI)
   useEffect(() => {
     // Filter out the initial context message if present
-    console.log(`Has entry message? ${!!entryMessage}: ${entryMessage}`);
+    console.log(`Has entry message? ${!!entryMessage}:`, entryMessage);
     if (!isLoadingMessages && messages.length === 0) {
       if (existingMessages.length > 0) {
         const filteredMessages = existingMessages.filter(
@@ -138,13 +138,10 @@ export function useChat(options: UseChatOptions) {
 
   // Hook to create a new thread (and with that also a userSessionId; threads & userSessionId are tightly coupled and should be unified to one in a future iteration) 
   useEffect(() => {
-    if (!userSessionId && !createThreadInProgressRef.current) {
+    if (userContext && !userSessionId && !createThreadInProgressRef.current) {
       if (!sessionIds || sessionIds.length != 1) {
         // We have this as a separate check mainly for compiler warnings, it would be flagged otherwise.
-        throw new Error('Cannot create a thread without a session ID or with multiple session IDs.');
-      }
-      if (!userContext) {
-        throw new Error('User context screen was skipt in some way')
+        throw new Error(`Cannot create a thread without a session ID or with multiple session IDs: ${sessionIds}`);
       }
       const userName = getUserNameFromContext(userContext);
       createThread(

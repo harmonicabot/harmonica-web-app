@@ -39,13 +39,14 @@ const EMOJI_RATINGS = [
 export default function TranscriptPopup({
   threadId,
   handleCloseClick,
-  tableData,
+  userName,
 }: {
   threadId: string;
   handleCloseClick: () => void;
-  tableData: ParticipantsTableData;
+  userName: string;
 }) {
   const [rating, setRating] = useState<SessionRating | null>(null);
+  console.log('Getting messages for threadId ', threadId)
   const { data: messages = [], isLoading } = useMessages(threadId);
 
   useEffect(() => {
@@ -64,7 +65,7 @@ export default function TranscriptPopup({
         <div className="flex items-center justify-between p-4 border-b">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">
-              {tableData.userName}'s Conversation
+              {userName}'s Conversation
             </h2>
             {rating && (
               <div className="flex items-center gap-2 mt-2">

@@ -28,7 +28,7 @@ export async function fetchWorkspaceData(
   queryClient?: QueryClient
 ): Promise<ExtendedWorkspaceData> {
   try {
-    console.log("Fetching optimized project data for workspace ", workspaceId);
+    console.log("Fetching project data for workspace ", workspaceId);
     
     // First, check whether this workspace exists at all. If not, add a 'draft' mode with the current user as the owner:
     const workspaceExists = await db.hasWorkspace(workspaceId);

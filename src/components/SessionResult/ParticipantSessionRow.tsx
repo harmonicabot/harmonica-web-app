@@ -105,7 +105,7 @@ export default function ParicipantSessionRow({
         <TranscriptPopup
           threadId={userData.thread_id}
           handleCloseClick={handleCloseClick}
-          tableData={tableData}
+          userName={tableData.userName}
         />
       }
     </>

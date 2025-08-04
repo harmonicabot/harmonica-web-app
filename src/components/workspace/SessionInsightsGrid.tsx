@@ -20,6 +20,7 @@ import {
   useWorkspace,
   useLinkSessionsToWorkspace,
   useUnlinkSessionFromWorkspace,
+  useSessionsStats,
 } from '@/stores/SessionStore';
 
 interface SessionInsightsGridProps {
@@ -106,21 +107,15 @@ export default function SessionInsightsGrid({
             const sessionUserData = localUserData.filter(
               (user) => user.session_id === hostData.id
             );
-
-            // Calculate the number of participants
-            const participantCount = sessionUserData.length;
-
             return (
               <SessionSummaryCard
                 key={hostData.id}
                 hostData={{
                   ...hostData,
                   goal: hostData.goal || 'No goal set',
-                  num_sessions: participantCount,
                 }}
                 userData={sessionUserData}
-                workspace_id={workspaceId}
-                id={hostData.id}
+                sessionId={hostData.id}
                 onRemove={showEdit ? handleRemoveSession : undefined}
               />
             );

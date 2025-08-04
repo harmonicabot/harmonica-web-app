@@ -1,11 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as db from '@/lib/db';
 import { NewHostSession, NewMessage, NewUserSession, NewWorkspace, Workspace, HostSession, UserSession, User } from '@/lib/schema';
-import { fetchWorkspaceData } from '@/lib/workspaceData';
 import { linkSessionsToWorkspace, unlinkSessionFromWorkspace } from '@/lib/workspaceActions';
+import { fetchWorkspaceDataAction, fetchAvailableSessionsAction, fetchAvailableWorkspacesAction } from 'app/workspace/[w_id]/actions';
 import { checkSummaryNeedsUpdating, fetchSummary, updateUserLastEdit, updateHostLastEdit, updateWorkspaceLastModified } from '@/lib/summaryActions';
 import { createSummary, createMultiSessionSummary } from '@/lib/serverUtils';
-import { getSession } from '@auth0/nextjs-auth0';
 
 
 // --- Query Keys ---
@@ -30,11 +29,10 @@ const staleTime = 1000 * 60; // 1 minute
 
 // --- Fetchers ---
 export function useWorkspace(workspaceId: string) {
-  const queryClient = useQueryClient();
   return useQuery({
-    queryKey: workspaceObjectKey(workspaceId),
-    queryFn: () => fetchWorkspaceData(workspaceId, queryClient),
-    select: (data) => data ?? [], // Returns an empty array if data isn't available yet
+    queryKey: ['workspace', workspaceId],
+    queryFn: () => fetchWorkspaceDataAction(workspaceId),
+    select: (data) => data ?? [],
     enabled: !!workspaceId,
     staleTime,
   });
@@ -126,20 +124,7 @@ export function useSessionsStats(sessionIds: string[]) {
 export function useAvailableSessions() {
   return useQuery({
     queryKey: availableSessionsKey(),
-    queryFn: async () => {
-      // Move getAllAvailableSessionIds logic here
-      const session = await getSession();
-      const userId = session?.user?.sub;    
-      const availableResources = await db.getResourcesForUser(userId, "SESSION", ["resource_id"]);
-      const availableSessionsIds = availableResources.map((r) => r.resource_id).filter((id) => id !== 'global');
-      
-      if (availableSessionsIds.length > 0) {
-        return await db.getHostSessionsForIds(availableSessionsIds, [
-          'id', 'topic', 'start_time'
-        ]);
-      }
-      return [];
-    },
+    queryFn: () => fetchAvailableSessionsAction(),
     staleTime,
   });
 }
@@ -147,20 +132,7 @@ export function useAvailableSessions() {
 export function useAvailableWorkspaces() {
   return useQuery({
     queryKey: ['available-workspaces-for-user'],
-    queryFn: async () => {
-      const session = await getSession();
-      const userId = session?.user?.sub;
-      
-      if (!userId) {
-        return [];
-      }
-      
-      const resources = await db.getResourcesForUser(userId, 'WORKSPACE');
-      if (!resources.length) return [];
-      
-      const workspaceIds = resources.map(resource => resource.resource_id);
-      return await db.getWorkspacesForIds(workspaceIds, ['id', 'title']);
-    },
+    queryFn: () => fetchAvailableWorkspacesAction(),
     staleTime,
   });
 }
@@ -290,7 +262,7 @@ export function useSummary(resourceId: string, initialSummary?: string, isProjec
     enabled: !!resourceId,
     initialData: initialSummary,
     staleTime,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
   });
 }
 

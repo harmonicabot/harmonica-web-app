@@ -26,7 +26,6 @@ import {
 import { SimScoreTab } from './SimScoreTab';
 import SessionFilesTable from '../SessionFilesTable';
 import { useHostSession, useUserSessions, useWorkspace } from '@/stores/SessionStore';
-import { useSummaryUpdateManager } from '@/hooks/useSummaryUpdateManager';
 
 export interface ResultTabsProps {
   resourceId: string;

@@ -6,33 +6,32 @@ import { intlFormatDistance } from 'date-fns';
 import { encryptId } from '@/lib/encryptionUtils';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { useSessionsStats } from '@/stores/SessionStore';
 
 export default function SessionSummaryCard({
   hostData,
   userData,
-  workspace_id,
-  id,
+  sessionId,
   onRemove,
 }: {
   hostData: HostSession;
   userData: UserSession[];
-  workspace_id: string;
-  id: string;
+  sessionId: string;
   onRemove?: (sessionId: string) => void;
 }) {
+  const { data: messageStats, isLoading: isLoadingStats } = useSessionsStats([sessionId])
+  const totalUsers = userData.filter(user => messageStats?.[sessionId][user.id].num_messages ?? 0 > 2).length;
+  
   const handleRemove = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent the Link from navigating
     e.stopPropagation(); // Stop event propagation
 
     if (onRemove) {
       if (confirm(`Remove "${hostData.topic}" from this workspace?`)) {
-        onRemove(id);
+        onRemove(sessionId);
       }
     }
   };
-  // Not 100% what we use elsewhere (where we actually check for how many users have sent more than 2 messages);
-  // but maybe good enough for now.
-  const totalUsers = userData.filter(user => user.include_in_summary).length;
   
   const status = 
             !hostData.active || hostData.final_report_sent
@@ -54,7 +53,7 @@ export default function SessionSummaryCard({
           <X className="h-4 w-4" />
         </Button>
       )}
-      <Link href={`/sessions/${encryptId(id)}`}>
+      <Link href={`/sessions/${encryptId(sessionId)}`}>
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle className="flex justify-between items-center">
@@ -71,7 +70,7 @@ export default function SessionSummaryCard({
             <dl className="grid grid-cols-3 gap-4">
               <div>
                 <dt className="text-sm text-gray-500">Participants</dt>
-                <dd className="text-2xl font-semibold">{userData.length}</dd>
+                <dd className="text-2xl font-semibold">{isLoadingStats ? '...' : totalUsers}</dd>
               </div>
               <div>
                 <dt className="text-sm text-gray-500">Started</dt>

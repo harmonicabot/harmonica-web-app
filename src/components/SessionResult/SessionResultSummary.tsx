@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ExpandableWithExport } from './ExpandableWithExport';
 import { Card, CardContent } from '../ui/card';
 import { usePermissions } from '@/lib/permissions';
-import { useSummary } from '@/stores/SessionStore';
+import { useSummary, useWorkspace } from '@/stores/SessionStore';
 
 interface SessionResultSummaryProps {
   hostData: HostSession[];
@@ -28,9 +28,8 @@ export default function SessionResultSummary({
 
   const resourceId: string = isProject ? projectId! : hostData[0].id;
   const { hasMinimumRole } = usePermissions(resourceId);
-  
-  // Use SWR to fetch summary content with initial data as fallback
-  const initialSummary = isProject ? '' : hostData[0]?.summary || '';
+  const { data: workspaceData } = useWorkspace(resourceId);
+  const initialSummary = isProject ? workspaceData?.workspace.summary : hostData[0]?.summary || '';
   const { data: summary, isLoading: summaryLoading } = useSummary(resourceId, initialSummary, isProject);
   
   // Check which content will be shown
