@@ -64,6 +64,7 @@ class SummaryUpdateManagerClass {
     if (this.statuses.get(resourceId) === status) {
       return;
     }
+    console.log(`Status updated to ${status}`)
     this.statuses.set(resourceId, status);
     this.notifySubscribers(resourceId, status);
   }
@@ -137,27 +138,27 @@ class SummaryUpdateManagerClass {
   }
 
   /**
-   * Schedules a summary update for a resource with a 30-second debounce.
+   * Checks whether to schedules a summary update for a resource with a 30-second debounce.
    * This method should be called whenever a potential change is detected (e.g., lastEdit timestamp changes).
-   * It will only trigger an actual update after 30 seconds of inactivity for that resource.
+   * It will only trigger an actual update after 30 seconds of inactivity for that resource, and replaces previous schedules.
    * @param resourceId The ID of the resource (e.g., session or workspace).
    * @param summaryStatus The current summary status data (lastEdit, lastSummaryUpdate).
    * @param startUpdateCallback A function that, when called, initiates the actual summary update (e.g., a TanStack Query mutation).
    */
-  public scheduleUpdate(
+  public checkShouldUpdate(
     resourceId: string,
     summaryStatus: SummaryStatusData,
     startUpdateCallback: () => Promise<any>
   ): void {
-    // 1. Guard: If summary is already up to date, clear any pending updates and set status.
+    // 1. Guard: If an update is currently in progress, let it run and do not schedule another.
+    if (this.getStatus(resourceId) === RefreshStatus.UpdateStarted) {
+      return;
+    }
+    
+    // 2. Guard: If summary is already up to date, clear any pending updates and set status.
     if (summaryStatus.lastSummaryUpdate >= summaryStatus.lastEdit) {
       this.setStatus(resourceId, RefreshStatus.UpToDate);
       this.clearScheduledUpdate(resourceId); // Ensure no pending updates
-      return;
-    }
-
-    // 2. Guard: If an update is currently in progress, do not schedule another.
-    if (this.getStatus(resourceId) === RefreshStatus.UpdateStarted) {
       return;
     }
 
@@ -194,19 +195,18 @@ class SummaryUpdateManagerClass {
    * @param startUpdateCallback A function that initiates the actual summary update.
    * @returns A Promise that resolves when the update is complete, or rejects if it fails.
    */
-  public async startUpdateNow(resourceId: string, startUpdateCallback: () => Promise<any>): Promise<void> {
-    // Clear any pending debounced update for this resource
-    this.clearScheduledUpdate(resourceId);
-
+  public async startUpdateNow(resourceId: string, startUpdateCallback: () => Promise<any>, manuallyTriggered: boolean = false): Promise<void> {    
     // Guard: Prevent starting if an update is already running
     if (this.getStatus(resourceId) === RefreshStatus.UpdateStarted) {
       console.warn(`[SummaryUpdateManager] Manual update for ${resourceId} aborted: already running.`);
       return;
     }
+    // Clear any other pending updates for this resource
+    this.clearScheduledUpdate(resourceId);
 
     // Set status to 'UpdateStarted'
     this.setStatus(resourceId, RefreshStatus.UpdateStarted);
-
+    
     try {
       await startUpdateCallback(); // Execute the actual update
       this.setStatus(resourceId, RefreshStatus.UpToDate);

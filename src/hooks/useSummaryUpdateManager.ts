@@ -91,7 +91,7 @@ export function useSummaryUpdateManager(
 
     // Pass the current summary status data and the mutation callback to the singleton.
     // The singleton will handle the debouncing and actual update scheduling.
-    summaryUpdateManager.scheduleUpdate(resourceId, summaryStatus, startUpdateMutation);
+    summaryUpdateManager.checkShouldUpdate(resourceId, summaryStatus, startUpdateMutation);
   }, [
     summaryStatus, // Trigger when lastEdit or lastSummaryUpdate changes
     isSummaryStatusLoading,
@@ -101,26 +101,20 @@ export function useSummaryUpdateManager(
 
   /**
    * Function to manually trigger a summary update immediately, bypassing the debounce.
-   * This is typically called by a UI action (e.g., a "Refresh" button).
    */
   const startUpdateNow = useCallback(async () => {
     try {
       // Delegate the immediate update logic to the singleton.
       await summaryUpdateManager.startUpdateNow(resourceId, startUpdateMutation);
     } catch (err) {
-      // Error is already logged by the singleton, re-throw if the component needs to catch it.
       throw err;
     }
   }, [resourceId, startUpdateMutation]);
 
   return {
-    // The current refresh status, synchronized from the singleton.
     status: currentStatus,
-    // Loading state for the initial summary status query.
     isLoading: isSummaryStatusLoading,
-    // Combined error from summary status query or the update mutation.
     error: summaryStatusError || summaryUpdater.error,
-    // Function to manually trigger an update.
     startUpdateNow,
   };
 }
