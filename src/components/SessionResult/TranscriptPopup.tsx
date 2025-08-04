@@ -1,12 +1,11 @@
 import { SessionRating } from '@/lib/schema';
-import { X, MessageSquare, Loader2 } from 'lucide-react';
+import { X, MessageSquare } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ChatMessage } from '../ChatMessage';
 import { Spinner } from '../icons';
 import { Button } from '../ui/button';
 import { useMessages } from '@/stores/SessionStore';
 import { getThreadRating } from '@/lib/db';
-import { ParticipantsTableData } from './SessionParticipantsTable';
 
 const EMOJI_RATINGS = [
   {
@@ -46,7 +45,6 @@ export default function TranscriptPopup({
   userName: string;
 }) {
   const [rating, setRating] = useState<SessionRating | null>(null);
-  console.log('Getting messages for threadId ', threadId)
   const { data: messages = [], isLoading } = useMessages(threadId);
 
   useEffect(() => {
@@ -116,7 +114,7 @@ export default function TranscriptPopup({
                 <p className="text-sm text-gray-600">Loading conversation...</p>
               </div>
             </div>
-          ) : (
+          ) : messages.length > 0 ? (
             <div className="space-y-4">
               {messages.map((message, index) => (
                 <ChatMessage
@@ -125,6 +123,12 @@ export default function TranscriptPopup({
                   showButtons={false}
                 />
               ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="flex flex-col items-center gap-3">
+                <p className="text-sm text-gray-600">Oh, nobody said anything yet ... ¯\_(ツ)_/¯</p>
+              </div>
             </div>
           )}
         </div>
