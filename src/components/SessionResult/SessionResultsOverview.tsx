@@ -33,6 +33,7 @@ export default function SessionResultsOverview({
     context: string;
     crossPollination: boolean;
     promptSummary: string;
+    facilitationPrompt: string;
   };
 }) {
   const { hasMinimumRole, loading } = usePermissions(id);

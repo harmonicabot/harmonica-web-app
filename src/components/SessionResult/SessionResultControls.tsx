@@ -33,6 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { VersionedPrompt } from 'app/create/creationFlow';
 
 interface SessionResultControlsProps {
   id: string;
@@ -218,9 +219,9 @@ export default function SessionResultControls({
     }
   };
 
-  const handleUpdatePrompt = async (prompt: string) => {
+  const handleUpdatePrompt = async (prompt: VersionedPrompt) => {
     try {
-      await db.updateHostSession(id, { prompt });
+      await db.updateHostSession(id, { prompt: prompt.fullPrompt, prompt_summary: prompt.summary });
       toast({
         title: 'Prompt updated',
         description: 'The facilitation prompt has been successfully updated.',

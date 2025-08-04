@@ -1,7 +1,7 @@
 'use client';
 
 // Session Overview Modal Component
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,8 +14,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Edit2, Check, X, ChevronDown, ChevronRight } from 'lucide-react';
-import { SessionBuilderData } from '@/lib/types';
+import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
 import { HRMarkdown } from '@/components/HRMarkdown';
+import ReviewPrompt from 'app/create/review';
+import { sendApiCall } from '@/lib/clientUtils';
+import { VersionedPrompt } from 'app/create/creationFlow';
+import { getPromptInstructions } from '@/lib/promptActions';
 
 interface SessionOverviewModalProps {
   isOpen: boolean;
@@ -30,7 +34,7 @@ interface SessionOverviewModalProps {
     facilitationPrompt?: string;
   };
   onUpdateSession: (updates: any) => Promise<void>;
-  onUpdatePrompt?: (prompt: string) => Promise<void>;
+  onUpdatePrompt?: (prompt: VersionedPrompt) => Promise<void>;
   onEditSession?: () => void;
 }
 
@@ -181,7 +185,23 @@ export function SessionOverviewModal({
   const [editingField, setEditingField] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState(false);
-  const [promptValue, setPromptValue] = useState(sessionData.facilitationPrompt || '');
+  const initialVersionedPrompt = { id: 0, summary: sessionData.promptSummary, fullPrompt: sessionData.facilitationPrompt || '' };
+  const [promptValue, setCurrentVersionedPrompt] = useState<VersionedPrompt>(initialVersionedPrompt);
+  const [allFacilitationPrompts, setAllFacilitationPrompts] = useState([initialVersionedPrompt])
+  // This is mainly a requirement of the ReviewPrompt component; theoretically we could also get the version from currentPrompt
+  const [currentPromptVersion, setCurrentPromptVersion] = useState(0);
+  
+  useEffect(() => {
+    const selectedPrompt = allFacilitationPrompts[currentPromptVersion];
+    if (selectedPrompt && selectedPrompt !== promptValue) {
+      setCurrentVersionedPrompt(selectedPrompt)
+      handleSavePrompt(selectedPrompt);
+    }
+  }, [currentPromptVersion, allFacilitationPrompts, setCurrentVersionedPrompt])
+
+  const addVersionedPrompt = (prompt: VersionedPrompt) => {
+    setAllFacilitationPrompts([...allFacilitationPrompts, prompt])
+  }
 
   const handleEditField = (fieldName: string) => {
     setEditingField(fieldName);
@@ -200,10 +220,11 @@ export function SessionOverviewModal({
     setEditingField(null);
   };
 
-  const handleSavePrompt = async () => {
+  const handleSavePrompt = async (versionedPromptToSave?: VersionedPrompt) => {
     if (onUpdatePrompt) {
       try {
-        await onUpdatePrompt(promptValue);
+        const prompt = versionedPromptToSave ? versionedPromptToSave : promptValue
+        await onUpdatePrompt(prompt);
         setEditingPrompt(false);
       } catch (error) {
         console.error('Failed to update prompt:', error);
@@ -212,13 +233,49 @@ export function SessionOverviewModal({
   };
 
   const handleCancelPrompt = () => {
-    setPromptValue(sessionData.facilitationPrompt || '');
+    setCurrentVersionedPrompt(initialVersionedPrompt);
     setEditingPrompt(false);
+  };
+
+  const handleEditVersionedPrompt = async (editValue: string) => {
+    console.log('[i] Edit instructions: ', editValue);
+
+    // We need to slightly update the edit instructions so that AI knows to apply those changes to the full prompt, not the summary.
+    editValue = `Apply the following changes/improvements to the last full template: \n${editValue}`;
+    const payload = {
+      target: ApiTarget.Builder,
+      action: ApiAction.EditPrompt,
+      data: {
+        fullPrompt: promptValue.fullPrompt,
+        instructions: editValue,
+      },
+    };
+
+    const newFullPromptResponse = await sendApiCall(payload);
+    
+    const sessionRecapPrompt = await getPromptInstructions('SESSION_RECAP');
+    const newSummaryResponse = await sendApiCall({
+      target: ApiTarget.Builder,
+      action: ApiAction.SummaryOfPrompt,
+      data: {
+        fullPrompt: newFullPromptResponse.fullPrompt,
+        instructions: sessionRecapPrompt,
+      }
+    })
+
+    const newVersionedPrompt = {
+      id: allFacilitationPrompts.length,
+      summary: newSummaryResponse.fullPrompt,
+      fullPrompt: newFullPromptResponse.fullPrompt
+    };
+    setCurrentPromptVersion(allFacilitationPrompts.length)
+    setCurrentVersionedPrompt(newVersionedPrompt);  
+    addVersionedPrompt(newVersionedPrompt);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[800px] lg:max-w-[75vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">
             Session Details
@@ -286,36 +343,21 @@ export function SessionOverviewModal({
             onCancel={handleCancelEdit}
           />
 
-          {/* Structure (Read-only) */}
-          <div className="space-y-3 mt-8">
-            <div className="flex items-center gap-4 mb-4">
-              <Label className="text-lg font-semibold leading-none tracking-tight">Session Design</Label>
-            </div>
-            <div className="text-sm text-gray-700 border border-gray-200 p-4 rounded-md">
-              {sessionData.promptSummary ? (
-                <HRMarkdown content={sessionData.promptSummary} />
-              ) : (
-                <span className="text-muted-foreground italic">
-                  No structure summary available
-                </span>
-              )}
-              <div className="flex items-center gap-4 mt-4">
-              <Button
+          <ReviewPrompt
+            prompts={allFacilitationPrompts}
+            setPrompts={setAllFacilitationPrompts}
+            summarizedPrompt={''}
+            currentVersion={currentPromptVersion}
+            setCurrentVersion={setCurrentPromptVersion}
+            isEditing={editingField === "ReviewPrompt"}
+            handleEdit={handleEditVersionedPrompt}
+          />
+        <Button
                 variant="default"
-                onClick={() => {
-                  onClose();
-                  if (onEditSession) {
-                    onEditSession();
-                  }
-                }}
+                onClick={() => editingField === "ReviewPrompt" ? setEditingField("") : setEditingField("ReviewPrompt")}
               >
                 Edit Session Design
               </Button>
-
-              </div>
-              
-            </div>
-          </div>
 
           {/* Advanced: See Raw Prompts */}
           <div className="space-y-2">
@@ -351,13 +393,13 @@ export function SessionOverviewModal({
                   {editingPrompt ? (
                     <div className="space-y-2">
                       <Textarea
-                        value={promptValue}
-                        onChange={(e) => setPromptValue(e.target.value)}
+                        value={promptValue.fullPrompt}
+                        onChange={(e) => setCurrentVersionedPrompt({ ...promptValue, fullPrompt: e.target.value })}
                         placeholder="Enter facilitation prompt..."
                         className="font-mono text-sm font-medium text-base min-h-[200px]"
                       />
                       <div className="flex space-x-2">
-                        <Button size="sm" onClick={handleSavePrompt}>
+                        <Button size="sm" onClick={() => handleSavePrompt()}>
                           <Check className="h-3 w-3" />
                           Save
                         </Button>
