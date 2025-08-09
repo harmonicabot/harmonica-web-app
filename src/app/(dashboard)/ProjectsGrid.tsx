@@ -26,7 +26,7 @@ import {
 
 function CreateWorkspaceButton({ text = 'New Project' }: { text?: string }) {
   return (
-    <Link href="/create-workspace">
+    <Link href="/workspace/create">
       <Card className="h-14 border border-border flex items-center px-4 cursor-pointer hover:bg-accent transition-colors bg-background">
         <CardContent className="flex flex-row items-center justify-between w-full p-0 bg-transparent">
           <span className="flex flex-row items-center gap-2 flex-1 min-w-0">

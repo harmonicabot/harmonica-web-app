@@ -101,13 +101,9 @@ export default function CreateSessionInputClient() {
     setError('');
     
     try {
-      // Generate session name from first 6 words
-      const sessionName = value.trim().split(/\s+/).slice(0, 6).join(' ');
-      
-      // Store in session storage
+      // Store in session storage - only populate goal, leave sessionName empty
       const prefillData = {
         goal: value.trim(),
-        sessionName: sessionName,
         timestamp: Date.now()
       };
       
