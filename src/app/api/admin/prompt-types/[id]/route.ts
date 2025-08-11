@@ -1,24 +1,27 @@
-import { sql } from '@vercel/postgres';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import * as db from '@/lib/db';
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { rows } = await sql`
-      SELECT * FROM prompt_type
-      WHERE id = ${params.id}
-    `;
+    const dbInstance = await db.getDbInstance();
+    
+    const promptType = await dbInstance
+      .selectFrom('prompt_type')
+      .selectAll()
+      .where('id', '=', params.id)
+      .executeTakeFirst();
 
-    if (rows.length === 0) {
+    if (!promptType) {
       return NextResponse.json(
         { error: 'Prompt type not found' },
         { status: 404 },
       );
     }
 
-    return NextResponse.json(rows[0]);
+    return NextResponse.json(promptType);
   } catch (error) {
     console.error('Error fetching prompt type:', error);
     return NextResponse.json(
@@ -29,31 +32,34 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
     const { name, description } = await request.json();
+    
+    const dbInstance = await db.getDbInstance();
 
-    const { rows } = await sql`
-      UPDATE prompt_type
-      SET 
-        name = ${name},
-        description = ${description},
-        updated_at = NOW()
-      WHERE id = ${id}
-      RETURNING *
-    `;
+    const updatedPromptType = await dbInstance
+      .updateTable('prompt_type')
+      .set({
+        name,
+        description,
+        updated_at: new Date(),
+      })
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirst();
 
-    if (rows.length === 0) {
+    if (!updatedPromptType) {
       return NextResponse.json(
         { error: 'Prompt type not found' },
         { status: 404 },
       );
     }
 
-    return NextResponse.json(rows[0]);
+    return NextResponse.json(updatedPromptType);
   } catch (error) {
     console.error('Error updating prompt type:', error);
     return NextResponse.json(
@@ -64,17 +70,20 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
+    const dbInstance = await db.getDbInstance();
+    
     // First check if there are any prompts using this type
-    const { rows: existingPrompts } = await sql`
-      SELECT COUNT(*) as count FROM prompts
-      WHERE prompt_type = ${params.id}
-    `;
+    const promptCount = await dbInstance
+      .selectFrom('prompts')
+      .select(({ fn }) => [fn.count('id').as('count')])
+      .where('prompt_type', '=', params.id)
+      .executeTakeFirstOrThrow();
 
-    if (parseInt(existingPrompts[0].count) > 0) {
+    if (Number(promptCount.count) > 0) {
       return NextResponse.json(
         {
           error: 'Cannot delete prompt type that is in use',
@@ -85,13 +94,13 @@ export async function DELETE(
       );
     }
 
-    const { rowCount } = await sql`
-      DELETE FROM prompt_type
-      WHERE id = ${params.id}
-      RETURNING id
-    `;
+    const deletedPromptType = await dbInstance
+      .deleteFrom('prompt_type')
+      .where('id', '=', params.id)
+      .returningAll()
+      .executeTakeFirst();
 
-    if (rowCount === 0) {
+    if (!deletedPromptType) {
       return NextResponse.json(
         { error: 'Prompt type not found' },
         { status: 404 },

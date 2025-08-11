@@ -6,6 +6,7 @@ interface SessionStore {
   addHostData: (id: string, data: HostSession) => void
   userData: Record<string, UserSession[]>
   addUserData: (id: string, data: UserSession[]) => void
+  updateUserData: (sessionId: string, userId: string, updates: Partial<UserSession>) => void
   messageData: Record<string, Message[]>
   addMessageData: (id: string, data: Message[]) => void
   removeSession: (id: string) => void
@@ -19,6 +20,14 @@ export const useSessionStore = create<SessionStore>((set) => ({
   userData: {},
   addUserData: (sessionId, data) => set((state) => ({
     userData: { ...state.userData, [sessionId]: data }
+  })),
+  updateUserData: (sessionId, userId, updates) => set((state) => ({
+    userData: {
+      ...state.userData,
+      [sessionId]: state.userData[sessionId]?.map(user =>
+        user.id === userId ? { ...user, ...updates } : user
+      ) || []
+    }
   })),
   messageData: {},
   addMessageData: (threadId, data) => set((state) => ({

@@ -1,12 +1,12 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import CreateSession from './create';
 import ReviewPrompt from './review';
 import LoadingMessage from './loading';
 import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
 import { sendApiCall } from '@/lib/clientUtils';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NewHostSession } from '@/lib/schema';
 import * as db from '@/lib/db';
@@ -51,6 +51,7 @@ const STEP_CONFIG: StepConfig[] = [
 
 export default function CreationFlow() {
   const route = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [activeStep, setActiveStep] = useState<Step>(STEPS[0]);
   const latestFullPromptRef = useRef('');
@@ -104,6 +105,7 @@ export default function CreationFlow() {
     goal: '',
     critical: '',
     context: '',
+    crossPollination: true,
   });
 
   const [templateId, setTemplateId] = useState<string | undefined>();
@@ -114,6 +116,27 @@ export default function CreationFlow() {
       setCreateNewPromptBecauseCreationContentChanged(true);
     }
   };
+
+  // Handle session storage pre-fill data
+  useEffect(() => {
+    const prefillData = sessionStorage.getItem('createSessionPrefill');
+    if (prefillData) {
+      try {
+        const data = JSON.parse(prefillData);
+        // Only use if less than 5 minutes old
+        if (Date.now() - data.timestamp < 5 * 60 * 1000) {
+          onFormDataChange(data);
+          enabledSteps[1] = true;
+          setActiveStep('Create');
+        }
+        // Always clear the data
+        sessionStorage.removeItem('createSessionPrefill');
+      } catch (error) {
+        console.error('Error parsing prefill data:', error);
+        sessionStorage.removeItem('createSessionPrefill');
+      }
+    }
+  }, []);
 
   const handleCreateComplete = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,6 +223,7 @@ export default function CreationFlow() {
         prompt_summary: promptSummary,
         is_public: false,
         summary_assistant_id: '',
+        cross_pollination: formData.crossPollination,
         questions: JSON.stringify(
           participantQuestions.map((q) => ({
             id: q.id,
@@ -221,16 +245,15 @@ export default function CreationFlow() {
       expirationDate.setDate(expirationDate.getDate() + 30);
       document.cookie = `sessionId=${sessionId}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
 
-      // Navigate based on mode & whether there's a pending workspace linking action
-      const pendingWorkspaceId = localStorage.getItem('pendingWorkspaceLink');      
-      if (pendingWorkspaceId) {
+      // Navigate based on mode & whether there's a workspace to link to
+      const workspaceId = searchParams.get('workspaceId');
+      
+      if (workspaceId) {
         try {
           // Link the newly created session to the workspace
-          await linkSessionsToWorkspace(pendingWorkspaceId, [sessionId]);        
-          // Clear the pending link
-          localStorage.removeItem('pendingWorkspaceLink');
+          await linkSessionsToWorkspace(workspaceId, [sessionId]);
           // Redirect to the workspace page
-          route.push(`/workspace/${pendingWorkspaceId}`);
+          route.push(`/workspace/${workspaceId}`);
         } catch (error) {
           console.error('Failed to link session to workspace:', error);
         }
@@ -372,6 +395,7 @@ export default function CreationFlow() {
     latestFullPromptRef.current = responseFullPrompt.fullPrompt;
 
     // This will stream directly into the streamPromptRef:
+    // TODO: Streaming doesn't work yet
     getStreamOfSummary({
       fullPrompt: responseFullPrompt.fullPrompt,
     });
@@ -422,7 +446,9 @@ export default function CreationFlow() {
       const { done, value } = await reader.read();
       if (done) break;
       const chunk = decoder.decode(value);
-      console.log(`[i] Chunk: ${JSON.stringify(chunk)}; Initial Value: ${JSON.stringify(value)}`);
+      console.log(
+        `[i] Chunk: ${JSON.stringify(chunk)}; Initial Value: ${JSON.stringify(value)}`,
+      );
       message += chunk;
       // console.log('\nChunk: ', chunk);
       updateStreaming(message);

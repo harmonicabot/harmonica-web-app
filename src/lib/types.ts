@@ -2,7 +2,14 @@
 //  There's just too much going on right now and the separation between
 //  UserData, SessionData & AccumulatedData isn't clear enough.
 
-import { UserSession, Message, HostSession, ResultTabsVisibilityConfig, Workspace, NewWorkspace } from './schema';
+import {
+  UserSession,
+  Message,
+  HostSession,
+  ResultTabsVisibilityConfig,
+  Workspace,
+  NewWorkspace,
+} from './schema';
 
 export enum ApiAction {
   CreatePrompt = 'createPrompt',
@@ -45,6 +52,7 @@ export type RequestData = {
 export interface OpenAIMessage {
   role: 'assistant' | 'user';
   content: string;
+  is_final?: boolean;
 }
 
 export interface OpenAIMessageWithContext extends OpenAIMessage {
@@ -66,6 +74,7 @@ export type SessionBuilderData = {
   goal: string;
   critical: string;
   context: string;
+  crossPollination: boolean;
 };
 
 export type TemplateEditingData = {

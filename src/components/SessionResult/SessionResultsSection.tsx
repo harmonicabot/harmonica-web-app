@@ -5,7 +5,7 @@ import React, { useEffect } from 'react';
 import { mutate } from 'swr';
 
 import { checkSummaryAndMessageTimes } from '@/lib/clientUtils';
-import { createSummary } from '@/lib/serverUtils';
+import { SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
 
 import ResultTabs from './ResultTabs';
 import ExportSection from '../Export/ExportSection';
@@ -13,6 +13,8 @@ import { OpenAIMessage } from '@/lib/types';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
 import { usePermissions } from '@/lib/permissions';
 import { usePathname } from 'next/navigation';
+import ShareSettings from '../ShareSettings';
+
 
 export default function SessionResultsSection({
   hostData,
@@ -28,32 +30,24 @@ export default function SessionResultsSection({
   showShare?: boolean;
   chatEntryMessage?: OpenAIMessage;
 }) {
-  const { hasMinimumRole } = usePermissions(resourceId);
+  const { loading, hasMinimumRole } = usePermissions(resourceId);
   const path = usePathname();
   const hasMessages = userData.length > 0;
   const { hasNewMessages, lastMessage, lastSummaryUpdate } =
     checkSummaryAndMessageTimes(hostData, userData);
 
-  // Automatically update the summary if there's new content and the last update was more than 10 minutes ago
-  useEffect(() => {
-    if (
-      hasNewMessages &&
-      lastMessage > lastSummaryUpdate &&
-      new Date().getTime() - lastSummaryUpdate > 1000 * 60 * 10
-    ) {
-      const minutesAgo =
-        (new Date().getTime() - lastSummaryUpdate) / (1000 * 60);
-      console.log(`Last summary created ${minutesAgo} minutes ago, 
-        and new messages were received since then. Creating an updated one.`);
-      createSummary(hostData.id);
-      mutate(path);
-    }
-  }, [hasNewMessages, lastMessage, lastSummaryUpdate, hostData.id, resourceId]);
-
   visibilityConfig.showChat = visibilityConfig.showChat && hasMessages;
 
   return (
     <>
+      {!loading && hasMinimumRole('editor') && (
+        <div className="flex w-full justify-end mt-4 -mb-14">
+          <ShareSettings 
+            resourceId={hostData.id} 
+            resourceType="SESSION"
+          />
+        </div>
+      )}
       <h3 className="text-2xl font-bold mb-4 mt-12">Results</h3>
           <ResultTabs
             hostData={[hostData]}
@@ -62,9 +56,8 @@ export default function SessionResultsSection({
             hasNewMessages={hasNewMessages}
             visibilityConfig={visibilityConfig}
             chatEntryMessage={chatEntryMessage}
-            isPublic={hostData.is_public}
           />
-          {visibilityConfig.showParticipants && hasMinimumRole('editor') && hasMessages && (
+          {visibilityConfig.showResponses && hasMinimumRole('editor') && hasMessages && (
             <ExportSection
               hostData={hostData}
               userData={userData}

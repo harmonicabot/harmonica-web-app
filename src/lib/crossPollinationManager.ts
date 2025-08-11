@@ -63,7 +63,7 @@ export class CrossPollinationManager {
 
       // 2. Load only the current thread messages
       const currentThreadMessages = await getAllChatMessagesInOrder(threadId);
-      if (currentThreadMessages.length < 3) {
+      if (currentThreadMessages.length < 2) {
         console.log(
           '[i] Not enough messages in current thread for cross-pollination',
         );
@@ -72,7 +72,7 @@ export class CrossPollinationManager {
 
       // 3. Check time since last cross-pollination
       const timeSinceLastCrossPollination = this.getLastCrossPollinationTime();
-      if (timeSinceLastCrossPollination < 3 * 60 * 1000) {
+      if (timeSinceLastCrossPollination < 2 * 60 * 1000) {
         // 3 minutes in milliseconds
         console.log('[i] Too soon since last cross-pollination');
         return false;
@@ -103,9 +103,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
         ],
       });
 
-      const responseText = response
-        .trim()
-        .toUpperCase();
+      const responseText = response.trim().toUpperCase();
       console.log('[i] Cross-pollination analysis response:', responseText);
 
       // Simple check for YES at the beginning of the response
@@ -170,7 +168,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
             .map((m) => m.content);
 
           // Extract conversation as pairs of messages for context
-          const conversationPairs: { question: string, answer?: string }[] = [];
+          const conversationPairs: { question: string; answer?: string }[] = [];
           for (let i = 0; i < sortedMessages.length; i += 2) {
             if (i + 1 < sortedMessages.length) {
               conversationPairs.push({
@@ -179,7 +177,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
               });
             } else {
               conversationPairs.push({
-                question: sortedMessages[i].content
+                question: sortedMessages[i].content,
               });
             }
           }

@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2, UserPlus } from 'lucide-react';
-import { toast, useToast } from '@/hooks/use-toast';
+import { toast, useToast } from 'hooks/use-toast';
 
 interface GenerateResponsesModalProps {
   isOpen: boolean;

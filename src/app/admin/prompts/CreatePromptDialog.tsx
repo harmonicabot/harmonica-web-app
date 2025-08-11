@@ -20,7 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { createPrompt } from './api';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from 'hooks/use-toast';
 import { fetchPromptTypes } from '../prompt-types/api';
 import { Maximize2, Minimize2 } from 'lucide-react';
 

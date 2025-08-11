@@ -5,14 +5,13 @@ import {
   VectorStoreIndex,
   BaseRetriever,
   QueryBundle,
-  GEMINI_MODEL,
 } from 'llamaindex';
+import { GEMINI_MODEL, Gemini } from '@llamaindex/google';
 
 import * as db from '@/lib/db';
 import { OpenAIEmbedding } from 'llamaindex';
 import { SentenceSplitter } from 'llamaindex';
 import { OpenAI as LlamaOpenAI } from 'llamaindex';
-import { Gemini } from 'llamaindex';
 
 const initialPrompt = `
 ### Guidelines:
