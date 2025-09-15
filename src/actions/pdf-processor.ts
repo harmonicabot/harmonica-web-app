@@ -5,7 +5,6 @@ import PDFParser from 'pdf2json';
 export async function extractTextFromPDF(pdfData: number[]): Promise<string> {
   try {
     const pdfParser = new PDFParser();
-    console.log('[i] pdfData - start processing');
     return new Promise((resolve, reject) => {
       pdfParser.on('pdfParser_dataReady', (pdfData) => {
         // Get the raw PDF data
@@ -26,12 +25,6 @@ export async function extractTextFromPDF(pdfData: number[]): Promise<string> {
           });
         }
 
-        console.log('[i] Extracted text length:', extractedText.length);
-        console.log(
-          '[i] Extracted text preview:',
-          extractedText.substring(0, 200),
-        );
-
         if (!extractedText || extractedText.trim().length === 0) {
           console.error('[e] No text content extracted from PDF');
           reject(new Error('No text content found in PDF'));
@@ -47,7 +40,6 @@ export async function extractTextFromPDF(pdfData: number[]): Promise<string> {
       });
 
       pdfParser.parseBuffer(Buffer.from(pdfData));
-      console.log('[i] pdfData - end processing');
     });
   } catch (error) {
     console.error('Error extracting text from PDF:', error);

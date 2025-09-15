@@ -1,15 +1,4 @@
 import { Kysely, sql } from 'kysely';
-import {
-  AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from '@/components/ui/alert-dialog';
 
 export async function up(db: Kysely<any>): Promise<void> {
   // Create limitation type enum

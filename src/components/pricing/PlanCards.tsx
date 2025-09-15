@@ -28,34 +28,34 @@ export type Plan = {
 // Export the plans array so it can be imported elsewhere
 export const plans: Plan[] = [
   {
-    name: 'Free',
-    price: '$0',
+    name: 'Starter',
+    price: 'Free',
     description:
       'Perfect for individuals and small teams just getting started.',
     features: [
-      'Up to 10 responses in summaries',
-      '5 meeting templates',
-      'Email notifications',
-      'Basic summary generation',
-      '24-hour data retention',
+      'Solo admin',
+      'Private sessions & projects',
+      'Max 10 responses (reflected in summary)',
+      '3 queries in AskAI (per session per day)',
+      '10 Mb limit for session',
+      'Collective Reasoning Agent',
+      'Edit system prompts',
     ],
     productId: null,
   },
   {
     name: 'Pro',
-    price: '$49',
+    price: '$39',
     period: '/month',
-    description: 'For teams that need advanced features and more flexibility.',
+    description: 'Ideal for teams seeking deeper insights and collaboration',
     features: [
-      'Unlimited responses in summaries',
-      'Unlimited meeting templates',
-      'Custom templates',
-      'Cross-pollination of ideas',
-      'Ask AI prompting',
-      'Analytics dashboard',
-      '90-day data retention',
-      'Priority support',
-      'Advanced integrations',
+      'Invite 3 admins/editors (per session / project)',
+      'Public sessions & projects',
+      'Unlimited responses (reflected in summary)',
+      'Unlimited queries in AskAI',
+      '100 Mb limit for session',
+      'Premium templates (coming soon)',
+      'Visual artifacts (coming soon)',
     ],
     productId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
     highlight: true,
@@ -63,20 +63,21 @@ export const plans: Plan[] = [
   {
     name: 'Enterprise',
     price: 'Custom',
-    description: 'For organizations requiring maximum control and support.',
+    description:
+      'Your own version of Harmonica with custom setup and full control',
     features: [
-      'Everything in Pro',
-      'Unlimited data retention',
-      'Dedicated account manager',
-      'Custom AI model training',
-      'SLA guarantees',
-      'SSO & advanced security',
-      'API access',
+      'Custom administrator seats',
+      'Unlimited session / project knowledge',
+      'Priority support',
+      'Dedicated onboarding',
       'Custom integrations',
-      'Onboarding & training',
+      'MCP servers',
+      'Custom domains',
+      'Remove Harmonica branding',
+      'Opt out of data training',
     ],
     action: 'Contact Sales',
-    contactEmail: 'enterprise@harmonica.chat',
+    contactEmail: 'hello@harmonica.chat',
   },
 ];
 
@@ -110,7 +111,7 @@ export function PlanCards({
           key={plan.name}
           className={`flex flex-col ${isCurrentPlan(plan.name) ? 'border-purple-500 shadow-md' : ''}`}
         >
-          <CardHeader>
+          <CardHeader className="h-[180px] flex flex-col">
             <div className="flex justify-between items-center">
               <CardTitle>{plan.name}</CardTitle>
               {showCurrentPlanBadge && isCurrentPlan(plan.name) && (
@@ -125,7 +126,9 @@ export function PlanCards({
                 <span className="text-gray-500 ml-1">{plan.period}</span>
               )}
             </div>
-            <CardDescription>{plan.description}</CardDescription>
+            <CardDescription className="flex-1">
+              {plan.description}
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex-1">
             <ul className="space-y-2">
@@ -158,7 +161,7 @@ export function PlanCards({
                 variant="outline"
                 onClick={() =>
                   plan.contactEmail &&
-                  (window.location.href = `mailto:${plan.contactEmail}`)
+                  window.open('https://harmonica.chat/sales', '_blank')
                 }
               >
                 {plan.action}
@@ -168,6 +171,12 @@ export function PlanCards({
                 className="w-full"
                 variant="outline"
                 disabled={status === 'FREE'}
+                onClick={() =>
+                  window.open(
+                    process.env.NEXT_PUBLIC_STRIPE_BILLING_PORTAL,
+                    '_blank',
+                  )
+                }
               >
                 {status === 'FREE' ? 'Current Plan' : 'Downgrade to Free'}
               </Button>

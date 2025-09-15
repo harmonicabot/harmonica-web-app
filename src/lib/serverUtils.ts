@@ -31,6 +31,9 @@ export async function syncCurrentUser(): Promise<boolean> {
       return false;
     }
 
+    // First, get existing user data to preserve subscription status
+    const existingUser = await db.getUserById(sub);
+
     // Handle case where email might be in the name field
     let userEmail = email;
     let userName = name;
@@ -45,15 +48,21 @@ export async function syncCurrentUser(): Promise<boolean> {
       return false;
     }
 
-    // Create or update user record
+    // Create or update user record, preserving existing subscription data
     const userData: NewUser = {
       id: sub,
       email: userEmail,
       name: userName || undefined,
       avatar_url: picture || undefined,
-      subscription_status: 'FREE',
+      // Only set subscription_status to FREE if it's a new user
+      subscription_status: existingUser?.subscription_status || 'FREE',
+      // Preserve other subscription-related fields
+      subscription_id: existingUser?.subscription_id,
+      subscription_period_end: existingUser?.subscription_period_end,
+      stripe_customer_id: existingUser?.stripe_customer_id,
     };
 
+    console.log('Syncing user data while preserving subscription:', userData);
     const result = await db.upsertUser(userData);
     return !!result;
   } catch (error) {
@@ -85,10 +94,7 @@ export async function hasAccessToResource(
 ): Promise<boolean> {
   try {
     // Check public access
-    const publicPermission = await db.getRoleForUser(
-      resourceId,
-      'public',
-    );
+    const publicPermission = await db.getRoleForUser(resourceId, 'public');
     if (publicPermission) return true;
 
     const userId = await getCurrentUserId();
@@ -115,8 +121,12 @@ export async function fetchPromptInstructions(promptName: string) {
 
 // Create a summary for a single session
 export async function createSummary(sessionId: string) {
-  const sessionSummaryPrompt = await db.getFromHostSession(sessionId, ['summary_prompt']);
-  const summaryPrompt = sessionSummaryPrompt?.summary_prompt ?? await getPromptInstructions('SUMMARY_PROMPT');
+  const sessionSummaryPrompt = await db.getFromHostSession(sessionId, [
+    'summary_prompt',
+  ]);
+  const summaryPrompt =
+    sessionSummaryPrompt?.summary_prompt ??
+    (await getPromptInstructions('SUMMARY_PROMPT'));
   const summary = await generateSummary([sessionId], summaryPrompt);
   console.log('Generated summary:', summary);
   await db.updateHostSession(sessionId, {
@@ -132,7 +142,9 @@ export async function createMultiSessionSummary(
   workspaceId: string,
 ) {
   const workspace = await db.getWorkspaceById(workspaceId);
-  const summaryPrompt = workspace?.summary_prompt ?? await getPromptInstructions('PROJECT_SUMMARY_PROMPT');
+  const summaryPrompt =
+    workspace?.summary_prompt ??
+    (await getPromptInstructions('PROJECT_SUMMARY_PROMPT'));
   const summary = await generateSummary(sessionIds, summaryPrompt);
 
   await db.updateWorkspace(workspaceId, {
@@ -169,24 +181,24 @@ export async function cloneSession(sessionId: string): Promise<string | null> {
   try {
     // Get the session to clone
     const sessionToClone = await db.getHostSessionById(sessionId);
-    
+
     if (!sessionToClone) {
       console.error(`Session with ID ${sessionId} not found`);
       return null;
     }
-    
+
     // Get current user for permissions
     const session = await getSession();
     const userSub = session?.user?.sub;
-    
+
     if (!userSub) {
       console.warn('No user ID found when cloning session');
       return null;
     }
-    
+
     // Create a new session with the cloned data
     const newSessionData: NewHostSession = {
-      active: true, // inactive = finished; 'draft' = 
+      active: true, // inactive = finished; 'draft' =
       num_sessions: 0,
       num_finished: 0,
       prompt: sessionToClone.prompt,
@@ -200,20 +212,22 @@ export async function cloneSession(sessionId: string): Promise<string | null> {
       critical: sessionToClone.critical,
       context: sessionToClone.context,
       prompt_summary: sessionToClone.prompt_summary,
-      questions: sessionToClone.questions ? JSON.stringify(sessionToClone.questions) as unknown as JSON : undefined,
-      is_public: false
+      questions: sessionToClone.questions
+        ? (JSON.stringify(sessionToClone.questions) as unknown as JSON)
+        : undefined,
+      is_public: false,
     };
-    
+
     // Create the new session
     const newSessionIds = await db.insertHostSessions(newSessionData);
     if (!newSessionIds || newSessionIds.length === 0) {
       throw new Error('Failed to create new session');
     }
     const newSessionId = newSessionIds[0];
-    
+
     // Set the current user as the owner of the new session
     await updateResourcePermission(newSessionId, userSub, 'owner', 'SESSION');
-    
+
     return newSessionId;
   } catch (error) {
     console.error('Error cloning session:', error);

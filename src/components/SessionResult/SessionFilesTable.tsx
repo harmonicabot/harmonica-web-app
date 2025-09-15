@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import ImportResponsesModal from './ImportResponsesModal';
 import { Badge } from '@/components/ui/badge';
+import { useSubscription } from 'hooks/useSubscription';
 
 interface SessionFile {
   id: number;
@@ -73,6 +74,11 @@ export default function SessionFilesTable({
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const { toast } = useToast();
   const [fileToDelete, setFileToDelete] = useState<SessionFile | null>(null);
+  const { status: plan, isLoading: isPlanLoading } = useSubscription();
+  const maxAllowed = plan === 'PRO' ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+  const totalUploaded = files.reduce((acc, f) => acc + f.file_size, 0);
+  const usagePercent = Math.min(100, (totalUploaded / maxAllowed) * 100);
+  const isApproachingLimit = usagePercent >= 80 && usagePercent < 100;
 
   const loadFiles = async () => {
     setIsLoading(true);
@@ -95,6 +101,17 @@ export default function SessionFilesTable({
   useEffect(() => {
     loadFiles();
   }, [sessionId, refreshTrigger]);
+
+  // Show warning toast when approaching limit
+  // useEffect(() => {
+  //   if (isApproachingLimit) {
+  //     toast({
+  //       title: 'Storage limit approaching',
+  //       description: `You've used ${usagePercent.toFixed(1)}% of your ${maxAllowed / (1024 * 1024)}MB storage limit. Consider upgrading to Pro for more storage.`,
+  //       duration: 5000,
+  //     });
+  //   }
+  // }, [isApproachingLimit, usagePercent]);
 
   const handleDeleteFile = async (fileId: number) => {
     try {
@@ -297,7 +314,14 @@ export default function SessionFilesTable({
             <FileText className="mr-2 h-5 w-5" />
             Session Files
           </CardTitle>
-          <CardDescription>Files uploaded for this session</CardDescription>
+          <CardDescription>
+            Files uploaded for this session
+            {typeof plan === 'string' && plan.toLowerCase() === 'free' && (
+              <span className="ml-1 text-yellow-600">
+                (Limited to 10MB in free tier)
+              </span>
+            )}
+          </CardDescription>
         </div>
         <Button onClick={() => setIsImportModalOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />

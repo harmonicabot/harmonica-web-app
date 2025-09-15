@@ -86,6 +86,24 @@ export function useChat(options: UseChatOptions) {
   const [isParticipantSuggestionLoading, setIsParticipantSuggestionLoading] =
     useState(false);
 
+  const [dailyQuestions, setDailyQuestions] = useState(0);
+  const [isLimitPopupOpen, setIsLimitPopupOpen] = useState(false);
+  const [isUpgradeLoading, setIsUpgradeLoading] = useState(false);
+
+  const checkQuestionLimit = () => {
+    // If user has Pro subscription, they don't have limits
+    if (subscription_status === 'PRO') {
+      return true;
+    }
+
+    // Only check limits for free users
+    if (isAskAi && subscription_status === 'FREE' && dailyQuestions >= 3) {
+      setIsLimitPopupOpen(true);
+      return false;
+    }
+    return true;
+  };
+
   useEffect(() => {
     console.log('[Chat] Messages updated; should be scrolling to the bottom?');
     if (mainPanelRef?.current && messages.length > 1) {
@@ -343,6 +361,10 @@ export function useChat(options: UseChatOptions) {
       e.preventDefault();
     }
 
+    if (!checkQuestionLimit()) {
+      return;
+    }
+
     if (isLoading) return;
     setIsLoading(true);
     if (isTesting) {
@@ -413,6 +435,18 @@ export function useChat(options: UseChatOptions) {
           role: 'assistant',
           content: answer,
         });
+
+        // Update usage tracking for Ask AI
+        if (isAskAi && subscription_status === 'FREE') {
+          fetch('/api/usage', {
+            method: 'POST',
+            body: JSON.stringify({ type: 'ASK_AI_QUESTIONS' }),
+          })
+            .then(() => {
+              setDailyQuestions((prev) => prev + 1);
+            })
+            .catch(console.error);
+        }
       } else {
         const messageData = {
           threadId: threadIdRef.current,

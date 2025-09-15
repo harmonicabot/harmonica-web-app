@@ -8,6 +8,7 @@ import { getAllChatMessagesInOrder, getThreadRating } from '@/lib/db';
 import { ParticipantsTableData } from './SessionParticipantsTable';
 import { Spinner } from '../icons';
 import { Switch } from '../ui/switch';
+import { LockIcon } from 'lucide-react';
 import { MessageSquare, Star, X } from 'lucide-react';
 
 const EMOJI_RATINGS = [
@@ -52,10 +53,16 @@ export default function ParicipantSessionRow({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleIncludeInSummaryUpdate = (updatedIncluded: boolean) => {
-    onIncludeChange(userData.id, updatedIncluded);
+    // Only allow changes if the participant can be included (within limit)
+    if (tableData.canViewTranscript) {
+      onIncludeChange(userData.id, updatedIncluded);
+    }
   };
 
   const handleViewClick = async () => {
+    // Only allow viewing transcript if within limit
+    if (!tableData.canViewTranscript) return;
+    
     setIsPopupVisible(true);
     setIsLoading(true);
     try {
@@ -107,10 +114,25 @@ export default function ParicipantSessionRow({
   return (
     <>
       <TableRow
-        className="group hover:bg-gray-50 transition-colors cursor-pointer"
-        onClick={handleViewClick}
+        className={`${
+          tableData.isLimited
+            ? 'opacity-60'
+            : 'group hover:bg-gray-50 transition-colors'
+        }`}
       >
-        <TableCell className="font-medium">{tableData.userName}</TableCell>
+        <TableCell
+          onClick={handleViewClick}
+          className={`font-medium ${
+            tableData.canViewTranscript
+              ? 'cursor-pointer'
+              : 'cursor-not-allowed'
+          }`}
+        >
+          {tableData.userName}
+          {!tableData.canViewTranscript && (
+            <LockIcon size={14} className="inline ml-2 text-gray-400" />
+          )}
+        </TableCell>
         <TableCell className="hidden md:table-cell">
           <Badge
             variant="outline"
@@ -137,6 +159,7 @@ export default function ParicipantSessionRow({
           <Switch
             checked={tableData.includeInSummary}
             onCheckedChange={handleIncludeInSummaryUpdate}
+            disabled={!tableData.canViewTranscript}
             onClick={(e) => e.stopPropagation()}
           />
         </TableCell>
@@ -147,7 +170,12 @@ export default function ParicipantSessionRow({
               e.stopPropagation();
               handleViewClick();
             }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity"
+            disabled={!tableData.canViewTranscript}
+            className={
+              !tableData.canViewTranscript
+                ? 'opacity-50 cursor-not-allowed'
+                : 'opacity-0 group-hover:opacity-100 transition-opacity'
+            }
           >
             View
           </Button>
@@ -171,7 +199,9 @@ export default function ParicipantSessionRow({
                 {rating && (
                   <div className="flex items-center gap-2 mt-2">
                     <div
-                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm ${EMOJI_RATINGS[rating.rating - 1].color}`}
+                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+                        EMOJI_RATINGS[rating.rating - 1].color
+                      }`}
                     >
                       <span className="text-xl">
                         {EMOJI_RATINGS[rating.rating - 1].emoji}

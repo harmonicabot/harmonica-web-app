@@ -169,6 +169,9 @@ export default function ResultTabs({
             onUpdateSummary={() => {
               setInitialUserIds(userIdsIncludedInSummary);
             }}
+            numSessions={
+              userData.filter((user) => user.include_in_summary).length
+            }
             showSummary={
               (hasMinimumRole('editor') || visibilityConfig.showSummary) ?? true
             }

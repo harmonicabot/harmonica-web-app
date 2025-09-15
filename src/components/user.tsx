@@ -51,18 +51,54 @@ export default function User() {
     router.replace(window.location.pathname);
   };
 
+  // Show different menu items based on subscription status
+  const getSubscriptionMenuItem = () => {
+    if (isLoading) {
+      return (
+        <DropdownMenuItem disabled>
+          <CreditCard className="h-4 w-4 mr-2" />
+          Loading...
+        </DropdownMenuItem>
+      );
+    }
+
+    if (status === 'PRO') {
+      return (
+        <DropdownMenuItem>
+          <Link
+            href="/profile?tab=billing"
+            className="flex items-center text-sm text-muted-foreground hover:text-foreground"
+          >
+            <CreditCard className="h-4 w-4 mr-2" />
+            Pro Plan (Active)
+            {/* {expiresAt && (
+            <span className="ml-2 text-xs text-muted-foreground">
+              Expires {format(expiresAt, 'MMM d, yyyy')}
+            </span>
+          )} */}
+          </Link>
+        </DropdownMenuItem>
+      );
+    }
+
+    if (status === 'FREE') {
+      return (
+        <DropdownMenuItem onClick={() => setShowPricing(true)}>
+          <CreditCard className="h-4 w-4 mr-2" />
+          <span className="text-primary">Upgrade to Pro</span>
+        </DropdownMenuItem>
+      );
+    }
+
+    return null;
+  };
+
   // Show different modals based on subscription status
   const getSubscriptionModal = () => {
     if (!showPricing || !user?.sub) return null;
 
     if (status === 'FREE') {
-      return (
-        <PricingModal
-          open={showPricing}
-          onOpenChange={setShowPricing}
-          userId={user.sub}
-        />
-      );
+      return <PricingModal open={showPricing} onOpenChange={setShowPricing} />;
     }
 
     // Could add different modals for other states
@@ -84,6 +120,8 @@ export default function User() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {getSubscriptionMenuItem()}
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <Cog className="h-4 w-4 mr-2" />

@@ -3,7 +3,11 @@ import { HostSession } from '@/lib/schema';
 import { useEffect, useState } from 'react';
 import { RefreshStatus, SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
 import { ExpandableWithExport } from './ExpandableWithExport';
+import * as db from '@/lib/db';
+import { Info } from 'lucide-react';
+import { LimitPopup } from '../pricing/LimitPopup';
 import { Card, CardContent } from '../ui/card';
+import { useSubscription } from 'hooks/useSubscription';
 import { usePermissions } from '@/lib/permissions';
 import { useSummary } from '@/hooks/useSummary';
 
@@ -12,6 +16,8 @@ interface SessionResultSummaryProps {
   isProject: boolean;
   projectId?: string;
   draft: boolean;
+  numSessions: number;
+  newSummaryContentAvailable: boolean;
   onUpdateSummary: () => void;
   showSummary?: boolean;
   showSessionRecap?: boolean;
@@ -23,15 +29,20 @@ export default function SessionResultSummary({
   projectId,
   draft = false,
   onUpdateSummary,
+  numSessions,
   showSummary = true,
   showSessionRecap = true,
 }: SessionResultSummaryProps) {
+  const { status: subscription_status } = useSubscription();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExpandedPrompt, setIsExpandedPrompt] = useState(false);
   const [isExpandedSummary, setIsExpandedSummary] = useState(true);
 
   const resourceId: string = isProject ? projectId! : hostData[0].id;
   const { hasMinimumRole } = usePermissions(resourceId);
+
+  const [isLimitPopupOpen, setIsLimitPopupOpen] = useState(false);
+  const isLimitReached = subscription_status === 'FREE' && numSessions > 10;
   
   // Use SWR to fetch summary content with initial data as fallback
   const initialSummary = isProject ? '' : hostData[0]?.summary || '';
@@ -54,6 +65,22 @@ export default function SessionResultSummary({
 
   return (
     <>
+      {isLimitReached && (
+        <div className="mb-4 flex items-center text-sm text-amber-600 dark:text-amber-400">
+          <Info
+            size={16}
+            className="mr-1 cursor-pointer"
+            onClick={() => setIsLimitPopupOpen(true)}
+            aria-label="Upgrade to Pro for unlimited participants"
+          />
+          Summary limited to 10 participants.
+          <LimitPopup
+            open={isLimitPopupOpen}
+            onOpenChange={setIsLimitPopupOpen}
+            hitLimit="SUMMARY"
+          />
+        </div>
+      )}
       {showSessionRecapContent && (
         <div className="mb-4 relative">
           <ExpandableWithExport
@@ -68,7 +95,7 @@ export default function SessionResultSummary({
       {showSummaryContent ? (
         <ExpandableWithExport
           resourceId={resourceId}
-          title={isProject ? "Project Summary" : "Session Summary"}
+          title={isProject ? 'Project Summary' : 'Session Summary'}
           content={summary}
           isExpanded={isExpandedSummary}
           onExpandedChange={setIsExpandedSummary}
@@ -83,17 +110,20 @@ export default function SessionResultSummary({
               Project Summary
             </h3>
             <p className="text-gray-500">
-              Here you will see summary information about your project sessions. 
-              Add sessions to your project to see insights across all discussions.
+              Here you will see summary information about your project sessions.
+              Add sessions to your project to see insights across all
+              discussions.
             </p>
           </div>
         </Card>
-      ) : !showAnyContent && (
-        <Card>
-          <CardContent className="py-4">
-            Nothing here yet ¯\_(ツ)_/¯
-          </CardContent>
-        </Card>
+      ) : (
+        !showAnyContent && (
+          <Card>
+            <CardContent className="py-4">
+              Nothing here yet ¯\_(ツ)_/¯
+            </CardContent>
+          </Card>
+        )
       )}
     </>
   );

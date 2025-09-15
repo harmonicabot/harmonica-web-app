@@ -21,14 +21,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Globe, Settings } from 'lucide-react';
-import { Share2, Loader2, X, UserCog, Copy, Check } from 'lucide-react';
+  Users, 
+  Globe,
+  Loader2,
+  X,
+  UserCog,
+  Copy,
+  Check,
+  AlertCircle,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from 'hooks/use-toast';
 import { useUser } from '@auth0/nextjs-auth0/client';
@@ -39,15 +40,16 @@ import {
   removeResourcePermission,
   cancelInvitation,
 } from '../app/actions/permissions';
-import { 
+import {
   getVisibilitySettings,
-  updateVisibilitySettings
+  updateVisibilitySettings,
 } from '../app/actions/visibility-settings';
 import { Role, usePermissions, ROLE_HIERARCHY } from '@/lib/permissions';
 import { Invitation, PermissionsTable, User, ResultTabsVisibilityConfig } from '@/lib/schema';
 import { encryptId } from '@/lib/encryptionUtils';
-import { Spinner } from './icons';
-import { Description } from '@radix-ui/react-alert-dialog';
+import { useSubscription } from 'hooks/useSubscription';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { PricingModal } from './pricing/PricingModal';
 
 interface ShareSettingProps {
   resourceId: string;
@@ -58,11 +60,16 @@ interface ShareSettingProps {
 
 type UserAndRole = User & { role: Role };
 
+// Maximum number of editors for free users
+const FREE_EDITOR_LIMIT = 0;
+// Maximum number of editors/owners for Pro users (main owner + 3 others)
+const PRO_EDITOR_LIMIT = 4;
+
 export default function ShareSettings({
   resourceId,
   resourceType,
   initialIsOpen,
-  onClose
+  onClose,
 }: ShareSettingProps) {
   const { loading, isPublic, hasRoleHigherThan } = usePermissions(resourceId);
 
@@ -77,32 +84,39 @@ export default function ShareSettings({
   const resourceTypeName = resourceType === 'WORKSPACE' ? 'Project' : 'Session';
   const [urlCopied, setUrlCopied] = useState(false);
   const [localIsPublic, setLocalIsPublic] = useState(!loading && isPublic);
-  
+
   // Local visibility state management
-  const [localVisibilityConfig, setLocalVisibilityConfig] = useState<ResultTabsVisibilityConfig>(
-    { // Defaults:
+  const [localVisibilityConfig, setLocalVisibilityConfig] =
+    useState<ResultTabsVisibilityConfig>({
+      // Defaults:
       showSummary: true,
-      showResponses: resourceType === 'SESSION', 
+      showResponses: resourceType === 'SESSION',
       showCustomInsights: resourceType === 'SESSION',
       showSimScore: false,
       showChat: true,
       allowCustomInsightsEditing: true,
       showSessionRecap: true,
       showKnowledge: resourceType === 'WORKSPACE',
-    }
-  );
+    });
   const [isLoadingVisibility, setIsLoadingVisibility] = useState(false);
 
   // Permissions and invitations state
   const [userAndRole, setUserAndRole] = useState<UserAndRole[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<Invitation[]>(
-    []
+    [],
   );
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [cancelingInvitationId, setCancelingInvitationId] = useState<
     string | null
   >(null);
+
+  // Subscription state
+  const subscription = useSubscription();
+  const [editorCount, setEditorCount] = useState(0);
+  const [pendingEditorCount, setPendingEditorCount] = useState(0);
+  const [reachedEditorLimit, setReachedEditorLimit] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
 
   const { toast } = useToast();
   const { user } = useUser();
@@ -143,13 +157,13 @@ export default function ShareSettings({
       setLocalIsPublic(isPublic);
     }
   }, [isPublic, loading]);
-  
+
   // Function to fetch visibility settings from the server
   const fetchVisibilitySettings = async () => {
     setIsLoadingVisibility(true);
     try {
       const result = await getVisibilitySettings(resourceId, resourceType);
-      
+
       if (result.success && result.visibilityConfig) {
         setLocalVisibilityConfig(result.visibilityConfig);
       } else {
@@ -166,31 +180,37 @@ export default function ShareSettings({
       setIsLoadingVisibility(false);
     }
   };
-  
+
   // Handler for visibility toggle changes
-  const handleVisibilityToggle = async (key: keyof ResultTabsVisibilityConfig) => {
+  const handleVisibilityToggle = async (
+    key: keyof ResultTabsVisibilityConfig,
+  ) => {
     if (!localVisibilityConfig) return;
-    
+
     // Create updated config
     const updatedConfig = {
       ...localVisibilityConfig,
       [key]: !localVisibilityConfig[key],
     };
-    
+
     // Store original config for rollback
     const originalConfig = { ...localVisibilityConfig };
-    
+
     // Update local state immediately for UI feedback
     setLocalVisibilityConfig(updatedConfig);
-    
+
     try {
       // Save to database using server action
-      const result = await updateVisibilitySettings(resourceId, updatedConfig, resourceType);
-      
+      const result = await updateVisibilitySettings(
+        resourceId,
+        updatedConfig,
+        resourceType,
+      );
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to update display settings');
       }
-      
+
       // Show success toast
       toast({
         title: 'Settings Updated',
@@ -198,10 +218,10 @@ export default function ShareSettings({
       });
     } catch (error) {
       console.error('Error updating visibility settings:', error);
-      
+
       // Revert local state on error
       setLocalVisibilityConfig(originalConfig);
-      
+
       toast({
         title: 'Error',
         description: 'Failed to update display settings',
@@ -209,21 +229,21 @@ export default function ShareSettings({
       });
     }
   };
-  
+
   const handlePublicToggle = async (checked: boolean) => {
     // Update local state immediately for UI feedback
     setLocalIsPublic(checked);
     try {
       console.log(
         `Toggling public status for ${resourceType} ${resourceId}: isPublic:`,
-        checked
+        checked,
       );
       if (checked) {
         await updateResourcePermission(
           resourceId,
           'public',
           'viewer',
-          resourceType
+          resourceType,
         );
       } else {
         await removeResourcePermission(resourceId, 'public', resourceType);
@@ -247,8 +267,10 @@ export default function ShareSettings({
   };
 
   const getPublicUrl = () => {
-    const resourcePath = resourceType === 'WORKSPACE' ? 'workspace' : 'sessions';
-    const urlId = resourceType === 'WORKSPACE' ? resourceId : encryptId(resourceId);
+    const resourcePath =
+      resourceType === 'WORKSPACE' ? 'workspace' : 'sessions';
+    const urlId =
+      resourceType === 'WORKSPACE' ? resourceId : encryptId(resourceId);
     return `${window.location.origin}/${resourcePath}/${urlId}?access=public`;
   };
 
@@ -257,6 +279,35 @@ export default function ShareSettings({
     setUrlCopied(true);
     setTimeout(() => setUrlCopied(false), 2000);
   };
+
+  // Calculate editor counts whenever permissions or invitations change
+  useEffect(() => {
+    // Count existing editors/owners
+    const currentEditors = userAndRole.filter(
+      (u) =>
+        u.role !== 'admin' && // Exclude admins
+        (u.role === 'editor' || u.role === 'owner'),
+    ).length;
+
+    // Count pending editor/owner invitations
+    const pendingEditors = pendingInvitations.filter(
+      (inv) => inv.role === 'editor' || inv.role === 'owner',
+    ).length;
+
+    setEditorCount(currentEditors);
+    setPendingEditorCount(pendingEditors);
+
+    // Check if free user has reached editor limit
+    if (subscription.status === 'FREE') {
+      setReachedEditorLimit(true);
+    } else if (subscription.status === 'PRO') {
+      // Pro: limit is 4 (main owner + 3 others)
+      const totalEditors = currentEditors + pendingEditors;
+      setReachedEditorLimit(totalEditors >= PRO_EDITOR_LIMIT);
+    } else {
+      setReachedEditorLimit(false);
+    }
+  }, [userAndRole, pendingInvitations, subscription.status]);
 
   const fetchPermissions = async () => {
     setIsLoadingPermissions(true);
@@ -302,6 +353,42 @@ export default function ShareSettings({
       return;
     }
 
+    // Prevent inviting editors or owners on free tier
+    if (
+      subscription.status === 'FREE' &&
+      (role === 'editor' || role === 'owner')
+    ) {
+      toast({
+        title: 'Role Not Allowed',
+        description:
+          'Free accounts cannot add editors or owners. Upgrade to Pro for advanced roles.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    // Prevent inviting more than 3 additional editors/owners on Pro
+    if (
+      subscription.status === 'PRO' &&
+      (role === 'editor' || role === 'owner')
+    ) {
+      const emailList = emails
+        .split(',')
+        .map((e) => e.trim())
+        .filter((e) => e);
+      const newEditorCount = emailList.length;
+      if (
+        editorCount + pendingEditorCount + newEditorCount >
+        PRO_EDITOR_LIMIT
+      ) {
+        toast({
+          title: 'Editor/Owner Limit Reached',
+          description: `Pro accounts are limited to ${PRO_EDITOR_LIMIT} editors/owners per project (including the main owner).`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -342,10 +429,8 @@ export default function ShareSettings({
       setRole('viewer');
       setMessage('');
 
-      // Refresh permissions list if on manage tab
-      if (activeTab === 'manage') {
-        fetchPermissions();
-      }
+      // Refresh permissions list
+      fetchPermissions();
     } catch (error) {
       console.error('Error sending invitations:', error);
       toast({
@@ -361,15 +446,44 @@ export default function ShareSettings({
 
   const handleUpdatePermission = async (
     userId: string,
-    newRole: 'admin' | 'owner' | 'editor' | 'viewer' | 'none'
+    newRole: 'admin' | 'owner' | 'editor' | 'viewer' | 'none',
   ) => {
+    // Check if changing to editor/owner would exceed the limit for free users
+    if (
+      subscription.status === 'FREE' &&
+      (newRole === 'editor' || newRole === 'owner') &&
+      userAndRole.find((u) => u.id === userId)?.role !== newRole
+    ) {
+      toast({
+        title: 'Role Not Allowed',
+        description:
+          'Free accounts cannot assign editor or owner roles. Upgrade to Pro for advanced roles.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    // Pro: Prevent changing to editor/owner if at limit
+    if (
+      subscription.status === 'PRO' &&
+      (newRole === 'editor' || newRole === 'owner') &&
+      userAndRole.find((u) => u.id === userId)?.role !== newRole &&
+      editorCount + pendingEditorCount >= PRO_EDITOR_LIMIT
+    ) {
+      toast({
+        title: 'Editor/Owner Limit Reached',
+        description: `Pro accounts are limited to ${PRO_EDITOR_LIMIT} editors/owners per project (including the main owner).`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setUpdatingUserId(userId);
     try {
       const result = await updateResourcePermission(
         resourceId,
         userId,
         newRole,
-        resourceType
+        resourceType,
       );
 
       if (!result.success) {
@@ -378,7 +492,7 @@ export default function ShareSettings({
 
       // Update local state optimistically
       setUserAndRole(
-        userAndRole.map((p) => (p.id === userId ? { ...p, role: newRole } : p))
+        userAndRole.map((p) => (p.id === userId ? { ...p, role: newRole } : p)),
       );
 
       toast({
@@ -386,7 +500,7 @@ export default function ShareSettings({
         description: 'User access level has been updated.',
       });
     } catch (error) {
-      console.error('Error updating permission:', error);
+      // console.error('Error updating permission:', error);
       toast({
         title: 'Update Error',
         description:
@@ -417,7 +531,7 @@ export default function ShareSettings({
       const result = await removeResourcePermission(
         resourceId,
         userId,
-        resourceType
+        resourceType,
       );
 
       if (!result.success) {
@@ -457,7 +571,7 @@ export default function ShareSettings({
 
       // Update local state optimistically
       setPendingInvitations(
-        pendingInvitations.filter((inv) => inv.id !== invitationId)
+        pendingInvitations.filter((inv) => inv.id !== invitationId),
       );
 
       toast({
@@ -483,11 +597,14 @@ export default function ShareSettings({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      {showPricing && user?.sub && (
+        <PricingModal open={showPricing} onOpenChange={setShowPricing} />
+      )}
       {initialIsOpen === undefined && (
         <DialogTrigger asChild>
           <Button>
-            <Share2 className="w-4 h-4 mr-2" />
-            Share
+            <Users className="w-4 h-4" />
+            Invite Team
           </Button>
         </DialogTrigger>
       )}
@@ -499,29 +616,37 @@ export default function ShareSettings({
         <div className="border rounded-md p-4 mb-4">
           <div className="flex items-center justify-between space-x-2 mb-2">
             <div className="flex items-center">
-              <Globe className="w-4 h-4 mr-2 text-blue-500" />
+              <Globe className="w-4 h-4 text-blue-500" />
               <label
                 htmlFor="public-access"
                 className="text-sm font-medium leading-none"
               >
                 Public Access
+                {subscription.status === 'FREE' && (
+                  <span className="ml-2 text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                    Pro Feature
+                  </span>
+                )}
               </label>
             </div>
-            {loading
-              ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-              : <Switch
+            {loading ? (
+              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            ) : (
+              <Switch
                 id="public-access"
                 checked={localIsPublic}
                 onCheckedChange={handlePublicToggle}
+                disabled={loading || subscription.status === 'FREE'}
               />
-            }
+            )}
           </div>
           <p className="text-xs text-gray-500 mb-3">
-            When public, anyone with the link can view this{' '}
-            {resourceTypeName.toLocaleLowerCase()}.
+            {subscription.status === 'FREE'
+              ? 'Upgrade to Pro to make your content publicly accessible with a link.'
+              : `When public, anyone with the link can view this ${resourceTypeName.toLocaleLowerCase()}.`}
           </p>
 
-          {localIsPublic && (
+          {localIsPublic && subscription.status !== 'FREE' && (
             <div className="mt-2 flex items-center space-x-2">
               <Input
                 value={getPublicUrl()}
@@ -541,6 +666,17 @@ export default function ShareSettings({
               </Button>
             </div>
           )}
+
+          {subscription.status === 'FREE' && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 text-xs"
+              onClick={() => setShowPricing(true)}
+            >
+              Upgrade to Pro
+            </Button>
+          )}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
@@ -551,6 +687,46 @@ export default function ShareSettings({
           </TabsList>
 
           <TabsContent value="invite" className="mt-4">
+            {(subscription.status === 'FREE' ||
+              (subscription.status === 'PRO' && reachedEditorLimit)) && (
+              <Alert className="mb-4" variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>
+                  {subscription.status === 'FREE'
+                    ? 'Free Plan Restriction'
+                    : 'Pro Plan Limit'}
+                </AlertTitle>
+                <AlertDescription>
+                  {subscription.status === 'FREE' ? (
+                    <>
+                      Free accounts cannot add editors or owners.{' '}
+                      <Button
+                        variant="link"
+                        className="p-0 h-auto"
+                        onClick={() => setShowPricing(true)}
+                      >
+                        Upgrade to Pro
+                      </Button>{' '}
+                      for advanced roles.
+                    </>
+                  ) : (
+                    <>
+                      You have reached the limit of {PRO_EDITOR_LIMIT}{' '}
+                      editors/owners per project (including the main owner).{' '}
+                      <Button
+                        variant="link"
+                        className="p-0 h-auto"
+                        onClick={() => setShowPricing(true)}
+                      >
+                        Contact Support
+                      </Button>{' '}
+                      for higher limits.
+                    </>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="grid gap-4 py-2">
               <div className="space-y-2">
                 <Label htmlFor="emails">Email Addresses</Label>
@@ -570,15 +746,28 @@ export default function ShareSettings({
                 <Select
                   value={role}
                   onValueChange={setRole}
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting ||
+                    subscription.status === 'FREE' ||
+                    (subscription.status === 'PRO' && reachedEditorLimit)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    {assignableRoles.map(role => (
-                      <SelectItem key={role} value={role}>
-                        {roleLabelsAndDescription[role].label} ({roleLabelsAndDescription[role].description})
+                    {assignableRoles.map((role) => (
+                      <SelectItem
+                        key={role}
+                        value={role}
+                        disabled={
+                          (ROLE_HIERARCHY[role] > 1 &&
+                            subscription.status === 'FREE') ||
+                          (subscription.status === 'PRO' && reachedEditorLimit)
+                        }
+                      >
+                        {roleLabelsAndDescription[role].label} (
+                        {roleLabelsAndDescription[role].description})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -609,8 +798,10 @@ export default function ShareSettings({
                 </div>
               ) : (
                 <>
-                  <div className="text-sm italic mb-4">Control which content is displayed to visitors:</div>
-                  
+                  <div className="text-sm italic mb-4">
+                    Control which content is displayed to visitors:
+                  </div>
+
                   <div className="flex items-center justify-between space-x-2">
                     <label
                       htmlFor="summary"
@@ -621,10 +812,12 @@ export default function ShareSettings({
                     <Switch
                       id="summary"
                       checked={localVisibilityConfig?.showSummary}
-                      onCheckedChange={() => handleVisibilityToggle('showSummary')}
+                      onCheckedChange={() =>
+                        handleVisibilityToggle('showSummary')
+                      }
                     />
                   </div>
-                  
+
                   {!isWorkspace && (
                     <div className="flex items-center justify-between space-x-2">
                       <label
@@ -636,11 +829,13 @@ export default function ShareSettings({
                       <Switch
                         id="recap"
                         checked={localVisibilityConfig?.showSessionRecap}
-                        onCheckedChange={() => handleVisibilityToggle('showSessionRecap')}
+                        onCheckedChange={() =>
+                          handleVisibilityToggle('showSessionRecap')
+                        }
                       />
                     </div>
                   )}
-                  
+
                   {!isWorkspace && (
                     <div className="flex items-center justify-between space-x-2">
                       <label
@@ -652,11 +847,13 @@ export default function ShareSettings({
                       <Switch
                         id="responses"
                         checked={localVisibilityConfig?.showResponses}
-                        onCheckedChange={() => handleVisibilityToggle('showResponses')}
+                        onCheckedChange={() =>
+                          handleVisibilityToggle('showResponses')
+                        }
                       />
                     </div>
                   )}
-                  
+
                   {!isWorkspace && (
                     <div className="flex items-center justify-between space-x-2">
                       <label
@@ -668,11 +865,13 @@ export default function ShareSettings({
                       <Switch
                         id="insights"
                         checked={localVisibilityConfig?.showCustomInsights}
-                        onCheckedChange={() => handleVisibilityToggle('showCustomInsights')}
+                        onCheckedChange={() =>
+                          handleVisibilityToggle('showCustomInsights')
+                        }
                       />
                     </div>
                   )}
-                  
+
                   <div className="flex items-center justify-between space-x-2">
                     <label
                       htmlFor="chat"
@@ -686,7 +885,7 @@ export default function ShareSettings({
                       onCheckedChange={() => handleVisibilityToggle('showChat')}
                     />
                   </div>
-                  
+
                   {!isWorkspace && (
                     <div className="flex items-center justify-between space-x-2">
                       <label
@@ -697,8 +896,12 @@ export default function ShareSettings({
                       </label>
                       <Switch
                         id="edit-insights"
-                        checked={localVisibilityConfig?.allowCustomInsightsEditing}
-                        onCheckedChange={() => handleVisibilityToggle('allowCustomInsightsEditing')}
+                        checked={
+                          localVisibilityConfig?.allowCustomInsightsEditing
+                        }
+                        onCheckedChange={() =>
+                          handleVisibilityToggle('allowCustomInsightsEditing')
+                        }
                       />
                     </div>
                   )}
@@ -706,7 +909,7 @@ export default function ShareSettings({
               )}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="manage" className="mt-4">
             <div className="space-y-4">
               {isLoadingPermissions ? (
@@ -741,7 +944,7 @@ export default function ShareSettings({
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            {hasRoleHigherThan(usr.role) &&
+                            {hasRoleHigherThan(usr.role) && (
                               <Select
                                 value={usr.role}
                                 onValueChange={(newRole) =>
@@ -749,35 +952,50 @@ export default function ShareSettings({
                                 }
                                 disabled={
                                   updatingUserId === usr.id ||
-                                  user?.sub === usr.id
+                                  user?.sub === usr.id ||
+                                  (subscription.status === 'FREE' &&
+                                    usr.role !== 'editor' &&
+                                    reachedEditorLimit)
                                 }
                               >
                                 <SelectTrigger className="w-[140px] h-8">
                                   <SelectValue placeholder="Select role" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {assignableRoles.map(role => (
-                                    <SelectItem key={role} value={role}>{roleLabelsAndDescription[role].label}</SelectItem>
+                                  {assignableRoles.map((role) => (
+                                    <SelectItem
+                                      key={role}
+                                      value={role}
+                                      disabled={
+                                        ROLE_HIERARCHY[role] > 1 &&
+                                          (subscription.status === 'FREE' ||
+                                          (subscription.status === 'PRO' &&
+                                            reachedEditorLimit))
+                                      }
+                                    >
+                                      {roleLabelsAndDescription[role].label}
+                                    </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
-                            }
-
-                            {user?.sub !== usr.id && hasRoleHigherThan(usr.role) && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-gray-500 hover:text-red-500"
-                                onClick={() => handleRemovePermission(usr.id)}
-                                disabled={updatingUserId === usr.id}
-                              >
-                                {updatingUserId === usr.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <X className="h-4 w-4" />
-                                )}
-                              </Button>
                             )}
+
+                            {user?.sub !== usr.id &&
+                              hasRoleHigherThan(usr.role) && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-gray-500 hover:text-red-500"
+                                  onClick={() => handleRemovePermission(usr.id)}
+                                  disabled={updatingUserId === usr.id}
+                                >
+                                  {updatingUserId === usr.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <X className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              )}
                           </div>
                         </div>
                       ))}
@@ -845,7 +1063,6 @@ export default function ShareSettings({
             <div className="flex space-x-2">
               <Button
                 variant="outline"
-                className="mr-2"
                 onClick={() => setIsOpen(false)}
                 disabled={isSubmitting || isLoadingPermissions}
               >
@@ -856,7 +1073,7 @@ export default function ShareSettings({
                 <Button onClick={handleInvite} disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin" />
                       Sending...
                     </>
                   ) : (
