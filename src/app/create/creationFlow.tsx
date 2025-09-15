@@ -305,7 +305,7 @@ export default function CreationFlow() {
       <ReviewPrompt
         prompts={prompts}
         setPrompts={setPrompts}
-        streamingPrompt={streamingPromptRef.current}
+        summarizedPrompt={streamingPromptRef.current}
         currentVersion={currentVersion}
         setCurrentVersion={setCurrentVersion}
         isEditing={isEditingPrompt}

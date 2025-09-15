@@ -45,6 +45,15 @@ export default function SessionPage({
         currentPrompt={hostData.prompt}
         summaryPrompt={hostData.summary_prompt}
         crossPollination={hostData.cross_pollination}
+        sessionData={{
+          topic: hostData.topic,
+          goal: hostData.goal,
+          critical: hostData.critical || '',
+          context: hostData.context || '',
+          crossPollination: hostData.cross_pollination,
+          promptSummary: hostData.prompt_summary || '',
+          facilitationPrompt: hostData.prompt || '',
+        }}
       />
       <SessionResultsSection
         hostData={hostData}
