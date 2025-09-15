@@ -9,7 +9,7 @@ Welcome to **Superfast sensemaking and deliberation!**
 
 </div>
 
-This is the entry point to start an LLM-powered chatbot enabling groups to co-ordinate, reduce friction and move forward with speed.
+This is the entry point to start an LLM-powered chatbot enabling groups to co-ordinate, reduce friction and move forward.
 
 Please check [harmonica.chat](https://www.harmonica.chat) for more information.
 
