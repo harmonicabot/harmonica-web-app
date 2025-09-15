@@ -8,6 +8,7 @@ import { UserProfile, useUser } from '@auth0/nextjs-auth0/client';
 import { Message } from '@/lib/schema';
 import { getUserNameFromContext } from '@/lib/clientUtils';
 import { getUserSessionById, getAllChatMessagesInOrder } from '@/lib/db';
+import { useSubscription } from './useSubscription';
 
 export interface UseChatOptions {
   sessionIds?: string[];
@@ -86,6 +87,7 @@ export function useChat(options: UseChatOptions) {
   const [isParticipantSuggestionLoading, setIsParticipantSuggestionLoading] =
     useState(false);
 
+  const { status: subscription_status } = useSubscription();
   const [dailyQuestions, setDailyQuestions] = useState(0);
   const [isLimitPopupOpen, setIsLimitPopupOpen] = useState(false);
   const [isUpgradeLoading, setIsUpgradeLoading] = useState(false);

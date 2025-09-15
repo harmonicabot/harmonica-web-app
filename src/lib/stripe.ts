@@ -63,7 +63,7 @@ export async function createStripeSession({
           userId,
           ...metadata,
         },
-        trial_period_days: 30,
+        trial_period_days: 14,
       },
     });
     console.log(

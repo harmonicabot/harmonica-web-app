@@ -1,9 +1,8 @@
 'use client'
 import { HostSession } from '@/lib/schema';
-import { useEffect, useState } from 'react';
-import { RefreshStatus, SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
+import { useState } from 'react';
+import { SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
 import { ExpandableWithExport } from './ExpandableWithExport';
-import * as db from '@/lib/db';
 import { Info } from 'lucide-react';
 import { LimitPopup } from '../pricing/LimitPopup';
 import { Card, CardContent } from '../ui/card';
@@ -17,7 +16,6 @@ interface SessionResultSummaryProps {
   projectId?: string;
   draft: boolean;
   numSessions: number;
-  newSummaryContentAvailable: boolean;
   onUpdateSummary: () => void;
   showSummary?: boolean;
   showSessionRecap?: boolean;
