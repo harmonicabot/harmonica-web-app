@@ -66,44 +66,35 @@ export default function ChooseTemplate({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <Card className="bg-purple-50 dark:bg-purple-950/30">
-          <CardHeader className="space-y-1 pb-0">
-            <Sparkles className="w-6 h-6" strokeWidth={1.5} />
-            <CardTitle className="text-xl">Tell us your objective</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="objective">
-                What is the objective of your session?*
-              </Label>
-              <Textarea
-                id="objective"
-                value={objective}
-                onChange={(e) => {
-                  setObjective(e.target.value);
-                  setError(''); // Clear error when user starts typing
-                }}
-                placeholder="Understand user preferences on our new product features"
-                className={`min-h-[80px] resize-y ${
-                  error ? 'border-red-500 focus-visible:ring-red-500' : ''
-                }`}
-              />
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <p className="text-sm text-muted-foreground">
-                Summarize what you aim to learn or achieve in this session
-              </p>
-            </div>
-            <div className="flex justify-end">
-              <Button
-                onClick={handleGenerateClick}
-                className="flex items-center gap-2"
-              >
-                <Sparkles className="w-4 h-4" strokeWidth={1.5} />
-                Generate
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="border rounded-xl bg-gradient-to-b from-white to-amber-100 p-6 flex flex-col justify-between h-full">
+          <div className="space-y-2">
+            <Label htmlFor="objective" className="text-base font-medium">
+              What do you want to find out?
+            </Label>
+            <Textarea
+              id="objective"
+              value={objective}
+              onChange={(e) => {
+                setObjective(e.target.value);
+                setError(''); // Clear error when user starts typing
+              }}
+              placeholder="Be specific about what you want to achieve..."
+              className={`min-h-[80px] resize-none ${
+                error ? 'border-red-500 focus-visible:ring-red-500' : ''
+              }`}
+            />
+            {error && <p className="text-sm text-red-500">{error}</p>}
+          </div>
+          <div className="flex justify-end">
+            <Button
+              onClick={handleGenerateClick}
+              className="flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" strokeWidth={1.5} />
+              Generate
+            </Button>
+          </div>
+        </div>
         <div className="p-6 flex flex-col justify-between h-full">
           <div>
             <div className="mt-2 mb-6">
@@ -125,7 +116,7 @@ export default function ChooseTemplate({
       </div>
 
       <h4 className="text-xl font-semibold">Or Select Template</h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {templates.templates.map((template) => {
           const Icon =
             iconMap[template.icon as keyof typeof iconMap] ?? Lightbulb;
@@ -141,14 +132,14 @@ export default function ChooseTemplate({
               <CardContent className="flex justify-end mt-auto">
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => {
                     onTemplateSelect(template.defaults, template.id);
                     onNext();
                   }}
-                  className="flex items-center gap-2"
+                  className="flex"
                 >
-                  <Sparkles className="w-4 h-4" strokeWidth={1.5} />
-                  Generate
+                  Use Template
                 </Button>
               </CardContent>
             </Card>
