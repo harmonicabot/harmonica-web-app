@@ -3,6 +3,7 @@
 import Logo from '@/components/ui/logo';
 import User from '@/components/user';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function Navigation() {
 
@@ -23,9 +24,9 @@ export default function Navigation() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+            <Button variant="outline" size="sm">
               Help
-            </button>
+            </Button>
           </Link>
           <User />
         </div>

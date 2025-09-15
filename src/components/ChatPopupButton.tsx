@@ -7,7 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import Chat from '@/components/chat';
+import { EmbeddedChat } from '@/components/chat/EmbeddedChat';
 import { VersionedPrompt } from 'app/create/creationFlow';
 import { OpenAIMessage } from '@/lib/types';
 
@@ -45,7 +45,7 @@ Please type your name or "anonymous" if you prefer
           <DialogTitle>Test</DialogTitle>
         </DialogHeader>
         <div>
-          <Chat entryMessage={entryMessage} />
+          <EmbeddedChat entryMessage={entryMessage} />
         </div>
       </DialogContent>
     </Dialog>

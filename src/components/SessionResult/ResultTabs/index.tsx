@@ -28,6 +28,8 @@ import {
 } from '@/components/ui/resizable';
 import { SimScoreTab } from './SimScoreTab';
 import SessionFilesTable from '../SessionFilesTable';
+import { useSessionStore } from '@/stores/SessionStore';
+import { SummaryUpdateManager } from '../../../summary/SummaryUpdateManager';
 
 export interface ResultTabsProps {
   hostData: HostSession[];
@@ -74,8 +76,24 @@ export default function ResultTabs({
   const { responses, addResponse, removeResponse } =
     useCustomResponses(resourceId);
 
+  // Use SessionStore for userData with fallback to prop
+  const { userData: storeUserData, addUserData, updateUserData } = useSessionStore();
+  const currentUserData = storeUserData[resourceId] || userData;
+
+  // Initialize store if not present
+  useEffect(() => {
+    if (!storeUserData[resourceId] && userData.length > 0) {
+      addUserData(resourceId, userData);
+    }
+  }, [resourceId, userData, storeUserData, addUserData]);
+
+  useEffect(() => {
+    SummaryUpdateManager.startPolling(resourceId, 10000); // Poll every 10 seconds
+    return () => SummaryUpdateManager.stopPolling(resourceId); // Clean up on unmount
+  }, [resourceId]);
+
   // User management state
-  const initialIncluded = userData
+  const initialIncluded = currentUserData
     .filter((user) => user.include_in_summary)
     .map((user) => user.id);
   const [userIdsIncludedInSummary, setUpdatedUserIds] =
@@ -83,13 +101,10 @@ export default function ResultTabs({
   const [initialUserIds, setInitialUserIds] =
     useState<string[]>(initialIncluded);
 
-  const [newSummaryContentAvailable, setNewSummaryContentAvailable] =
-    useState(hasNewMessages);
-
   // Participant Ids that should be included in the _summary_ and _simscore_ analysis
   const updateIncludedInAnalysisList = useCallback(
-    (userSessionId: string, included: boolean) => {
-      const includedIds = userData
+    async (userSessionId: string, included: boolean) => {
+      const includedIds = currentUserData
         .filter((user) => user.include_in_summary)
         .map((user) => user.id);
       if (included) {
@@ -98,20 +113,34 @@ export default function ResultTabs({
         includedIds.splice(includedIds.indexOf(userSessionId), 1);
       }
       setUpdatedUserIds(includedIds);
-      db.updateUserSession(userSessionId, {
+      
+      // Update the store immediately for optimistic update
+      updateUserData(resourceId, userSessionId, { include_in_summary: included });
+      
+      // Update the field in the db and register the edit
+      await db.updateUserSession(userSessionId, {
         include_in_summary: included,
+        last_edit: new Date(),
       });
-      userData.find((user) => user.id === userSessionId)!.include_in_summary =
-        included;
 
       // Compare arrays ignoring order
       const haveIncludedUsersChanged =
         includedIds.length !== initialUserIds.length ||
         !includedIds.every((id) => initialUserIds.includes(id));
-
-      setNewSummaryContentAvailable(hasNewMessages || haveIncludedUsersChanged);
+      
+      // Register participant edit if users changed
+      if (haveIncludedUsersChanged) {
+        console.log('[ResultTabs] Participant changed, registering edit');
+        await SummaryUpdateManager.registerEdit(resourceId, {
+          source: 'participants',
+          userSessionId,
+          isProject,
+          sessionIds: hostData.map(h => h.id),
+          projectId: isProject ? resourceId : undefined,
+        });
+      }
     },
-    [userData, setUpdatedUserIds, initialUserIds, hasNewMessages],
+    [currentUserData, setUpdatedUserIds, initialUserIds, hasNewMessages, updateUserData, resourceId, isProject, hostData],
   );
 
   const hasAnyIncludedUserMessages = useMemo(
@@ -127,19 +156,18 @@ export default function ResultTabs({
         id: 'SUMMARY',
         label: 'Summary',
         isVisible:
-          visibilityConfig.showSummary ||
+          (visibilityConfig.showSummary ||
           visibilityConfig.showSessionRecap ||
-          hasMinimumRole('editor'),
+          hasMinimumRole('editor')) &&
+          hasAnyIncludedUserMessages,
         content: (
           <SessionResultSummary
             hostData={hostData}
             isProject={isProject}
             projectId={isProject ? resourceId : undefined}
             draft={draft}
-            newSummaryContentAvailable={newSummaryContentAvailable}
             onUpdateSummary={() => {
               setInitialUserIds(userIdsIncludedInSummary);
-              setNewSummaryContentAvailable(false);
             }}
             numSessions={
               userData.filter((user) => user.include_in_summary).length
@@ -173,7 +201,8 @@ export default function ResultTabs({
         ) : (
           <SessionParticipantsTable
             sessionId={resourceId}
-            userData={userData}
+            userData={currentUserData}
+            hostData={hostData[0]}
             onIncludeInSummaryChange={updateIncludedInAnalysisList}
           />
         ),
@@ -249,14 +278,13 @@ export default function ResultTabs({
             </div>
           </Card>
         ) : (
-          <SimScoreTab userData={userData} resourceId={resourceId} />
+          <SimScoreTab userData={currentUserData} resourceId={resourceId} />
         ),
       },
     ];
   }, [
     hasMinimumRole,
     hasAnyIncludedUserMessages,
-    newSummaryContentAvailable,
     userIdsIncludedInSummary,
     responses,
   ]);
@@ -273,10 +301,13 @@ export default function ResultTabs({
     return firstVisibleTab || 'SUMMARY'; // Fallback to SUMMARY if no visible tabs
   });
 
-  // Update active tab if visibility changes (should only happen in the first few seconds of page load)
+  // Update active tab only if current tab becomes invisible
   useEffect(() => {
-    setActiveTab(visibleTabs[0]?.id || 'SUMMARY');
-  }, [visibleTabs]);
+    const currentTabVisible = visibleTabs.some(tab => tab.id === activeTab);
+    if (!currentTabVisible && visibleTabs.length > 0) {
+      setActiveTab(visibleTabs[0].id);
+    }
+  }, [visibleTabs, activeTab]);
 
   const handlePromptChange = async (
     newPrompt: string,
@@ -321,7 +352,7 @@ export default function ResultTabs({
     ) {
       return (
         <>
-          <ChatMessage key={key} message={message} />
+          <ChatMessage key={key} message={message} showButtons={false} />
           <div
             className="opacity-0 group-hover:opacity-100 flex flex-row 
             justify-center items-center cursor-pointer rounded-md 
@@ -423,7 +454,7 @@ export default function ResultTabs({
                     </Card>
                   ) : (
                     <SessionResultChat
-                      userData={userData}
+                      userData={currentUserData}
                       customMessageEnhancement={
                         visibilityConfig.allowCustomInsightsEditing
                           ? enhancedMessage
@@ -477,7 +508,7 @@ export default function ResultTabs({
                 </Card>
               ) : (
                 <SessionResultChat
-                  userData={userData}
+                  userData={currentUserData}
                   customMessageEnhancement={
                     visibilityConfig.allowCustomInsightsEditing
                       ? enhancedMessage

@@ -7,7 +7,7 @@ import { access } from 'fs';
 
 // Increase the maximum execution time for this function on vercel
 export const maxDuration = 60; // in seconds
-export const revalidate = 5 * 60; // check new data only every 5 minutes
+export const revalidate = 0; // Disable caching for this page
 
 export async function generateMetadata(
   { params }: { params: { id: string } } ,

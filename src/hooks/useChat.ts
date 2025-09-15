@@ -1,21 +1,15 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import * as db from '@/lib/db';
-import * as llama from 'app/api/llamaUtils';
+import * as llama from '../app/api/llamaUtils';
 import { OpenAIMessage, OpenAIMessageWithContext } from '@/lib/types';
-import { ChatMessage } from './ChatMessage';
-import { Send } from './icons';
 import { UserProfile, useUser } from '@auth0/nextjs-auth0/client';
 import { Message } from '@/lib/schema';
-import ErrorPage from './Error';
 import { getUserNameFromContext } from '@/lib/clientUtils';
-import { Loader2, Sparkles, Info } from 'lucide-react';
-import { LimitPopup } from './pricing/LimitPopup';
+import { getUserSessionById, getAllChatMessagesInOrder } from '@/lib/db';
 
-interface ChatProps {
+export interface UseChatOptions {
   sessionIds?: string[];
   setUserSessionId?: (id: string) => void;
   userSessionId?: string;
@@ -25,27 +19,40 @@ interface ChatProps {
   userContext?: Record<string, string>;
   isAskAi?: boolean;
   crossPollination?: boolean;
+  isSessionPublic?: boolean;
+  sessionId?: string;
+  onThreadIdReceived?: (threadId: string) => void;
   customMessageEnhancement?: (
     message: OpenAIMessage,
     index: number,
   ) => React.ReactNode;
-  subscription_status?: 'FREE' | 'PRO' | 'ENTERPRISE';
-  userId?: string;
+  setShowRating?: (show: boolean) => void;
+  isHost?: boolean;
+  mainPanelRef?: React.RefObject<HTMLElement>;
+  questions?: { id: string; label: string }[] | undefined;
 }
 
-export default function Chat({
-  sessionIds,
-  setUserSessionId,
-  userSessionId,
-  entryMessage,
-  context,
-  placeholderText,
-  userContext,
-  crossPollination = false,
-  customMessageEnhancement,
-  isAskAi = false,
-  subscription_status = 'FREE',
-}: ChatProps) {
+export function useChat(options: UseChatOptions) {
+  const {
+    sessionIds,
+    setUserSessionId,
+    userSessionId,
+    entryMessage,
+    context,
+    placeholderText,
+    userContext,
+    isAskAi = false,
+    crossPollination = false,
+    isSessionPublic = false,
+    sessionId: providedSessionId,
+    onThreadIdReceived,
+    customMessageEnhancement,
+    setShowRating,
+    isHost = false,
+    mainPanelRef,
+    questions
+  } = options;
+
   const isTesting = false;
   const [errorMessage, setErrorMessage] = useState<{
     title: string;
@@ -63,7 +70,13 @@ export default function Chat({
   });
   const threadIdRef = useRef<string>('');
   const [messages, setMessages] = useState<OpenAIMessage[]>([]);
+
   const addMessage = (newMessage: OpenAIMessage) => {
+    console.log('[Chat] Adding new message:', {
+      content: newMessage.content?.slice(0, 100) + '...',
+      is_final: newMessage.is_final,
+      role: newMessage.role,
+    });
     setMessages((prevMessages) => [...prevMessages, newMessage]);
   };
 
@@ -92,13 +105,11 @@ export default function Chat({
   };
 
   useEffect(() => {
-    if (messagesEndRef.current && messages.length > 1) {
-      messagesEndRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      });
+    console.log('[Chat] Messages updated; should be scrolling to the bottom?');
+    if (mainPanelRef?.current && messages.length > 1) {
+      mainPanelRef.current.scrollTop = mainPanelRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, mainPanelRef]);
 
   useEffect(() => {
     console.log('[i] Chat loading: ');
@@ -113,24 +124,6 @@ export default function Chat({
   const createThreadInProgressRef = useRef(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
-    if (
-      !threadIdRef.current &&
-      !createThreadInProgressRef.current &&
-      !isAskAi
-    ) {
-      createThreadInProgressRef.current = true;
-      const userName = getUserNameFromContext(userContext);
-
-      createThread(
-        context,
-        sessionIds && sessionIds.length ? sessionIds[0] : undefined,
-        user ? user : 'id',
-        userName,
-        userContext,
-      );
-    }
-
     if (e.key === 'Enter' && !isLoading) {
       if (e.metaKey) {
         e.preventDefault();
@@ -209,26 +202,12 @@ export default function Chat({
       // console.log('[i] Chat messages for context: ', chatMessages);
     }
 
-    const userContextPrompt = userContext
-      ? `IMPORTANT USER INFORMATION:\nPlease consider the following user details in your responses:\n${Object.entries(
-          userContext,
-        )
-          .map(([key, value]) => `- ${key}: ${value}`)
-          .join(
-            '\n',
-          )}\n\nPlease tailor your responses appropriately based on this user information.`
-      : '';
-
-    // let threadEntryMessage = userContextPrompt
-    //   ? {
-    //       role: 'user' as const,
-    //       content: userContextPrompt,
-    //     }
-    //   : undefined;
-    // handleCreateThread(threadEntryMessage, chatMessages)
     const threadId = crypto.randomUUID();
     console.log(`[i] Created threadId ${threadId} for session ${sessionId}`);
     threadIdRef.current = threadId;
+    if (onThreadIdReceived) {
+      onThreadIdReceived(threadId);
+    }
 
     const userId =
       typeof user === 'string'
@@ -246,14 +225,18 @@ export default function Chat({
         last_edit: new Date(),
       };
       //insert user formdata
+      const contextString = userContext
+        ? Object.entries(userContext)
+            .map(([key, value]) => {
+              const label = questions?.find(q => q.id === key)?.label || key;
+              return `${label}: ${value}`;
+            })
+            .join('; ')
+        : '';
       db.insertChatMessage({
         thread_id: threadIdRef.current,
         role: 'user',
-        content: `User shared the following context:\n${Object.entries(
-          userContext || {},
-        )
-          .map(([key, value]) => `${key}: ${value}`)
-          .join('; ')}`,
+        content: `User shared the following context:\n${contextString}`,
         created_at: new Date(),
       }).catch((error) => {
         console.log('Error in insertChatMessage: ', error);
@@ -287,22 +270,87 @@ export default function Chat({
       !threadIdRef.current &&
       !createThreadInProgressRef.current &&
       !isAskAi // AskAI doesn't actually use the OpenAI thread we're creating here; it uses whatever is specified in the llama API.
-      // Also, AskAI doesn't use the userContext, so this should never be triggered (unless maybe on page load?), but just for clarity we put it here anyway.
+      // Also, AskAI doesn't use the userContext, so this parameter combination should never be triggered (unless maybe on page load?), but just for clarity we put it here anyway.
     ) {
       const userName = getUserNameFromContext(userContext);
 
       createThreadInProgressRef.current = true;
-      createThread(
-        context,
-        sessionIds && sessionIds.length ? sessionIds[0] : undefined,
-        user ? user : 'id',
-        userName,
-        userContext,
-      ).then((threadSessionId) => {
-        handleSubmit(undefined, true, threadSessionId);
-      });
+      
+      // Check if we have an existing userSessionId to restore
+      if (userSessionId) {
+        restoreExistingThread(userSessionId).then((restored: boolean) => {
+          if (!restored) {
+            // Fallback to creating new thread if restoration fails
+            createThread(
+              context,
+              sessionIds && sessionIds.length ? sessionIds[0] : undefined,
+              user ? user : 'id',
+              userName,
+              userContext,
+            ).then((threadSessionId) => {
+              handleSubmit(undefined, true, threadSessionId);
+            });
+          }
+        });
+      } else {
+        // No existing session, create new thread
+        createThread(
+          context,
+          sessionIds && sessionIds.length ? sessionIds[0] : undefined,
+          user ? user : 'id',
+          userName,
+          userContext,
+        ).then((threadSessionId) => {
+          handleSubmit(undefined, true, threadSessionId);
+        });
+      }
     }
   }, [userContext]);
+
+  /**
+   * Restores an existing thread from a userSessionId
+   * @param userSessionId The existing user session ID
+   * @returns {Promise<boolean>} True if restoration was successful
+   */
+  async function restoreExistingThread(userSessionId: string): Promise<boolean> {
+    try {
+      console.log(`[i] Attempting to restore thread for userSessionId: ${userSessionId}`);
+      
+      // Get the existing user session
+      const existingSession = await getUserSessionById(userSessionId);
+      if (!existingSession) {
+        console.log(`[i] No existing session found for userSessionId: ${userSessionId}`);
+        return false;
+      }
+      
+      // Set the thread ID to the existing one
+      threadIdRef.current = existingSession.thread_id;
+      if (onThreadIdReceived) {
+        onThreadIdReceived(existingSession.thread_id);
+      }
+      
+      // Load existing messages for this thread
+      const existingMessages = await getAllChatMessagesInOrder(existingSession.thread_id);
+
+      // Filter out the initial context message if present
+      const filteredMessages = existingMessages.filter(
+        msg => !(msg.role === 'user' && msg.content?.startsWith('User shared the following context:'))
+      ).map(msg => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        is_final: msg.is_final,
+      }));
+      
+      setMessages(filteredMessages);
+      
+      console.log(`[i] Successfully restored ${existingMessages.length} messages for thread ${existingSession.thread_id}`);
+      return true;
+      
+    } catch (error) {
+      console.error('[!] Error restoring existing thread:', error);
+      return false;
+    }
+  }
 
   const handleSubmit = async (
     e?: React.FormEvent,
@@ -412,6 +460,11 @@ export default function Chat({
             !isAskAi && sessionIds?.length === 1 && crossPollination,
           )
           .then((answer) => {
+            if (answer.is_final && setShowRating) {
+              setTimeout(() => {
+                setShowRating(true);
+              }, 2000);
+            }
             setIsLoading(false);
             const now = new Date();
             addMessage(answer);
@@ -454,7 +507,7 @@ export default function Chat({
     }
   };
 
-  const handleParticipantSuggestion = async () => {
+  const generateParticipantSuggestion = async () => {
     if (!threadIdRef.current || isParticipantSuggestionLoading) return;
 
     setIsParticipantSuggestionLoading(true);
@@ -494,7 +547,23 @@ export default function Chat({
     setTimeout(() => setErrorToastMessage(''), 6000);
   }
 
-  // Focus the textarea when the component mounts
+  async function waitForThreadCreation(threadIdRef: any, setErrorMessage: any) {
+    let waitedCycles = 0;
+    while (!threadIdRef.current) {
+      if (waitedCycles > 720) {
+        setErrorMessage({
+          title: 'The chat seems to be stuck.',
+          message: 'Please reload the page and try again.',
+        });
+        throw new Error('Creating the thread took too long.');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      waitedCycles++;
+      console.log(`Waiting ${waitedCycles} cycles for thread to be created...`);
+    }
+  }
+
+  // Focus the textarea when the component mounts and show entry message
   useEffect(() => {
     const textarea = textareaRef.current;
     if (entryMessage && messages.length === 0) {
@@ -505,183 +574,35 @@ export default function Chat({
     }
   }, []);
 
-  const getQuestionCounter = () => {
-    // Only show counter for free users
-    if (isAskAi && subscription_status === 'FREE') {
-      const remaining = 3 - dailyQuestions;
-      return (
-        <div
-          className={`text-sm ${
-            remaining === 0
-              ? 'text-amber-600 dark:text-amber-400'
-              : 'text-muted-foreground'
-          } mb-2 pl-2 flex items-center`}
-        >
-          <Info
-            size={16}
-            className={`mr-1 cursor-pointer ${
-              remaining === 0
-                ? 'text-amber-600 dark:text-amber-400'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-            onClick={() => setIsLimitPopupOpen(true)}
-            aria-label="Upgrade to Pro for unlimited questions"
-          />
-          {remaining === 1 ? '1 question' : `${remaining} questions`} remaining
-          today
-          <LimitPopup
-            open={isLimitPopupOpen}
-            onOpenChange={setIsLimitPopupOpen}
-            isLoading={isUpgradeLoading}
-            hitLimit={remaining === 0 ? 'ASK_AI' : undefined}
-          />
-        </div>
-      );
-    }
-    return null;
+  return {
+    // State
+    messages,
+    formData,
+    isLoading,
+    isParticipantSuggestionLoading,
+    errorMessage,
+    errorToastMessage,
+    placeholder,
+    
+    // Refs
+    textareaRef,
+    messagesEndRef,
+    
+    // Handlers
+    handleInputChange,
+    handleKeyDown,
+    handleSubmit,
+    generateParticipantSuggestion,
+    
+    // Options passed through for components
+    customMessageEnhancement,
+    isSessionPublic,
+    sessionId: providedSessionId,
+    isHost,
+    isAskAi,
+    
+    // Utils
+    setErrorMessage,
+    setErrorToastMessage,
   };
-
-  useEffect(() => {
-    if (isAskAi && subscription_status === 'FREE') {
-      fetch('/api/usage?type=ASK_AI_QUESTIONS')
-        .then((res) => res.json())
-        .then((data) => setDailyQuestions(data.count))
-        .catch(console.error);
-    }
-  }, [isAskAi, subscription_status]);
-
-  if (errorMessage) {
-    return <ErrorPage {...errorMessage} />;
-  }
-
-  return (
-    <div className="h-full flex-grow flex flex-col">
-      <div className="h-full flex-grow overflow-y-auto">
-        {messages.map((message, index) => (
-          <div key={index} className="group">
-            {customMessageEnhancement ? (
-              customMessageEnhancement(message, index)
-            ) : (
-              <ChatMessage key={index} message={message} />
-            )}
-          </div>
-        ))}
-        {errorToastMessage && (
-          <div className="fixed top-4 right-4 bg-red-500 text-white py-2 px-4 rounded shadow-lg">
-            {errorToastMessage}
-          </div>
-        )}
-        {isLoading && (
-          <div className="flex">
-            <img
-              className="h-10 w-10 flex-none rounded-full"
-              src="/h_chat_icon.png"
-              alt=""
-            />
-            <div className="ps-2 flex space-x-1 justify-center items-center dark:invert">
-              <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-              <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-              <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce"></div>
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      <form
-        className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''} sticky bottom-0`}
-        onSubmit={handleSubmit}
-      >
-        {getQuestionCounter()}
-        {!isAskAi && (
-          <div className="flex justify-end mb-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleParticipantSuggestion}
-              disabled={
-                isLoading ||
-                isParticipantSuggestionLoading ||
-                !threadIdRef.current
-              }
-              className="flex items-center gap-2"
-            >
-              {isParticipantSuggestionLoading ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Sparkles size={16} />
-              )}
-              <span>
-                {isParticipantSuggestionLoading
-                  ? 'Generating...'
-                  : 'AI Suggestion'}
-              </span>
-            </Button>
-          </div>
-        )}
-
-        {/* <div className="flex justify-end mb-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleParticipantSuggestion}
-            disabled={
-              isLoading ||
-              isParticipantSuggestionLoading ||
-              !threadIdRef.current
-            }
-            className="flex items-center gap-2"
-          >
-            {isParticipantSuggestionLoading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Sparkles size={16} />
-            )}
-            <span>
-              {isParticipantSuggestionLoading
-                ? 'Generating...'
-                : 'AI Suggestion'}
-            </span>
-          </Button>
-        </div> */}
-
-        <div className="relative">
-          <Textarea
-            name="messageText"
-            value={formData.messageText}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            className="flex-grow pr-12 focus:ring-0 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-yellow-300"
-            ref={textareaRef}
-          />
-          <Button
-            type="submit"
-            className="absolute bottom-2 right-4 rounded-full p-3"
-            disabled={isLoading}
-          >
-            <Send />
-          </Button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-async function waitForThreadCreation(threadIdRef: any, setErrorMessage: any) {
-  let waitedCycles = 0;
-  while (!threadIdRef.current) {
-    if (waitedCycles > 720) {
-      setErrorMessage({
-        title: 'The chat seems to be stuck.',
-        message: 'Please reload the page and try again.',
-      });
-      throw new Error('Creating the thread took too long.');
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    waitedCycles++;
-    console.log(`Waiting ${waitedCycles} cycles for thread to be created...`);
-  }
 }

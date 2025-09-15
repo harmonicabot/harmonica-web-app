@@ -47,10 +47,10 @@ export function checkSummaryAndMessageTimes(
     const messageTime = new Date(user.last_edit).getTime();
     return messageTime > latest ? messageTime : latest;
   }, 0);
-  console.log('Last message:', lastMessage);
-  console.log('Last summary update:', hostData.last_edit);
   const lastSummaryUpdate = hostData.last_edit.getTime();
   const hasNewMessages = lastMessage > lastSummaryUpdate;
+  console.log('Last message:', lastMessage);
+  console.log('Last summary update:', lastSummaryUpdate);
   return { hasNewMessages, lastMessage, lastSummaryUpdate };
 }
 

@@ -21,8 +21,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import {
+  Users, 
   Globe,
-  Share2,
   Loader2,
   X,
   UserCog,
@@ -44,13 +44,8 @@ import {
   getVisibilitySettings,
   updateVisibilitySettings,
 } from '../app/actions/visibility-settings';
-import { Role, usePermissions } from '@/lib/permissions';
-import {
-  Invitation,
-  PermissionsTable,
-  User,
-  ResultTabsVisibilityConfig,
-} from '@/lib/schema';
+import { Role, usePermissions, ROLE_HIERARCHY } from '@/lib/permissions';
+import { Invitation, PermissionsTable, User, ResultTabsVisibilityConfig } from '@/lib/schema';
 import { encryptId } from '@/lib/encryptionUtils';
 import { useSubscription } from 'hooks/useSubscription';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -76,7 +71,7 @@ export default function ShareSettings({
   initialIsOpen,
   onClose,
 }: ShareSettingProps) {
-  const { loading, isPublic } = usePermissions(resourceId);
+  const { loading, isPublic, hasRoleHigherThan } = usePermissions(resourceId);
 
   // Invitation form state
   const [emails, setEmails] = useState('');
@@ -86,6 +81,7 @@ export default function ShareSettings({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('invite');
   const isWorkspace = resourceType === 'WORKSPACE';
+  const resourceTypeName = resourceType === 'WORKSPACE' ? 'Project' : 'Session';
   const [urlCopied, setUrlCopied] = useState(false);
   const [localIsPublic, setLocalIsPublic] = useState(!loading && isPublic);
 
@@ -125,6 +121,21 @@ export default function ShareSettings({
   const { toast } = useToast();
   const { user } = useUser();
 
+
+  const assignableRoles = Object.keys(ROLE_HIERARCHY)
+      .filter((role) => role !== 'none' && hasRoleHigherThan(role as Role))
+      .map((role) => role as Role);
+
+  const roleLabelsAndDescription: Record<Role, { label: string; description: string }> = {
+    admin: { label: "Admin", description: "can manage everything" },
+    owner: { label: "Owner", description: "owns this and can delete it" },
+    editor: { label: "Editor", description: `can modify ${resourceTypeName.toLocaleLowerCase()}` },
+    viewer: { label: "Viewer", description: "can view and participate" },
+    none: { label: "None", description: "Should not be able to access this resource" },
+  };
+
+  console.log("Assignable roles: ", assignableRoles)
+  
   const handleOpenChange = (open: boolean) => {
     if (!open && onClose) {
       onClose();
@@ -169,8 +180,6 @@ export default function ShareSettings({
       setIsLoadingVisibility(false);
     }
   };
-
-  const resourceTypeName = resourceType === 'WORKSPACE' ? 'Project' : 'Session';
 
   // Handler for visibility toggle changes
   const handleVisibilityToggle = async (
@@ -307,18 +316,13 @@ export default function ShareSettings({
       if (result.success) {
         if (result.permissions) {
           // Now we use the actual user data from our database
-          console.log(
-            `Got the following permissions for ${resourceId}: `,
-            result.permissions,
-          );
-          setUserAndRole(
-            result.permissions.map((p) => ({
-              ...p,
-              // Fallback values if data isn't available
-              email: p.email || 'Unknown',
-              name: p.name || 'User ' + p.id.substring(0, 8),
-            })),
-          );
+          const permissions = result.permissions.map((p) => ({
+            ...p,
+            // Fallback values if data isn't available
+            email: p.email || 'Unknown',
+            name: p.name || 'User ' + p.id.substring(0, 8),
+          }));
+          setUserAndRole(permissions);
         }
 
         if (result.pendingInvitations) {
@@ -516,7 +520,6 @@ export default function ShareSettings({
     if (user?.sub === userId) {
       toast({
         title: 'Cannot Remove Self',
-
         description: `You cannot remove your own access to this ${resourceTypeName.toLocaleLowerCase()}.`,
         variant: 'destructive',
       });
@@ -540,7 +543,6 @@ export default function ShareSettings({
 
       toast({
         title: 'User Removed',
-
         description: `User has been removed from the ${resourceTypeName.toLocaleLowerCase()}.`,
       });
     } catch (error) {
@@ -601,8 +603,8 @@ export default function ShareSettings({
       {initialIsOpen === undefined && (
         <DialogTrigger asChild>
           <Button>
-            <Share2 className="w-4 h-4 mr-2" />
-            Share
+            <Users className="w-4 h-4" />
+            Invite Team
           </Button>
         </DialogTrigger>
       )}
@@ -614,7 +616,7 @@ export default function ShareSettings({
         <div className="border rounded-md p-4 mb-4">
           <div className="flex items-center justify-between space-x-2 mb-2">
             <div className="flex items-center">
-              <Globe className="w-4 h-4 mr-2 text-blue-500" />
+              <Globe className="w-4 h-4 text-blue-500" />
               <label
                 htmlFor="public-access"
                 className="text-sm font-medium leading-none"
@@ -627,12 +629,16 @@ export default function ShareSettings({
                 )}
               </label>
             </div>
-            <Switch
-              id="public-access"
-              checked={localIsPublic}
-              onCheckedChange={handlePublicToggle}
-              disabled={loading || subscription.status === 'FREE'}
-            />
+            {loading ? (
+              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            ) : (
+              <Switch
+                id="public-access"
+                checked={localIsPublic}
+                onCheckedChange={handlePublicToggle}
+                disabled={loading || subscription.status === 'FREE'}
+              />
+            )}
           </div>
           <p className="text-xs text-gray-500 mb-3">
             {subscription.status === 'FREE'
@@ -750,27 +756,20 @@ export default function ShareSettings({
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="viewer">
-                      Viewer (can view and participate)
-                    </SelectItem>
-                    <SelectItem
-                      value="editor"
-                      disabled={
-                        subscription.status === 'FREE' ||
-                        (subscription.status === 'PRO' && reachedEditorLimit)
-                      }
-                    >
-                      Editor (can modify {resourceTypeName.toLocaleLowerCase()})
-                    </SelectItem>
-                    <SelectItem
-                      value="owner"
-                      disabled={
-                        subscription.status === 'FREE' ||
-                        (subscription.status === 'PRO' && reachedEditorLimit)
-                      }
-                    >
-                      Owner (full control)
-                    </SelectItem>
+                    {assignableRoles.map((role) => (
+                      <SelectItem
+                        key={role}
+                        value={role}
+                        disabled={
+                          (ROLE_HIERARCHY[role] > 1 &&
+                            subscription.status === 'FREE') ||
+                          (subscription.status === 'PRO' && reachedEditorLimit)
+                        }
+                      >
+                        {roleLabelsAndDescription[role].label} (
+                        {roleLabelsAndDescription[role].description})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500">
@@ -945,62 +944,58 @@ export default function ShareSettings({
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Select
-                              value={usr.role}
-                              onValueChange={(newRole) =>
-                                handleUpdatePermission(usr.id, newRole as any)
-                              }
-                              disabled={
-                                updatingUserId === usr.id ||
-                                user?.sub === usr.id ||
-                                (subscription.status === 'FREE' &&
-                                  usr.role !== 'editor' &&
-                                  reachedEditorLimit)
-                              }
-                            >
-                              <SelectTrigger className="w-[140px] h-8">
-                                <SelectValue placeholder="Select role" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="viewer">Viewer</SelectItem>
-                                <SelectItem
-                                  value="editor"
-                                  disabled={
-                                    subscription.status === 'FREE' ||
-                                    (subscription.status === 'PRO' &&
-                                      reachedEditorLimit)
-                                  }
-                                >
-                                  Editor
-                                </SelectItem>
-                                <SelectItem
-                                  value="owner"
-                                  disabled={
-                                    subscription.status === 'FREE' ||
-                                    (subscription.status === 'PRO' &&
-                                      reachedEditorLimit)
-                                  }
-                                >
-                                  Owner
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-
-                            {user?.sub !== usr.id && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-gray-500 hover:text-red-500"
-                                onClick={() => handleRemovePermission(usr.id)}
-                                disabled={updatingUserId === usr.id}
+                            {hasRoleHigherThan(usr.role) && (
+                              <Select
+                                value={usr.role}
+                                onValueChange={(newRole) =>
+                                  handleUpdatePermission(usr.id, newRole as any)
+                                }
+                                disabled={
+                                  updatingUserId === usr.id ||
+                                  user?.sub === usr.id ||
+                                  (subscription.status === 'FREE' &&
+                                    usr.role !== 'editor' &&
+                                    reachedEditorLimit)
+                                }
                               >
-                                {updatingUserId === usr.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <X className="h-4 w-4" />
-                                )}
-                              </Button>
+                                <SelectTrigger className="w-[140px] h-8">
+                                  <SelectValue placeholder="Select role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {assignableRoles.map((role) => (
+                                    <SelectItem
+                                      key={role}
+                                      value={role}
+                                      disabled={
+                                        ROLE_HIERARCHY[role] > 1 &&
+                                          (subscription.status === 'FREE' ||
+                                          (subscription.status === 'PRO' &&
+                                            reachedEditorLimit))
+                                      }
+                                    >
+                                      {roleLabelsAndDescription[role].label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             )}
+
+                            {user?.sub !== usr.id &&
+                              hasRoleHigherThan(usr.role) && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-gray-500 hover:text-red-500"
+                                  onClick={() => handleRemovePermission(usr.id)}
+                                  disabled={updatingUserId === usr.id}
+                                >
+                                  {updatingUserId === usr.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <X className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              )}
                           </div>
                         </div>
                       ))}
@@ -1028,7 +1023,7 @@ export default function ShareSettings({
                               </span>
                               <span className="text-xs text-gray-500 ml-2">
                                 {new Date(
-                                  invitation.created_at,
+                                  invitation.created_at
                                 ).toLocaleDateString()}
                               </span>
                             </div>
@@ -1068,7 +1063,6 @@ export default function ShareSettings({
             <div className="flex space-x-2">
               <Button
                 variant="outline"
-                className="mr-2"
                 onClick={() => setIsOpen(false)}
                 disabled={isSubmitting || isLoadingPermissions}
               >
@@ -1079,7 +1073,7 @@ export default function ShareSettings({
                 <Button onClick={handleInvite} disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin" />
                       Sending...
                     </>
                   ) : (

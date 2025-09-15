@@ -52,6 +52,7 @@ export type RequestData = {
 export interface OpenAIMessage {
   role: 'assistant' | 'user';
   content: string;
+  is_final?: boolean;
 }
 
 export interface OpenAIMessageWithContext extends OpenAIMessage {

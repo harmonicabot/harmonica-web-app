@@ -8,11 +8,13 @@ import {
 } from '@/components/ui/card';
 import ParticipantSessionRow from './ParticipantSessionRow';
 import SortableTable, { TableHeaderData } from '../SortableTable';
-import { UserSession } from '@/lib/schema';
+import { UserSession, HostSession } from '@/lib/schema';
+import { Button } from '@/components/ui/button';
 import GenerateResponsesModal from './GenerateResponsesModal';
 import ImportResponsesModal from './ImportResponsesModal';
+import { Download, Sparkles } from 'lucide-react';
+import ExportSection from '../Export/ExportSection';
 import { useSubscription } from '@/hooks/useSubscription';
-import { Button } from '@/components/ui/button';
 import { LockIcon } from 'lucide-react';
 import { PricingModal } from '../pricing/PricingModal';
 
@@ -33,14 +35,17 @@ export type ParticipantsTableData = {
 export default function SessionParticipantsTable({
   sessionId,
   userData,
+  hostData,
   onIncludeInSummaryChange,
 }: {
   sessionId: string;
   userData: UserSession[];
+  hostData: HostSession;
   onIncludeInSummaryChange: (userId: string, included: boolean) => void;
 }) {
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const { status: subscriptionTier } = useSubscription();
   const isFreeUser = subscriptionTier === 'FREE';
@@ -172,6 +177,24 @@ export default function SessionParticipantsTable({
               )}
             </CardDescription>
           </div>
+          <div className="flex gap-2">
+            {userData.length > 0 && (
+                          <Button
+              variant="ghost"
+              onClick={() => setIsExportModalOpen(true)}
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => setIsGenerateModalOpen(true)}
+            >
+              <Sparkles className="w-4 h-4" />
+              Generate Responses
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {userData.length === 0 ? (
@@ -198,6 +221,16 @@ export default function SessionParticipantsTable({
           sessionId={sessionId}
         />
       </Card>
+      
+      {/* Export Modal */}
+      <ExportSection
+        hostData={hostData}
+        userData={userData}
+        id={sessionId}
+        className="hidden"
+        isOpen={isExportModalOpen}
+        onOpenChange={setIsExportModalOpen}
+      />
     </>
   );
 }
