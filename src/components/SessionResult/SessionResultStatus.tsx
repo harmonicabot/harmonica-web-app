@@ -2,17 +2,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, User } from "lucide-react";
 import { format } from "date-fns";
-import { start } from "repl";
+import { SessionStatus } from "@/lib/clientUtils";
 
 interface SessionResultStatusProps {
-  finalReportSent: boolean;
+  status: SessionStatus;
   startTime: Date | string;
   numSessions: number;
   completedSessions: number;
 }
 
 export default function SessionResultStatus({
-  finalReportSent,
+  status,
   startTime,
   numSessions,
   completedSessions
@@ -30,33 +30,15 @@ export default function SessionResultStatus({
           </div>
         </CardHeader>
         <CardContent>
-          {finalReportSent ? (
-            <Badge variant="outline" className="text-purple-900 bg-purple-100 mb-3">
-              Finished
+          <Badge variant="outline" className={
+            status === SessionStatus.ACTIVE ? "bg-lime-100 text-lime-900 mb-3"
+              : status === SessionStatus.DRAFT ? "text-purple-900 bg-purple-100 mb-3"
+                : "text-gray-500 bg-gray-100 mb-3"}>
+              {status}
             </Badge>
-          ) : (
-            <Badge
-              variant="outline"
-              className="bg-lime-100 text-lime-900 mb-3"
-            >
-              Active
-            </Badge>
-          )}
           <p> Started on
             <span className="font-medium"> {startTimeString}</span>
           </p>
-        </CardContent>
-      </Card>
-      <Card className="flex-grow">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-md">Participants</CardTitle>
-            <User className="w-4 h-4 text-muted-foreground" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p><span className="font-medium">{numSessions}</span> <span className="text-yellow-800">Started</span></p>
-          <p><span className="font-medium">{completedSessions}</span> <span className="text-lime-800">Completed</span></p>
         </CardContent>
       </Card>
     </div>

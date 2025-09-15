@@ -7,7 +7,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { VersionedPrompt } from './creationFlow';
 import { Spinner } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
-import ChatPopupButton from '@/components/ChatPopupButton';
 import { HRMarkdown } from '@/components/HRMarkdown';
 import { Eye } from 'lucide-react';
 import { useUser } from '@auth0/nextjs-auth0/client';
@@ -16,7 +15,7 @@ import { isAdmin } from '@/lib/serverUtils';
 export default function ReviewPrompt({
   prompts,
   setPrompts,
-  streamingPrompt,
+  summarizedPrompt,
   currentVersion,
   setCurrentVersion,
   isEditing,
@@ -24,7 +23,7 @@ export default function ReviewPrompt({
 }: {
   prompts: VersionedPrompt[];
   setPrompts: (value: SetStateAction<VersionedPrompt[]>) => void;
-  streamingPrompt: string;
+  summarizedPrompt: string;
   currentVersion: number;
   setCurrentVersion: (version: number) => void;
   isEditing: boolean;
@@ -39,13 +38,11 @@ export default function ReviewPrompt({
   const user = useUser().user;
 
   useEffect(() => {
-    
     if (user) {
       isAdmin(user).then(setAdvancedMode);
     }
   }, []);
   console.log('Advanced mode: ', advancedMode);
-
 
   const handleSubmit = async () => {
     setGenerating(true);
@@ -54,7 +51,7 @@ export default function ReviewPrompt({
 
   useEffect(() => {
     setGenerating(false);
-  }, [streamingPrompt, prompts]);
+  }, [summarizedPrompt, prompts]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -74,7 +71,7 @@ export default function ReviewPrompt({
     setPrompts((prev) => {
       prev[promptId - 1] = updatedPrompt;
       console.log('Updated prompts: ', prev);
-      return [...prev] 
+      return [...prev];
     });
     setShowModalState(false);
   };
@@ -86,9 +83,7 @@ export default function ReviewPrompt({
           <div className="bg-white p-8 rounded-lg w-full h-svh overflow-auto flex flex-col">
             <div className="flex justify-between">
               <h2 className="text-2xl font-bold mb-4">Full Prompt</h2>
-              <Button onClick={() => closeAndUpdateFullPrompt(1)}>
-                Close
-              </Button>
+              <Button onClick={() => closeAndUpdateFullPrompt(1)}>Close</Button>
             </div>
 
             <Textarea
@@ -106,55 +101,60 @@ export default function ReviewPrompt({
       >
         <div className="lg:flex h-full">
           <div className={`${isEditing ? 'lg:w-2/3' : ''} overflow-auto`}>
-            {streamingPrompt ||
-              (generating && (
-                <Card className={`p-6 bg-purple-50 my-4`}>
-                  {streamingPrompt ? (
-                    <>
-                      <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold">
-                          v{prompts.length + 1}
-                        </h2>
-                      </div>
-                      <div>
-                        <HRMarkdown content={streamingPrompt} />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-xl font-semibold">Generating...</h2>
-                      <Spinner />
-                    </div>
-                  )}
+            {generating ? (
+              <Card className={`p-6 bg-yellow-50 my-4`}>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold">Generating...</h2>
+                  <Spinner />
+                </div>
+              </Card>
+            ) : (
+              summarizedPrompt.length > 0 && (
+                <Card className={`p-6 bg-yellow-50 my-4`}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">
+                      <Badge variant="outline">v{prompts.length + 1}</Badge>
+                    </h2>
+                  </div>
+                  <div>
+                    <HRMarkdown content={summarizedPrompt} />
+                  </div>
                 </Card>
-              ))}
+              )
+            )}
             {prompts.toReversed().map((prompt, index) => (
               <Card
                 key={prompt.id}
                 className={`p-6 my-4 ${
                   prompt.id === currentVersion && !generating
-                    ? 'bg-purple-100'
+                    ? 'bg-yellow-50'
                     : 'bg-white'
                 }`}
               >
                 <div className="flex justify-between items-center mb-4">
                   <Badge variant="outline">v{prompts.length - index}</Badge>
-                  <div className='flex flex-row items-center'>
+                  <div className="flex flex-row items-center">
                     {advancedMode && (
-                      <Eye 
+                      <Eye
                         className="mr-2"
                         onClick={() => showFullPrompt(prompt.id)}
                       />
                     )}
+                    {/* Disabling the 'Test' chat, it doesn't work because we don't have the session ID yet, but it's needed for the AI to use the actual prompt...
                     <ChatPopupButton
                       prompt={prompt}
-                    />
+                    /> */}
                     {prompt.id !== currentVersion ? (
-                      <Button className='border-[1px]' onClick={() => setCurrentVersion(prompt.id)}>
+                      <Button
+                        className="border-[1px]"
+                        onClick={() => setCurrentVersion(prompt.id)}
+                      >
                         Select
                       </Button>
                     ) : (
-                      <Button className='border-[1px]' disabled>Selected</Button>
+                      <Button className="border-[1px]" disabled>
+                        Selected
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -181,12 +181,6 @@ export default function ReviewPrompt({
                 </Button>
               </>
             )}
-            {/* {chatOpen && (
-              <ChatComponent
-                entryMessage={{ type: 'user', text: `Hello! Do you want to try how this structure works?`}}
-                assistantId={tempAssistantId}
-              />
-            )} */}
           </div>
         </div>
       </div>

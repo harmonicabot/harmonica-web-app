@@ -43,7 +43,7 @@ const nextConfig = {
     // This is supposed to prevent route handler caching
     serverActions: {
       allowedOrigins: ['localhost:3000'],
-      bodySizeLimit: '2mb',
+      bodySizeLimit: '10mb',
     },
   },
   webpack: (config, { isServer }) => {
@@ -55,7 +55,10 @@ const nextConfig = {
     config.ignoreWarnings = [
       { module: /node_modules\/onnxruntime-node/ },
       { module: /node_modules\/@huggingface\/transformers/ },
-      { message: /Critical dependency: Accessing import\.meta directly is unsupported/ }
+      {
+        message:
+          /Critical dependency: Accessing import\.meta directly is unsupported/,
+      },
     ];
 
     // Add a rule to handle .node files

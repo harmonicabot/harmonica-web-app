@@ -1,42 +1,69 @@
 'use client';
+import { SessionStatus } from '@/lib/clientUtils';
 import SessionResultControls from './SessionResultControls';
-import SessionResultShare from './SessionResultShare';
+import SessionResultParticipants from './SessionResultShare';
 import SessionResultStatus from './SessionResultStatus';
 import { usePermissions } from '@/lib/permissions';
 
 export default function SessionResultsOverview({
   id,
-  active,
+  status,
   startTime,
   numSessions,
   completedSessions,
-  showShare = true
+  showShare = true,
+  currentPrompt,
+  summaryPrompt,
+  crossPollination,
+  sessionData,
 }: {
   id: string;
-  active: boolean;
+  status: SessionStatus;
   startTime: Date;
   numSessions: number;
   completedSessions: number;
-  showShare?: boolean
-  }) {
-
+  showShare?: boolean;
+  currentPrompt?: string;
+  summaryPrompt?: string;
+  crossPollination?: boolean;
+  sessionData?: {
+    topic: string;
+    goal: string;
+    critical: string;
+    context: string;
+    crossPollination: boolean;
+    promptSummary: string;
+    facilitationPrompt: string;
+  };
+}) {
   const { hasMinimumRole, loading } = usePermissions(id);
   return (
     <div className="flex flex-col md:flex-row gap-4">
-      {active && !loading && hasMinimumRole('editor') && (
+      {!loading && hasMinimumRole('editor') && (
         <SessionResultControls
           id={id}
-          isFinished={!active}
+          isFinished={status === SessionStatus.FINISHED}
           readyToGetSummary={numSessions > 0}
+          currentPrompt={currentPrompt}
+          summaryPrompt={summaryPrompt}
+          crossPollination={crossPollination}
+          sessionData={sessionData}
         />
       )}
       <SessionResultStatus
-        finalReportSent={!active}
+        status={status}
         startTime={startTime}
         numSessions={numSessions}
         completedSessions={completedSessions}
       />
-      {active && showShare && <SessionResultShare sessionId={id} />}
+      {showShare && (
+        <SessionResultParticipants
+          sessionId={id}
+          numSessions={numSessions}
+          completedSessions={completedSessions}
+          isFinished={status === SessionStatus.FINISHED}
+        />
+      )}
     </div>
   );
 }

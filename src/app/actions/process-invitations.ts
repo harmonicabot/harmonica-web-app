@@ -43,13 +43,13 @@ export async function processUserInvitations(): Promise<{
 
     if (!userEmail || !userId) {
       console.log(
-        `User email or ID not available: `,
+        `User email or ID (sub) not available: `,
         JSON.stringify(session.user, null, 2)
       );
 
       return {
         success: false,
-        error: 'User email or ID not available',
+        error: 'User email or ID (sub) not available',
         processed: 0,
       };
     }

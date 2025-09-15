@@ -1,12 +1,9 @@
-import { deleteSessionById } from "@/lib/db";
+import * as db from '@/lib/db';
 
 export async function deleteSession(id: string) {
-  if (
-    confirm(
-      `Are you sure you want to delete this session and all associated data? \n\n${id}` // Todo: get the session topic instead of just id?
-    )
-  ) {
-    return await deleteSessionById(id);
-  }
-  return false;
+  return await db.deleteSessionById(id);
+}
+
+export async function deleteWorkspace(id: string) {
+  return await db.deleteWorkspace(id);
 }

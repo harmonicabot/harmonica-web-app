@@ -1,9 +1,8 @@
 import * as db from '@/lib/db';
 import { getLLM } from '@/lib/modelConfig';
-import { getPromptInstructions } from '@/lib/promptsCache';
 
-export async function generateMultiSessionSummary(sessionIds: string[]) {
-  // console.log('[i] Generating multi-session summary for sessions:', sessionIds);
+export async function generateSummary(sessionIds: string[], summaryPrompt: string) {
+  console.log('[i] Generating summary for sessions:', sessionIds);
   try {
     // Get session context and objective data for all sessions
     const sessionsData = await Promise.all(
@@ -21,7 +20,7 @@ export async function generateMultiSessionSummary(sessionIds: string[]) {
     // Get all messages from all sessions
     const sessionMessages = await Promise.all(
       sessionIds.map(async (sessionId) => {
-        // Get all messages for this session
+        // Get all messages for this session of users that should be included in the summary
         const messages = await db.getAllMessagesForSessionSorted(sessionId);
         return messages.map((msg) => ({ ...msg, sessionId })); // Tag messages with their sessionId
       }),
@@ -114,8 +113,6 @@ ${sessionsData[sessionIndex]?.critical ? `Key Points: ${sessionsData[sessionInde
 ### Historical Messages by Session:
 ${messagesContent}
 `;
-
-    const summaryPrompt = await getPromptInstructions('SUMMARY_PROMPT');
 
     const response = await chatEngine.chat({
       messages: [

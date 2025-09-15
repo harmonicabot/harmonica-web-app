@@ -4,10 +4,16 @@ import { NewMessage } from '@/lib/schema';
 import { AssistantMessageData } from '@/lib/types';
 import { ChatMessage } from 'llamaindex';
 import { NextResponse } from 'next/server';
-import { getAllChatMessagesInOrder, getHostSessionById } from '@/lib/db';
+import {
+  getAllChatMessagesInOrder,
+  getHostSessionById,
+  updateUserSession,
+  increaseSessionsCount,
+} from '@/lib/db';
 import { initializeCrossPollination } from '@/lib/crossPollination';
 import { getLLM } from '@/lib/modelConfig';
 import { getPromptInstructions } from '@/lib/promptsCache';
+import { isSessionComplete } from '@/lib/sessionGenerator';
 
 // Add a new variable to track when we should skip cross-pollination
 let skipCrossPollination = 0;
@@ -34,7 +40,7 @@ export async function finishedResponse(
           role: 'user',
           content: userPrompt,
         },
-      ]
+      ],
     });
 
     console.log('[i] Completion response:', JSON.stringify(response));
@@ -48,6 +54,7 @@ export async function finishedResponse(
 
 export async function handleGenerateAnswer(
   messageData: AssistantMessageData,
+  crossPollinationEnabled: boolean,
 ): Promise<NewMessage> {
   console.log(`[i] Generating answer for message: `, messageData);
 
@@ -55,69 +62,70 @@ export async function handleGenerateAnswer(
     ? await getAllChatMessagesInOrder(messageData.threadId)
     : [];
 
-  // Only attempt cross-pollination if there are enough messages and we're not in skip mode
-  const shouldAttemptCrossPollination =
-    messages.length >= 3 && skipCrossPollination <= 0;
-  console.log(
-    `[i] Message count: ${messages.length}, should attempt cross-pollination: ${shouldAttemptCrossPollination}, skip counter: ${skipCrossPollination}`,
-  );
+  // Skip cross-pollination logic entirely if it's disabled
+  if (crossPollinationEnabled) {
+    // Only attempt cross-pollination if there are enough messages and we're not in skip mode
+    const shouldAttemptCrossPollination =
+      messages.length >= 2 && skipCrossPollination <= 0;
+    console.log(
+      `[i] Message count: ${messages.length}, should attempt cross-pollination: ${shouldAttemptCrossPollination}, skip counter: ${skipCrossPollination}`,
+    );
 
-  if (
-    shouldAttemptCrossPollination &&
-    messageData.sessionId &&
-    messageData.threadId
-  ) {
-    try {
-      console.log('[i] Initializing cross-pollination manager');
-      const crossPollination = await initializeCrossPollination(
-        messageData.sessionId,
-      );
+    if (
+      shouldAttemptCrossPollination &&
+      messageData.sessionId &&
+      messageData.threadId
+    ) {
+      try {
+        console.log('[i] Initializing cross-pollination manager');
+        const crossPollination = await initializeCrossPollination(
+          messageData.sessionId,
+        );
 
-      // Check if we should trigger cross-pollination
-      console.log('[i] Analyzing session state for cross-pollination');
+        // Check if we should trigger cross-pollination
+        console.log('[i] Analyzing session state for cross-pollination');
 
-      // Use the manager's analyzeSessionState method with threadId
-      const shouldCrossPollinate = await crossPollination.analyzeSessionState(
-        messageData.threadId,
-      );
-      console.log(`[i] Should cross-pollinate: ${shouldCrossPollinate}`);
+        // Use the manager's analyzeSessionState method with threadId
+        const shouldCrossPollinate = await crossPollination.analyzeSessionState(
+          messageData.threadId,
+        );
+        console.log(`[i] Should cross-pollinate: ${shouldCrossPollinate}`);
 
-      if (shouldCrossPollinate) {
-        console.log('[i] Cross-pollination triggered');
+        if (shouldCrossPollinate) {
+          console.log('[i] Cross-pollination triggered');
 
-        // Set the skip counter to 2 (skip next two interactions)
-        skipCrossPollination = 2;
-        crossPollination.setLastCrossPollination();
+          // Set the skip counter to 2 (skip next two interactions)
+          skipCrossPollination = 2;
+          crossPollination.setLastCrossPollination();
 
-        // Generate a cross-pollination question based on other threads
-        const crossPollinationQuestion =
-          await crossPollination.generateCrossPollinationQuestion(
-            messageData.threadId,
-          );
+          // Generate a cross-pollination question based on other threads
+          const crossPollinationQuestion =
+            await crossPollination.generateCrossPollinationQuestion(
+              messageData.threadId,
+            );
 
-        // Return the cross-pollination question
-        return {
-          thread_id: messageData.threadId || '',
-          role: 'assistant',
-          content: `💡 Cross-pollination insight: ${crossPollinationQuestion}`,
-          created_at: new Date(),
-        };
-      } else {
-        console.log('[i] Cross-pollination not triggered for this message');
+          // Return the cross-pollination question
+          return {
+            thread_id: messageData.threadId || '',
+            role: 'assistant',
+            content: `💡 Cross-pollination insight: ${crossPollinationQuestion}`,
+            created_at: new Date(),
+          };
+        }
+      } catch (error) {
+        console.error('[x] Error in cross-pollination:', error);
+        // Continue with normal processing without cross-pollination
       }
-    } catch (error) {
-      console.error('[x] Error in cross-pollination:', error);
-      // Continue with normal processing without cross-pollination
+    } else {
+      // Decrement the skip counter if it's greater than 0
+      if (skipCrossPollination > 0) {
+        skipCrossPollination--;
+        console.log(
+          `[i] Skipping cross-pollination, counter decreased to: ${skipCrossPollination}`,
+        );
+      }
+      console.log('[i] Not attempting cross-pollination for this message');
     }
-  } else {
-    // Decrement the skip counter if it's greater than 0
-    if (skipCrossPollination > 0) {
-      skipCrossPollination--;
-      console.log(
-        `[i] Skipping cross-pollination, counter decreased to: ${skipCrossPollination}`,
-      );
-    }
-    console.log('[i] Not attempting cross-pollination for this message');
   }
 
   // Get host session data directly using session_id
@@ -149,19 +157,30 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
     ...messages.map((msg) => ({
       role: msg.role as 'user' | 'assistant',
       content: msg.content,
-    }))
+    })),
   ];
 
   console.log('[i] Formatted messages:', formattedMessages);
 
   try {
-    const message = await chatEngine.chat({ messages: formattedMessages as ChatMessage[] });
+    const message = await chatEngine.chat({
+      messages: formattedMessages as ChatMessage[],
+    });
     console.log('[i] Response:', message);
+
+    let isFinal = false;
+
+    // Check if this response is final, but only after 6 messages
+    if (messageData.sessionId && messages.length >= 6) {
+      isFinal = await isSessionComplete(message, sessionData);
+    }
+
     return {
       thread_id: messageData.threadId || '',
       role: 'assistant',
       content: message,
       created_at: new Date(),
+      is_final: isFinal,
     };
   } catch (error) {
     console.error('[x] Error generating response:', error);

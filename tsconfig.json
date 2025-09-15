@@ -9,6 +9,7 @@
       "@/context/*": ["context/*"],
       "@/stores/*": ["stores/*"],
       "@/lib/*": ["lib/*"],
+      "@/hooks/*": ["hooks/*"],
     },
     "allowJs": true,
     "skipLibCheck": true,

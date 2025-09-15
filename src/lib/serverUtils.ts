@@ -1,9 +1,11 @@
 'use server';
 import * as db from './db';
 import { UserProfile } from '@auth0/nextjs-auth0/client';
-import { generateMultiSessionSummary } from './summaryMultiSession';
-import { getSession } from "@auth0/nextjs-auth0";
-import { NewUser } from "./schema";
+import { generateSummary } from './summaryMultiSession';
+import { getSession } from '@auth0/nextjs-auth0';
+import { NewUser, NewHostSession } from './schema';
+import { updateResourcePermission } from 'app/actions/permissions';
+import { getPromptInstructions } from '@/lib/promptsCache';
 
 export async function isAdmin(user: UserProfile) {
   console.log('Admin IDs: ', process.env.ADMIN_ID);
@@ -23,34 +25,44 @@ export async function syncCurrentUser(): Promise<boolean> {
     }
 
     const { sub, email, name, picture } = session.user;
-    
+
     if (!sub) {
       console.log('Missing required user ID (sub)');
       return false;
     }
 
+    // First, get existing user data to preserve subscription status
+    const existingUser = await db.getUserById(sub);
+
     // Handle case where email might be in the name field
     let userEmail = email;
     let userName = name;
-    
+
     // If email is missing but name contains an email format, use name as email
     if (!userEmail && userName && userName.includes('@')) {
       userEmail = userName;
     }
-    
+
     if (!userEmail) {
       console.log('Missing required email data');
       return false;
     }
 
-    // Create or update user record
+    // Create or update user record, preserving existing subscription data
     const userData: NewUser = {
       id: sub,
       email: userEmail,
       name: userName || undefined,
       avatar_url: picture || undefined,
+      // Only set subscription_status to FREE if it's a new user
+      subscription_status: existingUser?.subscription_status || 'FREE',
+      // Preserve other subscription-related fields
+      subscription_id: existingUser?.subscription_id,
+      subscription_period_end: existingUser?.subscription_period_end,
+      stripe_customer_id: existingUser?.stripe_customer_id,
     };
 
+    console.log('Syncing user data while preserving subscription:', userData);
     const result = await db.upsertUser(userData);
     return !!result;
   } catch (error) {
@@ -73,67 +85,50 @@ export async function getCurrentUserId(): Promise<string | null> {
 }
 
 /**
- * Check if current user has access to a workspace
- * @param workspaceId The workspace ID to check access for
+ * Check if current user has access to a session or workspace
+ * @param resourceId The session or workspace ID to check access for
  * @returns True if the user has access, false otherwise
  */
-export async function hasWorkspaceAccess(workspaceId: string): Promise<boolean> {
+export async function hasAccessToResource(
+  resourceId: string,
+): Promise<boolean> {
   try {
+    // Check public access
+    const publicPermission = await db.getRoleForUser(resourceId, 'public');
+    if (publicPermission) return true;
+
     const userId = await getCurrentUserId();
     if (!userId) return false;
-    
+
     // Check direct permission
-    const permission = await db.getPermission(workspaceId, userId, 'WORKSPACE');
+    const permission = await db.getRoleForUser(resourceId, userId);
     if (permission) return true;
-    
+
     // Check global permission
-    const globalPermission = await db.getPermission('global', userId);
+    const globalPermission = await db.getRoleForUser('global', userId);
     if (globalPermission) return true;
-    
-    // Check public access
-    const publicPermission = await db.getPermission(workspaceId, 'public', 'WORKSPACE');
-    if (publicPermission) return true;
-    
+
     return false;
   } catch (error) {
-    console.error('Error checking workspace access:', error);
+    console.error(`Error checking access for resource ${resourceId}:`, error);
     return false;
   }
 }
 
-/**
- * Check if current user has access to a session
- * @param sessionId The session ID to check access for
- * @returns True if the user has access, false otherwise
- */
-export async function hasSessionAccess(sessionId: string): Promise<boolean> {
-  try {
-    const userId = await getCurrentUserId();
-    if (!userId) return false;
-    
-    // Check direct permission
-    const permission = await db.getPermission(sessionId, userId, 'SESSION');
-    if (permission) return true;
-    
-    // Check public access
-    const publicPermission = await db.getPermission(sessionId, 'public', 'SESSION');
-    if (publicPermission) return true;
-
-    // Check global permission
-    const globalPermission = await db.getPermission('global', userId);
-    if (globalPermission) return true;
-    
-    return false;
-  } catch (error) {
-    console.error('Error checking session access:', error);
-    return false;
-  }
+export async function fetchPromptInstructions(promptName: string) {
+  return await getPromptInstructions(promptName);
 }
 
 // Create a summary for a single session
 export async function createSummary(sessionId: string) {
-  const summary = await generateMultiSessionSummary([sessionId]);
-
+  const sessionSummaryPrompt = await db.getFromHostSession(sessionId, [
+    'summary_prompt',
+  ]);
+  const summaryPrompt =
+    sessionSummaryPrompt?.summary_prompt ??
+    (await getPromptInstructions('SUMMARY_PROMPT'));
+  const summary = await generateSummary([sessionId], summaryPrompt);
+  console.log('Generated summary:', summary);
   await db.updateHostSession(sessionId, {
     summary: summary.toString(),
     last_edit: new Date(),
@@ -146,11 +141,96 @@ export async function createMultiSessionSummary(
   sessionIds: string[],
   workspaceId: string,
 ) {
-  const summary = await generateMultiSessionSummary(sessionIds);
+  const workspace = await db.getWorkspaceById(workspaceId);
+  const summaryPrompt =
+    workspace?.summary_prompt ??
+    (await getPromptInstructions('PROJECT_SUMMARY_PROMPT'));
+  const summary = await generateSummary(sessionIds, summaryPrompt);
 
   await db.updateWorkspace(workspaceId, {
     summary: summary.toString(),
     last_modified: new Date(),
   });
   return summary;
+}
+
+export async function getSummaryVersion(resourceId: string) {
+  if (!resourceId) {
+    throw new Error('resourceId is required');
+  }
+
+  try {
+    // Only fetch the last_edit column for efficiency
+    const result = await db.getFromHostSession(resourceId, ['last_edit']);
+    
+    if (!result) {
+      throw new Error('Resource not found');
+    }
+
+    return {
+      lastUpdated: result.last_edit.toISOString(),
+      resourceId
+    };
+  } catch (error) {
+    console.error('Error fetching summary version:', error);
+    throw error;
+  }
+}
+
+export async function cloneSession(sessionId: string): Promise<string | null> {
+  try {
+    // Get the session to clone
+    const sessionToClone = await db.getHostSessionById(sessionId);
+
+    if (!sessionToClone) {
+      console.error(`Session with ID ${sessionId} not found`);
+      return null;
+    }
+
+    // Get current user for permissions
+    const session = await getSession();
+    const userSub = session?.user?.sub;
+
+    if (!userSub) {
+      console.warn('No user ID found when cloning session');
+      return null;
+    }
+
+    // Create a new session with the cloned data
+    const newSessionData: NewHostSession = {
+      active: true, // inactive = finished; 'draft' =
+      num_sessions: 0,
+      num_finished: 0,
+      prompt: sessionToClone.prompt,
+      assistant_id: sessionToClone.assistant_id,
+      template_id: sessionToClone.template_id,
+      summary_assistant_id: sessionToClone.summary_assistant_id,
+      topic: `${sessionToClone.topic} (Copy)`,
+      final_report_sent: false,
+      start_time: new Date(),
+      goal: sessionToClone.goal,
+      critical: sessionToClone.critical,
+      context: sessionToClone.context,
+      prompt_summary: sessionToClone.prompt_summary,
+      questions: sessionToClone.questions
+        ? (JSON.stringify(sessionToClone.questions) as unknown as JSON)
+        : undefined,
+      is_public: false,
+    };
+
+    // Create the new session
+    const newSessionIds = await db.insertHostSessions(newSessionData);
+    if (!newSessionIds || newSessionIds.length === 0) {
+      throw new Error('Failed to create new session');
+    }
+    const newSessionId = newSessionIds[0];
+
+    // Set the current user as the owner of the new session
+    await updateResourcePermission(newSessionId, userSub, 'owner', 'SESSION');
+
+    return newSessionId;
+  } catch (error) {
+    console.error('Error cloning session:', error);
+    return null;
+  }
 }

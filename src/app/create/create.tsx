@@ -5,6 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { SessionBuilderData } from '@/lib/types';
+import { Switch } from '@/components/ui/switch';
+import { InfoIcon } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export default function CreateSession({
   onSubmit,
@@ -29,6 +37,12 @@ export default function CreateSession({
     }
   }, [formData.sessionName, formData.goal, isSubmitAttempted]);
 
+  useEffect(() => {
+    if (formData.crossPollination === undefined) {
+      onFormDataChange({ crossPollination: true });
+    }
+  }, []);
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -39,6 +53,10 @@ export default function CreateSession({
       }));
     }
     onFormDataChange({ [e.target.name]: e.target.value });
+  };
+
+  const handleToggleChange = (checked: boolean) => {
+    onFormDataChange({ crossPollination: checked });
   };
 
   const validateForm = () => {
@@ -99,6 +117,7 @@ export default function CreateSession({
           Enter a clear session name that will be shared with participants
         </p>
       </div>
+
       <div className="space-y-2">
         <Label htmlFor="goal" size="lg">
           What is the objective of your Session?*
@@ -122,6 +141,7 @@ export default function CreateSession({
           Summarize what you aim to learn or achieve in this session
         </p>
       </div>
+
       <div className="space-y-2">
         <Label htmlFor="critical" size="lg">
           What is critical for you to gather from your participants answers?
@@ -138,7 +158,50 @@ export default function CreateSession({
           Specify what kind of information or details you need from participant
           responses
         </p>
+
+        <div className="pt-4">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="crossPollination" size="lg">
+              Cross Pollination
+            </Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="focus:outline-none"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[300px]">
+                  <p>
+                    Enable cross-pollination to allow participants to see and
+                    build upon each other's responses. This feature promotes
+                    collaborative thinking and can lead to more diverse and
+                    innovative ideas.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex items-center space-x-2 mt-2">
+            <Switch
+              id="crossPollination"
+              checked={formData.crossPollination}
+              onCheckedChange={handleToggleChange}
+            />
+            <Label
+              htmlFor="crossPollination"
+              className="text-sm text-muted-foreground"
+            >
+              Allow participants to see and build upon each other's responses
+            </Label>
+          </div>
+        </div>
       </div>
+
       <div className="space-y-2">
         <Label htmlFor="context" size="lg">
           What context would be useful for our AI to know?

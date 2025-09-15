@@ -15,7 +15,6 @@ export function SimScoreTab({
   resourceId,
 }: {
   userData: UserSession[];
-  hostData: HostSession;
   resourceId: string;
 }) {
   const [generatingSimScore, setGenerating] = useState(false);

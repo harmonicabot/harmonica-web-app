@@ -1,10 +1,10 @@
 import { SessionData } from '@/lib/hooks/useSessionData';
-import SessionResultHeader, { SessionStatus } from '@/components/SessionResult/SessionResultHeader';
+import SessionResultHeader from '@/components/SessionResult/SessionResultHeader';
 import SessionResultsOverview from '@/components/SessionResult/SessionResultsOverview';
 import SessionResultsSection from '@/components/SessionResult/SessionResultsSection';
-import ErrorPage from '@/components/Error';
 import { OpenAIMessage } from '@/lib/types';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
+import { SessionStatus } from '@/lib/clientUtils';
 
 interface SessionPageProps {
   data: SessionData;
@@ -21,21 +21,39 @@ export default function SessionPage({
 }: SessionPageProps) {
   const { hostData, usersWithChat, stats } = data;
 
+  const status =
+    !hostData.active || hostData.final_report_sent
+      ? SessionStatus.FINISHED
+      : stats.totalUsers === 0
+        ? SessionStatus.DRAFT
+        : SessionStatus.ACTIVE;
+
   return (
     <div className="p-4 md:p-8">
       <SessionResultHeader
+        sessionId={hostData.id}
         topic={hostData.topic}
-        status={
-          !hostData.active ? SessionStatus.REPORT_SENT : SessionStatus.ACTIVE
-        }
+        status={status}
       />
       <SessionResultsOverview
         id={hostData.id}
-        active={hostData.active}
+        status={status}
         startTime={hostData.start_time}
         numSessions={stats.totalUsers}
         completedSessions={stats.finishedUsers}
-        showShare={showShare && hostData.active}
+        showShare={showShare}
+        currentPrompt={hostData.prompt}
+        summaryPrompt={hostData.summary_prompt}
+        crossPollination={hostData.cross_pollination}
+        sessionData={{
+          topic: hostData.topic,
+          goal: hostData.goal,
+          critical: hostData.critical || '',
+          context: hostData.context || '',
+          crossPollination: hostData.cross_pollination,
+          promptSummary: hostData.prompt_summary || '',
+          facilitationPrompt: hostData.prompt || '',
+        }}
       />
       <SessionResultsSection
         hostData={hostData}
@@ -47,4 +65,4 @@ export default function SessionPage({
       />
     </div>
   );
-} 
+}
