@@ -149,7 +149,7 @@ Please type your name or "anonymous" if you prefer
         <SessionModal
           userFinished={userFinished}
           sessionClosed={!hostData?.active}
-          sessionId={sessionId}
+          sessionId={sessionId!}
           user={user}
           hostData={
             hostData

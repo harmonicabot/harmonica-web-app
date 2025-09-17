@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { encryptId } from '@/lib/encryptionUtils';
 import type { UserProfile } from '@auth0/nextjs-auth0/client';
-import { ChevronRight, AlertCircle, Loader2, ChevronLeft } from 'lucide-react';
+import { usePermissions } from '@/lib/permissions';
+import { ChevronRight, Loader2, ChevronLeft } from 'lucide-react';
 import { useState } from 'react';
 import { QuestionsModal, SUPPORTED_LANGUAGES } from './QuestionsModal';
 import { QuestionInfo, QuestionType } from 'app/create/types';
@@ -19,7 +20,7 @@ import {
 interface SessionModalProps {
   userFinished: boolean;
   sessionClosed: boolean;
-  sessionId: string | null;
+  sessionId: string;
   user?: UserProfile;
   hostData?: { topic: string; questions?: QuestionInfo[] };
   onStart: (answers?: Record<string, string>) => void;
@@ -40,6 +41,8 @@ export const SessionModal = ({
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const userPermissions = usePermissions(sessionId)
+  const userHasAccess = userPermissions.isPublic || userPermissions.hasMinimumRole("viewer")
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -130,7 +133,7 @@ export const SessionModal = ({
                 We appreciate your input. Please wait until all participants
                 have finished to receive the final report.
               </p>
-              {user && user.sub && (
+              {user && user.sub && userHasAccess && (
                 <Link href={`/sessions/${encryptId(sessionId!)}`} passHref>
                   <Button size="lg" className="mt-4">
                     View Results
