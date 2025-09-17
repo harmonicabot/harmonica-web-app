@@ -11,13 +11,13 @@ export function StepProgress({
   totalSteps, 
   isObjectivePrefilled = false 
 }: StepProgressProps) {
-  // Always show the actual step numbers (1-4)
-  const displayStep = currentStep;
+  // Always show the actual step numbers (0-4, but display as 1-5)
+  const displayStep = currentStep + 1;
   const displayTotal = totalSteps;
   
   // Calculate progress percentage
-  // Step 1: 5%, Step 2: 25%, Step 3: 50%, Step 4: 75%
-  const progressPercentage = ((currentStep - 1) * 25 + 5);
+  // Step 0: 5%, Step 1: 25%, Step 2: 45%, Step 3: 65%, Step 4: 85%
+  const progressPercentage = (currentStep * 20 + 5);
 
   return (
     <div className="w-full max-w-md mx-auto mb-8">

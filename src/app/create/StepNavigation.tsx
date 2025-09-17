@@ -25,8 +25,8 @@ export function StepNavigation({
   nextLabel = 'Next'
 }: StepNavigationProps) {
   // Determine if we're on the first step
-  // When objective is pre-filled, we can still go back to step 1 to see the pre-filled content
-  const isFirstStep = currentStep === 1;
+  // Back button is now enabled on first step to go back to dashboard
+  const isFirstStep = false; // Always allow back button
   
   // Determine if we're on the last step
   const isLastStep = currentStep === totalSteps;

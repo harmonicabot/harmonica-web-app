@@ -39,7 +39,7 @@ export default function CreationFlow() {
   const route = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
-  const [activeStep, setActiveStep] = useState<Step>(STEPS[0]);
+  const [activeStep, setActiveStep] = useState<Step>(STEPS[1]); // Start with 'Create' (multi-step form)
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
@@ -291,6 +291,7 @@ IMPORTANT:
         onFormDataChange={onFormDataChange}
         onValidationError={setHasValidationErrors}
         isLoading={isLoading}
+        onBackToDashboard={() => route.push('/')}
       />
     ),
     Refine: isLoading ? (

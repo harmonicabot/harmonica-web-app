@@ -15,6 +15,7 @@ interface MultiStepFormProps {
   onFormDataChange: (form: Partial<SessionBuilderData>) => void;
   onValidationError: (hasErrors: boolean) => void;
   isLoading?: boolean;
+  onBackToDashboard?: () => void;
 }
 
 export default function MultiStepForm({
@@ -22,23 +23,27 @@ export default function MultiStepForm({
   formData,
   onFormDataChange,
   onValidationError,
-  isLoading = false
+  isLoading = false,
+  onBackToDashboard
 }: MultiStepFormProps) {
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [currentStep, setCurrentStep] = useState<number>(0); // Start at step 0 (intro)
   const [stepValidations, setStepValidations] = useState<Record<number, StepValidation>>({});
   const [isObjectivePrefilled, setIsObjectivePrefilled] = useState(false);
 
-  // Check if objective is pre-filled on mount
+  // Check if objective is pre-filled on mount only
   useEffect(() => {
     if (formData.goal?.trim()) {
       setIsObjectivePrefilled(true);
-      setCurrentStep(2); // Skip to step 2 (critical)
+      setCurrentStep(2); // Skip to step 2 (critical) - intro is step 0, objective is step 1
     }
-  }, [formData.goal]);
+  }, []); // Empty dependency array - only run on mount
 
   // Validate current step
   const validateStep = (step: number): StepValidation => {
     switch (step) {
+      case 0: // Intro - no validation needed
+        return { isValid: true };
+
       case 1: // Objective
         if (!formData.goal?.trim()) {
           return { isValid: false, error: 'Please provide your session objective' };
@@ -110,8 +115,11 @@ export default function MultiStepForm({
 
   // Handle previous step
   const handlePrevious = () => {
-    if (currentStep > 1) {
+    if (currentStep > 0) {
       setCurrentStep(prev => prev - 1);
+    } else if (currentStep === 0 && onBackToDashboard) {
+      // On intro step (step 0), go back to dashboard
+      onBackToDashboard();
     }
   };
 
@@ -128,6 +136,42 @@ export default function MultiStepForm({
     const stepToRender = currentStep;
     
     switch (stepToRender) {
+      case 0: // Intro
+        return (
+          <div className="space-y-6 bg-white rounded-lg p-6 border -m-4">
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold mb-4">Let's build your session in just a few steps</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div className="p-4">
+                <div className="flex mx-auto mb-1">
+                  <span className="text-muted-foreground">1</span>
+                </div>
+                <h3 className="font-semibold text-lg mb-2">Create</h3>
+                <p className="text-sm text-muted-foreground">Tell us what you want to discover and we'll craft the perfect questions.</p>
+              </div>
+              
+              <div className="p-4">
+                <div className="flex mx-auto mb-1">
+                  <span className="text-muted-foreground">2</span>
+                </div>
+                <h3 className="font-semibold text-lg mb-2">Share</h3>
+                <p className="text-sm text-muted-foreground">Share the link with your group and watch responses flow in naturally.</p>
+              </div>
+              
+              <div className="p-4">
+                <div className="flex mx-auto mb-1">
+                  <span className="text-muted-foreground">3</span>
+                </div>
+                <h3 className="font-semibold text-lg mb-2">Analyze</h3>
+                <p className="text-sm text-muted-foreground">Get AI-powered insights and actionable recommendations.</p>
+              </div>
+            </div>
+
+          </div>
+        );
+
       case 1: // Objective
         return (
           <div className="space-y-6">
@@ -230,26 +274,45 @@ export default function MultiStepForm({
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <StepProgress 
-        currentStep={currentStep} 
-        totalSteps={4} 
-        isObjectivePrefilled={isObjectivePrefilled}
-      />
-      
-      <div className="bg-white p-8 rounded-xl shadow-sm border">
-        {renderStepContent()}
+    <div className="max-w-6xl mx-auto">
+      <div className="flex gap-6 justify-center">
+
+        {/* Left side - Form content (2/3) */}
+        <div className="flex-1 max-w-2xl">
+          <StepProgress 
+            currentStep={currentStep} 
+            totalSteps={5} 
+            isObjectivePrefilled={isObjectivePrefilled}
+          />
+          
+          <div className="bg-yellow-50 p-8 rounded-xl shadow-md border">
+            {renderStepContent()}
+          </div>
+          
+          <StepNavigation
+            currentStep={currentStep}
+            totalSteps={5}
+            isObjectivePrefilled={isObjectivePrefilled}
+            onPrevious={handlePrevious}
+            onNext={handleNext}
+            isLoading={isLoading}
+            nextLabel={currentStep === 4 ? 'Generate Session' : 'Next'}
+          />
+        </div>
+
+        {/* Right side - Image (1/3) */}
+        <div className="flex-1 max-w-sm flex items-center justify-center">
+          <div className="w-full max-w-sm">
+            <img 
+              src="/chat-example.png" 
+              alt="Chat example showing conversation flow" 
+              className="w-full h-auto"
+            />
+          </div>
+        </div>
+
+        
       </div>
-      
-      <StepNavigation
-        currentStep={currentStep}
-        totalSteps={4}
-        isObjectivePrefilled={isObjectivePrefilled}
-        onPrevious={handlePrevious}
-        onNext={handleNext}
-        isLoading={isLoading}
-        nextLabel={currentStep === 4 ? 'Generate Session' : 'Next'}
-      />
     </div>
   );
 }
