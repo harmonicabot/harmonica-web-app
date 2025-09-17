@@ -18,6 +18,7 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import { OpenAIMessage } from '@/lib/types';
 import { encryptId } from '@/lib/encryptionUtils';
 import { PoweredByHarmonica } from '@/components/icons';
+import { usePermissions } from '@/lib/permissions';
 
 const StandaloneChat = () => {
   const [message, setMessage] = useState<OpenAIMessage>({
@@ -77,6 +78,7 @@ Please type your name or "anonymous" if you prefer
       });
   };
 
+  
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'message') {

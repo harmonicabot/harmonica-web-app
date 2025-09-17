@@ -221,7 +221,6 @@ export default function CreationFlow() {
         critical: formData.critical,
         context: formData.context,
         prompt_summary: promptSummary,
-        is_public: false,
         summary_assistant_id: '',
         cross_pollination: formData.crossPollination,
         questions: JSON.stringify(
