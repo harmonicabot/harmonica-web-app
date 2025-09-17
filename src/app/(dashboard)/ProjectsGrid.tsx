@@ -25,8 +25,10 @@ import {
 } from '@/components/ui/dialog';
 
 function CreateWorkspaceButton({ text = 'New Project' }: { text?: string }) {
+  const workspaceId = `wsp_${Math.random().toString(36).substring(2, 14)}`;
+  const link = `/workspace/${workspaceId}`;
   return (
-    <Link href="/workspace/create">
+    <Link href={link}>
       <Card className="h-14 border border-border flex items-center px-4 cursor-pointer hover:bg-accent transition-colors bg-background">
         <CardContent className="flex flex-row items-center justify-between w-full p-0 bg-transparent">
           <span className="flex flex-row items-center gap-2 flex-1 min-w-0">
