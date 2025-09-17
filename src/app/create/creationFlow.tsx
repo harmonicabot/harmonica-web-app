@@ -105,7 +105,7 @@ export default function CreationFlow() {
     goal: '',
     critical: '',
     context: '',
-    crossPollination: true,
+    crossPollination: false,
   });
 
   const [templateId, setTemplateId] = useState<string | undefined>();
