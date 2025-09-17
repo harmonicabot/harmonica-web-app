@@ -11,6 +11,7 @@ import { NewHostSession } from '@/lib/schema';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
 import { encryptId } from '@/lib/encryptionUtils';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import ShareParticipants from './ShareParticipants';
 import { QuestionInfo } from './types';
@@ -321,8 +322,8 @@ IMPORTANT:
         {stepContent[activeStep]}
       </div>
 
-      {/* Navigation for non-Create steps, but not during loading */}
-      {activeStep !== 'Create' && !isLoading && (
+      {/* Navigation for non-Create and non-Template steps, but not during loading */}
+      {activeStep !== 'Create' && activeStep !== 'Template' && !isLoading && (
         <div
           className={`mx-auto items-center align-middle ${
             isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
@@ -332,13 +333,10 @@ IMPORTANT:
             {/* Back button on the left */}
             <button
               type="button"
-              onClick={() =>
-                activeStep === 'Template'
-                  ? route.push('/')
-                  : setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])
-              }
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              onClick={() => setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])}
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 flex items-center gap-2"
             >
+              <ChevronLeft className="w-4 h-4" />
               Back
             </button>
             
@@ -363,9 +361,10 @@ IMPORTANT:
                     : handleReviewComplete
                 }
                 disabled={isLoading}
-                className="px-4 py-2 bg-black text-white rounded-md text-sm font-medium hover:bg-gray-800 disabled:opacity-50"
+                className="px-4 py-2 bg-black text-white rounded-md text-sm font-medium hover:bg-gray-800 disabled:opacity-50 flex items-center gap-2"
               >
                 {isLoading ? 'Loading...' : activeStep === 'Share' ? 'Launch' : 'Next'}
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
