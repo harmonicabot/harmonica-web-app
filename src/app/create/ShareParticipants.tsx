@@ -3,13 +3,16 @@ import { QuestionInfo, QuestionType } from './types';
 import QuestionModal from './QuestionModal';
 import { QuestionContainerHeader } from './QuestionContainerHeader';
 import { QuestionContainer } from './QuestionContainer';
+import { HRMarkdown } from '@/components/HRMarkdown';
 
 interface ShareParticipantsProps {
   onQuestionsUpdate: (questions: QuestionInfo[]) => void;
+  sessionPreview?: string; // Add session preview prop
 }
 
 export default function ShareParticipants({
   onQuestionsUpdate,
+  sessionPreview,
 }: ShareParticipantsProps) {
   const [questions, setQuestions] = useState<QuestionInfo[]>([
     {
@@ -103,14 +106,46 @@ export default function ShareParticipants({
   }, [questions, onQuestionsUpdate]);
 
   return (
-    <div className="bg-white mx-auto rounded-xl shadow p-6">
-      <QuestionContainerHeader />
-      <QuestionContainer
-        questions={questions}
-        openModal={openModal}
-        handleDelete={handleDelete}
-        onReorder={handleReorder}
-      />
+    <div className="max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Session Preview - Left Column */}
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-6 h-fit">
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+              <h3 className="text-lg font-semibold text-purple-800">Your Generated Session</h3>
+            </div>
+            
+            {sessionPreview ? (
+              <div className="bg-white rounded-lg p-4 border border-purple-100">
+                <HRMarkdown content={sessionPreview} />
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg p-4 border border-purple-100">
+                <div className="text-sm text-gray-500 italic">
+                  Session structure will appear here once generated...
+                </div>
+              </div>
+            )}
+            
+            <div className="text-xs text-purple-600 bg-purple-100 rounded-lg p-3">
+              <strong>What you'll get:</strong> Personalized questions, discussion prompts, and activities tailored to your objectives. Participants will engage with this content during the session.
+            </div>
+          </div>
+        </div>
+
+        {/* Participant Info Form - Right Column */}
+        <div className="bg-white rounded-xl shadow p-6">
+          <QuestionContainerHeader />
+          <QuestionContainer
+            questions={questions}
+            openModal={openModal}
+            handleDelete={handleDelete}
+            onReorder={handleReorder}
+          />
+        </div>
+      </div>
+      
       <QuestionModal
         currentQuestion={currentQuestion}
         setCurrentQuestion={setCurrentQuestion}

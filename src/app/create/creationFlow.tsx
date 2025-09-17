@@ -1,22 +1,21 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import CreateSession from './create';
+import MultiStepForm from './MultiStepForm';
 import ReviewPrompt from './review';
 import LoadingMessage from './loading';
 import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
 import { sendApiCall } from '@/lib/clientUtils';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NewHostSession } from '@/lib/schema';
 import * as db from '@/lib/db';
 import ChooseTemplate from './choose-template';
 import { encryptId } from '@/lib/encryptionUtils';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import ShareParticipants from './ShareParticipants';
 import { QuestionInfo } from './types';
 import { StepHeader } from './StepHeader';
-import { StepNavigation } from './StepNavigation';
 import { LaunchModal } from './LaunchModal';
 import { Step, STEPS } from './types';
 import { createPromptContent } from 'app/api/utils';
@@ -36,24 +35,11 @@ export type VersionedPrompt = {
 
 const enabledSteps = [true, false, false];
 
-type StepConfig = {
-  id: string;
-  value: Step;
-  label: string;
-};
-
-const STEP_CONFIG: StepConfig[] = [
-  { id: 'template', value: 'Template', label: 'Define Objective' },
-  { id: 'create', value: 'Create', label: 'Add Context' },
-  { id: 'refine', value: 'Refine', label: 'Refine Agenda' },
-  { id: 'share', value: 'Share', label: 'Set Data Form' },
-];
-
 export default function CreationFlow() {
   const route = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
-  const [activeStep, setActiveStep] = useState<Step>(STEPS[0]);
+  const [activeStep, setActiveStep] = useState<Step>(STEPS[1]); // Start with 'Create' (multi-step form)
   const latestFullPromptRef = useRef('');
   const streamingPromptRef = useRef('');
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
@@ -105,7 +91,6 @@ export default function CreationFlow() {
     goal: '',
     critical: '',
     context: '',
-    crossPollination: false,
   });
 
   const [templateId, setTemplateId] = useState<string | undefined>();
@@ -172,7 +157,15 @@ export default function CreationFlow() {
     console.log('[i] Edit instructions: ', editValue);
 
     // We need to slightly update the edit instructions so that AI knows to apply those changes to the full prompt, not the summary.
-    editValue = `Apply the following changes/improvements to the last full template: \n${editValue}`;
+    editValue = `You are editing a session facilitation prompt. Apply ONLY the following specific changes to the existing prompt structure:
+
+${editValue}
+
+IMPORTANT: 
+- Return ONLY the updated prompt content
+- Do NOT include explanations, commentary, or meta-text
+- Maintain the exact same format and structure
+- Focus only on the requested changes`;
     const payload = {
       target: ApiTarget.Builder,
       action: ApiAction.EditPrompt,
@@ -223,7 +216,7 @@ export default function CreationFlow() {
         prompt_summary: promptSummary,
         is_public: false,
         summary_assistant_id: '',
-        cross_pollination: formData.crossPollination,
+        cross_pollination: true, // Default to true since we removed the toggle
         questions: JSON.stringify(
           participantQuestions.map((q) => ({
             id: q.id,
@@ -292,11 +285,13 @@ export default function CreationFlow() {
       </div>
     ),
     Create: (
-      <CreateSession
+      <MultiStepForm
         onSubmit={handleCreateComplete}
         formData={formData}
         onFormDataChange={onFormDataChange}
         onValidationError={setHasValidationErrors}
+        isLoading={isLoading}
+        onBackToDashboard={() => route.push('/')}
       />
     ),
     Refine: isLoading ? (
@@ -313,9 +308,10 @@ export default function CreationFlow() {
       />
     ),
     Share: !isLoading && activeStep === 'Share' && (
-      <div className="max-w-[540px] mx-auto">
-        <ShareParticipants onQuestionsUpdate={setParticipantQuestions} />
-      </div>
+      <ShareParticipants 
+        onQuestionsUpdate={setParticipantQuestions} 
+        sessionPreview={prompts[currentVersion - 1]?.summary}
+      />
     ),
   };
 
@@ -323,79 +319,66 @@ export default function CreationFlow() {
     <div className="min-h-screen pt-16 sm:px-14 pb-16 bg-white dark:bg-gray-900">
       <StepHeader />
 
-      <Tabs
-        value={activeStep}
-        onValueChange={(value) => setActiveStep(value as Step)}
-      >
-        <TabsList className="grid w-fit mx-auto grid-cols-4 gap-4 mb-6">
-          {STEP_CONFIG.map((step, index) => (
-            <TabsTrigger
-              key={step.id}
-              value={step.value}
-              disabled={!enabledSteps[index]}
-            >
-              {step.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {STEP_CONFIG.map((step) => (
-          <TabsContent key={step.id} value={step.value}>
-            {step.value === 'Template' ? (
-              <div className="w-full">
-                {stepContent[step.value]}
-              </div>
-            ) : (
-              <div
-                className={`mx-auto items-center align-middle ${
-                  isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
-                }`}
-              >
-                {stepContent[step.value]}
-              </div>
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
-
-      <div
-        className={`mx-auto items-center align-middle ${
-          isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
-        }`}
-      >
-
-        <StepNavigation
-          activeStep={activeStep}
-          isLoading={isLoading}
-          isEditingPrompt={isEditingPrompt}
-          hasValidationErrors={hasValidationErrors}
-          formData={formData}
-          setIsEditingPrompt={setIsEditingPrompt}
-          handleBack={() =>
-            activeStep === 'Create'
-              ? route.push('/')
-              : setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])
-          }
-          handleNext={
-            activeStep === 'Create'
-              ? handleCreateComplete
-              : activeStep === 'Share'
-                ? (e) => {
-                    e.preventDefault();
-                    setShowLaunchModal(true);
-                  }
-                : handleReviewComplete
-          }
-          nextLabel={activeStep === 'Share' ? 'Launch' : undefined}
-        />
-
-        {showLaunchModal && (
-          <LaunchModal
-            showLaunchModal={showLaunchModal}
-            setShowLaunchModal={setShowLaunchModal}
-            handleShareComplete={handleShareComplete}
-          />
-        )}
+      <div className="w-full">
+        {stepContent[activeStep]}
       </div>
+
+      {/* Navigation for non-Create and non-Template steps, but not during loading */}
+      {activeStep !== 'Create' && activeStep !== 'Template' && !isLoading && (
+        <div
+          className={`mx-auto items-center align-middle ${
+            isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
+          }`}
+        >
+          <div className="flex justify-between items-center mt-8 max-w-lg mx-auto">
+            {/* Back button on the left */}
+            <button
+              type="button"
+              onClick={() => setActiveStep(STEPS[STEPS.indexOf(activeStep) - 1])}
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 flex items-center gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Back
+            </button>
+            
+            {/* Edit and Next buttons grouped on the right */}
+            <div className="flex gap-4">
+              {/* Edit button for Refine step */}
+              {activeStep === 'Refine' && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingPrompt(!isEditingPrompt)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  {isEditingPrompt ? 'Done Editing' : 'Edit'}
+                </button>
+              )}
+              
+              <button
+                type="button"
+                onClick={
+                  activeStep === 'Share'
+                    ? () => setShowLaunchModal(true)
+                    : handleReviewComplete
+                }
+                disabled={isLoading}
+                className="px-4 py-2 bg-black text-white rounded-md text-sm font-medium hover:bg-gray-800 disabled:opacity-50 flex items-center gap-2"
+              >
+                {isLoading ? 'Loading...' : activeStep === 'Share' ? 'Launch' : 'Next'}
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLaunchModal && (
+        <LaunchModal
+          showLaunchModal={showLaunchModal}
+          setShowLaunchModal={setShowLaunchModal}
+          handleShareComplete={handleShareComplete}
+        />
+      )}
     </div>
   );
 
