@@ -39,7 +39,7 @@ export default function CreateSession({
 
   useEffect(() => {
     if (formData.crossPollination === undefined) {
-      onFormDataChange({ crossPollination: true });
+      onFormDataChange({ crossPollination: false });
     }
   }, []);
 
