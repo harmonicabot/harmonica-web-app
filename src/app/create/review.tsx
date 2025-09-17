@@ -102,43 +102,50 @@ export default function ReviewPrompt({
       )}
       <div
         id="card-container"
-        className="bg-white m-4 overflow-hidden mx-auto p-4 rounded-xl shadow space-y-12"
+        className="bg-white m-4 overflow-hidden mx-auto p-4 rounded-xl shadow space-y-12 max-w-4xl"
       >
         <div className="lg:flex h-full">
           <div className={`${isEditing ? 'lg:w-2/3' : ''} overflow-auto`}>
+            {/* Main title for all generated sessions */}
+            <div className="flex items-center space-x-2 mb-6">
+              <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+              <h2 className="text-lg font-semibold text-yellow-800">Your Generated Session</h2>
+            </div>
             {streamingPrompt ||
               (generating && (
-                <Card className={`p-6 bg-purple-50 my-4`}>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 my-4">
                   {streamingPrompt ? (
                     <>
-                      <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold">
-                          v{prompts.length + 1}
-                        </h2>
+                      <div className="mb-4">
+                        <span className="text-sm text-yellow-600 font-medium">v{prompts.length + 1}</span>
                       </div>
-                      <div>
+                      <div className="p-4">
                         <HRMarkdown content={streamingPrompt} />
                       </div>
                     </>
                   ) : (
-                    <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-xl font-semibold">Generating...</h2>
+                    <div className="flex items-center space-x-2 mb-4">
+                      <span className="text-sm text-yellow-600 font-medium">Generating...</span>
                       <Spinner />
                     </div>
                   )}
-                </Card>
+                </div>
               ))}
             {prompts.toReversed().map((prompt, index) => (
-              <Card
+              <div
                 key={prompt.id}
-                className={`p-6 my-4 ${
+                className={`my-4 ${
                   prompt.id === currentVersion && !generating
-                    ? 'bg-purple-100'
-                    : 'bg-white'
-                }`}
+                    ? 'bg-yellow-50 border border-yellow-200'
+                    : 'bg-white border border-gray-200'
+                } rounded-xl p-6`}
               >
-                <div className="flex justify-between items-center mb-4">
-                  <Badge variant="outline">v{prompts.length - index}</Badge>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-2">
+                    <span className={`text-sm font-medium ${
+                      prompt.id === currentVersion && !generating ? 'text-yellow-600' : 'text-gray-600'
+                    }`}>v{prompts.length - index}</span>
+                  </div>
                   <div className='flex flex-row items-center'>
                     {advancedMode && (
                       <Eye 
@@ -159,10 +166,10 @@ export default function ReviewPrompt({
                     )}
                   </div>
                 </div>
-                <div>
-                  <HRMarkdown content={prompt.summary} />
-                </div>
-              </Card>
+                  <div className="p-4">
+                    <HRMarkdown content={prompt.summary} />
+                  </div>
+              </div>
             ))}
           </div>
           <div className={`${isEditing ? 'lg:w-1/3 m-4' : ''}`}>
