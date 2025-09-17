@@ -105,7 +105,7 @@ export default function CreationFlow() {
     goal: '',
     critical: '',
     context: '',
-    crossPollination: true,
+    crossPollination: false,
   });
 
   const [templateId, setTemplateId] = useState<string | undefined>();
@@ -320,35 +320,48 @@ export default function CreationFlow() {
   };
 
   return (
-    <div className="min-h-screen pt-16 sm:px-14 pb-16 bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen pt-16 sm:px-14 pb-16 bg-white dark:bg-gray-900">
+      <StepHeader />
+
+      <Tabs
+        value={activeStep}
+        onValueChange={(value) => setActiveStep(value as Step)}
+      >
+        <TabsList className="grid w-fit mx-auto grid-cols-4 gap-4 mb-6">
+          {STEP_CONFIG.map((step, index) => (
+            <TabsTrigger
+              key={step.id}
+              value={step.value}
+              disabled={!enabledSteps[index]}
+            >
+              {step.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {STEP_CONFIG.map((step) => (
+          <TabsContent key={step.id} value={step.value}>
+            {step.value === 'Template' ? (
+              <div className="w-full">
+                {stepContent[step.value]}
+              </div>
+            ) : (
+              <div
+                className={`mx-auto items-center align-middle ${
+                  isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
+                }`}
+              >
+                {stepContent[step.value]}
+              </div>
+            )}
+          </TabsContent>
+        ))}
+      </Tabs>
+
       <div
         className={`mx-auto items-center align-middle ${
           isEditingPrompt ? 'lg:w-4/5' : 'lg:w-2/3'
         }`}
       >
-        <StepHeader />
-
-        <Tabs
-          value={activeStep}
-          onValueChange={(value) => setActiveStep(value as Step)}
-        >
-          <TabsList className="grid w-fit mx-auto grid-cols-4 gap-4 mb-6">
-            {STEP_CONFIG.map((step, index) => (
-              <TabsTrigger
-                key={step.id}
-                value={step.value}
-                disabled={!enabledSteps[index]}
-              >
-                {step.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {STEP_CONFIG.map((step) => (
-            <TabsContent key={step.id} value={step.value}>
-              {stepContent[step.value]}
-            </TabsContent>
-          ))}
-        </Tabs>
 
         <StepNavigation
           activeStep={activeStep}
