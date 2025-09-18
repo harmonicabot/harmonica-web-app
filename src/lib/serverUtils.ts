@@ -201,7 +201,6 @@ export async function cloneSession(sessionId: string): Promise<string | null> {
       context: sessionToClone.context,
       prompt_summary: sessionToClone.prompt_summary,
       questions: sessionToClone.questions ? JSON.stringify(sessionToClone.questions) as unknown as JSON : undefined,
-      is_public: false
     };
     
     // Create the new session

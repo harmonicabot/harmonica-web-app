@@ -67,7 +67,9 @@ export function usePermissions(resourceId: string) {
       }
     }
 
-    checkPermission();
+    if (resourceId.length > 0) {
+      checkPermission();
+    }
   }, [resourceId, user, isLoading]);
 
   function getBiggerRole(currentRole: Role, newRole: Role): Role {
