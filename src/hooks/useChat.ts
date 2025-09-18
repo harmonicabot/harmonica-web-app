@@ -19,7 +19,6 @@ export interface UseChatOptions {
   userContext?: Record<string, string>;
   isAskAi?: boolean;
   crossPollination?: boolean;
-  isSessionPublic?: boolean;
   sessionId?: string;
   onThreadIdReceived?: (threadId: string) => void;
   customMessageEnhancement?: (
@@ -43,7 +42,6 @@ export function useChat(options: UseChatOptions) {
     userContext,
     isAskAi = false,
     crossPollination = false,
-    isSessionPublic = false,
     sessionId: providedSessionId,
     onThreadIdReceived,
     customMessageEnhancement,
@@ -549,24 +547,23 @@ export function useChat(options: UseChatOptions) {
     errorMessage,
     errorToastMessage,
     placeholder,
-    
+
     // Refs
     textareaRef,
     messagesEndRef,
-    
+
     // Handlers
     handleInputChange,
     handleKeyDown,
     handleSubmit,
     generateParticipantSuggestion,
-    
+
     // Options passed through for components
     customMessageEnhancement,
-    isSessionPublic,
     sessionId: providedSessionId,
     isHost,
     isAskAi,
-    
+
     // Utils
     setErrorMessage,
     setErrorToastMessage,

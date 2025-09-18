@@ -11,7 +11,6 @@ interface ChatMessagesProps {
       message: OpenAIMessage,
       index: number,
     ) => React.ReactNode;
-    isSessionPublic?: boolean;
     sessionId?: string;
     isLoading: boolean;
     errorToastMessage: string;
@@ -27,7 +26,6 @@ export function ChatMessages({
   const {
     messages,
     customMessageEnhancement,
-    isSessionPublic = false,
     sessionId,
     isLoading = false,
     errorToastMessage,
@@ -51,7 +49,6 @@ export function ChatMessages({
             <ChatMessage
               key={index}
               message={message}
-              isSessionPublic={isSessionPublic}
               sessionId={sessionId}
               showButtons={true}
             />

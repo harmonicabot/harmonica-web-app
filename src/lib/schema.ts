@@ -33,7 +33,6 @@ export interface HostSessionsTable {
   prompt_summary: string; // Note: This is NOT the prompt that is used to _generate_ the summary, but a _summarization of the full prompt_ that is displayed to the user.
   summary_prompt?: string; // THIS is the prompt used to generate the summary! (if different from the default)
   questions?: JSON;
-  is_public: boolean;
   visibility_settings?: ResultTabsVisibilityConfig;
   cross_pollination: Generated<boolean>; // Default to true
 }
@@ -79,7 +78,6 @@ export interface WorkspacesTable {
   location?: string;
   summary?: string;
   parent_id?: string;
-  is_public?: boolean;
   bannerImage?: string;
   gradientFrom?: string;
   gradientTo?: string;

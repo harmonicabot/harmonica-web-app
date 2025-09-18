@@ -25,13 +25,17 @@ export default function LoadingMessage() {
         setLoadingMessage(loadingMessages[randomIndex]);
       }, 2500);
     return () => clearInterval(interval);
-  });
+  }, []); // Add empty dependency array to run only once
 
   return (
-    <div className="h-[50svh] m-4 flex items-center align-middle justify-center">
-      <div className="mr-4">
-        <MagicWand />
-      </div>{loadingMessage && loadingMessage}
+    <div className="h-[50svh] m-4 flex flex-col items-center justify-center space-y-8">
+      {/* Simple loading content */}
+      <div className="flex items-center justify-center">
+        <div className="mr-4">
+          <MagicWand />
+        </div>
+        {loadingMessage && loadingMessage}
+      </div>
     </div>
   );
 }

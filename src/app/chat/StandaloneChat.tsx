@@ -14,6 +14,7 @@ import { LoadingOverlay } from '@/components/chat/LoadingOverlay';
 import { SessionModal } from '@/components/chat/SessionModal';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { QuestionInfo } from 'app/create/types';
+import { usePermissions } from '@/lib/permissions';
 
 const StandaloneChat = () => {
   const [message, setMessage] = useState<OpenAIMessage>({
@@ -179,7 +180,6 @@ Please type your name or "anonymous" if you prefer
                   assistant_id: hostData.assistant_id,
                   id: hostData.id,
                   cross_pollination: hostData.cross_pollination,
-                  is_public: hostData.is_public,
                   client: hostData.client,
                 }
               : {}

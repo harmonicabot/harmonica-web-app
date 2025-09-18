@@ -4,23 +4,22 @@ import { Button } from './ui/button';
 import { ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { encryptId } from '@/lib/encryptionUtils';
+import { usePermissions } from '@/lib/permissions';
 
 interface ChatMessageProps {
   message: Partial<Message>;
-  isSessionPublic?: boolean;
   sessionId?: string;
   showButtons?: boolean;
 }
 
 export function ChatMessage({
   message,
-  isSessionPublic,
   sessionId,
   showButtons = false,
 }: ChatMessageProps) {
+  const { isPublic } = usePermissions(sessionId ?? '');
   const isUser = message.role === 'user';
   const router = useRouter();
-  const userOrAssistantPrefix = isUser ? 'You : ' : 'AI : ';
   return (
     <div className={`${isUser ? 'flex justify-end' : 'flex'}`}>
       {!isUser && (
@@ -43,7 +42,7 @@ export function ChatMessage({
               <HRMarkdown content={message.content ?? ''} className="text-sm" />
               {!isUser && message.is_final && showButtons && (
                 <div className="mt-6">
-                  {isSessionPublic && (
+                  {isPublic && (
                     <Button
                       variant="default"
                       onClick={() => {

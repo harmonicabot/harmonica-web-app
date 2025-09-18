@@ -21,3 +21,12 @@ export interface QuestionInfo {
 
 export const STEPS = ['Template', 'Create', 'Refine', 'Share'] as const;
 export type Step = (typeof STEPS)[number];
+
+// Multi-step form types
+export const FORM_STEPS = ['intro', 'objective', 'critical', 'context', 'sessionName'] as const;
+export type FormStep = (typeof FORM_STEPS)[number];
+
+export interface StepValidation {
+  isValid: boolean;
+  error?: string;
+}

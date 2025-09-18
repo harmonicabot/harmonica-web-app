@@ -182,7 +182,7 @@ export function Session({
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
               <Share2 className="mr-2 h-4 w-4" />
-              <span>Share</span>
+              <span>Invite Team</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={addToProject}>
               <FolderPlus className="mr-2 h-4 w-4" />

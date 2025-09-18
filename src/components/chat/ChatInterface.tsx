@@ -8,6 +8,7 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import { RatingModal } from './RatingModal';
 import { useState, useEffect, useRef } from 'react';
 import { updateUserSession, increaseSessionsCount } from '@/lib/db';
+import { usePermissions } from '@/lib/permissions';
 
 interface ChatInterfaceProps {
   hostData: {
@@ -15,7 +16,6 @@ interface ChatInterfaceProps {
     assistant_id?: string;
     id?: string;
     cross_pollination?: boolean;
-    is_public?: boolean;
     client?: string;
   };
   userSessionId: string | undefined;
@@ -212,7 +212,6 @@ export const ChatInterface = ({
             setUserSessionId={setUserSessionId}
             userContext={userContext}
             crossPollination={hostData?.cross_pollination ?? false}
-            isSessionPublic={Boolean(hostData?.is_public)}
             sessionId={hostData?.id}
             onThreadIdReceived={handleThreadIdReceived}
             setShowRating={setShowRating}

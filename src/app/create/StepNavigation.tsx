@@ -1,75 +1,68 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Pencil, Sparkles } from 'lucide-react';
-import { Step } from './types';
+import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 
 interface StepNavigationProps {
-  activeStep: Step;
-  isLoading: boolean;
-  isEditingPrompt: boolean;
-  hasValidationErrors: boolean;
-  formData: any;
-  setIsEditingPrompt: (value: boolean) => void;
-  handleBack: () => void;
-  handleNext: (e: React.FormEvent) => void;
+  currentStep: number;
+  totalSteps: number;
+  isObjectivePrefilled?: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+  isNextDisabled?: boolean;
+  isLoading?: boolean;
   nextLabel?: string;
 }
 
 export function StepNavigation({
-  activeStep,
-  isLoading,
-  isEditingPrompt,
-  hasValidationErrors,
-  formData,
-  setIsEditingPrompt,
-  handleBack,
-  handleNext,
-  nextLabel = 'Next',
+  currentStep,
+  totalSteps,
+  isObjectivePrefilled = false,
+  onPrevious,
+  onNext,
+  isNextDisabled = false,
+  isLoading = false,
+  nextLabel = 'Next'
 }: StepNavigationProps) {
-  if (isLoading || activeStep === 'Template') return null;
+  // Determine if we're on the first step
+  // Back button is now enabled on first step to go back to dashboard
+  const isFirstStep = false; // Always allow back button
+  
+  // Determine if we're on the last step
+  const isLastStep = currentStep === totalSteps;
 
   return (
-    <div className="flex justify-between items-center pt-4">
-      <Button className="m-2" variant="ghost" onClick={handleBack}>
-        <ChevronLeft className="w-4 h-4 me-2" strokeWidth={1.5} />
+    <div className="flex justify-center gap-8 mt-8 max-w-md mx-auto">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onPrevious}
+        disabled={isFirstStep}
+        className="flex items-center gap-2"
+      >
+        <ChevronLeft className="w-4 h-4" />
         Back
       </Button>
-      <div className="flex space-x-2">
-        {activeStep === 'Refine' && !isEditingPrompt && (
-          <Button
-            className="m-2"
-            variant="outline"
-            onClick={() => setIsEditingPrompt(true)}
-          >
-            <Pencil className="w-4 h-4 me-2" strokeWidth={1.5} />
-            Edit Session
-          </Button>
+      
+      <Button
+        type="button"
+        onClick={onNext}
+        disabled={isNextDisabled || isLoading}
+        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
+      >
+        {isLoading ? (
+          <>
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            Loading...
+          </>
+        ) : (
+          <>
+            {nextLabel === 'Generate Session' && <Sparkles className="w-4 h-4" />}
+            {nextLabel}
+            <ChevronRight className="w-4 h-4" />
+          </>
         )}
-        <Button
-          type="submit"
-          onClick={handleNext}
-          className="m-2"
-          disabled={
-            activeStep === 'Create' &&
-            (hasValidationErrors ||
-              !formData.sessionName?.trim() ||
-              !formData.goal?.trim())
-          }
-        >
-          {activeStep === 'Create' ? (
-            <>
-              <Sparkles className="w-4 h-4 me-2" strokeWidth={1.5} />
-              Generate
-            </>
-          ) : activeStep === 'Share' ? (
-            <>Launch</>
-          ) : (
-            <>
-              Next
-              <ChevronRight className="w-4 h-4 ms-2" strokeWidth={1.5} />
-            </>
-          )}
-        </Button>
-      </div>
+      </Button>
     </div>
   );
 }

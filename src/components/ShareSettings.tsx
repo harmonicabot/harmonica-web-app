@@ -28,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Globe, Settings } from 'lucide-react';
-import { Share2, Loader2, X, UserCog, Copy, Check } from 'lucide-react';
+import { Users, Loader2, X, UserCog, Copy, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from 'hooks/use-toast';
 import { useUser } from '@auth0/nextjs-auth0/client';
@@ -486,8 +486,8 @@ export default function ShareSettings({
       {initialIsOpen === undefined && (
         <DialogTrigger asChild>
           <Button>
-            <Share2 className="w-4 h-4 mr-2" />
-            Share
+            <Users className="w-4 h-4" />
+            Invite Team
           </Button>
         </DialogTrigger>
       )}
@@ -499,7 +499,7 @@ export default function ShareSettings({
         <div className="border rounded-md p-4 mb-4">
           <div className="flex items-center justify-between space-x-2 mb-2">
             <div className="flex items-center">
-              <Globe className="w-4 h-4 mr-2 text-blue-500" />
+              <Globe className="w-4 h-4 text-blue-500" />
               <label
                 htmlFor="public-access"
                 className="text-sm font-medium leading-none"
@@ -845,7 +845,6 @@ export default function ShareSettings({
             <div className="flex space-x-2">
               <Button
                 variant="outline"
-                className="mr-2"
                 onClick={() => setIsOpen(false)}
                 disabled={isSubmitting || isLoadingPermissions}
               >
@@ -856,7 +855,7 @@ export default function ShareSettings({
                 <Button onClick={handleInvite} disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin" />
                       Sending...
                     </>
                   ) : (
