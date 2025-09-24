@@ -13,7 +13,6 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import Link from 'next/link';
 import { Cog, CreditCard, LogIn, User2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { PricingModal } from './pricing/PricingModal';
 import { useSubscription } from 'hooks/useSubscription';
 import { format } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
@@ -32,7 +31,6 @@ export default function User() {
   const { user } = useUser();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [showPricing, setShowPricing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCanceled, setShowCanceled] = useState(false);
   const { status, isActive, expiresAt, isLoading } = useSubscription();
@@ -81,29 +79,11 @@ export default function User() {
       );
     }
 
-    if (status === 'FREE') {
-      return (
-        <DropdownMenuItem onClick={() => setShowPricing(true)}>
-          <CreditCard className="h-4 w-4 mr-2" />
-          <span className="text-primary">Upgrade to Pro</span>
-        </DropdownMenuItem>
-      );
-    }
-
+    // Removed FREE status upgrade button - now handled in navigation
     return null;
   };
 
-  // Show different modals based on subscription status
-  const getSubscriptionModal = () => {
-    if (!showPricing || !user?.sub) return null;
-
-    if (status === 'FREE') {
-      return <PricingModal open={showPricing} onOpenChange={setShowPricing} />;
-    }
-
-    // Could add different modals for other states
-    // e.g., subscription management, payment issues, etc.
-  };
+  // Removed pricing modal - now handled in navigation component
 
   if (user && user.sub) {
     return (
@@ -114,7 +94,7 @@ export default function User() {
               variant="ghost"
               size="sm"
             >
-              <User2 className="h-4 w-4" />
+              <User2/>
               {user.name || 'Account'}
             </Button>
           </DropdownMenuTrigger>
@@ -122,7 +102,7 @@ export default function User() {
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {getSubscriptionMenuItem()}
-            <DropdownMenuSeparator />
+            {getSubscriptionMenuItem() && <DropdownMenuSeparator />}
             <DropdownMenuItem>
               <Cog className="h-4 w-4 mr-2" />
               <a href="/profile">Settings</a>
@@ -233,7 +213,6 @@ export default function User() {
           </DialogContent>
         </Dialog>
 
-        {getSubscriptionModal()}
       </>
     );
   }

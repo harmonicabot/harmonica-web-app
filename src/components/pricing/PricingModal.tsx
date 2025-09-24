@@ -56,8 +56,13 @@ export function PricingModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px]">
+      <DialogContent className="sm:max-w-[1100px]">
         <div className="p-6">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-semibold text-gray-900">
+              Which plan is right for you?
+            </h2>
+          </div>
           <PlanCards
             status={status}
             onUpgrade={handleUpgrade}
