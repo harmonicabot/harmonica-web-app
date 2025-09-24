@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check } from 'lucide-react';
+import { Check, Gem } from 'lucide-react';
 
 // Define the plan type for better type safety
 export type Plan = {
@@ -109,9 +109,15 @@ export function PlanCards({
       {plans.map((plan) => (
         <Card
           key={plan.name}
-          className={`flex flex-col ${isCurrentPlan(plan.name) ? 'border-purple-500 shadow-md' : ''}`}
+          className={`flex flex-col ${
+            plan.name === 'Pro' 
+              ? 'border-2 border-yellow-300 shadow-lg' 
+              : isCurrentPlan(plan.name) 
+                ? 'border-purple-500 shadow-md' 
+                : ''
+          }`}
         >
-          <CardHeader className="h-[180px] flex flex-col">
+          <CardHeader className="h-[100px] flex flex-col">
             <div className="flex justify-between items-center">
               <CardTitle>{plan.name}</CardTitle>
               {showCurrentPlanBadge && isCurrentPlan(plan.name) && (
@@ -120,17 +126,60 @@ export function PlanCards({
                 </Badge>
               )}
             </div>
-            <div className="flex items-baseline">
-              <span className="text-3xl font-bold">{plan.price}</span>
-              {plan.period && (
-                <span className="text-gray-500 ml-1">{plan.period}</span>
-              )}
-            </div>
-            <CardDescription className="flex-1">
+            <CardDescription className="mb-2">
               {plan.description}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1">
+            <div className="flex items-baseline mb-4">
+              <span className="text-3xl font-light">{plan.price}</span>
+              {plan.period && (
+                <span className="text-gray-500 ml-1 font-light">{plan.period}</span>
+              )}
+            </div>
+            <div className="mb-6">
+              {plan.name === 'Pro' ? (
+                status !== 'PRO' ? (
+                  <Button
+                    className="w-full"
+                    onClick={() => plan.productId && onUpgrade(plan.productId)}
+                    disabled={isLoading || !plan.productId}
+                  >
+                    <Gem />
+                    {isLoading ? 'Please wait...' : 'Upgrade to Pro'}
+                  </Button>
+                ) : (
+                  <Button className="w-full" disabled>
+                    Current Plan
+                  </Button>
+                )
+              ) : plan.action ? (
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() =>
+                    plan.contactEmail &&
+                    window.open('https://harmonica.chat/sales', '_blank')
+                  }
+                >
+                  {plan.action}
+                </Button>
+              ) : (
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  disabled={status === 'FREE'}
+                  onClick={() =>
+                    window.open(
+                      process.env.NEXT_PUBLIC_STRIPE_BILLING_PORTAL,
+                      '_blank',
+                    )
+                  }
+                >
+                  {status === 'FREE' ? 'Current Plan' : 'Downgrade to Free'}
+                </Button>
+              )}
+            </div>
             <ul className="space-y-2">
               {plan.features.map((feature) => (
                 <li key={feature} className="flex">
@@ -140,48 +189,6 @@ export function PlanCards({
               ))}
             </ul>
           </CardContent>
-          <CardFooter className="mt-auto pt-6">
-            {plan.name === 'Pro' ? (
-              status !== 'PRO' ? (
-                <Button
-                  className="w-full"
-                  onClick={() => plan.productId && onUpgrade(plan.productId)}
-                  disabled={isLoading || !plan.productId}
-                >
-                  {isLoading ? 'Please wait...' : 'Upgrade to Pro'}
-                </Button>
-              ) : (
-                <Button className="w-full" disabled>
-                  Current Plan
-                </Button>
-              )
-            ) : plan.action ? (
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() =>
-                  plan.contactEmail &&
-                  window.open('https://harmonica.chat/sales', '_blank')
-                }
-              >
-                {plan.action}
-              </Button>
-            ) : (
-              <Button
-                className="w-full"
-                variant="outline"
-                disabled={status === 'FREE'}
-                onClick={() =>
-                  window.open(
-                    process.env.NEXT_PUBLIC_STRIPE_BILLING_PORTAL,
-                    '_blank',
-                  )
-                }
-              >
-                {status === 'FREE' ? 'Current Plan' : 'Downgrade to Free'}
-              </Button>
-            )}
-          </CardFooter>
         </Card>
       ))}
     </div>
