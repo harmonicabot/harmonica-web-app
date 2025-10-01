@@ -74,6 +74,7 @@ export type SessionBuilderData = {
   goal: string;
   critical: string;
   context: string;
+  crossPollination?: boolean;
 };
 
 export type TemplateEditingData = {
