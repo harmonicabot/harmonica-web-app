@@ -4,6 +4,7 @@ import { Gemini } from '@llamaindex/google';
 import { OpenAIMessage } from '../types';
 import { getPromptInstructions } from '../promptsCache';
 import { getSessionContent } from './qdrantQuery';
+import { getLLM } from '../modelConfig';
 
 export async function generateMultiSessionAnswer(
   sessionIds: string[],
@@ -147,10 +148,7 @@ ${contextData?.critical ? `Key Points: ${contextData?.critical}` : ''}`,
       )
       .join('\n\n');
 
-    const chatEngine = new Gemini({
-      model: GEMINI_MODEL.GEMINI_PRO_LATEST,
-      temperature: 0.3,
-    });
+    const chatEngine = getLLM("LARGE", 0.3);
 
     const chatHistoryWithoutInitialWelcoming = chatHistory.slice(1);
     const chatHistoryForPrompt =
@@ -205,8 +203,8 @@ ${qdrantContent?.KNOWLEDGE ? `### Relevant Knowledge Content:\n${qdrantContent.K
       ],
     });
 
-    console.log('[i] Received response: ', response.message.content);
-    return response.message.content;
+    console.log('[i] Received response: ', response);
+    return response;
     // }
   } catch (error) {
     console.error('[x] LlamaIndex error:', error);
