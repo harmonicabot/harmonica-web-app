@@ -12,6 +12,7 @@ import { OpenAIEmbedding } from 'llamaindex';
 import { SentenceSplitter } from 'llamaindex';
 import { OpenAI as LlamaOpenAI } from 'llamaindex';
 import { Gemini, GEMINI_MODEL } from '@llamaindex/google';
+import { getLLM, LLM } from '../modelConfig';
 
 const initialPrompt = `
 ### Guidelines:
@@ -374,10 +375,7 @@ Total Responses: ${messages.length}
     // Combine all relevant context into a single string
     const contextString = filteredNodes.map((node) => node.node).join('\n\n');
 
-    const chatEngine = new Gemini({
-      model: GEMINI_MODEL.GEMINI_PRO_LATEST,
-      temperature: 0.3,
-    });
+    const chatEngine: LLM = getLLM("LARGE", 0.3);
 
     // Construct the full prompt with context
     const response = await chatEngine.chat({
@@ -393,12 +391,12 @@ ${threadDocuments.map((doc) => doc.text).join('\n')}
 
 Please analyze the above context to answer the question.`,
         },
-        ...chatHistory.map((msg) => ({ role: msg.role, content: msg.content })),
+        ...chatHistory.map((msg: any) => ({ role: msg.role, content: msg.content })),
       ],
     });
 
     console.log('[i] Chat engine response:', response);
-    return response.message.content;
+    return response;
     // }
   } catch (error) {
     console.error('[x] LlamaIndex error:', error);

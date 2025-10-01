@@ -15,6 +15,7 @@ import { getSession } from '@auth0/nextjs-auth0';
 import ProjectsGrid from './ProjectsGrid';
 import { Textarea } from '@/components/ui/textarea';
 import CreateSessionInputClient from './CreateSessionInputClient';
+import NewUserRedirect from './NewUserRedirect';
 
 export const dynamic = 'force-dynamic'; // getHostSessions is using auth, which can only be done client side
 export const revalidate = 300; // Revalidate the data every 5 minutes (or on page reload)
@@ -198,6 +199,10 @@ export default async function Dashboard({
 
   return (
     <div className="bg-background min-h-screen">
+      <NewUserRedirect 
+        hasSessions={hostSessions.length > 0} 
+        hasWorkspaces={workspacesWithSessions.length > 0} 
+      />
       {Date.now() < new Date('2025-02-14').getTime() && <DonateBanner />}
       {/* Welcome Banner */}
       <div className="border rounded-xl bg-gradient-to-b from-white to-amber-100 p-8 mb-10 flex flex-col md:flex-row items-stretch gap-8">
@@ -231,7 +236,12 @@ export default async function Dashboard({
         <ProjectsGrid workspaces={workspacesWithSessions} searchParams={searchParams} />
       </div>
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight mb-4">Sessions</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-semibold tracking-tight">Sessions</h2>
+          {hostSessions.length > 0 && (
+            <CreateSessionButton text="Create Session" />
+          )}
+        </div>
         {hostSessions.length > 0 ? (
           <SessionsTable sessions={hostSessions} />
         ) : (

@@ -768,7 +768,6 @@ export async function upsertWorkspace(
         id, // Use the provided ID
         title: data.title || 'Untitled Workspace',
         description: data.description || '',
-        is_public: data.is_public !== undefined ? data.is_public : false,
         status: data.status || 'draft',
         created_at: new Date(),
         ...data, // Include any other fields from data
@@ -1494,7 +1493,6 @@ export async function createDraftWorkspace(
       .values({
         title,
         description: '',
-        is_public: false,
         status: 'draft',
         created_at: new Date(),
       })
