@@ -148,6 +148,9 @@ export function ChatInput({
 
   return (
     <div className={className}>
+        {error && (
+          <div className="text-red-500 text-sm mt-2">{error}</div>
+        )}
       <form
         className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''}`}
         onSubmit={handleSubmit}
@@ -219,9 +222,7 @@ export function ChatInput({
             <Send />
           </Button>
         </div>
-        {error && (
-          <div className="text-red-500 text-sm mt-2">{error}</div>
-        )}
+      
       </form>
     </div>
   );
