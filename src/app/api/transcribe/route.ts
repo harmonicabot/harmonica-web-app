@@ -11,7 +11,17 @@ export async function POST(request: Request) {
     
     const arrayBuffer = await audioFile.arrayBuffer();
     
-    const response = await fetch('https://api.deepgram.com/v1/listen?punctuate=true&smart_format=true', {
+    
+    const params = new URLSearchParams({
+      punctuate: 'true',
+      smart_format: 'true',
+      model: 'nova-2',
+      language: 'en-US', // Change to your language
+      // Add custom keywords for accuracy if needed:
+      // keywords: 'technical:3,specific:2'
+    });
+    
+    const response = await fetch(`https://api.deepgram.com/v1/listen?${params}`, {
       method: 'POST',
       headers: {
         'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
