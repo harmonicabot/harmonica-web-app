@@ -12,8 +12,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .alterTable('workspaces')
     .addColumn('summary_prompt', 'text')
     .execute();
-
-  console.log('Migration completed: Added summary_prompt to host_sessions and workspaces tables');
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
@@ -28,6 +26,4 @@ export async function down(db: Kysely<any>): Promise<void> {
     .alterTable('workspaces')
     .dropColumn('summary_prompt')
     .execute();
-
-  console.log('Rollback completed: Removed summary_prompt from host_sessions and workspaces tables');
 }
