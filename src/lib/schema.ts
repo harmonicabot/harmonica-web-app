@@ -23,7 +23,6 @@ export interface HostSessionsTable {
   summary_assistant_id: string;
   topic: string;
   final_report_sent: boolean;
-  client?: string;
   summary?: string;
   start_time: ColumnType<Date, Date | undefined, never>;
   last_edit: Generated<Date>;
@@ -48,7 +47,6 @@ export interface UserSessionsTable {
   feedback?: string;
   summary?: string;
   language?: string;
-  step?: ColumnType<number, number, number | RawBuilder<unknown>>;
   start_time: ColumnType<Date, Date | undefined, never>;
   last_edit: Generated<Date>;
 }
