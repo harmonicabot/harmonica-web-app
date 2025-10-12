@@ -196,6 +196,12 @@ IMPORTANT:
     e.preventDefault();
     setIsLoading(true);
     const currentPrompt = prompts[currentVersion - 1];
+    
+    if (!currentPrompt || !currentPrompt.fullPrompt) {
+      setIsLoading(false);
+      throw new Error('No prompt available. Please create a prompt first.');
+    }
+    
     const prompt = currentPrompt.fullPrompt;
     const promptSummary = currentPrompt.summary;
 

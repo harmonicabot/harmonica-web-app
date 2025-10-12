@@ -23,14 +23,15 @@ export async function finishedResponse(
   userPrompt: string,
 ) {
   console.log('[i] Generating finished response:', {
-    systemPrompt,
-    userPrompt,
+    systemPrompt: systemPrompt?.substring(0, 100) + '...',
+    userPrompt: userPrompt?.substring(0, 100) + '...',
   });
 
-  const chatEngine = getLLM('MAIN', 0.3);
+  // Try primary LLM first (usually Anthropic/Claude)
+  const primaryEngine = getLLM('MAIN', 0.3);
 
   try {
-    const response = await chatEngine.chat({
+    const response = await primaryEngine.chat({
       messages: [
         {
           role: 'system',
@@ -47,7 +48,44 @@ export async function finishedResponse(
     const message = response;
     return message;
   } catch (error) {
-    console.error('[x] Error in finishedResponse:', error);
+    console.error('[x] Primary LLM error:', error);
+    
+    // Check if it's an Anthropic overload error (529)
+    const isOverloadError = error instanceof Error && 
+      (error.message.includes('529') || 
+       error.message.includes('overloaded_error') ||
+       error.message.includes('Overloaded'));
+    
+        if (isOverloadError) {
+          console.log('[i] Anthropic overload detected, trying Gemini fallback...');
+          
+          try {
+            // Try Gemini as fallback
+            const fallbackEngine = getLLM('SMALL', 0.3); // Use SMALL for faster response
+            console.log('[i] Fallback engine created, attempting Gemini request...');
+        
+        const fallbackResponse = await fallbackEngine.chat({
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
+            {
+              role: 'user',
+              content: userPrompt,
+            },
+          ],
+        });
+
+        console.log('[i] Gemini fallback successful:', JSON.stringify(fallbackResponse));
+        return fallbackResponse;
+      } catch (fallbackError) {
+        console.error('[x] Gemini fallback also failed:', fallbackError);
+        throw new Error(`Both primary and fallback LLMs failed. Primary: ${error.message}, Fallback: ${fallbackError}`);
+      }
+    }
+    
+    // For non-overload errors, throw the original error
     throw new Error(`Failed to generate response: ${error}`);
   }
 }
@@ -219,10 +257,11 @@ function streamResponse(systemPrompt: string, userPrompt: string) {
 
   return new ReadableStream({
     async start(controller) {
-      const chatEngine = getLLM('MAIN', 0.3);
+      // Try primary LLM first (usually Anthropic/Claude)
+      const primaryEngine = getLLM('MAIN', 0.3);
 
       try {
-        const response = await chatEngine.chat({
+        const response = await primaryEngine.chat({
           messages: [
             {
               role: 'system',
@@ -243,6 +282,53 @@ function streamResponse(systemPrompt: string, userPrompt: string) {
 
         controller.close();
       } catch (error) {
+        console.error('[x] Primary LLM error in stream:', error);
+        
+        // Check if it's an Anthropic overload error (529)
+        const isOverloadError = error instanceof Error && 
+          (error.message.includes('529') || 
+           error.message.includes('overloaded_error') ||
+           error.message.includes('Overloaded'));
+        
+        if (isOverloadError) {
+          console.log('[i] Anthropic overload detected in stream, trying Gemini fallback...');
+          
+          try {
+            // Try Gemini as fallback
+            const fallbackEngine = getLLM('SMALL', 0.3); // Use SMALL for faster response
+            console.log('[i] Stream fallback engine created, attempting Gemini request...');
+            
+            const fallbackResponse = await fallbackEngine.chat({
+              messages: [
+                {
+                  role: 'system',
+                  content: systemPrompt,
+                },
+                {
+                  role: 'user',
+                  content: userPrompt,
+                },
+              ],
+            });
+
+            console.log('[i] Gemini fallback successful in stream');
+            
+            if (fallbackResponse) {
+              controller.enqueue(encoder.encode(fallbackResponse));
+            } else {
+              controller.error('No content in fallback response');
+            }
+
+            controller.close();
+            return;
+          } catch (fallbackError) {
+            console.error('[x] Gemini fallback also failed in stream:', fallbackError);
+            controller.error(`Both primary and fallback LLMs failed. Primary: ${error.message}, Fallback: ${fallbackError}`);
+            return;
+          }
+        }
+        
+        // For non-overload errors, throw the original error
         console.error('[x] Error in stream:', error);
         controller.error(`Stream failed: ${error}`);
       }

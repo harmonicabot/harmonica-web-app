@@ -19,12 +19,23 @@ export const sendApiCall = async (request: RequestData) => {
     body: JSON.stringify(request),
   }).catch((error) => {
     console.error('Error sending or receiving API call:', error);
-    return error;
+    throw new Error(`Network error: ${error.message}`);
   });
 
   if (!response.ok) {
     console.error('Error from API:', response.status, response.statusText);
-    return null;
+    let errorMessage = `API error: ${response.status} ${response.statusText}`;
+    
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch (e) {
+      // If we can't parse the error response, use the default message
+    }
+    
+    throw new Error(errorMessage);
   }
 
   if (request.stream) {
