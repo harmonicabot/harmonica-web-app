@@ -43,7 +43,7 @@ export default function Login() {
     const result = await signIn('email', {
       email,
       password,
-      redirect: true,
+      redirect: false,
     });
 
     if (result?.error) {
