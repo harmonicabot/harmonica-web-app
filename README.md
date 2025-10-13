@@ -5,7 +5,7 @@
 <div style="text-align: center;">
   <img src="https://cdn.prod.website-files.com/64dfc629196d88e82c09c82d/6523ec9417dc8dd31db0e531_Asset%201.svg" alt="Harmonica Icon" width="32" height="32" style="transform: rotate(-45deg);" />
 
-Welcome to **Superfast sensemaking and deliberation!**  
+Welcome to **Superfast Sensemaking and Deliberation!**  
 
 </div>
 
