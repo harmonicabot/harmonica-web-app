@@ -126,7 +126,7 @@ export function ChatInput({
       mediaRecorder.start();
       setRecordingStatus('recording');
     } catch (err) {
-      setError('Microphone access denied');
+      setError('Microphone access denied, please allow access and try again.');
       console.error('Recording error:', err);
       setRecordingStatus('idle');
     }
@@ -149,7 +149,10 @@ export function ChatInput({
   return (
     <div className={className}>
         {error && (
-          <div className="text-red-500 text-sm mt-2">{error}</div>
+          <div className="text-red-500 text-sm mt-2 flex gap-2 items-center">
+            {error}
+            <Button type="button" variant="outline" size="icon" onClick={() => setError(null)}> ❌</Button>
+            </div>
         )}
       <form
         className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''}`}
@@ -163,6 +166,7 @@ export function ChatInput({
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onInput={(e) => {
+              setError(null);
               const target = e.target as HTMLTextAreaElement;
               target.style.height = 'auto';
               target.style.height = Math.min(target.scrollHeight, 144) + 'px';
