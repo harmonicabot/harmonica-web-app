@@ -33,7 +33,7 @@ export interface HostSessionsTable {
   summary_prompt?: string; // THIS is the prompt used to generate the summary! (if different from the default)
   questions?: JSON;
   visibility_settings?: ResultTabsVisibilityConfig;
-  cross_pollination: Generated<boolean>; // Default to true
+  cross_pollination: Generated<boolean>; // Default to false
 }
 
 export interface UserSessionsTable {

@@ -28,7 +28,7 @@ export async function initializeCrossPollination(
 ): Promise<CrossPollinationManager> {
   return new CrossPollinationManager({
     sessionId,
-    enabled: config.enabled ?? true,
+    enabled: config.enabled ?? false,
     maxParticipants: 100,
     feedbackFrequency: 5,
     feedbackDepth: 3,
