@@ -37,6 +37,10 @@ const routeMetadata: MetadataConfig = {
     'Create',
     'Manage your Harmonica conversations and settings'
   ),
+  '/templates': getWithTitleAndDescription(
+    'Templates',
+    'Choose from ready-made session templates to get started quickly'
+  ),
   '/login': getWithTitleAndDescription('Sign in to Harmonica'),
 };
 

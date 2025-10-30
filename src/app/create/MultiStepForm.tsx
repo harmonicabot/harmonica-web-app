@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { SessionBuilderData } from '@/lib/types';
 import { StepProgress } from './StepProgress';
 import { StepNavigation } from './StepNavigation';
 import { FormStep, StepValidation } from './types';
+import { Edit2, Check, X } from 'lucide-react';
 
 interface MultiStepFormProps {
   onSubmit: (e: React.FormEvent) => Promise<void>;
@@ -16,6 +18,91 @@ interface MultiStepFormProps {
   onValidationError: (hasErrors: boolean) => void;
   isLoading?: boolean;
   onBackToDashboard?: () => void;
+  initialStep?: number;
+}
+
+interface EditableFieldProps {
+  label: string;
+  value: string;
+  onSave: (value: string) => void;
+  placeholder?: string;
+}
+
+function EditableField({
+  label,
+  value,
+  onSave,
+  placeholder,
+}: EditableFieldProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(value);
+  const [showEditButton, setShowEditButton] = useState(false);
+
+  useEffect(() => {
+    setEditValue(value);
+  }, [value]);
+
+  const handleSave = () => {
+    onSave(editValue);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditValue(value);
+    setIsEditing(false);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-medium text-muted-foreground">{label}</Label>
+      </div>
+      
+      <div 
+        className="relative group"
+        onMouseEnter={() => setShowEditButton(true)}
+        onMouseLeave={() => setShowEditButton(false)}
+      >
+        {!isEditing && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditing(true)}
+            className={`absolute top-1 right-2 z-10 transition-opacity px-3 ${
+              showEditButton ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+        )}
+      
+        {isEditing ? (
+          <div className="space-y-2">
+            <Textarea
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              placeholder={placeholder}
+              className="min-h-[100px] resize-none text-base"
+            />
+            <div className="flex space-x-2">
+              <Button size="sm" onClick={handleSave}>
+                <Check className="h-3 w-3" />
+                Save
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleCancel}>
+                <X className="h-3 w-3" />
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-700 whitespace-pre-wrap bg-white p-3 rounded-md border min-h-[80px]">
+            {value || <span className="text-muted-foreground italic">Not specified</span>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function MultiStepForm({
@@ -24,19 +111,29 @@ export default function MultiStepForm({
   onFormDataChange,
   onValidationError,
   isLoading = false,
-  onBackToDashboard
+  onBackToDashboard,
+  initialStep
 }: MultiStepFormProps) {
-  const [currentStep, setCurrentStep] = useState<number>(0); // Start at step 0 (intro)
+  const [currentStep, setCurrentStep] = useState<number>(initialStep ?? 0); // Start at provided step or 0
   const [stepValidations, setStepValidations] = useState<Record<number, StepValidation>>({});
-  const [isObjectivePrefilled, setIsObjectivePrefilled] = useState(false);
+  const [isObjectivePrefilled, setIsObjectivePrefilled] = useState(initialStep ? initialStep > 1 : false);
 
-  // Check if objective is pre-filled on mount only
+  // Check if objective is pre-filled and handle template navigation
   useEffect(() => {
-    if (formData.goal?.trim()) {
+    if (initialStep !== undefined && formData.goal?.trim() && formData.critical?.trim()) {
+      // If we have an initial step and the data is loaded, go to that step
       setIsObjectivePrefilled(true);
-      setCurrentStep(2); // Skip to step 2 (critical) - intro is step 0, objective is step 1
+      setCurrentStep(initialStep);
+      return;
     }
-  }, []); // Empty dependency array - only run on mount
+    
+    // Legacy behavior for when goal is pre-filled but no initial step
+    if (formData.goal?.trim() && initialStep === undefined) {
+      setIsObjectivePrefilled(true);
+      // Only update if we're at step 0, to avoid overriding user navigation
+      setCurrentStep(prev => prev === 0 ? 2 : prev);
+    }
+  }, [formData.goal, formData.critical, initialStep]);
 
   // Validate current step
   const validateStep = (step: number): StepValidation => {
@@ -63,9 +160,7 @@ export default function MultiStepForm({
         return { isValid: true };
 
       case 3: // Context
-        if (!formData.context?.trim()) {
-          return { isValid: false, error: 'Adding context helps our AI better understand your session' };
-        }
+        // Context is optional, no validation needed
         return { isValid: true };
 
       case 4: // Session name
@@ -106,6 +201,8 @@ export default function MultiStepForm({
     if (validation.isValid) {
       if (currentStep < 4) {
         setCurrentStep(prev => prev + 1);
+        // Clear any validation error for the new step
+        setStepValidations(prev => ({ ...prev, [currentStep + 1]: { isValid: true } }));
       } else {
         // Submit form on last step
         onSubmit(new Event('submit') as any);
@@ -138,37 +235,45 @@ export default function MultiStepForm({
     switch (stepToRender) {
       case 0: // Intro
         return (
-          <div className="space-y-6 bg-white rounded-lg p-6 border -m-4">
-            <div className="text-center">
-              <h2 className="text-2xl font-semibold mb-4">Let's build your session in just a few steps</h2>
+          <div className="bg-white rounded-lg md:p-4 border -m-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-center">
+              {/* Image left */}
+              <div className="w-full hidden md:block md:col-span-2">
+                <img 
+                  src="/chat-example.png" 
+                  alt="Chat example showing conversation flow" 
+                  className="w-full h-auto"
+                />
+              </div>
+              {/* Content right */}
+              <div className="space-y-4 p-6 md:col-span-3">
+                <div>
+                  <h2 className="text-2xl mb-2">Let's design your session</h2>
+                  <p className="text-muted-foreground">You’ll:</p>
+                </div>
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-md bg-yellow-100 text-yellow-700 border border-yellow-200">
+                      <Check className="h-3.5 w-3.5" />
+                    </span>
+                    <span>Share your project goals and context</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-md bg-yellow-100 text-yellow-700 border border-yellow-200">
+                      <Check className="h-3.5 w-3.5" />
+                    </span>
+                    <span>Co-design your conversational guide with AI</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-md bg-yellow-100 text-yellow-700 border border-yellow-200">
+                      <Check className="h-3.5 w-3.5" />
+                    </span>
+                    <span>Review and edit your pre-session form</span>
+                  </li>
+                </ul>
+                <p className="text-muted-foreground">Ready to get started?</p>
+              </div>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <div className="p-4">
-                <div className="flex mx-auto mb-1">
-                  <span className="text-muted-foreground">1</span>
-                </div>
-                <h3 className="font-semibold text-lg mb-2">Create</h3>
-                <p className="text-sm text-muted-foreground">Tell us what you want to discover and we'll craft the perfect questions.</p>
-              </div>
-              
-              <div className="p-4">
-                <div className="flex mx-auto mb-1">
-                  <span className="text-muted-foreground">2</span>
-                </div>
-                <h3 className="font-semibold text-lg mb-2">Share</h3>
-                <p className="text-sm text-muted-foreground">Share the link with your group and watch responses flow in naturally.</p>
-              </div>
-              
-              <div className="p-4">
-                <div className="flex mx-auto mb-1">
-                  <span className="text-muted-foreground">3</span>
-                </div>
-                <h3 className="font-semibold text-lg mb-2">Analyze</h3>
-                <p className="text-sm text-muted-foreground">Get AI-powered insights and actionable recommendations.</p>
-              </div>
-            </div>
-
           </div>
         );
 
@@ -186,11 +291,11 @@ export default function MultiStepForm({
                 onChange={handleInputChange}
                 placeholder="I want to understand user preferences on our new product features."
                 className={`min-h-[120px] resize-none text-base ${
-                  stepValidations[currentStep]?.error ? 'border-red-500 focus-visible:ring-red-500' : ''
+                  stepValidations[currentStep]?.error ? 'border-yellow-700 focus-visible:ring-yellow-700' : ''
                 }`}
               />
               {stepValidations[currentStep]?.error && (
-                <p className="text-sm text-red-500">{stepValidations[currentStep].error}</p>
+                <p className="text-sm text-yellow-700">{stepValidations[currentStep].error}</p>
               )}
             </div>
           </div>
@@ -210,11 +315,11 @@ export default function MultiStepForm({
                 onChange={handleInputChange}
                 placeholder="Participants should provide examples of their workflows or describe challenges they face."
                 className={`min-h-[120px] resize-none text-base ${
-                  stepValidations[currentStep]?.error ? 'border-red-500 focus-visible:ring-red-500' : ''
+                  stepValidations[currentStep]?.error ? 'border-yellow-700 focus-visible:ring-yellow-700' : ''
                 }`}
               />
               {stepValidations[currentStep]?.error && (
-                <p className="text-sm text-red-500">{stepValidations[currentStep].error}</p>
+                <p className="text-sm text-yellow-700">{stepValidations[currentStep].error}</p>
               )}
             </div>
           </div>
@@ -234,35 +339,40 @@ export default function MultiStepForm({
                 onChange={handleInputChange}
                 placeholder="Our company is developing a new app, and this session is part of our usability testing to gather user feedback on key features."
                 className={`min-h-[120px] resize-none text-base ${
-                  stepValidations[currentStep]?.error ? 'border-red-500 focus-visible:ring-red-500' : ''
+                  stepValidations[currentStep]?.error ? 'border-yellow-700 focus-visible:ring-yellow-700' : ''
                 }`}
               />
               {stepValidations[currentStep]?.error && (
-                <p className="text-sm text-red-500">{stepValidations[currentStep].error}</p>
+                <p className="text-sm text-yellow-700">{stepValidations[currentStep].error}</p>
               )}
             </div>
           </div>
         );
 
-      case 4: // Session name
+      case 4: // Session name with recap
         return (
-          <div className="space-y-6">
+          <div className="space-y-2">
             <div className="text-center">
               <h2 className="text-2xl font-semibold mb-2">Name your session</h2>
               <p className="text-muted-foreground">Enter a clear session name that will be shared with participants</p>
             </div>
+            
             <div className="space-y-2">
+              <Label htmlFor="sessionName" className="text-base font-medium">
+                Session Name
+              </Label>
               <Input
+                id="sessionName"
                 name="sessionName"
                 value={formData.sessionName}
                 onChange={handleInputChange}
                 placeholder="Your session name"
                 className={`text-base ${
-                  stepValidations[currentStep]?.error ? 'border-red-500 focus-visible:ring-red-500' : ''
+                  stepValidations[currentStep]?.error ? 'border-yellow-700 focus-visible:ring-yellow-700' : ''
                 }`}
               />
               {stepValidations[currentStep]?.error && (
-                <p className="text-sm text-red-500">{stepValidations[currentStep].error}</p>
+                <p className="text-sm text-yellow-700">{stepValidations[currentStep].error}</p>
               )}
             </div>
           </div>
@@ -278,20 +388,45 @@ export default function MultiStepForm({
       <div className="flex gap-6 justify-center">
 
         {/* Left side - Form content (2/3) */}
-        <div className="flex-1 max-w-2xl">
+        <div className="flex-1 max-w-3xl space-y-6">
           <StepProgress 
             currentStep={currentStep} 
-            totalSteps={5} 
+            totalSteps={4} 
             isObjectivePrefilled={isObjectivePrefilled}
           />
           
-          <div className="bg-yellow-50 p-8 rounded-xl shadow-md border">
+          <div className="bg-yellow-50 p-8 rounded-xl shadow-md border md:min-w-[720px]">
             {renderStepContent()}
           </div>
+
+          {/* Review section for step 4 */}
+          {currentStep === 4 && (
+            <div className="space-y-4 mb-8">
+              <h3 className="text-lg font-semibold">Session Summary</h3>
+              <EditableField
+                label="Objective"
+                value={formData.goal || ''}
+                onSave={(value) => onFormDataChange({ goal: value })}
+                placeholder="I want to understand user preferences on our new product features."
+              />
+              <EditableField
+                label="Critical to gather"
+                value={formData.critical || ''}
+                onSave={(value) => onFormDataChange({ critical: value })}
+                placeholder="Participants should provide examples of their workflows or describe challenges they face."
+              />
+              <EditableField
+                label="Context"
+                value={formData.context || ''}
+                onSave={(value) => onFormDataChange({ context: value })}
+                placeholder="Our company is developing a new app, and this session is part of our usability testing to gather user feedback on key features."
+              />
+            </div>
+          )}
           
           <StepNavigation
             currentStep={currentStep}
-            totalSteps={5}
+            totalSteps={4}
             isObjectivePrefilled={isObjectivePrefilled}
             onPrevious={handlePrevious}
             onNext={handleNext}
@@ -300,16 +435,7 @@ export default function MultiStepForm({
           />
         </div>
 
-        {/* Right side - Image (1/3) */}
-        <div className="flex-1 max-w-sm flex items-center justify-center">
-          <div className="w-full max-w-sm">
-            <img 
-              src="/chat-example.png" 
-              alt="Chat example showing conversation flow" 
-              className="w-full h-auto"
-            />
-          </div>
-        </div>
+        {/* Right side removed; intro image moved inside card to avoid layout shift */}
 
         
       </div>
