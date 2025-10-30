@@ -117,6 +117,9 @@ export default function MultiStepForm({
   const [currentStep, setCurrentStep] = useState<number>(initialStep ?? 0); // Start at provided step or 0
   const [stepValidations, setStepValidations] = useState<Record<number, StepValidation>>({});
   const [isObjectivePrefilled, setIsObjectivePrefilled] = useState(initialStep ? initialStep > 1 : false);
+  const [quickQuestions, setQuickQuestions] = useState('');
+  const [quickSessionName, setQuickSessionName] = useState('');
+  const [quickErrors, setQuickErrors] = useState<{ questions?: string; name?: string }>({});
 
   // Check if objective is pre-filled and handle template navigation
   useEffect(() => {
@@ -220,6 +223,36 @@ export default function MultiStepForm({
     }
   };
 
+  // Handle Quick Start submit from Intro
+  const handleQuickStart = () => {
+    const trimmedQuestions = quickQuestions.trim();
+    const trimmedName = quickSessionName.trim();
+    const errors: { questions?: string; name?: string } = {};
+
+    if (!trimmedQuestions || trimmedQuestions.length < 10) {
+      errors.questions = 'Please paste at least a few questions (min 10 characters)';
+    }
+    if (!trimmedName || trimmedName.length < 3) {
+      errors.name = 'Session name must be at least 3 characters';
+    }
+
+    if (errors.questions || errors.name) {
+      setQuickErrors(errors);
+      return;
+    }
+
+    // Prefill core fields and submit through existing flow
+    onFormDataChange({
+      critical: trimmedQuestions,
+      goal: 'Ask these questions to the participant.',
+      sessionName: trimmedName,
+    });
+
+    // Clear any step errors and trigger submission
+    setStepValidations({});
+    onSubmit(new Event('submit') as any);
+  };
+
   // Update validation errors for parent component
   useEffect(() => {
     const hasErrors = Object.values(stepValidations).some(validation => !validation.isValid);
@@ -235,43 +268,80 @@ export default function MultiStepForm({
     switch (stepToRender) {
       case 0: // Intro
         return (
-          <div className="bg-white rounded-lg md:p-4 border -m-4">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-center">
-              {/* Image left */}
-              <div className="w-full hidden md:block md:col-span-2">
-                <img 
-                  src="/chat-example.png" 
-                  alt="Chat example showing conversation flow" 
-                  className="w-full h-auto"
+          <div className="bg-white rounded-lg md:p-10 border -m-4">
+            <h2 className="text-center text-2xl mb-8">Choose how to get started</h2>
+            <div className="flex flex-col md:flex-row gap-8 md:items-stretch items-start">
+              {/* Quick Start - Left (no card styling) */}
+              <div className="w-full md:w-auto flex-1 min-w-0">
+                <h3 className="text-lg mb-2">Quick start</h3>
+                <p className="text-sm text-muted-foreground mb-4">Paste your own questions and let Harmonica turn them into a conversational flow instantly.</p>
+                <Label htmlFor="quickSessionName" className="text-sm font-medium">Session name</Label>
+                <Input
+                  id="quickSessionName"
+                  value={quickSessionName}
+                  onChange={(e) => {
+                    setQuickSessionName(e.target.value);
+                    if (quickErrors.name) setQuickErrors((prev) => ({ ...prev, name: undefined }));
+                  }}
+                  placeholder="e.g. Onboarding research questions"
+                  className={`mb-2 ${quickErrors.name ? 'border-yellow-700 focus-visible:ring-yellow-700' : ''}`}
                 />
+                {quickErrors.name && (
+                  <p className="text-xs text-yellow-700 mb-2">{quickErrors.name}</p>
+                )}
+
+                <Label htmlFor="quickQuestions" className="text-sm font-medium">Questions</Label>
+                <Textarea
+                  id="quickQuestions"
+                  value={quickQuestions}
+                  onChange={(e) => {
+                    setQuickQuestions(e.target.value);
+                    if (quickErrors.questions) setQuickErrors((prev) => ({ ...prev, questions: undefined }));
+                  }}
+                  placeholder={`Example:\n- What problem were you trying to solve?\n- What worked well?\n- What was frustrating?`}
+                  className={`min-h-[140px] md:min-h-[160px] resize-none text-base ${quickErrors.questions ? 'border-yellow-700 focus-visible:ring-yellow-700' : ''}`}
+                />
+                {quickErrors.questions && (
+                  <p className="text-xs text-yellow-700 mt-1">{quickErrors.questions}</p>
+                )}
+
+                <div className="mt-4">
+                  <Button type="button" onClick={handleQuickStart} disabled={isLoading}>
+                    {isLoading ? 'Generating...' : 'Generate with Quick Start'}
+                  </Button>
+                </div>
               </div>
-              {/* Content right */}
-              <div className="space-y-4 p-6 md:col-span-3">
+
+              {/* Divider */}
+              <div className="hidden md:block w-px bg-gray-200 self-stretch" />
+
+              {/* Guided setup - Right (matched heading) */}
+              <div className="space-y-4 md:w-auto flex-1 min-w-0">
                 <div>
-                  <h2 className="text-2xl mb-2">Let's design your session</h2>
-                  <p className="text-muted-foreground">You’ll:</p>
+                  <h3 className="text-lg mb-2">Guided setup</h3>
+                  <p className="text-sm text-muted-foreground">Co-design your conversational survey with AI — define goals, generate questions, and customize before launch.</p>
                 </div>
                 <ul className="space-y-3">
                   <li className="flex items-start gap-2">
                     <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-md bg-yellow-100 text-yellow-700 border border-yellow-200">
                       <Check className="h-3.5 w-3.5" />
                     </span>
-                    <span>Share your project goals and context</span>
+                    <span className="text-sm text-muted-foreground">Share your project goals and context</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-md bg-yellow-100 text-yellow-700 border border-yellow-200">
                       <Check className="h-3.5 w-3.5" />
                     </span>
-                    <span>Co-design your conversational guide with AI</span>
+                    <span className="text-sm text-muted-foreground">Co-design your conversational guide with AI</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-md bg-yellow-100 text-yellow-700 border border-yellow-200">
                       <Check className="h-3.5 w-3.5" />
                     </span>
-                    <span>Review and edit your pre-session form</span>
+                    <span className="text-sm text-muted-foreground">Review and edit your pre-session form</span>
                   </li>
                 </ul>
-                <p className="text-muted-foreground">Ready to get started?</p>
+                <p className="text-muted-foreground">Use Next to continue with the guided setup.</p>
               </div>
             </div>
           </div>
@@ -387,8 +457,7 @@ export default function MultiStepForm({
     <div className="max-w-6xl mx-auto">
       <div className="flex gap-6 justify-center">
 
-        {/* Left side - Form content (2/3) */}
-        <div className="flex-1 max-w-3xl space-y-6">
+        <div className="flex-1 max-w-4xl space-y-6">
           <StepProgress 
             currentStep={currentStep} 
             totalSteps={4} 
