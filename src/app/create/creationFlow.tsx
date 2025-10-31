@@ -166,6 +166,35 @@ export default function CreationFlow() {
     }
   };
 
+  const handleQuickStartComplete = async (quickFormData: Partial<SessionBuilderData>) => {
+    // Quick Start bypasses validation and goes straight to generation
+    // Ensure formData is updated with Quick Start values
+    onFormDataChange(quickFormData);
+    
+    setIsLoading(true);
+    enabledSteps[1] = true;
+    setActiveStep('Refine');
+    
+    try {
+      // Use the updated formData (which will include quickFormData after state update)
+      // We need to merge quickFormData with existing formData for getInitialPrompt
+      const mergedFormData = { ...formData, ...quickFormData };
+      const responseFullPrompt = await sendApiCall({
+        target: ApiTarget.Builder,
+        action: ApiAction.CreatePrompt,
+        data: mergedFormData,
+      });
+      latestFullPromptRef.current = responseFullPrompt.fullPrompt;
+      getStreamOfSummary({
+        fullPrompt: responseFullPrompt.fullPrompt,
+      });
+    } catch (error) {
+      setThrowError(() => {
+        throw error;
+      });
+    }
+  };
+
   const handleEditPrompt = async (editValue: string) => {
     console.log('[i] Edit instructions: ', editValue);
 
@@ -311,6 +340,7 @@ IMPORTANT:
         isLoading={isLoading}
         onBackToDashboard={() => route.push('/')}
         initialStep={targetStep && formData.goal?.trim() && formData.critical?.trim() ? targetStep : undefined}
+        onQuickStartComplete={handleQuickStartComplete}
       />
     ),
     Refine: isLoading ? (

@@ -19,6 +19,7 @@ interface MultiStepFormProps {
   isLoading?: boolean;
   onBackToDashboard?: () => void;
   initialStep?: number;
+  onQuickStartComplete?: (quickFormData: Partial<SessionBuilderData>) => Promise<void>;
 }
 
 interface EditableFieldProps {
@@ -112,7 +113,8 @@ export default function MultiStepForm({
   onValidationError,
   isLoading = false,
   onBackToDashboard,
-  initialStep
+  initialStep,
+  onQuickStartComplete
 }: MultiStepFormProps) {
   const [currentStep, setCurrentStep] = useState<number>(initialStep ?? 0); // Start at provided step or 0
   const [stepValidations, setStepValidations] = useState<Record<number, StepValidation>>({});
@@ -241,16 +243,26 @@ export default function MultiStepForm({
       return;
     }
 
-    // Prefill core fields and submit through existing flow
-    onFormDataChange({
+    // Prepare Quick Start form data
+    const quickFormData = {
       critical: trimmedQuestions,
-      goal: 'Ask these questions to the participant.',
+      goal: 'I want to gather participant responses to these questions.',
+      context: '',
       sessionName: trimmedName,
-    });
+    };
 
-    // Clear any step errors and trigger submission
+    // Update form data
+    onFormDataChange(quickFormData);
+
+    // Clear any step errors and trigger Quick Start flow (bypasses validation)
     setStepValidations({});
-    onSubmit(new Event('submit') as any);
+    if (onQuickStartComplete) {
+      // Pass form data directly to avoid timing issues with async state updates
+      onQuickStartComplete(quickFormData);
+    } else {
+      // Fallback to regular submit if callback not provided
+      onSubmit(new Event('submit') as any);
+    }
   };
 
   // Update validation errors for parent component
@@ -269,13 +281,12 @@ export default function MultiStepForm({
       case 0: // Intro
         return (
           <div className="bg-white rounded-lg md:p-10 border -m-4">
-            <h2 className="text-center text-2xl mb-8">Choose how to get started</h2>
-            <div className="flex flex-col md:flex-row gap-8 md:items-stretch items-start">
+            <h2 className="text-center mb-8">Choose how to get started</h2>
+            <div className="flex flex-col md:flex-row gap-10 md:items-stretch items-start">
               {/* Quick Start - Left (no card styling) */}
               <div className="w-full md:w-auto flex-1 min-w-0">
-                <h3 className="text-lg mb-2">Quick start</h3>
-                <p className="text-sm text-muted-foreground mb-4">Paste your own questions and let Harmonica turn them into a conversational flow instantly.</p>
-                <Label htmlFor="quickSessionName" className="text-sm font-medium">Session name</Label>
+                <h3 className="text-2xl mb-2">Quick start</h3>
+                <p className="text-sm text-muted-foreground mb-4">Paste your own questions and let Harmonica turn them into a conversational flow instantly</p>
                 <Input
                   id="quickSessionName"
                   value={quickSessionName}
@@ -283,14 +294,13 @@ export default function MultiStepForm({
                     setQuickSessionName(e.target.value);
                     if (quickErrors.name) setQuickErrors((prev) => ({ ...prev, name: undefined }));
                   }}
-                  placeholder="e.g. Onboarding research questions"
+                  placeholder="Session name"
                   className={`mb-2 ${quickErrors.name ? 'border-yellow-700 focus-visible:ring-yellow-700' : ''}`}
                 />
                 {quickErrors.name && (
                   <p className="text-xs text-yellow-700 mb-2">{quickErrors.name}</p>
                 )}
 
-                <Label htmlFor="quickQuestions" className="text-sm font-medium">Questions</Label>
                 <Textarea
                   id="quickQuestions"
                   value={quickQuestions}
@@ -298,7 +308,7 @@ export default function MultiStepForm({
                     setQuickQuestions(e.target.value);
                     if (quickErrors.questions) setQuickErrors((prev) => ({ ...prev, questions: undefined }));
                   }}
-                  placeholder={`Example:\n- What problem were you trying to solve?\n- What worked well?\n- What was frustrating?`}
+                  placeholder={`Your questions. e.g.: \n- What problem are you trying to solve?\n- What worked well?\n- What was frustrating?`}
                   className={`min-h-[140px] md:min-h-[160px] resize-none text-base ${quickErrors.questions ? 'border-yellow-700 focus-visible:ring-yellow-700' : ''}`}
                 />
                 {quickErrors.questions && (
@@ -306,20 +316,20 @@ export default function MultiStepForm({
                 )}
 
                 <div className="mt-4">
-                  <Button type="button" onClick={handleQuickStart} disabled={isLoading}>
-                    {isLoading ? 'Generating...' : 'Generate with Quick Start'}
+                  <Button type="button" variant="secondary" onClick={handleQuickStart} disabled={isLoading}>
+                    {isLoading ? 'Generating...' : 'Generate'}
                   </Button>
                 </div>
               </div>
 
               {/* Divider */}
-              <div className="hidden md:block w-px bg-gray-200 self-stretch" />
+              <div className="hidden md:block w-px bg-muted self-stretch" />
 
               {/* Guided setup - Right (matched heading) */}
               <div className="space-y-4 md:w-auto flex-1 min-w-0">
                 <div>
-                  <h3 className="text-lg mb-2">Guided setup</h3>
-                  <p className="text-sm text-muted-foreground">Co-design your conversational survey with AI — define goals, generate questions, and customize before launch.</p>
+                  <h3 className="text-2xl mb-2">Guided setup</h3>
+                  <p className="text-sm text-muted-foreground">Share your goal for the project and we'll recommended a conversational flow</p>
                 </div>
                 <ul className="space-y-3">
                   <li className="flex items-start gap-2">
@@ -341,7 +351,7 @@ export default function MultiStepForm({
                     <span className="text-sm text-muted-foreground">Review and edit your pre-session form</span>
                   </li>
                 </ul>
-                <p className="text-muted-foreground">Use Next to continue with the guided setup.</p>
+                <p className="text-muted-foreground">Use Next to continue with the guided setup</p>
               </div>
             </div>
           </div>
@@ -429,7 +439,7 @@ export default function MultiStepForm({
             
             <div className="space-y-2">
               <Label htmlFor="sessionName" className="text-base font-medium">
-                Session Name
+                Session name
               </Label>
               <Input
                 id="sessionName"
