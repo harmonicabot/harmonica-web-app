@@ -8,7 +8,7 @@ import { VersionedPrompt } from './creationFlow';
 import { Spinner } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { HRMarkdown } from '@/components/HRMarkdown';
-import { Eye } from 'lucide-react';
+import { Eye, Info } from 'lucide-react';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { isAdmin } from '@/lib/serverUtils';
 
@@ -20,6 +20,7 @@ export default function ReviewPrompt({
   setCurrentVersion,
   isEditing,
   handleEdit,
+  handleReplaceFullPrompt,
 }: {
   prompts: VersionedPrompt[];
   setPrompts: (value: SetStateAction<VersionedPrompt[]>) => void;
@@ -28,12 +29,14 @@ export default function ReviewPrompt({
   setCurrentVersion: (version: number) => void;
   isEditing: boolean;
   handleEdit: (instructions: string) => void;
+  handleReplaceFullPrompt: (fullPrompt: string) => void;
 }) {
   const [editValue, setEditValue] = useState('');
   const [generating, setGenerating] = useState(false);
   const [showModalState, setShowModalState] = useState(false);
   const [fullPrompt, setFullPrompt] = useState('');
   const [advancedMode, setAdvancedMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const user = useUser().user;
 
@@ -64,32 +67,48 @@ export default function ReviewPrompt({
     setFullPrompt(prompts[promptId - 1].fullPrompt);
   };
 
-  const closeAndUpdateFullPrompt = (promptId: number) => {
-    const updatedPrompt = prompts[promptId - 1];
-    updatedPrompt.fullPrompt = fullPrompt;
-    updatedPrompt.summary = fullPrompt;
-    setPrompts((prev) => {
-      prev[promptId - 1] = updatedPrompt;
-      console.log('Updated prompts: ', prev);
-      return [...prev];
-    });
-    setShowModalState(false);
+  const onSaveFullPrompt = () => {
+    setIsSaving(true);
+    handleReplaceFullPrompt(fullPrompt);
   };
+
+  // Close modal when a new summary stream begins (first chunk arrives)
+  useEffect(() => {
+    if (isSaving && summarizedPrompt && summarizedPrompt.length > 0) {
+      setIsSaving(false);
+      setShowModalState(false);
+    }
+  }, [summarizedPrompt, isSaving]);
 
   return (
     <>
       {showModalState && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-lg w-full h-svh overflow-auto flex flex-col">
-            <div className="flex justify-between">
-              <h2 className="text-2xl font-bold mb-4">Full Prompt</h2>
-              <Button onClick={() => closeAndUpdateFullPrompt(1)}>Close</Button>
+        <div className="fixed inset-0 bg-white backdrop-blur-sm bg-opacity-75 z-50 flex items-center justify-center py-8">
+          <div className="bg-white border p-8 rounded-lg w-full max-w-3xl mx-4 md:mx-auto my-6 h-full overflow-y-auto flex flex-col">
+            <div className="flex justify-between mb-8">
+              <div className="flex flex-col">
+                <h2 className="text-2xl font-bold">Interview Guide Prompt</h2>
+                <p>This is the guide we share with the AI to conduct the session.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button onClick={onSaveFullPrompt} disabled={isSaving} className="border-[1px] flex items-center">
+                  {isSaving ? (
+                    <>
+                      <Spinner />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save'
+                  )}
+                </Button>
+                <Button variant="secondary" onClick={() => setShowModalState(false)} className="border-[1px]">Close</Button>
+              </div>
             </div>
 
             <Textarea
               name="Full Prompt"
               value={fullPrompt}
-              className="w-full flex-1"
+              className="w-full flex-1 h-full"
               onChange={(e) => setFullPrompt(e.target.value)}
             />
           </div>
@@ -97,25 +116,28 @@ export default function ReviewPrompt({
       )}
       <div
         id="card-container"
-        className="bg-white m-4 overflow-hidden mx-auto p-4 rounded-xl shadow space-y-12 max-w-4xl"
+        className="bg-white m-4 overflow-hidden mx-auto p-4 rounded-xl space-y-12 max-w-4xl"
       >
         <div className="lg:flex h-full">
           <div className={`${isEditing ? 'lg:w-2/3' : ''} overflow-auto`}>
             {/* Main title for all generated sessions */}
-            <div className="flex items-center space-x-2 mb-6">
+            <div className="mb-4">
+            <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
               <h2 className="text-lg font-semibold text-yellow-800">
-                Your Generated Session
+                Recommended Structure
               </h2>
+            </div>
+            <p className="text-muted-foreground">Based on what you shared, we've generated a recommended structure for the session.</p>
             </div>
             {summarizedPrompt ||
               (generating ? (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 my-4">
+                <div className="bg-yellow-50 border rounded-xl p-6 my-4">
                   {summarizedPrompt ? (
                     <>
                       <div className="mb-4">
-                        <span className="text-sm text-yellow-600 font-medium">
-                          v{prompts.length + 1}
+                        <span className="text-sm font-medium">
+                          Version {prompts.length + 1}
                         </span>
                       </div>
                       <div className="p-4">
@@ -150,7 +172,7 @@ export default function ReviewPrompt({
                 key={prompt.id}
                 className={`my-4 ${
                   prompt.id === currentVersion && !generating
-                    ? 'bg-yellow-50 border border-yellow-200'
+                    ? 'bg-yellow-50 border'
                     : 'bg-white border border-gray-200'
                 } rounded-xl p-6`}
               >
@@ -158,15 +180,21 @@ export default function ReviewPrompt({
                   <div className="flex items-center space-x-2">
                     <span className={`text-sm font-medium ${
                       prompt.id === currentVersion && !generating ? 'text-yellow-600' : 'text-gray-600'
-                    }`}>v{prompts.length - index}</span>
+                    }`}>Version {prompts.length - index}</span>
                   </div>
                   <div className='flex flex-row items-center'>
-                    {advancedMode && (
-                      <Eye
-                        className="mr-2"
-                        onClick={() => showFullPrompt(prompt.id)}
-                      />
-                    )}
+                  {advancedMode && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="mr-2"
+                      onClick={() => showFullPrompt(prompt.id)}
+                      aria-label="View full prompt"
+                      title="View full prompt"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  )}
                     {/* Disabling the 'Test' chat, it doesn't work because we don't have the session ID yet, but it's needed for the AI to use the actual prompt...
                     <ChatPopupButton
                       prompt={prompt}
@@ -190,6 +218,13 @@ export default function ReviewPrompt({
                 </div>
               </div>
             ))}
+            {/* Disclaimer moved below cards and above navigation buttons */}
+            <div className="inline-flex items-center space-x-2 p-2 bg-yellow-100 border rounded-md w-fit mt-4">
+              <Info className="w-4 h-4 text-yellow-600" />
+              <p className="text-sm font-medium">
+                Collect basic participant info like name and email in the next step
+              </p>
+            </div>
           </div>
           <div className={`${isEditing ? 'lg:w-1/3 m-4' : ''}`}>
             {isEditing && (

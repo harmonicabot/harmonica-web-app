@@ -38,7 +38,6 @@ export function StepNavigation({
         variant="outline"
         onClick={onPrevious}
         disabled={isFirstStep}
-        className="flex items-center gap-2"
       >
         <ChevronLeft className="w-4 h-4" />
         Back
@@ -46,19 +45,19 @@ export function StepNavigation({
       
       <Button
         type="button"
+        variant="default"
         onClick={onNext}
         disabled={isNextDisabled || isLoading}
-        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
       >
         {isLoading ? (
           <>
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
             Loading...
           </>
         ) : (
           <>
             {nextLabel === 'Generate Session' && <Sparkles className="w-4 h-4" />}
-            {nextLabel}
+            <span className="px-1">{nextLabel}</span>
             <ChevronRight className="w-4 h-4" />
           </>
         )}
