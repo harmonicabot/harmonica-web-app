@@ -87,7 +87,7 @@ export default function ReviewPrompt({
           <div className="bg-white border p-8 rounded-lg w-full max-w-3xl mx-4 md:mx-auto my-6 h-full overflow-y-auto flex flex-col">
             <div className="flex justify-between mb-8">
               <div className="flex flex-col">
-                <h2 className="text-2xl font-bold">Interview Guide Prompt</h2>
+                <h2 className="text-2xl font-semibold">Interview Guide Prompt</h2>
                 <p>This is the guide we share with the AI to conduct the session.</p>
               </div>
               <div className="flex items-center gap-2">

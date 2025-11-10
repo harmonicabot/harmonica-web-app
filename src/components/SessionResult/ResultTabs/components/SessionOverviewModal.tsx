@@ -203,6 +203,50 @@ export function SessionOverviewModal({
     setAllFacilitationPrompts([...allFacilitationPrompts, prompt])
   }
 
+  const handleReplaceFullPrompt = async (fullPrompt: string) => {
+    try {
+      const sessionRecapPrompt = await getPromptInstructions('SESSION_RECAP');
+      const summaryResponse = await sendApiCall({
+        target: ApiTarget.Builder,
+        action: ApiAction.SummaryOfPrompt,
+        data: {
+          fullPrompt,
+          instructions: sessionRecapPrompt,
+        },
+      });
+
+      let updatedPrompt: VersionedPrompt = {
+        id: currentPromptVersion,
+        summary: summaryResponse.fullPrompt,
+        fullPrompt,
+      };
+
+      setAllFacilitationPrompts((prevPrompts) => {
+        const promptIndex = prevPrompts.findIndex(
+          (prompt) => prompt.id === currentPromptVersion,
+        );
+
+        if (promptIndex === -1) {
+          updatedPrompt = {
+            ...updatedPrompt,
+            id: prevPrompts.length,
+          };
+          return [...prevPrompts, updatedPrompt];
+        }
+
+        const nextPrompts = [...prevPrompts];
+        nextPrompts[promptIndex] = updatedPrompt;
+        return nextPrompts;
+      });
+
+      setCurrentVersionedPrompt(updatedPrompt);
+      setCurrentPromptVersion(updatedPrompt.id);
+      await handleSavePrompt(updatedPrompt);
+    } catch (error) {
+      console.error('Failed to replace prompt:', error);
+    }
+  };
+
   const handleEditField = (fieldName: string) => {
     setEditingField(fieldName);
   };
@@ -346,11 +390,12 @@ export function SessionOverviewModal({
           <ReviewPrompt
             prompts={allFacilitationPrompts}
             setPrompts={setAllFacilitationPrompts}
-            summarizedPrompt={''}
+            summarizedPrompt={promptValue.summary}
             currentVersion={currentPromptVersion}
             setCurrentVersion={setCurrentPromptVersion}
             isEditing={editingField === "ReviewPrompt"}
             handleEdit={handleEditVersionedPrompt}
+            handleReplaceFullPrompt={handleReplaceFullPrompt}
           />
         <Button
                 variant="default"
