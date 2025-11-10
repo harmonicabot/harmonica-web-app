@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   Sparkles,
   Leaf,
+  ArrowLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -54,15 +55,33 @@ export default function TemplatesClient() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Session Templates</h1>
-        <p className="text-muted-foreground">
-          Choose a template to get started quickly, or create your own from scratch
-        </p>
+    <div className="max-w-7xl mx-auto px-12 py-20 space-y-12">
+      <div className="flex flex-col items-center gap-6 text-center">
+        <div className="flex w-full flex-col items-center gap-4 md:flex-row md:items-center">
+          <div className="flex w-full justify-start md:w-1/5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/')}
+              className="whitespace-nowrap"
+            >
+              <ArrowLeft />
+              Back
+            </Button>
+          </div>
+
+          <div className="flex w-full flex-col items-center space-y-2 text-center md:w-3/5">
+            <h1 className="text-4xl font-semibold tracking-tight">Explore Templates</h1>
+            <p className="text-muted-foreground">
+              Choose a template to get started quickly
+            </p>
+          </div>
+
+          <div className="hidden w-1/5 justify-end md:flex" />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {templates.templates.map((template) => {
           const Icon =
             iconMap[template.icon as keyof typeof iconMap] ?? Lightbulb;
