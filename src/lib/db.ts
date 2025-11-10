@@ -159,18 +159,18 @@ export async function insertHostSessions(
   console.log('[i] Database Operation: insertHostSessions');
   const db = await dbPromise;
   try {
-    // Due to GDPR, we don't want to store identifiable user data...
-    // But, we kind of have to, otherwise we wouldn't be able to have 'private' sessions at all and all editing etc would be public :-/
     const session = await authGetSession();
-    const userSub = session?.user?.sub || '';
     const result = await db
-      .insertInto(hostTableName)
-      .values({ ...data, client: userSub })
+    .insertInto(hostTableName)
+      .values(data)
       .returningAll()
       .execute();
-
-    // Set the creator as the owner of the session
-    const sessionIds = result.map((row) => row.id);
+      
+      const sessionIds = result.map((row) => row.id);
+      // Set the creator as the owner of the session
+      // Due to GDPR, we don't want to store identifiable user data...
+      // But, we kind of have to, otherwise we wouldn't be able to have 'private' sessions at all and all editing etc would be public :-/
+    const userSub = session?.user?.sub || '';
     if (userSub) {
       await Promise.all(
         sessionIds.map((id) => setPermission(id, 'owner', 'SESSION', userSub)),
@@ -191,13 +191,10 @@ export async function upsertHostSession(
   console.log('[i] Database Operation: upsertHostSession');
   const db = await dbPromise;
   try {
-    // Due to GDPR we don't want to store identifiable user data
-    // But, we kind of have to, otherwise we wouldn't be able to have 'private' sessions at all and all editing etc would be public :-/
     const session = await authGetSession();
-    const userSub = session?.user?.sub || '';
     await db
       .insertInto(hostTableName)
-      .values({ ...data, client: userSub })
+      .values(data)
       .onConflict((oc) =>
         onConflict === 'skip'
           ? oc.column('id').doNothing()

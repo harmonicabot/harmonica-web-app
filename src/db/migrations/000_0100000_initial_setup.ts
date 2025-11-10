@@ -11,7 +11,9 @@ export async function up(db: Kysely<any>) {
     .addColumn('prompt', 'text', (col) => col.notNull())
     .addColumn('template', 'text', (col) => col.notNull())
     .addColumn('topic', 'text', (col) => col.notNull())
+    .addColumn('context', 'text', (col) => col.notNull())
     .addColumn('final_report_sent', 'boolean', (col) => col.notNull().defaultTo(false))
+    .addColumn('summary', 'text')
     .addColumn('start_time', 'timestamp', (col) => col.notNull())
     .addColumn('last_edit', 'timestamp', (col) => col.defaultTo(sql`now()`).notNull())
     .execute();
@@ -29,8 +31,9 @@ export async function up(db: Kysely<any>) {
     .addColumn('user_name', 'text')
     .addColumn('feedback', 'text')
     .addColumn('summary', 'text')
-    .addColumn('step', 'integer', (col) => col.notNull())
-    .addColumn('start_time', 'timestamp', (col) => col.notNull())
+    .addColumn('start_time', 'timestamp', (col) =>
+      col.defaultTo(sql`now()`).notNull()
+    )
     .addColumn('last_edit', 'timestamp', (col) =>
       col.defaultTo(sql`now()`).notNull()
     )

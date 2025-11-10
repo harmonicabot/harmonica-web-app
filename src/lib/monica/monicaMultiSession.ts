@@ -1,6 +1,4 @@
-import { GEMINI_MODEL } from '@llamaindex/google';
 import * as db from '@/lib/db';
-import { Gemini } from '@llamaindex/google';
 import { OpenAIMessage } from '../types';
 import { getPromptInstructions } from '../promptsCache';
 import { getSessionContent } from './qdrantQuery';

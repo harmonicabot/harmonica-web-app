@@ -1,19 +1,12 @@
 import { HostSession, Message, UserSession } from '@/lib/schema';
 import * as db from '@/lib/db';
-import {
-  analyzeWithSimScore,
-  extractDataFromUserMessages,
-} from 'app/api/exportUtils';
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '../icons';
 import { Button } from '../ui/button';
 import { usePermissions } from '@/lib/permissions';
 import { useCustomResponses } from '../SessionResult/ResultTabs/hooks/useCustomResponses';
-import { OpenAIMessage } from '@/lib/types';
-import { X, Download } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Download } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';

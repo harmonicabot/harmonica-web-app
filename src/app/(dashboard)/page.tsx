@@ -48,7 +48,6 @@ const sessionCache = cache(async () => {
         'start_time',
         'final_report_sent',
         'active',
-        'client',
       ])) as HostSession[]; // Type assertion since we know these fields are required
 
       // Get ALL workspace IDs
@@ -122,7 +121,6 @@ const sessionCache = cache(async () => {
       'start_time',
       'final_report_sent',
       'active',
-      'client',
     ]);
 
     const workspacesWithSessions = await combineWorkspacesWithSessions(
@@ -161,7 +159,6 @@ async function combineWorkspacesWithSessions(
       'start_time',
       'final_report_sent',
       'active',
-      'client',
     ]);
 
     // Create a map for quick lookup

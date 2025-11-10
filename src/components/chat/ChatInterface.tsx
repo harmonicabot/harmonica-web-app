@@ -3,8 +3,6 @@ import Link from 'next/link';
 import { HelpCircle, ChevronDown } from 'lucide-react';
 import { FullscreenChat } from './FullscreenChat';
 import { OpenAIMessage } from '@/lib/types';
-import { PoweredByHarmonica } from '@/components/icons';
-import { useUser } from '@auth0/nextjs-auth0/client';
 import { RatingModal } from './RatingModal';
 import { useState, useEffect, useRef } from 'react';
 import { updateUserSession, increaseSessionsCount } from '@/lib/db';
@@ -16,7 +14,6 @@ interface ChatInterfaceProps {
     assistant_id?: string;
     id?: string;
     cross_pollination?: boolean;
-    client?: string;
   };
   userSessionId: string | undefined;
   setUserSessionId: (id: string) => void;
@@ -41,8 +38,7 @@ export const ChatInterface = ({
   userContext,
   questions,
 }: ChatInterfaceProps) => {
-  const { user } = useUser();
-  const isHost = Boolean(user?.sub && hostData?.client === user.sub);
+  const { hasMinimumRole }  = usePermissions(hostData.id || '');
   const mainPanelRef = useRef<HTMLElement>(null);
   const [showRating, setShowRating] = useState(false);
   const [threadId, setThreadId] = useState<string>();
@@ -215,7 +211,7 @@ export const ChatInterface = ({
             sessionId={hostData?.id}
             onThreadIdReceived={handleThreadIdReceived}
             setShowRating={setShowRating}
-            isHost={isHost}
+            isHost={hasMinimumRole('owner')}
             mainPanelRef={mainPanelRef}
             questions={questions as { id: string; label: string }[] | undefined}
           />

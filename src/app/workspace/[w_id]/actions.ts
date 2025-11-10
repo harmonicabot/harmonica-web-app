@@ -28,11 +28,11 @@ export async function deleteWorkspace(id: string) {
 export async function uploadBanner(
   formData: FormData
 ) {
-  console.log("Uploading banner image...");
+  console.log('Uploading banner image...');
   // Get necessary data
   const file = formData.get('file') as File;
   const workspaceId = formData.get('workspaceId') as string;
-  
+
   if (!workspaceId || !file) {
     throw new Error('Missing required fields');
   }
@@ -41,14 +41,18 @@ export async function uploadBanner(
   if (!file.type.startsWith('image/')) {
     throw new Error('Only images are allowed');
   }
-  
-  if (file.size > 5 * 1024 * 1024) { // 5MB limit
+
+  if (file.size > 5 * 1024 * 1024) {
+    // 5MB limit
     throw new Error('File too large (max 5MB)');
   }
 
   // Upload to Vercel Blob
-  const secureFilename = `workspace_${workspaceId}_banner_${Date.now()}.${file.name.split('.').pop()}`;
-  
+  // Needs to have BLOB_STORE_ID && BLOB_READ_WRITE_TOKEN in the .env file
+  const secureFilename = `workspace_${workspaceId}_banner_${Date.now()}.${file.name
+    .split('.')
+    .pop()}`;
+
   const blob = await put(secureFilename, file, {
     access: 'public',
   });
