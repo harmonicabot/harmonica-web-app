@@ -34,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { VersionedPrompt } from 'app/create/creationFlow';
+import { QuestionInfo } from 'app/create/types';
 
 interface SessionResultControlsProps {
   id: string;
@@ -52,6 +53,7 @@ interface SessionResultControlsProps {
     promptSummary: string;
     facilitationPrompt?: string;
   };
+  questions?: QuestionInfo[];
 }
 
 export default function SessionResultControls({
@@ -63,6 +65,7 @@ export default function SessionResultControls({
   crossPollination = true,
   sessionTopic = '',
   sessionData,
+  questions = [],
 }: SessionResultControlsProps) {
   const [loadSummary, setLoadSummary] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
@@ -237,6 +240,35 @@ export default function SessionResultControls({
     }
   };
 
+  const handleUpdateQuestions = async (updatedQuestions: QuestionInfo[]) => {
+    try {
+      // Convert questions array to JSON string format that the database expects
+      const questionsJson = JSON.stringify(
+        updatedQuestions.map((q) => ({
+          id: q.id,
+          label: q.label,
+          type: q.type,
+          typeValue: q.typeValue,
+          required: q.required,
+          options: q.options,
+        }))
+      ) as unknown as JSON;
+      await db.updateHostSession(id, { questions: questionsJson });
+      toast({
+        title: 'Questions updated',
+        description: 'The pre-survey form questions have been successfully updated.',
+      });
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to update questions:', error);
+      toast({
+        title: 'Failed to update questions',
+        description: 'An error occurred while updating the questions.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleEditSession = () => {
     // TODO: Navigate to the review step of the create session flow
     // This will need to be implemented to take users to the refine step
@@ -267,6 +299,16 @@ export default function SessionResultControls({
           >
             {isFinished ? 'Reopen' : 'End Session'}
           </Button>
+          
+          <Button
+            variant="outline"
+            onClick={() => setShowSessionOverviewModal(true)}
+            disabled={isCloning || isDeleting}
+          >
+            <Settings className="h-4 w-4" />
+            Edit Session
+          </Button>
+          
           {readyToGetSummary && (
             <Button
               variant="secondary"
@@ -280,15 +322,7 @@ export default function SessionResultControls({
             </Button>
           )}
 
-          <Button
-            variant="outline"
-            onClick={() => setShowSessionOverviewModal(true)}
-            disabled={isCloning || isDeleting}
-          >
-            <Settings className="h-4 w-4" />
-            Edit Session
-          </Button>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" disabled={isCloning || isDeleting}>
@@ -347,8 +381,10 @@ export default function SessionResultControls({
             isOpen={showSessionOverviewModal}
             onClose={() => setShowSessionOverviewModal(false)}
             sessionData={sessionData}
+            questions={questions}
             onUpdateSession={handleSessionUpdate}
             onUpdatePrompt={handleUpdatePrompt}
+            onUpdateQuestions={handleUpdateQuestions}
             onEditSession={handleEditSession}
           />
         )}

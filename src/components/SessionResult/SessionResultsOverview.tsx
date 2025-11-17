@@ -4,6 +4,7 @@ import SessionResultControls from './SessionResultControls';
 import SessionResultParticipants from './SessionResultShare';
 import SessionResultStatus from './SessionResultStatus';
 import { usePermissions } from '@/lib/permissions';
+import { QuestionInfo } from 'app/create/types';
 
 export default function SessionResultsOverview({
   id,
@@ -16,6 +17,7 @@ export default function SessionResultsOverview({
   summaryPrompt,
   crossPollination,
   sessionData,
+  questions,
 }: {
   id: string;
   status: SessionStatus;
@@ -35,6 +37,7 @@ export default function SessionResultsOverview({
     promptSummary: string;
     facilitationPrompt: string;
   };
+  questions?: QuestionInfo[];
 }) {
   const { hasMinimumRole, loading } = usePermissions(id);
   return (
@@ -48,6 +51,7 @@ export default function SessionResultsOverview({
           summaryPrompt={summaryPrompt}
           crossPollination={crossPollination}
           sessionData={sessionData}
+          questions={questions}
         />
       )}
       <SessionResultStatus
