@@ -1,7 +1,7 @@
 'use client';
 
 // Session Overview Modal Component
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, SetStateAction } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -203,6 +203,11 @@ export function SessionOverviewModal({
     setAllFacilitationPrompts([...allFacilitationPrompts, prompt])
   }
 
+  // Wrapper to match ReviewPrompt's expected setPrompts signature
+  const handleSetPrompts = (value: SetStateAction<VersionedPrompt[]>) => {
+    setAllFacilitationPrompts(value);
+  }
+
   const handleEditField = (fieldName: string) => {
     setEditingField(fieldName);
   };
@@ -345,7 +350,7 @@ export function SessionOverviewModal({
 
           <ReviewPrompt
             prompts={allFacilitationPrompts}
-            setPrompts={setAllFacilitationPrompts}
+            setPrompts={handleSetPrompts}
             summarizedPrompt={''}
             currentVersion={currentPromptVersion}
             setCurrentVersion={setCurrentPromptVersion}
