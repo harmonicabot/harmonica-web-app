@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, SetStateAction } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -16,7 +16,7 @@ interface EditSessionTabProps {
     facilitationPrompt?: string;
   };
   allFacilitationPrompts: VersionedPrompt[];
-  setAllFacilitationPrompts: (prompts: VersionedPrompt[]) => void;
+  setAllFacilitationPrompts: (value: SetStateAction<VersionedPrompt[]>) => void;
   currentPromptVersion: number;
   setCurrentPromptVersion: (version: number) => void;
   promptValue: VersionedPrompt;
