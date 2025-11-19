@@ -59,8 +59,77 @@ export function SessionOverviewModal({
   
   // Update local questions when initialQuestions change
   useEffect(() => {
-    setLocalQuestions(initialQuestions);
-  }, [initialQuestions]);
+    const selectedPrompt = allFacilitationPrompts[currentPromptVersion];
+    if (selectedPrompt && selectedPrompt !== promptValue) {
+      setCurrentVersionedPrompt(selectedPrompt)
+      handleSavePrompt(selectedPrompt);
+    }
+  }, [currentPromptVersion, allFacilitationPrompts, setCurrentVersionedPrompt])
+
+  const addVersionedPrompt = (prompt: VersionedPrompt) => {
+    setAllFacilitationPrompts([...allFacilitationPrompts, prompt])
+  }
+
+  const handleReplaceFullPrompt = async (fullPrompt: string) => {
+    try {
+      const sessionRecapPrompt = await getPromptInstructions('SESSION_RECAP');
+      const summaryResponse = await sendApiCall({
+        target: ApiTarget.Builder,
+        action: ApiAction.SummaryOfPrompt,
+        data: {
+          fullPrompt,
+          instructions: sessionRecapPrompt,
+        },
+      });
+
+      let updatedPrompt: VersionedPrompt = {
+        id: currentPromptVersion,
+        summary: summaryResponse.fullPrompt,
+        fullPrompt,
+      };
+
+      setAllFacilitationPrompts((prevPrompts) => {
+        const promptIndex = prevPrompts.findIndex(
+          (prompt) => prompt.id === currentPromptVersion,
+        );
+
+        if (promptIndex === -1) {
+          updatedPrompt = {
+            ...updatedPrompt,
+            id: prevPrompts.length,
+          };
+          return [...prevPrompts, updatedPrompt];
+        }
+
+        const nextPrompts = [...prevPrompts];
+        nextPrompts[promptIndex] = updatedPrompt;
+        return nextPrompts;
+      });
+
+      setCurrentVersionedPrompt(updatedPrompt);
+      setCurrentPromptVersion(updatedPrompt.id);
+      await handleSavePrompt(updatedPrompt);
+    } catch (error) {
+      console.error('Failed to replace prompt:', error);
+    }
+  };
+
+  const handleEditField = (fieldName: string) => {
+    setEditingField(fieldName);
+  };
+
+  const handleSaveField = async (fieldName: string, value: string | boolean) => {
+    try {
+      await onUpdateSession({ [fieldName]: value });
+      setEditingField(null);
+    } catch (error) {
+      console.error('Failed to update field:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingField(null);
+  };
 
   const handleSavePrompt = async (versionedPromptToSave?: VersionedPrompt) => {
     if (onUpdatePrompt) {
@@ -208,11 +277,15 @@ export function SessionOverviewModal({
           />
         );
 
-      case 'pre-survey':
-        return (
-          <FormBuilder
-            questions={localQuestions}
-            onQuestionsUpdate={handleQuestionsUpdate}
+          <ReviewPrompt
+            prompts={allFacilitationPrompts}
+            setPrompts={setAllFacilitationPrompts}
+            summarizedPrompt={promptValue.summary}
+            currentVersion={currentPromptVersion}
+            setCurrentVersion={setCurrentPromptVersion}
+            isEditing={editingField === "ReviewPrompt"}
+            handleEdit={handleEditVersionedPrompt}
+            handleReplaceFullPrompt={handleReplaceFullPrompt}
           />
         );
 

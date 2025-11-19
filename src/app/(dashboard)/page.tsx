@@ -215,7 +215,7 @@ export default async function Dashboard({
         <div className="flex-1 flex flex-col justify-center">
           <div className="flex items-center justify-between mb-2">
             <label htmlFor="dashboard-objective" className="block text-base font-medium">What do you want to find out?</label>
-            <Link href="/create">
+            <Link href="/templates">
               <Button variant="ghost" size="sm">
                 <FileText className="w-4 h-4" />
                 Templates
