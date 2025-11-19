@@ -92,7 +92,7 @@ export default function SessionParticipantsTable({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-xl">Participants</CardTitle>
+            <CardTitle className="text-xl">Responses</CardTitle>
             <CardDescription>
               View participants progress and transcripts
             </CardDescription>

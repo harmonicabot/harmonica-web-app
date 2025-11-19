@@ -1,4 +1,4 @@
-import { CardContent, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HRMarkdown } from '@/components/HRMarkdown';
 import { Download, RefreshCw } from 'lucide-react';
 import {
@@ -7,18 +7,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../ui/tooltip';
-import ExpandableCard from '../ui/expandable-card';
 import { ExportButton } from '../Export/ExportButton';
 import { Spinner } from '../icons';
 import { RefreshStatus, SummaryUpdateManager } from 'summary/SummaryUpdateManager';
 import { useRef } from 'react';
+import { cn } from '@/lib/clientUtils';
 
-interface CardProps {
+interface SummaryCardProps {
   resourceId: string;
   title: string;
   content?: string;
-  isExpanded: boolean;
-  onExpandedChange: (expanded: boolean) => void;
   showRefreshButton?: boolean;
   onRefresh?: () => void;
   isUpdating?: boolean;
@@ -46,31 +44,30 @@ const StatusIndicator = ({ status }: { status: RefreshStatus | undefined }) => {
   );
 };
 
-export const ExpandableWithExport = ({
+export const SummaryCard = ({
   resourceId,
   title,
   content,
-  isExpanded,
-  onExpandedChange,
   showRefreshButton,
   onRefresh,
   isUpdating,
   loading,
   className,
-}: CardProps) => {
+}: SummaryCardProps) => {
   const refreshStatusRef = useRef(SummaryUpdateManager.getState(resourceId).status);
 
   // Only update if status actually changes
   SummaryUpdateManager.subscribe(resourceId, (state) => {
-    console.log("[ExpandableComponent]: Updating status: ", state.status);
+    console.log("[SummaryCard]: Updating status: ", state.status);
     refreshStatusRef.current = state.status;
   });
+
   return (
-    <ExpandableCard
-      title={
+    <Card className={cn("mb-4", className)}>
+      <CardHeader>
         <div className="w-full flex justify-between items-center">
           <CardTitle className="text-2xl">{title}</CardTitle>
-          {isExpanded && content && (
+          {content && (
             <div className="flex gap-2 cursor-pointer">
               <ExportButton content={content}>
                 <Download className="h-5 w-5 text-gray-500 hover:text-blue-500" />
@@ -120,13 +117,8 @@ export const ExpandableWithExport = ({
             </div>
           )}
         </div>
-      }
-      defaultExpanded={isExpanded}
-      onExpandedChange={onExpandedChange}
-      className={className}
-      maxHeight="9999px"
-    >
-      <CardContent>
+      </CardHeader>
+      <CardContent className="md:p-12">
         {loading ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -145,6 +137,7 @@ export const ExpandableWithExport = ({
           <HRMarkdown content={content || ''} />
         )}
       </CardContent>
-    </ExpandableCard>
+    </Card>
   );
 };
+

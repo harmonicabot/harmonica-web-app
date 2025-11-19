@@ -533,8 +533,8 @@ export function useChat(options: UseChatOptions) {
     if (entryMessage && messages.length === 0) {
       addMessage(entryMessage);
     }
-    if (textarea) {
-      textarea.focus(); // Automatically focus the textarea
+    if (textarea && !isAskAi) {
+      textarea.focus(); // Automatically focus the textarea (but not for Ask AI)
     }
   }, []);
 
