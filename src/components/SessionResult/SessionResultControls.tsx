@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoaderCircle, Settings, Copy, InfoIcon, Trash2, MoreHorizontal } from 'lucide-react';
+import { LoaderCircle, Copy, Trash2, MoreHorizontal, StopCircle, Pencil, Users } from 'lucide-react';
 import * as db from '@/lib/db';
 import { SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
 import { cloneSession } from '@/lib/serverUtils';
@@ -34,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { VersionedPrompt } from 'app/create/creationFlow';
+import ShareSettings from '@/components/ShareSettings';
 import { QuestionInfo } from 'app/create/types';
 
 interface SessionResultControlsProps {
@@ -72,6 +73,7 @@ export default function SessionResultControls({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSessionOverviewModal, setShowSessionOverviewModal] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const [localCrossPollination, setLocalCrossPollination] =
     useState(crossPollination);
   const router = useRouter();
@@ -280,11 +282,10 @@ export default function SessionResultControls({
   };
 
   return (
-    <Card className="flex-grow flex flex-col">
-      <CardHeader>
+    <Card className="flex flex-col">
+      <CardHeader className="pb-0">
         <div className="flex justify-between items-center">
           <CardTitle className="text-md">Session Controls</CardTitle>
-          <Settings className="w-4 h-4 text-muted-foreground" />
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
@@ -294,38 +295,41 @@ export default function SessionResultControls({
         
         <div className="flex flex-wrap gap-2 mt-auto pt-4">
           <Button
+            variant="outline"
             onClick={() => (isFinished ? reopenSession() : finishSession())}
             disabled={loadSummary || isCloning || isDeleting}
           >
-            {isFinished ? 'Reopen' : 'End Session'}
+            {isFinished ? (
+              'Reopen'
+            ) : (
+              <>
+                <StopCircle className="h-4 w-4 text-red-600" />
+                <span className="px-1">End session</span>
+              </>
+            )}
           </Button>
-          
+
           <Button
             variant="outline"
             onClick={() => setShowSessionOverviewModal(true)}
             disabled={isCloning || isDeleting}
           >
-            <Settings className="h-4 w-4" />
+            <Pencil className="h-4 w-4" />
             Edit Session
           </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => setShowShareDialog(true)}
+            disabled={isCloning || isDeleting}
+          >
+            <Users className="h-4 w-4" />
+            Invite team
+          </Button>
           
-          {readyToGetSummary && (
-            <Button
-              variant="secondary"
-              onClick={updateSummary}
-              disabled={loadSummary || isCloning || isDeleting}
-            >
-              Refresh Summary
-              {loadSummary && (
-                <LoaderCircle className="ml-2 h-4 w-4 animate-spin" />
-              )}
-            </Button>
-          )}
-
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={isCloning || isDeleting}>
+              <Button variant="ghost" disabled={isCloning || isDeleting}>
                 More
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
@@ -386,6 +390,15 @@ export default function SessionResultControls({
             onUpdatePrompt={handleUpdatePrompt}
             onUpdateQuestions={handleUpdateQuestions}
             onEditSession={handleEditSession}
+          />
+        )}
+
+        {showShareDialog && (
+          <ShareSettings
+            resourceId={id}
+            resourceType="SESSION"
+            initialIsOpen={showShareDialog}
+            onClose={() => setShowShareDialog(false)}
           />
         )}
       </CardContent>

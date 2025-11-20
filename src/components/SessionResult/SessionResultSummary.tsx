@@ -3,9 +3,25 @@ import { HostSession } from '@/lib/schema';
 import { useEffect, useState } from 'react';
 import { RefreshStatus, SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
 import { ExpandableWithExport } from './ExpandableWithExport';
+import { SummaryCard } from './SummaryCard';
 import { Card, CardContent } from '../ui/card';
 import { usePermissions } from '@/lib/permissions';
 import { useSummary } from '@/hooks/useSummary';
+
+const SummarySkeleton = () => (
+  <Card className="mb-4">
+    <CardContent className="p-6">
+      <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4" />
+      <div className="space-y-3">
+        <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+        <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+        <div className="h-4 w-5/6 bg-gray-200 rounded animate-pulse" />
+        <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+        <div className="h-4 w-4/5 bg-gray-200 rounded animate-pulse" />
+      </div>
+    </CardContent>
+  </Card>
+);
 
 interface SessionResultSummaryProps {
   hostData: HostSession[];
@@ -28,7 +44,6 @@ export default function SessionResultSummary({
 }: SessionResultSummaryProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExpandedPrompt, setIsExpandedPrompt] = useState(false);
-  const [isExpandedSummary, setIsExpandedSummary] = useState(true);
 
   const resourceId: string = isProject ? projectId! : hostData[0].id;
   const { hasMinimumRole } = usePermissions(resourceId);
@@ -65,15 +80,16 @@ export default function SessionResultSummary({
           />
         </div>
       )}
-      {showSummaryContent ? (
-        <ExpandableWithExport
+      {summaryLoading && !summary ? (
+        <SummarySkeleton />
+      ) : showSummaryContent ? (
+        <SummaryCard
           resourceId={resourceId}
           title={isProject ? "Project Summary" : "Session Summary"}
           content={summary}
-          isExpanded={isExpandedSummary}
-          onExpandedChange={setIsExpandedSummary}
           showRefreshButton={hasMinimumRole('editor')}
           onRefresh={manuallyTriggerSummaryUpdate}
+          isUpdating={isUpdating}
           loading={summaryLoading || isUpdating}
         />
       ) : showDraftProjectCard ? (

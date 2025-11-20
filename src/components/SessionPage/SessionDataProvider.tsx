@@ -4,7 +4,7 @@ import ErrorPage from '@/components/Error';
 import SessionPage from './index';
 import { OpenAIMessage } from '@/lib/types';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
-
+import { Spinner } from '@/components/ui/spinner';
 interface SessionDataProviderProps {
   sessionId: string;
   workspaceId?: string;
@@ -59,7 +59,14 @@ async function SessionDataLoader({
 
 export default function SessionDataProvider(props: SessionDataProviderProps) {
   return (
-    <Suspense fallback={<div>Loading session data...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex flex-row items-center justify-center min-h-[60vh] gap-3 text-center text-muted-foreground">
+          <Spinner/>
+          <p className="text-lg font-semibold">Loading session…</p>
+        </div>
+      }
+    >
       <SessionDataLoader {...props} />
     </Suspense>
   );

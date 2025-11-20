@@ -215,10 +215,9 @@ export function AddToProjectDialog({
           variant="outline"
           size="sm"
           onClick={() => handleOpenChange(true)}
-          className={buttonClass || 'text-xs flex items-center gap-1'}
         >
           <FolderPlus className="h-3 w-3" />
-          Add to Project
+          Add to project
         </Button>
       )}
 

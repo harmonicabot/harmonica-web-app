@@ -15,6 +15,7 @@ interface ChatMessagesProps {
     isLoading: boolean;
     errorToastMessage: string;
     messagesEndRef: React.RefObject<HTMLDivElement>;
+    isAskAi?: boolean;
   };
   className?: string;
 }
@@ -30,6 +31,7 @@ export function ChatMessages({
     isLoading = false,
     errorToastMessage,
     messagesEndRef,
+    isAskAi = false,
   } = chat;
   
   const scrollPanelRef = useRef<HTMLDivElement>(null);
@@ -51,6 +53,7 @@ export function ChatMessages({
               message={message}
               sessionId={sessionId}
               showButtons={true}
+              hideProfilePicture={isAskAi}
             />
           )}
         </div>
@@ -62,12 +65,14 @@ export function ChatMessages({
       )}
       {isLoading && (
         <div className="flex">
-          <img
-            className="h-10 w-10 flex-none rounded-full"
-            src="/hm-chat-icon.svg"
-            alt=""
-          />
-          <div className="ps-2 flex space-x-1 justify-center items-center dark:invert">
+          {!isAskAi && (
+            <img
+              className="h-10 w-10 flex-none rounded-full"
+              src="/hm-chat-icon.svg"
+              alt=""
+            />
+          )}
+          <div className={isAskAi ? "flex space-x-1 justify-center items-center dark:invert" : "ps-2 flex space-x-1 justify-center items-center dark:invert"}>
             <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
             <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
             <div className="h-2 w-2  bg-gray-400 rounded-full animate-bounce"></div>

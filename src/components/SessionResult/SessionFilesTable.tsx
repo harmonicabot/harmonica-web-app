@@ -290,11 +290,10 @@ export default function SessionFilesTable({
   );
 
   return (
-    <Card className="mt-6">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
           <CardTitle className="text-xl flex items-center">
-            <FileText className="mr-2 h-5 w-5" />
             Session Files
           </CardTitle>
           <CardDescription>Files uploaded for this session</CardDescription>
@@ -306,8 +305,27 @@ export default function SessionFilesTable({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="space-y-4 py-8">
+            <div className="flex items-center justify-center mb-6">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="h-5 w-5 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-4 w-48 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse hidden md:block" />
+                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse hidden md:block" />
+                    <div className="h-4 w-28 bg-gray-200 rounded animate-pulse hidden md:block" />
+                  </div>
+                  <div className="h-8 w-20 bg-gray-200 rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : files.length === 0 ? (
           <EmptyState />

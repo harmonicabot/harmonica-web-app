@@ -1,15 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   ExternalLink,
-  Share2,
   Clipboard,
   QrCode,
   ClipboardCheck,
-  User,
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
+import { toast } from 'hooks/use-toast';
 
 interface SessionResultShareProps {
   sessionId: string;
@@ -26,7 +26,6 @@ export default function SessionResultParticipants({
 }: SessionResultShareProps) {
   const [url, setUrl] = useState('');
   const [urlDomainOnly, setUrlDomainOnly] = useState('');
-  const [showToast, setShowToast] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -39,8 +38,9 @@ export default function SessionResultParticipants({
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(url).then(() => {
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      toast({
+        title: 'URL copied to clipboard',
+      });
       setCopiedToClipboard(true);
     });
   };
@@ -49,54 +49,43 @@ export default function SessionResultParticipants({
 
   return (
     <>
-      <Card className="flex-grow bg-yellow-50">
-        <CardHeader>
+      <Card className="flex-grow bg-yellow-50 flex flex-col justify-between">
+        <CardHeader className="pb-0">
           <div className="flex justify-between items-center">
-            <CardTitle className="text-md">Participants</CardTitle>
-            <div className='flex gap-2 items-center'>
-              <User className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium">{numSessions}</span> <span className="text-yellow-800">Started</span>
-              <span className="font-medium">{completedSessions}</span> <span className="text-lime-800">Completed</span>
-            </div>
+            <CardTitle className="text-md">Invite Participants</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-between">
+          <div className="flex-1 flex flex-col justify-end">
             <div className="invite">
-              <h2 className="font-bold mb-2">
-                {isFinished ? 'This session is finished' : 'Invite others to participate:'}
-              </h2>
+              <h3 className="text-sm text-muted-foreground mb-1">
+                {isFinished ? 'This session is finished' : 'Your unique session link:'}
+              </h3>
               <p className="text-sm mb-2">
                 <a href={url} target="_blank">
                   {urlDomainOnly}
                   <ExternalLink className="inline-block ml-1 mb-3 w-2 h-2" />
                 </a>
               </p>
-              <div className="flex items-center">
-                <div
-                  className="flex mr-2 hover:cursor-pointer"
+              <div className="flex items-center gap-2 mt-4">
+                <Button
                   onClick={copyToClipboard}
                 >
-                  Copy link
                   {copiedToClipboard ? (
-                    <ClipboardCheck className="mx-2" />
+                    <ClipboardCheck className="h-4 w-4" />
                   ) : (
-                    <Clipboard className="mx-2" />
+                    <Clipboard className="h-4 w-4" />
                   )}
-                </div>
-                <div
-                  className="flex mx-2 hover:cursor-pointer"
+                  Copy link
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={toggleModal}
                 >
+                  <QrCode className="h-4 w-4" />
                   QR code
-                  <QrCode className="mx-2" />
-                </div>
+                </Button>
               </div>
-              {showToast && (
-                <div className="fixed top-4 right-4 bg-green-500 text-white py-2 px-4 rounded shadow-lg">
-                  URL copied to clipboard
-                </div>
-              )}
               {isModalOpen && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
                   <div className="relative bg-white p-4 rounded shadow-lg">

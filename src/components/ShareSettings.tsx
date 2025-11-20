@@ -485,9 +485,9 @@ export default function ShareSettings({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {initialIsOpen === undefined && (
         <DialogTrigger asChild>
-          <Button>
+          <Button variant="outline">
             <Users className="w-4 h-4" />
-            Invite Team
+            Invite team
           </Button>
         </DialogTrigger>
       )}

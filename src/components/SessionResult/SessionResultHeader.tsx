@@ -83,7 +83,7 @@ export default function SessionResultHeader({
       <div className="relative group flex items-center">
         <h1 
           ref={editableRef}
-          className={`text-3xl font-bold ${(isEditable && !isEditing) ? 'cursor-text hover:bg-gray-100 hover:shadow-sm hover:border-b-2 hover:border-gray-300 transition-all duration-200 rounded' : ''} ${isEditing ? 'border-b-2 border-primary outline-none' : ''}`}
+          className={`text-4xl font-medium ${(isEditable && !isEditing) ? 'cursor-text hover:bg-gray-100 hover:shadow-sm hover:border-b-2 hover:border-gray-300 transition-all duration-200 rounded' : ''} ${isEditing ? 'border-b-2 border-primary outline-none' : ''}`}
           onDoubleClick={handleDoubleClick}
           contentEditable={isEditing}
           suppressContentEditableWarning={true}
@@ -107,18 +107,6 @@ export default function SessionResultHeader({
           </div>
         )}
       </div>
-      <Badge
-          variant="outline"
-          className={`capitalize hidden md:flex items-center justify-center ms-4 ${
-            status === SessionStatus.ACTIVE
-              ? 'bg-lime-100 text-lime-900'
-              : status === SessionStatus.DRAFT
-                ? 'bg-purple-100 text-purple-900'
-                : '' // Finished, remain white
-          }`}
-        >
-          {status}
-        </Badge>
     </div>
   );
 }

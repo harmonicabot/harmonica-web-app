@@ -47,7 +47,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const wrapLabel = (child: React.ReactNode, key?: React.Key) => {
       if (typeof child !== "string" && typeof child !== "number") return child;
       
-      // Apply smaller padding for `sm`, and default/larger use px-1
       const paddingClass = size === "sm" ? "px-0.5" : "px-1";
       return <span key={key} className={paddingClass}>{child}</span>;
     };
