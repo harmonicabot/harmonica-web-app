@@ -419,7 +419,7 @@ export default function ResultTabs({
       <div className="flex flex-col md:flex-row gap-4 w-full">
         {/* Desktop Layout */}
         <div className="hidden md:block w-full relative" style={{ overflow: 'visible' }}>
-          <ResizablePanelGroup direction="horizontal" className="flex !h-auto" style={{ overflow: 'visible' }}>
+          <ResizablePanelGroup direction="horizontal" className="flex !h-auto items-start" style={{ overflow: 'visible' }}>
             <ResizablePanel defaultSize={66} style={{ overflow: 'visible' }}>
               <div>
                 {/* Render the active tab content */}
@@ -447,9 +447,9 @@ export default function ResultTabs({
 
             {visibilityConfig.showChat && (
               <>
-                <ResizableHandle withHandle className="mx-2 mt-4" />
-                <ResizablePanel defaultSize={34} style={{ overflow: 'visible' }}>
-                  <div className="sticky top-4" style={{ alignSelf: 'flex-start' }}>
+                <ResizableHandle withHandle className="mx-2 sticky top-4 self-start" style={{ maxHeight: 'calc(100vh - 2rem)' }} />
+                <ResizablePanel defaultSize={34} style={{ overflow: 'visible', alignSelf: 'flex-start' }}>
+                  <div className="sticky top-4" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
                     {draft ? (
                       <Card className="border-2 border-dashed border-gray-300 flex flex-col items-center justify-center p-6" style={{ minHeight: '400px' }}>
                         <div className="text-center space-y-4 max-w-md">

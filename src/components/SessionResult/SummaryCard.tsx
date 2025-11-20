@@ -1,12 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HRMarkdown } from '@/components/HRMarkdown';
-import { Download, RefreshCw } from 'lucide-react';
+import { Download, RefreshCw, Edit2 } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '../ui/tooltip';
+import { Button } from '../ui/button';
 import { ExportButton } from '../Export/ExportButton';
 import { Spinner } from '../icons';
 import { RefreshStatus, SummaryUpdateManager } from 'summary/SummaryUpdateManager';
@@ -19,6 +20,7 @@ interface SummaryCardProps {
   content?: string;
   showRefreshButton?: boolean;
   onRefresh?: () => void;
+  onEditPrompt?: () => void;
   isUpdating?: boolean;
   loading?: boolean;
   className?: string;
@@ -50,6 +52,7 @@ export const SummaryCard = ({
   content,
   showRefreshButton,
   onRefresh,
+  onEditPrompt,
   isUpdating,
   loading,
   className,
@@ -68,27 +71,57 @@ export const SummaryCard = ({
         <div className="w-full flex justify-between items-center">
           <CardTitle className="text-2xl">{title}</CardTitle>
           {content && (
-            <div className="flex gap-2 cursor-pointer">
+            <div className="flex gap-2">
+              {showRefreshButton && onEditPrompt && (
+                <TooltipProvider>
+                  <Tooltip delayDuration={50}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={onEditPrompt}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="end">
+                      <p>Edit Summary Prompt</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
               <ExportButton content={content}>
-                <Download className="h-5 w-5 text-gray-500 hover:text-blue-500" />
+                <Button variant="outline" size="icon" className="h-8 w-8">
+                  <Download className="h-4 w-4" />
+                </Button>
               </ExportButton>
               {showRefreshButton && (
                 <TooltipProvider>
                   <Tooltip delayDuration={50}>
-                    <TooltipTrigger>
-                      <div className="relative">
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className={`h-8 w-8 relative ${
+                          refreshStatusRef.current === RefreshStatus.UpdatePending
+                            ? 'cursor-not-allowed opacity-50'
+                            : ''
+                        }`}
+                        onClick={!isUpdating ? onRefresh : undefined}
+                        disabled={isUpdating}
+                      >
                         <RefreshCw
-                          onClick={!isUpdating ? onRefresh : undefined}
-                          className={`h-5 w-5 text-gray-500 cursor-pointer hover:text-primary ${
-                            refreshStatusRef.current === RefreshStatus.UpdatePending
-                              ? 'animate-spin cursor-not-allowed opacity-50'
+                          className={`h-4 w-4 ${
+                            refreshStatusRef.current === RefreshStatus.UpdatePending || isUpdating
+                              ? 'animate-spin'
                               : ''
                           }`}
                         />
                         <div className="absolute -top-1 -right-1">
                           <StatusIndicator status={refreshStatusRef.current} />
                         </div>
-                      </div>
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top" align="end">
                       {isUpdating ? (
