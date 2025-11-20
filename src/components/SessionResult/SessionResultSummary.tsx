@@ -103,6 +103,10 @@ export default function SessionResultSummary({
     });
   };
 
+  const handleEditPrompt = () => {
+    setShowPromptSettings(true);
+  };
+
   const handleSummaryPromptChange = async (
     newPrompt: string,
     type: 'facilitation' | 'summary',
@@ -167,15 +171,28 @@ export default function SessionResultSummary({
       {summaryLoading && !summary ? (
         <SummarySkeleton />
       ) : showSummaryContent ? (
-        <SummaryCard
-          resourceId={resourceId}
-          title={isProject ? "Project Summary" : "Session Summary"}
-          content={summary}
-          showRefreshButton={hasMinimumRole('editor')}
-          onRefresh={manuallyTriggerSummaryUpdate}
-          isUpdating={isUpdating}
-          loading={summaryLoading || isUpdating}
-        />
+        <>
+          <SummaryCard
+            resourceId={resourceId}
+            title={isProject ? "Project Summary" : "Session Summary"}
+            content={summary}
+            showRefreshButton={hasMinimumRole('editor')}
+            onRefresh={manuallyTriggerSummaryUpdate}
+            onEditPrompt={hasMinimumRole('editor') ? handleEditPrompt : undefined}
+            isUpdating={isUpdating}
+            loading={summaryLoading || isUpdating}
+          />
+          {!isProject && hasMinimumRole('editor') && (
+            <PromptSettings
+              isProject={false}
+              summaryPrompt={summaryPrompt}
+              onPromptChange={handleSummaryPromptChange}
+              open={showPromptSettings}
+              onOpenChange={setShowPromptSettings}
+              hideTrigger={true}
+            />
+          )}
+        </>
       ) : showDraftProjectCard ? (
         <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
           <div className="text-center space-y-4 max-w-md">
