@@ -51,11 +51,45 @@ function InvitationProcessor() {
   return null;
 }
 
+function PostHogIdentify() {
+  const { user, isLoading } = useUser();
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (user?.email) {
+      const distinctId = user.sub ?? user.email;
+      const properties: Record<string, string> = {
+        email: user.email,
+      };
+
+      if (user.name) {
+        properties.name = user.name;
+      } else if (user.nickname) {
+        properties.name = user.nickname;
+      }
+
+      if (user.picture) {
+        properties.avatar = user.picture;
+      }
+
+      posthog.identify(distinctId, properties);
+    } else {
+      posthog.reset();
+    }
+  }, [user, isLoading]);
+
+  return null;
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider>
       <PostHogProvider client={posthog}>
         <InvitationProcessor />
+        <PostHogIdentify />
         {children}
       </PostHogProvider>
     </UserProvider>
