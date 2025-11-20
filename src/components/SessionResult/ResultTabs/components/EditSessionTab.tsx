@@ -17,6 +17,7 @@ interface EditSessionTabProps {
   };
   allFacilitationPrompts: VersionedPrompt[];
   setAllFacilitationPrompts: (value: SetStateAction<VersionedPrompt[]>) => void;
+  handleReplaceFullPrompt: (fullPrompt: string) => void;
   currentPromptVersion: number;
   setCurrentPromptVersion: (version: number) => void;
   promptValue: VersionedPrompt;
@@ -33,6 +34,7 @@ export function EditSessionTab({
   sessionData,
   allFacilitationPrompts,
   setAllFacilitationPrompts,
+  handleReplaceFullPrompt,
   currentPromptVersion,
   setCurrentPromptVersion,
   promptValue,
@@ -46,6 +48,14 @@ export function EditSessionTab({
 }: EditSessionTabProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState(false);
+  const handlePromptSave = async () => {
+    await onSavePrompt();
+    setEditingPrompt(false);
+  };
+  const handlePromptCancel = () => {
+    onCancelPrompt();
+    setEditingPrompt(false);
+  };
 
   const handleEditField = (fieldName: string) => {
     setEditingField(fieldName);
@@ -86,6 +96,7 @@ export function EditSessionTab({
         </div>
         <ReviewPrompt
           prompts={allFacilitationPrompts}
+          handleReplaceFullPrompt={handleReplaceFullPrompt}
           setPrompts={setAllFacilitationPrompts}
           summarizedPrompt={''}
           currentVersion={currentPromptVersion}
@@ -135,11 +146,11 @@ export function EditSessionTab({
                     className="font-mono text-sm font-medium text-base min-h-[200px]"
                   />
                   <div className="flex space-x-2">
-                    <Button size="sm" onClick={() => onSavePrompt()}>
+                    <Button size="sm" onClick={handlePromptSave}>
                       <Check className="h-3 w-3" />
                       Save
                     </Button>
-                    <Button size="sm" variant="outline" onClick={onCancelPrompt}>
+                    <Button size="sm" variant="outline" onClick={handlePromptCancel}>
                       <X className="h-3 w-3" />
                       Cancel
                     </Button>

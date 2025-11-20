@@ -60,14 +60,14 @@ export function SessionOverviewModal({
     setAllFacilitationPrompts((prevPrompts) => [...prevPrompts, prompt]);
   };
   
-  // Update local questions when initialQuestions change
+  // Keep local prompt state in sync when the selected version changes
   useEffect(() => {
     const selectedPrompt = allFacilitationPrompts[currentPromptVersion];
     if (selectedPrompt && selectedPrompt !== promptValue) {
-      setCurrentVersionedPrompt(selectedPrompt)
-      handleSavePrompt(selectedPrompt);
+      setCurrentVersionedPrompt(selectedPrompt);
     }
-  }, [currentPromptVersion, allFacilitationPrompts, setCurrentVersionedPrompt])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPromptVersion, allFacilitationPrompts]);
 
   const handleReplaceFullPrompt = async (fullPrompt: string) => {
     try {
@@ -148,14 +148,10 @@ export function SessionOverviewModal({
     }
   }
 
+  // Update local questions when initialQuestions change
   useEffect(() => {
-    const selectedPrompt = allFacilitationPrompts[currentPromptVersion];
-    if (selectedPrompt && selectedPrompt !== promptValue) {
-      setCurrentVersionedPrompt(selectedPrompt)
-      handleSavePrompt(selectedPrompt);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPromptVersion, allFacilitationPrompts, promptValue])
+    setLocalQuestions(initialQuestions);
+  }, [initialQuestions]);
 
   const handleCancelPrompt = () => {
     setCurrentVersionedPrompt(initialVersionedPrompt);
@@ -259,6 +255,7 @@ export function SessionOverviewModal({
             }}
             allFacilitationPrompts={allFacilitationPrompts}
             setAllFacilitationPrompts={setAllFacilitationPrompts}
+            handleReplaceFullPrompt={handleReplaceFullPrompt}
             currentPromptVersion={currentPromptVersion}
             setCurrentPromptVersion={setCurrentPromptVersion}
             promptValue={promptValue}
