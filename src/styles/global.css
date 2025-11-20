@@ -25,7 +25,7 @@
     --accent: 0 0% 96.1%;
     --accent-foreground: 0 0% 9%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 83% 86%;
     --destructive-foreground: 0 0% 98%;
 
     --border: 0 0% 89.8%;
@@ -98,4 +98,13 @@
   .min-h-screen {
     min-height: -webkit-fill-available;
   }
+}
+
+/* Ensure sticky positioning works in resizable panels */
+[data-panel-group] {
+  overflow: visible !important;
+}
+
+[data-panel-id] {
+  overflow: visible !important;
 }

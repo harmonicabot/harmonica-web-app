@@ -1,5 +1,5 @@
 'use client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmbeddedChat } from '@/components/chat/EmbeddedChat';
 import { UserSession } from '@/lib/schema';
 import { OpenAIMessage } from '@/lib/types';
@@ -22,9 +22,9 @@ export default function SessionResultChat({
 }: SessionResultChatProps) {
   const defaultEntryMessage: OpenAIMessage = {
     role: 'assistant',
-    content: `Hi there! Consider me your expert analyst, I can help you to better understand your session.
+    content: `Hi! Consider me your expert analyst, I can help you to better understand your session.
 
-Here are a few examples of what you can ask me:
+Try asking me things like:
   - What was the most common response?
   - What were the most interesting insights?
   - Generate a report on the session
@@ -32,14 +32,14 @@ Here are a few examples of what you can ask me:
   };
 
   return (
-    <Card className="max-h-[90dvh] h-full flex flex-col border-yellow-400">
-      <CardHeader className="bg-yellow-50 border-gray-200 rounded-md">
+    <Card className="bg-secondary/50 shadow-none flex flex-col h-full mt-4" style={{ minHeight: 'calc(100vh - 4rem)', maxHeight: 'calc(100vh - 2rem)' }}>
+      <CardHeader className="border-b flex-shrink-0">
         <CardTitle className="text-md flex justify-normal items-center">
-          <img src="/monica_chat_icon.svg" alt="" className="h-10 w-10 mr-2" />
-          Ask AI
+          <img src="/ask-ask-pfp.png" alt="" className="h-10 w-10 mr-2 rounded-full" />
+          Ask Monica
         </CardTitle>
       </CardHeader>
-      <CardContent className="h-full flex flex-col overflow-y-auto pb-0">
+      <CardContent className="flex-1 p-0 flex flex-col min-h-0">
         {userData && userData.length > 0 && (
           <EmbeddedChat
             context={{

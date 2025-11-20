@@ -68,8 +68,10 @@ export default function ExpandableCard({
       </CardHeader>
       <CardContent
         className={cn(
-          "overflow-hidden transition-all duration-300 ease-in-out",
-          isExpanded ? "opacity-100 pt-0" : "max-h-0 opacity-0 p-0"
+          "transition-all duration-300 ease-in-out",
+          isExpanded 
+            ? "opacity-100 pt-0" 
+            : "max-h-0 opacity-0 p-0 overflow-hidden"
         )}
         style={{ maxHeight: isExpanded ? maxHeight : 0 }}
       >

@@ -3,6 +3,7 @@ import { HostSession } from '@/lib/schema';
 import { useState, useEffect, useRef } from 'react';
 import { SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
 import { ExpandableWithExport } from './ExpandableWithExport';
+import { SummaryCard } from './SummaryCard';
 import { Card, CardContent } from '../ui/card';
 import { usePermissions } from '@/lib/permissions';
 import { useSummary } from '@/hooks/useSummary';
@@ -10,6 +11,21 @@ import { PromptSettings } from './ResultTabs/components/PromptSettings';
 import * as db from '@/lib/db';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
+
+const SummarySkeleton = () => (
+  <Card className="mb-4">
+    <CardContent className="p-6">
+      <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4" />
+      <div className="space-y-3">
+        <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+        <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+        <div className="h-4 w-5/6 bg-gray-200 rounded animate-pulse" />
+        <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+        <div className="h-4 w-4/5 bg-gray-200 rounded animate-pulse" />
+      </div>
+    </CardContent>
+  </Card>
+);
 
 interface SessionResultSummaryProps {
   hostData: HostSession[];
@@ -32,13 +48,8 @@ export default function SessionResultSummary({
 }: SessionResultSummaryProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExpandedPrompt, setIsExpandedPrompt] = useState(false);
-  const [isExpandedSummary, setIsExpandedSummary] = useState(true);
   const [showPromptSettings, setShowPromptSettings] = useState(false);
-  // Local state for summary prompt to maintain optimistic updates
-  const [summaryPrompt, setSummaryPrompt] = useState<string | undefined>(
-    !isProject ? hostData[0]?.summary_prompt : undefined
-  );
-  // Track if we just saved to prevent syncing with stale hostData
+  const [summaryPrompt, setSummaryPrompt] = useState(hostData[0]?.summary_prompt);
   const justSavedRef = useRef<string | null>(null);
 
   const resourceId: string = isProject ? projectId! : hostData[0].id;
@@ -90,10 +101,6 @@ export default function SessionResultSummary({
       onUpdateSummary();
       // Summary will be updated automatically via SWR
     });
-  };
-
-  const handleEditPrompt = () => {
-    setShowPromptSettings(true);
   };
 
   const handleSummaryPromptChange = async (
@@ -157,30 +164,18 @@ export default function SessionResultSummary({
           />
         </div>
       )}
-      {showSummaryContent ? (
-        <>
-          <ExpandableWithExport
-            resourceId={resourceId}
-            title={isProject ? "Project Summary" : "Live Session Report"}
-            content={summary}
-            isExpanded={isExpandedSummary}
-            onExpandedChange={setIsExpandedSummary}
-            showRefreshButton={hasMinimumRole('editor')}
-            onRefresh={manuallyTriggerSummaryUpdate}
-            onEditPrompt={hasMinimumRole('editor') ? handleEditPrompt : undefined}
-            loading={summaryLoading || isUpdating}
-          />
-          {!isProject && hasMinimumRole('editor') && (
-            <PromptSettings
-              isProject={false}
-              summaryPrompt={summaryPrompt}
-              onPromptChange={handleSummaryPromptChange}
-              open={showPromptSettings}
-              onOpenChange={setShowPromptSettings}
-              hideTrigger={true}
-            />
-          )}
-        </>
+      {summaryLoading && !summary ? (
+        <SummarySkeleton />
+      ) : showSummaryContent ? (
+        <SummaryCard
+          resourceId={resourceId}
+          title={isProject ? "Project Summary" : "Session Summary"}
+          content={summary}
+          showRefreshButton={hasMinimumRole('editor')}
+          onRefresh={manuallyTriggerSummaryUpdate}
+          isUpdating={isUpdating}
+          loading={summaryLoading || isUpdating}
+        />
       ) : showDraftProjectCard ? (
         <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
           <div className="text-center space-y-4 max-w-md">

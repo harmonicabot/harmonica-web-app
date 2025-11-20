@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoaderCircle, Settings, Copy, InfoIcon, Trash2, MoreHorizontal } from 'lucide-react';
+import { LoaderCircle, Copy, Trash2, MoreHorizontal, StopCircle, Pencil, Users } from 'lucide-react';
 import * as db from '@/lib/db';
 import { SummaryUpdateManager } from '../../summary/SummaryUpdateManager';
 import { cloneSession } from '@/lib/serverUtils';
@@ -34,6 +34,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { VersionedPrompt } from 'app/create/creationFlow';
+import ShareSettings from '@/components/ShareSettings';
+import { QuestionInfo } from 'app/create/types';
 
 interface SessionResultControlsProps {
   id: string;
@@ -52,6 +54,7 @@ interface SessionResultControlsProps {
     promptSummary: string;
     facilitationPrompt?: string;
   };
+  questions?: QuestionInfo[];
 }
 
 export default function SessionResultControls({
@@ -63,12 +66,14 @@ export default function SessionResultControls({
   crossPollination = true,
   sessionTopic = '',
   sessionData,
+  questions = [],
 }: SessionResultControlsProps) {
   const [loadSummary, setLoadSummary] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSessionOverviewModal, setShowSessionOverviewModal] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const [localCrossPollination, setLocalCrossPollination] =
     useState(crossPollination);
   const router = useRouter();
@@ -237,6 +242,35 @@ export default function SessionResultControls({
     }
   };
 
+  const handleUpdateQuestions = async (updatedQuestions: QuestionInfo[]) => {
+    try {
+      // Convert questions array to JSON string format that the database expects
+      const questionsJson = JSON.stringify(
+        updatedQuestions.map((q) => ({
+          id: q.id,
+          label: q.label,
+          type: q.type,
+          typeValue: q.typeValue,
+          required: q.required,
+          options: q.options,
+        }))
+      ) as unknown as JSON;
+      await db.updateHostSession(id, { questions: questionsJson });
+      toast({
+        title: 'Questions updated',
+        description: 'The pre-survey form questions have been successfully updated.',
+      });
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to update questions:', error);
+      toast({
+        title: 'Failed to update questions',
+        description: 'An error occurred while updating the questions.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleEditSession = () => {
     // TODO: Navigate to the review step of the create session flow
     // This will need to be implemented to take users to the refine step
@@ -248,11 +282,10 @@ export default function SessionResultControls({
   };
 
   return (
-    <Card className="flex-grow flex flex-col">
-      <CardHeader>
+    <Card className="flex flex-col">
+      <CardHeader className="pb-0">
         <div className="flex justify-between items-center">
           <CardTitle className="text-md">Session Controls</CardTitle>
-          <Settings className="w-4 h-4 text-muted-foreground" />
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
@@ -262,36 +295,41 @@ export default function SessionResultControls({
         
         <div className="flex flex-wrap gap-2 mt-auto pt-4">
           <Button
+            variant="outline"
             onClick={() => (isFinished ? reopenSession() : finishSession())}
             disabled={loadSummary || isCloning || isDeleting}
           >
-            {isFinished ? 'Reopen' : 'End Session'}
+            {isFinished ? (
+              'Reopen'
+            ) : (
+              <>
+                <StopCircle className="h-4 w-4 text-red-600" />
+                <span className="px-1">End session</span>
+              </>
+            )}
           </Button>
-          {readyToGetSummary && (
-            <Button
-              variant="secondary"
-              onClick={updateSummary}
-              disabled={loadSummary || isCloning || isDeleting}
-            >
-              Refresh Summary
-              {loadSummary && (
-                <LoaderCircle className="ml-2 h-4 w-4 animate-spin" />
-              )}
-            </Button>
-          )}
 
           <Button
             variant="outline"
             onClick={() => setShowSessionOverviewModal(true)}
             disabled={isCloning || isDeleting}
           >
-            <Settings className="h-4 w-4" />
+            <Pencil className="h-4 w-4" />
             Edit Session
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => setShowShareDialog(true)}
+            disabled={isCloning || isDeleting}
+          >
+            <Users className="h-4 w-4" />
+            Invite team
           </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={isCloning || isDeleting}>
+              <Button variant="ghost" disabled={isCloning || isDeleting}>
                 More
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
@@ -347,9 +385,20 @@ export default function SessionResultControls({
             isOpen={showSessionOverviewModal}
             onClose={() => setShowSessionOverviewModal(false)}
             sessionData={sessionData}
+            questions={questions}
             onUpdateSession={handleSessionUpdate}
             onUpdatePrompt={handleUpdatePrompt}
+            onUpdateQuestions={handleUpdateQuestions}
             onEditSession={handleEditSession}
+          />
+        )}
+
+        {showShareDialog && (
+          <ShareSettings
+            resourceId={id}
+            resourceType="SESSION"
+            initialIsOpen={showShareDialog}
+            onClose={() => setShowShareDialog(false)}
           />
         )}
       </CardContent>

@@ -155,7 +155,7 @@ export function ChatInput({
             </div>
         )}
       <form
-        className={`space-y-4 mt-4 ${isAskAi ? '-mx-6' : ''}`}
+        className="space-y-4 mt-4"
         onSubmit={handleSubmit}
       >
         <div className="relative">
@@ -203,15 +203,12 @@ export function ChatInput({
           )}
           <Button
             type="button"
-            variant="default"
+            variant="outline"
             size="icon"
-            className={`absolute bottom-3 right-14 h-10 w-10 text-lg rounded-3xl mr-2
-              ${recordingStatus === 'idle' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}
+            className={`absolute bottom-3 right-14 h-10 w-10 text-lg mr-1
               ${recordingStatus === 'recording' ? 'bg-red-500 hover:bg-red-600 animate-pulse' : ''}
             `}
-            onClick={toggleRecording}
-            disabled={isLoading || recordingStatus === 'processing'}
-          >
+            onClick={toggleRecording} disabled={isLoading || recordingStatus === 'processing'}>
             {recordingStatus === 'idle' && <StartRecording />}
             {recordingStatus === 'recording' && <StopRecording />}
             {recordingStatus === 'processing' && <Loader2 className="animate-spin" />}
