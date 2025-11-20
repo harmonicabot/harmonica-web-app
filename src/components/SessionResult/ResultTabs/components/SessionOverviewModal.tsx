@@ -1,7 +1,7 @@
 'use client';
 
 // Session Overview Modal Component
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, SetStateAction } from 'react';
 import {
   Dialog,
   DialogContent,
