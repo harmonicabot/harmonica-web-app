@@ -94,6 +94,7 @@ export default function CreationFlow() {
   });
 
   const [templateId, setTemplateId] = useState<string | undefined>();
+  const [targetStep, setTargetStep] = useState<number | undefined>(undefined);
 
   const onFormDataChange = (form: Partial<SessionBuilderData>) => {
     setFormData((prevData) => ({ ...prevData, ...form }));
@@ -105,6 +106,8 @@ export default function CreationFlow() {
   // Handle session storage pre-fill data
   useEffect(() => {
     const prefillData = sessionStorage.getItem('createSessionPrefill');
+    const skipToReview = sessionStorage.getItem('templateSkipToReview');
+    
     if (prefillData) {
       try {
         const data = JSON.parse(prefillData);
@@ -113,6 +116,11 @@ export default function CreationFlow() {
           onFormDataChange(data);
           enabledSteps[1] = true;
           setActiveStep('Create');
+          
+          // If coming from templates, set target step to 3 (Context step)
+          if (skipToReview === 'true') {
+            setTargetStep(3);
+          }
         }
         // Always clear the data
         sessionStorage.removeItem('createSessionPrefill');
@@ -120,6 +128,11 @@ export default function CreationFlow() {
         console.error('Error parsing prefill data:', error);
         sessionStorage.removeItem('createSessionPrefill');
       }
+    }
+    
+    // Clear the template flag
+    if (skipToReview === 'true') {
+      sessionStorage.removeItem('templateSkipToReview');
     }
   }, []);
 
@@ -297,6 +310,7 @@ IMPORTANT:
         onValidationError={setHasValidationErrors}
         isLoading={isLoading}
         onBackToDashboard={() => route.push('/')}
+        initialStep={targetStep && formData.goal?.trim() && formData.critical?.trim() ? targetStep : undefined}
       />
     ),
     Refine: isLoading ? (
@@ -310,6 +324,7 @@ IMPORTANT:
         setCurrentVersion={setCurrentVersion}
         isEditing={isEditingPrompt}
         handleEdit={handleEditPrompt}
+        handleReplaceFullPrompt={handleReplaceFullPrompt}
       />
     ),
     Share: !isLoading && activeStep === 'Share' && (
@@ -455,5 +470,10 @@ IMPORTANT:
       updateStreaming(message);
     }
     completeStreaming();
+  }
+
+  function handleReplaceFullPrompt(fullPrompt: string) {
+    latestFullPromptRef.current = fullPrompt;
+    getStreamOfSummary({ fullPrompt });
   }
 }

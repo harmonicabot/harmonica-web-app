@@ -5,6 +5,7 @@ import SessionResultsSection from '@/components/SessionResult/SessionResultsSect
 import { OpenAIMessage } from '@/lib/types';
 import { ResultTabsVisibilityConfig } from '@/lib/schema';
 import { SessionStatus } from '@/lib/clientUtils';
+import { QuestionInfo } from 'app/create/types';
 
 interface SessionPageProps {
   data: SessionData;
@@ -27,6 +28,20 @@ export default function SessionPage({
       : stats.totalUsers === 0
         ? SessionStatus.DRAFT
         : SessionStatus.ACTIVE;
+
+  // Parse questions from hostData
+  let questions: QuestionInfo[] = [];
+  if (hostData.questions) {
+    try {
+      const parsed = typeof hostData.questions === 'string' 
+        ? JSON.parse(hostData.questions) 
+        : hostData.questions;
+      questions = Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error('Error parsing questions:', error);
+      questions = [];
+    }
+  }
 
   return (
     <div className="p-4 md:p-8">
@@ -54,6 +69,7 @@ export default function SessionPage({
           promptSummary: hostData.prompt_summary || '',
           facilitationPrompt: hostData.prompt || '',
         }}
+        questions={questions}
       />
       <SessionResultsSection
         hostData={hostData}

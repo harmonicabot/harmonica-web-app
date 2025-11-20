@@ -51,12 +51,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       return <span key={key} className={paddingClass}>{child}</span>;
     };
 
-    let content;
-    if (Array.isArray(children)) {
-      content = children.map((child, i) => wrapLabel(child, i));
-    } else {
-      content = wrapLabel(children);
-    }
+    // Ensure fragments and nested structures are flattened so string labels
+    // are consistently wrapped with padding spans regardless of structure
+    const flatChildren = React.Children.toArray(children);
+    const content = flatChildren.map((child, i) => wrapLabel(child as React.ReactNode, i));
 
     return (
       <Comp
