@@ -56,6 +56,9 @@ export function SessionOverviewModal({
   const [promptValue, setCurrentVersionedPrompt] = useState<VersionedPrompt>(initialVersionedPrompt);
   const [allFacilitationPrompts, setAllFacilitationPrompts] = useState([initialVersionedPrompt])
   const [currentPromptVersion, setCurrentPromptVersion] = useState(0);
+  const addVersionedPrompt = (prompt: VersionedPrompt) => {
+    setAllFacilitationPrompts((prevPrompts) => [...prevPrompts, prompt]);
+  };
   
   // Update local questions when initialQuestions change
   useEffect(() => {
@@ -65,10 +68,6 @@ export function SessionOverviewModal({
       handleSavePrompt(selectedPrompt);
     }
   }, [currentPromptVersion, allFacilitationPrompts, setCurrentVersionedPrompt])
-
-  const addVersionedPrompt = (prompt: VersionedPrompt) => {
-    setAllFacilitationPrompts([...allFacilitationPrompts, prompt])
-  }
 
   const handleReplaceFullPrompt = async (fullPrompt: string) => {
     try {
@@ -141,10 +140,6 @@ export function SessionOverviewModal({
       }
     }
   };
-
-  const addVersionedPrompt = (prompt: VersionedPrompt) => {
-    setAllFacilitationPrompts([...allFacilitationPrompts, prompt])
-  }
 
   const handleQuestionsUpdate = async (questions: QuestionInfo[]) => {
     setLocalQuestions(questions);
@@ -277,15 +272,11 @@ export function SessionOverviewModal({
           />
         );
 
-          <ReviewPrompt
-            prompts={allFacilitationPrompts}
-            setPrompts={setAllFacilitationPrompts}
-            summarizedPrompt={promptValue.summary}
-            currentVersion={currentPromptVersion}
-            setCurrentVersion={setCurrentPromptVersion}
-            isEditing={editingField === "ReviewPrompt"}
-            handleEdit={handleEditVersionedPrompt}
-            handleReplaceFullPrompt={handleReplaceFullPrompt}
+      case 'pre-survey':
+        return (
+          <FormBuilder
+            questions={localQuestions}
+            onQuestionsUpdate={handleQuestionsUpdate}
           />
         );
 

@@ -48,6 +48,9 @@ export default function SessionResultSummary({
 }: SessionResultSummaryProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExpandedPrompt, setIsExpandedPrompt] = useState(false);
+  const [showPromptSettings, setShowPromptSettings] = useState(false);
+  const [summaryPrompt, setSummaryPrompt] = useState(hostData[0]?.summary_prompt);
+  const justSavedRef = useRef<string | null>(null);
 
   const resourceId: string = isProject ? projectId! : hostData[0].id;
   const { hasMinimumRole } = usePermissions(resourceId);
@@ -100,10 +103,6 @@ export default function SessionResultSummary({
     });
   };
 
-  const handleEditPrompt = () => {
-    setShowPromptSettings(true);
-  };
-
   const handleSummaryPromptChange = async (
     newPrompt: string,
     type: 'facilitation' | 'summary',
@@ -154,6 +153,18 @@ export default function SessionResultSummary({
 
   return (
     <>
+      {!isProject && hasMinimumRole('editor') && (
+        <div className="mb-4 flex justify-end">
+          <PromptSettings
+            isProject={false}
+            sessionFacilitationPrompt={hostData[0]?.prompt}
+            summaryPrompt={summaryPrompt}
+            onPromptChange={handleSummaryPromptChange}
+            open={showPromptSettings}
+            onOpenChange={setShowPromptSettings}
+          />
+        </div>
+      )}
       {showSessionRecapContent && (
         <div className="mb-4 relative">
           <ExpandableWithExport
