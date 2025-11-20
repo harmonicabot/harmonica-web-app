@@ -153,18 +153,6 @@ export default function SessionResultSummary({
 
   return (
     <>
-      {!isProject && hasMinimumRole('editor') && (
-        <div className="mb-4 flex justify-end">
-          <PromptSettings
-            isProject={false}
-            sessionFacilitationPrompt={hostData[0]?.prompt}
-            summaryPrompt={summaryPrompt}
-            onPromptChange={handleSummaryPromptChange}
-            open={showPromptSettings}
-            onOpenChange={setShowPromptSettings}
-          />
-        </div>
-      )}
       {showSessionRecapContent && (
         <div className="mb-4 relative">
           <ExpandableWithExport
