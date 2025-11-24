@@ -64,18 +64,19 @@ export default function DonationToast() {
             height={24}
             className="h-6 w-6 rounded-full object-cover"
           />
-          <p className="text-xs text-muted-foreground">From Artem, Founder</p>  
+          <p className="text-xs text-muted-foreground">Artem from Harmonica</p>  
           </div>
-          <p className="text-sm font-semibold text-foreground">Subject: Would you consider donating to Harmonica?</p>
+          <p className="text-sm font-semibold text-foreground">Consider donating to Harmonica</p>
         </div>
       </div>
       <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-        Hi there, Harmonica is still free while we figure out pricing, but
-        donations let us keep building the features you&apos;re trying today. If you find value (or
-        see the potential), your support keeps us shipping.
+        Hi there, Harmonica is currently free to use, but donations help us keep building the features you&apos;re trying today.
+        If you find value (or see the potential), your support keeps us shipping.
         <br />
         <br />
-        Thanks, Artem
+        Thank you,
+        <br />
+        Artem
       </p>
       <div className="mt-4 flex gap-2">
         <Link href={DONATE_URL} target="_blank" rel="noopener noreferrer">
