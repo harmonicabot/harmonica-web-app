@@ -20,6 +20,15 @@ export default function Navigation() {
         </Link>
         <div className="flex items-center space-x-4">
           <Link
+            href="https://opencollective.com/harmonica/donate?interval=oneTime&amount=20&contributeAs=me"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button variant="outline" size="sm">
+              Donate
+            </Button>
+          </Link>
+          <Link
             href="https://oldspeak.notion.site/Help-Center-fcf198f4683b4e3099beddf48971bd40"
             target="_blank"
             rel="noopener noreferrer"

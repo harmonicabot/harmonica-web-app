@@ -2,6 +2,7 @@
 import PostHogPageView from './PostHogPageView';
 import { usePathname } from 'next/navigation';
 import Navigation from './navigation';
+import DonationToast from '@/components/donations/DonationToast';
 // import SmallDonateBanner from '@/components/SmallDonateBanner';
 
 export default function ClientLayout({
@@ -32,6 +33,7 @@ export default function ClientLayout({
         </div>
       )}
       <PostHogPageView />
+      <DonationToast />
     </div>
   );
 }
