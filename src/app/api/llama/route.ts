@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { generateMonicaAnswer } from '@/lib/monica/monicaAnswer';
+import { getSession } from '@auth0/nextjs-auth0';
 
 export const maxDuration = 300;
 
 export async function POST(req: Request) {
   const { chatHistory, query, sessionIds } = await req.json();
+  const session = await getSession();
+  const distinctId = session?.user.sub;
 
   if (!chatHistory || !query || !sessionIds) {
     return NextResponse.json(
@@ -17,7 +20,8 @@ export async function POST(req: Request) {
     const answer = await generateMonicaAnswer(
       sessionIds,
       chatHistory,
-      query
+      query,
+      distinctId
     );
 
     return NextResponse.json({ answer });

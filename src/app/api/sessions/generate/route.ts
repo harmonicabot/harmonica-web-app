@@ -1,10 +1,13 @@
 import { generateSession } from '@/lib/sessionGenerator';
 import { NextResponse } from 'next/server';
+import { getSession } from '@auth0/nextjs-auth0';
 
 export const maxDuration = 200;
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const session = await getSession();
+    const distinctId = session?.user.sub;
     const {
       prompt,
       temperature,
@@ -28,6 +31,7 @@ export async function POST(request: Request) {
         maxTurns: maxAnswers,
         temperature,
         responsePrompt: prompt,
+        distinctId,
       });
       generatedSessions.push(threadId);
     }

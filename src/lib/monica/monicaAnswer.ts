@@ -5,7 +5,8 @@ import { generateMultiSessionAnswer } from './monicaMultiSession';
 export async function generateMonicaAnswer(
   sessionIds: string[],
   chatHistory: OpenAIMessage[],
-  query: string
+  query: string,
+  distinctId?: string
 ) {
   try {
     // Analyze query type
@@ -21,6 +22,7 @@ export async function generateMonicaAnswer(
       sessionIds,
       chatHistory,
       query,
+      distinctId
     );
     return answer;
   } catch (error) {
