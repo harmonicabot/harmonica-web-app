@@ -21,6 +21,7 @@ let skipCrossPollination = 0;
 export async function finishedResponse(
   systemPrompt: string,
   userPrompt: string,
+  distinctId?: string,
 ) {
   console.log('[i] Generating finished response:', {
     systemPrompt: systemPrompt?.substring(0, 100) + '...',
@@ -42,6 +43,7 @@ export async function finishedResponse(
           content: userPrompt,
         },
       ],
+      distinctId,
     });
 
     console.log('[i] Completion response:', JSON.stringify(response));
@@ -75,6 +77,7 @@ export async function finishedResponse(
               content: userPrompt,
             },
           ],
+          distinctId,
         });
 
         console.log('[i] Gemini fallback successful:', JSON.stringify(fallbackResponse));
@@ -93,6 +96,7 @@ export async function finishedResponse(
 export async function handleGenerateAnswer(
   messageData: AssistantMessageData,
   crossPollinationEnabled: boolean,
+  distinctId?: string,
 ): Promise<NewMessage> {
   console.log(`[i] Generating answer for message: `, messageData);
 
@@ -203,6 +207,7 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
   try {
     const message = await chatEngine.chat({
       messages: formattedMessages as ChatMessage[],
+      distinctId,
     });
     console.log('[i] Response:', message);
 
@@ -235,9 +240,10 @@ export async function handleResponse(
   systemPrompt: string,
   userPrompt: string,
   stream: boolean,
+  distinctId?: string,
 ) {
   if (stream) {
-    const streamData = streamResponse(systemPrompt, userPrompt);
+    const streamData = streamResponse(systemPrompt, userPrompt, distinctId);
     return new NextResponse(streamData, {
       headers: {
         'Content-Type': 'text/event-stream',
@@ -246,13 +252,13 @@ export async function handleResponse(
       },
     });
   } else {
-    const response = await finishedResponse(systemPrompt, userPrompt);
+    const response = await finishedResponse(systemPrompt, userPrompt, distinctId);
     console.log('response from finishedResponse:', response);
     return NextResponse.json({ fullPrompt: response });
   }
 }
 
-function streamResponse(systemPrompt: string, userPrompt: string) {
+function streamResponse(systemPrompt: string, userPrompt: string, distinctId?: string) {
   const encoder = new TextEncoder();
 
   return new ReadableStream({
@@ -272,6 +278,7 @@ function streamResponse(systemPrompt: string, userPrompt: string) {
               content: userPrompt,
             },
           ],
+          distinctId,
         });
 
         if (response) {
@@ -309,6 +316,7 @@ function streamResponse(systemPrompt: string, userPrompt: string) {
                   content: userPrompt,
                 },
               ],
+              distinctId,
             });
 
             console.log('[i] Gemini fallback successful in stream');

@@ -1,9 +1,13 @@
 import * as db from '@/lib/db';
 import { getLLM } from '@/lib/modelConfig';
+import { getSession } from '@auth0/nextjs-auth0';
 
 export async function generateSummary(sessionIds: string[], summaryPrompt: string) {
   console.log('[i] Generating summary for sessions:', sessionIds);
   try {
+    const session = await getSession();
+    const distinctId = session?.user?.sub;
+
     // Get session context and objective data for all sessions
     const sessionsData = await Promise.all(
       sessionIds.map(async (sessionId) => {
@@ -122,6 +126,7 @@ ${messagesContent}
           content: userPrompt,
         },
       ],
+      distinctId,
     });
 
     return response;

@@ -8,6 +8,7 @@ export async function generateMultiSessionAnswer(
   sessionIds: string[],
   chatHistory: OpenAIMessage[],
   query: string,
+  distinctId?: string
 ) {
   try {
     console.log(
@@ -199,6 +200,7 @@ ${qdrantContent?.KNOWLEDGE ? `### Relevant Knowledge Content:\n${qdrantContent.K
           content: userPrompt,
         },
       ],
+      distinctId,
     });
 
     console.log('[i] Received response: ', response);

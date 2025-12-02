@@ -9,6 +9,7 @@ interface SessionConfig {
   sessionId: string;
   temperature?: number;
   responsePrompt?: string;
+  distinctId?: string;
 }
 
 const DEFAULT_RESPONSE_PROMPT = `You are simulating user responses. Follow these guidelines:
@@ -20,6 +21,7 @@ const DEFAULT_RESPONSE_PROMPT = `You are simulating user responses. Follow these
 async function isSessionComplete(
   lastQuestion: string,
   sessionData: any,
+  distinctId?: string,
 ): Promise<boolean> {
   const llm = getLLM('MAIN', 0.1); // Low temperature for more consistent results
 
@@ -39,6 +41,7 @@ Reply with ONLY "true" if the session should end, or "false" if it should contin
 
   const response = await llm.chat({
     messages: [{ role: 'user', content: prompt }],
+    distinctId,
   });
 
   return response.toLowerCase().includes('true') || false;
@@ -46,7 +49,7 @@ Reply with ONLY "true" if the session should end, or "false" if it should contin
 
 export async function generateSession(config: SessionConfig) {
   try {
-    const { temperature = 0.7, responsePrompt = DEFAULT_RESPONSE_PROMPT } =
+    const { temperature = 0.7, responsePrompt = DEFAULT_RESPONSE_PROMPT, distinctId } =
       config;
 
     // Get session data from DB
@@ -108,6 +111,7 @@ export async function generateSession(config: SessionConfig) {
           systemPrompt: userContextPrompt,
         },
         true,
+        distinctId,
       );
 
       // Store AI question
@@ -122,6 +126,7 @@ export async function generateSession(config: SessionConfig) {
       const shouldEndSession = await isSessionComplete(
         questionResponse.content,
         sessionData,
+        distinctId,
       );
 
       if (shouldEndSession) {
@@ -163,6 +168,7 @@ Additional response guidelines:
             content: `Question: "${questionResponse.content}". Generate realistic response for turn ${turnCount + 1}.`,
           },
         ],
+        distinctId,
       });
 
       lastUserMessage = userResponse || '';
