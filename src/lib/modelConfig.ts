@@ -2,7 +2,7 @@ import { OpenAI as LlamaOpenAI, ChatMessage } from 'llamaindex';
 import { Gemini, GEMINI_MODEL } from '@llamaindex/google';
 import { Anthropic } from '@llamaindex/anthropic';
 
-type Provider = 'openai' | 'anthropic' | 'gemini';
+type Provider = 'openai' | 'anthropic' | 'gemini' | 'publicai' | 'swiss-ai' | 'aisingapore' | 'BSC-LT';
 type LLMInstance = LlamaOpenAI | Anthropic | Gemini;
 
 const getApiKey = (provider: Provider): string => {
@@ -13,6 +13,11 @@ const getApiKey = (provider: Provider): string => {
       return process.env.ANTHROPIC_API_KEY || '';
     case 'gemini':
       return process.env.GOOGLE_API_KEY || '';
+    case 'publicai':
+    case 'swiss-ai':
+    case 'aisingapore': 
+    case 'BSC-LT':
+      return process.env.PUBLIC_AI_API_KEY || '';
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
@@ -187,6 +192,23 @@ export const getLLM = (
       llm = new Gemini({
         model: getGeminiModel(model),
         temperature,
+      });
+      break;
+    case 'publicai':
+    case 'swiss-ai':
+    case 'aisingapore':
+    case 'BSC-LT':
+      console.log(`Preparing PublicAI model ${provider}/${model}`)
+      llm = new LlamaOpenAI({
+        model: `${provider}/${model}`,
+        apiKey,
+        temperature,
+        baseURL: 'https://api.publicai.co/v1',
+        additionalSessionOptions: {
+          defaultHeaders: {
+            'User-Agent': "Harmonica/1.0",
+          }
+        },
       });
       break;
     default:
