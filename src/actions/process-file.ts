@@ -2,7 +2,7 @@
 
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { Document, SentenceSplitter } from 'llamaindex';
-import { OpenAIEmbedding } from 'llamaindex';
+import { OpenAIEmbedding } from '@llamaindex/openai';
 import { v4 as uuidv4 } from 'uuid';
 import { getPostHogClient } from '@/lib/posthog-server';
 import { getSession } from '@auth0/nextjs-auth0';

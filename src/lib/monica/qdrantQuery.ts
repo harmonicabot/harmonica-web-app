@@ -1,5 +1,5 @@
 import { QdrantClient } from '@qdrant/js-client-rest';
-import { OpenAIEmbedding } from 'llamaindex';
+import { OpenAIEmbedding } from '@llamaindex/openai';
 
 const qdrantClient = new QdrantClient({
   url: process.env.QDRANT_URL,
