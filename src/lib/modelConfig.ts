@@ -28,7 +28,7 @@ const getApiKey = (provider: Provider): string => {
     case 'swiss-ai':
     case 'aisingapore':
     case 'BSC-LT':
-      return process.env.PUBLIC_AI_API_KEY || '';
+      return process.env.PUBLICAI_API_KEY || '';
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
