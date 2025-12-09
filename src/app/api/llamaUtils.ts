@@ -28,7 +28,7 @@ export async function finishedResponse(
     userPrompt: userPrompt?.substring(0, 100) + '...',
   });
 
-  // Try primary LLM first (usually Anthropic/Claude)
+  // Try MAIN LLM first
   const primaryEngine = getLLM('MAIN', 0.3);
 
   try {
@@ -52,19 +52,19 @@ export async function finishedResponse(
   } catch (error) {
     console.error('[x] Primary LLM error:', error);
     
-    // Check if it's an Anthropic overload error (529)
+    // Check if it's an overload error (529)
     const isOverloadError = error instanceof Error && 
       (error.message.includes('529') || 
        error.message.includes('overloaded_error') ||
        error.message.includes('Overloaded'));
     
         if (isOverloadError) {
-          console.log('[i] Anthropic overload detected, trying Gemini fallback...');
+          console.log('[i] MAIN model overload detected, trying SMALL fallback...');
           
           try {
-            // Try Gemini as fallback
-            const fallbackEngine = getLLM('SMALL', 0.3); // Use SMALL for faster response
-            console.log('[i] Fallback engine created, attempting Gemini request...');
+            // Try the small model as fallback
+            const fallbackEngine = getLLM('SMALL', 0.3);
+            console.log('[i] Fallback engine created, attempting request with small model...');
         
         const fallbackResponse = await fallbackEngine.chat({
           messages: [
@@ -80,10 +80,10 @@ export async function finishedResponse(
           distinctId,
         });
 
-        console.log('[i] Gemini fallback successful:', JSON.stringify(fallbackResponse));
+        console.log('[i] Fallback to small model successful:', JSON.stringify(fallbackResponse));
         return fallbackResponse;
       } catch (fallbackError) {
-        console.error('[x] Gemini fallback also failed:', fallbackError);
+        console.error('[x] Small model fallback also failed:', fallbackError);
         throw new Error(`Both primary and fallback LLMs failed. Primary: ${error.message}, Fallback: ${fallbackError}`);
       }
     }
@@ -301,7 +301,7 @@ function streamResponse(systemPrompt: string, userPrompt: string, distinctId?: s
           console.log('[i] Anthropic overload detected in stream, trying Gemini fallback...');
           
           try {
-            // Try Gemini as fallback
+            // Try SMALL as fallback
             const fallbackEngine = getLLM('SMALL', 0.3); // Use SMALL for faster response
             console.log('[i] Stream fallback engine created, attempting Gemini request...');
             
