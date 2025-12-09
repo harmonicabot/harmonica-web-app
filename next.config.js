@@ -43,7 +43,7 @@ const nextConfig = {
     // This is supposed to prevent route handler caching
     serverActions: {
       allowedOrigins: ['localhost:3000'],
-      bodySizeLimit: '2mb',
+      bodySizeLimit: '10mb',
     },
   },
   webpack: (config, { isServer }) => {
