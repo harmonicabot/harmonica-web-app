@@ -119,6 +119,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
           },
         ],
         distinctId,
+        tag: 'cross_pollination_analysis',
       });
 
       const responseText = response.trim().toUpperCase();
@@ -252,6 +253,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
           },
         ],
         distinctId,
+        tag: 'cross_pollination_question',
       });
 
       const responseText = response.trim();

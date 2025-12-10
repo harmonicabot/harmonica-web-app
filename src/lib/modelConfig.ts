@@ -95,10 +95,7 @@ export class LLM {
     this.provider = provider;
   }
 
-  async chat(params: {
-    messages: ChatMessage[];
-    distinctId?: string;
-  }): Promise<string> {
+  async chat(params: { messages: ChatMessage[]; distinctId?: string; tag?: string }): Promise<string> {
     const startTime = Date.now();
     // All LLMs actually accept the same message format, even though they specify it differently.
     // In TS we have to have the ChatInterface to prevent type errors.
@@ -189,6 +186,7 @@ export class LLM {
             $ai_output_tokens: outputTokens,
             $ai_status: 'success',
             $ai_trace_id: crypto.randomUUID(),
+            tag: params.tag,
           },
         });
       }
@@ -237,6 +235,7 @@ export class LLM {
             $ai_status: 'error',
             $ai_error: error instanceof Error ? error.message : String(error),
             $ai_trace_id: crypto.randomUUID(),
+            tag: params.tag,
           },
         });
       }

@@ -42,6 +42,7 @@ Reply with ONLY "true" if the session should end, or "false" if it should contin
   const response = await llm.chat({
     messages: [{ role: 'user', content: prompt }],
     distinctId,
+    tag: 'session_completion_check',
   });
 
   return response.toLowerCase().includes('true') || false;
@@ -112,6 +113,12 @@ export async function generateSession(config: SessionConfig) {
         },
         true,
         distinctId,
+        // tag will be passed down to LLM.chat inside handleGenerateAnswer but handleGenerateAnswer doesn't accept tag yet?
+        // Wait, handleGenerateAnswer calls LLM.chat. We need to update handleGenerateAnswer signature in llamaUtils.ts first or pass it somehow.
+        // Actually, handleGenerateAnswer is for the AI *question*. We should tag it as 'session_generation_question'
+        // But handleGenerateAnswer signature in llamaUtils.ts: (messageData, crossPollinationEnabled, distinctId)
+        // It doesn't take a tag.
+        // Let's stick to tagging the user response generation below first.
       );
 
       // Store AI question
@@ -169,6 +176,7 @@ Additional response guidelines:
           },
         ],
         distinctId,
+        tag: 'session_user_response',
       });
 
       lastUserMessage = userResponse || '';

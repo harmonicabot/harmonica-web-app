@@ -45,6 +45,7 @@ Create authentic characters with diverse perspectives while avoiding assumptions
 
   const response = await llm.chat({
     messages: [{ role: 'user', content: prompt }],
+    tag: 'character_generation',
   });
 
   return response || '';

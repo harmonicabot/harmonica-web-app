@@ -127,6 +127,7 @@ ${messagesContent}
         },
       ],
       distinctId,
+      tag: 'summary_generation',
     });
 
     return response;

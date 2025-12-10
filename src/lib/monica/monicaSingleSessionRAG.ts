@@ -364,7 +364,7 @@ Total Responses: ${messages.length}
         {
           role: 'user',
           content: `
-### User Transcripts: 
+### User Transcripts:
 ${threadDocuments.map((doc) => doc.text).join('\n')}
 
 ### Question: ${query}
@@ -373,6 +373,7 @@ Please analyze the above context to answer the question.`,
         },
         ...chatHistory.map((msg: any) => ({ role: msg.role, content: msg.content })),
       ],
+      tag: 'monica_ai_rag',
     });
 
     console.log('[i] Chat engine response:', response);

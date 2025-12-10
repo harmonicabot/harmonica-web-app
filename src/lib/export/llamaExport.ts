@@ -45,6 +45,7 @@ export async function extractDataWithLlama(
           content: `Here are the conversations to extract data from:\n\n${formattedContext}\n\n${extractUserPrompt}`,
         },
       ],
+      tag: 'data_export',
     });
 
     // Clean the response if it includes markdown code blocks

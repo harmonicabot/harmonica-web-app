@@ -201,6 +201,7 @@ ${qdrantContent?.KNOWLEDGE ? `### Relevant Knowledge Content:\n${qdrantContent.K
         },
       ],
       distinctId,
+      tag: 'monica_ai',
     });
 
     console.log('[i] Received response: ', response);
