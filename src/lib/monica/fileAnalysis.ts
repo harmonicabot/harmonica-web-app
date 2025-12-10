@@ -38,6 +38,7 @@ ${content.substring(0, 4000)} // Limit content length to avoid token limits
           content: analysisPrompt,
         },
       ],
+      tag: 'file_analysis',
     });
 
     console.log('[i] Raw analysis response:', response);

@@ -1,4 +1,5 @@
 import * as db from '@/lib/db';
+import { getSessionOwner } from '@/lib/db';
 import * as llama from '../app/api/llamaUtils';
 import { getUserNameFromContext } from '@/lib/clientUtils';
 import { generateFormAnswers } from './formAnswerGenerator';
@@ -22,6 +23,8 @@ async function isSessionComplete(
   lastQuestion: string,
   sessionData: any,
   distinctId?: string,
+  sessionId?: string,
+  hostId?: string,
 ): Promise<boolean> {
   const llm = getLLM('MAIN', 0.1); // Low temperature for more consistent results
 
@@ -42,6 +45,9 @@ Reply with ONLY "true" if the session should end, or "false" if it should contin
   const response = await llm.chat({
     messages: [{ role: 'user', content: prompt }],
     distinctId,
+    tag: 'session_completion_check',
+    sessionIds: sessionId ? [sessionId] : undefined,
+    hostIds: hostId ? [hostId] : undefined,
   });
 
   return response.toLowerCase().includes('true') || false;
@@ -66,6 +72,9 @@ export async function generateSession(config: SessionConfig) {
     if (!sessionData) {
       throw new Error('Session data not found');
     }
+
+    // Get session owner (host) for analytics
+    const hostId = await getSessionOwner(config.sessionId);
 
     // Generate form answers if questions exist
     let userContextPrompt = '';
@@ -112,6 +121,12 @@ export async function generateSession(config: SessionConfig) {
         },
         true,
         distinctId,
+        // tag will be passed down to LLM.chat inside handleGenerateAnswer but handleGenerateAnswer doesn't accept tag yet?
+        // Wait, handleGenerateAnswer calls LLM.chat. We need to update handleGenerateAnswer signature in llamaUtils.ts first or pass it somehow.
+        // Actually, handleGenerateAnswer is for the AI *question*. We should tag it as 'session_generation_question'
+        // But handleGenerateAnswer signature in llamaUtils.ts: (messageData, crossPollinationEnabled, distinctId)
+        // It doesn't take a tag.
+        // Let's stick to tagging the user response generation below first.
       );
 
       // Store AI question
@@ -127,6 +142,8 @@ export async function generateSession(config: SessionConfig) {
         questionResponse.content,
         sessionData,
         distinctId,
+        config.sessionId,
+        hostId || undefined,
       );
 
       if (shouldEndSession) {
@@ -169,6 +186,9 @@ Additional response guidelines:
           },
         ],
         distinctId,
+        tag: 'session_user_response',
+        sessionIds: [config.sessionId],
+        hostIds: hostId ? [hostId] : undefined,
       });
 
       lastUserMessage = userResponse || '';

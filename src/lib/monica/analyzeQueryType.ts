@@ -42,6 +42,7 @@ export async function analyzeQueryType(
           content: classificationPrompt,
         },
       ],
+      tag: 'query_type_analysis',
     });
 
     const queryClassification = JSON.parse(response) as QueryClassification;

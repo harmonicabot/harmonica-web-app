@@ -9,6 +9,7 @@ import {
   getHostSessionById,
   updateUserSession,
   increaseSessionsCount,
+  getSessionOwner,
 } from '@/lib/db';
 import { initializeCrossPollination } from '@/lib/crossPollination';
 import { getLLM } from '@/lib/modelConfig';
@@ -22,6 +23,9 @@ export async function finishedResponse(
   systemPrompt: string,
   userPrompt: string,
   distinctId?: string,
+  tag?: string,
+  sessionIds?: string[],
+  hostIds?: string[],
 ) {
   console.log('[i] Generating finished response:', {
     systemPrompt: systemPrompt?.substring(0, 100) + '...',
@@ -44,6 +48,9 @@ export async function finishedResponse(
         },
       ],
       distinctId,
+      tag,
+      sessionIds,
+      hostIds,
     });
 
     console.log('[i] Completion response:', JSON.stringify(response));
@@ -78,6 +85,9 @@ export async function finishedResponse(
             },
           ],
           distinctId,
+          tag,
+          sessionIds,
+          hostIds,
         });
 
         console.log('[i] Fallback to small model successful:', JSON.stringify(fallbackResponse));
@@ -178,6 +188,9 @@ export async function handleGenerateAnswer(
   const sessionData = await getHostSessionById(messageData.sessionId);
   console.log(`[i] Session data:`, sessionData);
 
+  // Get session owner (host) for analytics
+  const hostId = await getSessionOwner(messageData.sessionId);
+
   const basicFacilitationPrompt = await getPromptInstructions(
     'BASIC_FACILITATION_PROMPT',
   );
@@ -208,6 +221,9 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
     const message = await chatEngine.chat({
       messages: formattedMessages as ChatMessage[],
       distinctId,
+      tag: 'chat',
+      sessionIds: [messageData.sessionId],
+      hostIds: hostId ? [hostId] : undefined,
     });
     console.log('[i] Response:', message);
 
@@ -241,9 +257,12 @@ export async function handleResponse(
   userPrompt: string,
   stream: boolean,
   distinctId?: string,
+  tag?: string,
+  sessionIds?: string[],
+  hostIds?: string[],
 ) {
   if (stream) {
-    const streamData = streamResponse(systemPrompt, userPrompt, distinctId);
+    const streamData = streamResponse(systemPrompt, userPrompt, distinctId, tag, sessionIds, hostIds);
     return new NextResponse(streamData, {
       headers: {
         'Content-Type': 'text/event-stream',
@@ -252,13 +271,20 @@ export async function handleResponse(
       },
     });
   } else {
-    const response = await finishedResponse(systemPrompt, userPrompt, distinctId);
+    const response = await finishedResponse(systemPrompt, userPrompt, distinctId, tag, sessionIds, hostIds);
     console.log('response from finishedResponse:', response);
     return NextResponse.json({ fullPrompt: response });
   }
 }
 
-function streamResponse(systemPrompt: string, userPrompt: string, distinctId?: string) {
+function streamResponse(
+  systemPrompt: string,
+  userPrompt: string,
+  distinctId?: string,
+  tag?: string,
+  sessionIds?: string[],
+  hostIds?: string[],
+) {
   const encoder = new TextEncoder();
 
   return new ReadableStream({
@@ -279,6 +305,9 @@ function streamResponse(systemPrompt: string, userPrompt: string, distinctId?: s
             },
           ],
           distinctId,
+          tag,
+          sessionIds,
+          hostIds,
         });
 
         if (response) {
@@ -317,6 +346,9 @@ function streamResponse(systemPrompt: string, userPrompt: string, distinctId?: s
                 },
               ],
               distinctId,
+              tag,
+              sessionIds,
+              hostIds,
             });
 
             console.log('[i] Gemini fallback successful in stream');

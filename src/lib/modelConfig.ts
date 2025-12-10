@@ -98,6 +98,9 @@ export class LLM {
   async chat(params: {
     messages: ChatMessage[];
     distinctId?: string;
+    tag?: string;
+    sessionIds?: string[];
+    hostIds?: string[];
   }): Promise<string> {
     const startTime = Date.now();
     // All LLMs actually accept the same message format, even though they specify it differently.
@@ -189,6 +192,9 @@ export class LLM {
             $ai_output_tokens: outputTokens,
             $ai_status: 'success',
             $ai_trace_id: crypto.randomUUID(),
+            tag: params.tag,
+            session_ids: params.sessionIds,
+            host_ids: params.hostIds,
           },
         });
       }
@@ -237,6 +243,9 @@ export class LLM {
             $ai_status: 'error',
             $ai_error: error instanceof Error ? error.message : String(error),
             $ai_trace_id: crypto.randomUUID(),
+            tag: params.tag,
+            session_ids: params.sessionIds,
+            host_ids: params.hostIds,
           },
         });
       }

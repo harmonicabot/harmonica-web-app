@@ -1,4 +1,5 @@
 import * as db from '@/lib/db';
+import { getSessionOwners } from '@/lib/db';
 import { getLLM } from '@/lib/modelConfig';
 import { getSession } from '@auth0/nextjs-auth0';
 
@@ -113,6 +114,10 @@ ${sessionsData[sessionIndex]?.critical ? `Key Points: ${sessionsData[sessionInde
 
     const chatEngine = getLLM('MAIN', 0.3);
 
+    // Get session owners (hosts) for analytics
+    const ownersMap = await getSessionOwners(sessionIds);
+    const hostIds = Array.from(ownersMap.values()).filter((id): id is string => id !== null);
+
     const userPrompt = `
 ### Historical Messages by Session:
 ${messagesContent}
@@ -127,6 +132,9 @@ ${messagesContent}
         },
       ],
       distinctId,
+      tag: 'summary_generation',
+      sessionIds,
+      hostIds: hostIds.length > 0 ? hostIds : undefined,
     });
 
     return response;

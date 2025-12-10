@@ -1755,3 +1755,73 @@ export async function updateThreadRating(
     return null;
   }
 }
+
+/**
+ * Get the owner (host) user ID for a session
+ * @param sessionId The session ID to look up
+ * @returns The user_id of the owner, or null if not found
+ */
+export async function getSessionOwner(
+  sessionId: string,
+): Promise<string | null> {
+  console.log('[i] Database Operation: getSessionOwner');
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom(permissionsTableName)
+      .select('user_id')
+      .where('resource_id', '=', sessionId)
+      .where('resource_type', '=', 'SESSION')
+      .where('role', '=', 'owner')
+      .executeTakeFirst();
+
+    return result?.user_id || null;
+  } catch (error) {
+    console.error('Error getting session owner:', error);
+    return null;
+  }
+}
+
+/**
+ * Get owners for multiple sessions at once
+ * @param sessionIds Array of session IDs to look up
+ * @returns Map of sessionId -> owner user_id (null if not found)
+ */
+export async function getSessionOwners(
+  sessionIds: string[],
+): Promise<Map<string, string | null>> {
+  console.log('[i] Database Operation: getSessionOwners');
+  const result = new Map<string, string | null>();
+
+  if (!sessionIds.length) return result;
+
+  try {
+    const db = await dbPromise;
+    const rows = await db
+      .selectFrom(permissionsTableName)
+      .select(['resource_id', 'user_id'])
+      .where('resource_id', 'in', sessionIds)
+      .where('resource_type', '=', 'SESSION')
+      .where('role', '=', 'owner')
+      .execute();
+
+    // Initialize all session IDs with null
+    for (const id of sessionIds) {
+      result.set(id, null);
+    }
+
+    // Fill in found owners
+    for (const row of rows) {
+      result.set(row.resource_id, row.user_id);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error getting session owners:', error);
+    // Return map with all nulls on error
+    for (const id of sessionIds) {
+      result.set(id, null);
+    }
+    return result;
+  }
+}

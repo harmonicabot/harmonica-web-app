@@ -4,6 +4,7 @@ import {
   getAllChatMessagesInOrder,
   getAllMessagesForSessionSorted,
   getHostSessionById,
+  getSessionOwner,
 } from '@/lib/db';
 import { getPromptInstructions } from './promptsCache';
 import { getSession } from '@auth0/nextjs-auth0';
@@ -30,12 +31,20 @@ export class CrossPollinationManager {
   private lastCrossPollination: number | null = null;
   private sessionData: any = null;
   private distinctId: string | undefined;
+  private hostId: string | null = null;
 
   constructor(config: CrossPollinationConfig) {
     this.config = config;
     // Initialize with specific models for each purpose
     this.analyzeEngine = getLLM('MAIN', 0.3);
     this.generateEngine = getLLM('LARGE', 0.3);
+  }
+
+  private async getHostId(): Promise<string | null> {
+    if (this.hostId === null) {
+      this.hostId = await getSessionOwner(this.config.sessionId);
+    }
+    return this.hostId;
   }
 
   private async getDistinctId() {
@@ -97,6 +106,7 @@ export class CrossPollinationManager {
       );
 
       const distinctId = await this.getDistinctId();
+      const hostId = await this.getHostId();
 
       // 4. Analyze the current thread to determine if cross-pollination is appropriate
       const response = await this.analyzeEngine.chat({
@@ -119,6 +129,9 @@ Based on this information, should I introduce cross-pollination now? Answer with
           },
         ],
         distinctId,
+        tag: 'cross_pollination_analysis',
+        sessionIds: [this.config.sessionId],
+        hostIds: hostId ? [hostId] : undefined,
       });
 
       const responseText = response.trim().toUpperCase();
@@ -213,6 +226,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
         await getPromptInstructions('CROSS_POLLINATION');
 
       const distinctId = await this.getDistinctId();
+      const hostId = await this.getHostId();
 
       // Make a single LLM call to analyze and generate a question
       const response = await this.generateEngine.chat({
@@ -252,6 +266,9 @@ Based on this information, should I introduce cross-pollination now? Answer with
           },
         ],
         distinctId,
+        tag: 'cross_pollination_question',
+        sessionIds: [this.config.sessionId],
+        hostIds: hostId ? [hostId] : undefined,
       });
 
       const responseText = response.trim();

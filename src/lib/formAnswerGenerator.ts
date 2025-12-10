@@ -71,6 +71,7 @@ ${attempts > 0 ? `Previous attempt failed with: ${lastError}\nIMPORTANT: Ensure 
             { role: 'system', content: systemContent },
             { role: 'user', content: userContent },
           ],
+          tag: 'form_answer_generation',
         });
 
         console.log('\n=== LLM Response ===');

@@ -79,6 +79,7 @@ export async function generateParticipantAnswer(
           content: `Here's the conversation so far:\n\n${conversationHistory}\n\nRespond as a creative team member to the most recent message. BE VERY BRIEF (1-2 sentences) and DIRECTLY ADDRESS the content of the last message.`,
         },
       ],
+      tag: 'simulated_participant',
     });
 
     const participantResponse = response

@@ -34,6 +34,7 @@ export async function POST(req: Request) {
         d.instructions,
         request.stream ?? false,
         distinctId,
+        'builder_edit_prompt',
       );
     case ApiAction.SummaryOfPrompt:
       const summaryData = request.data as SummaryOfPromptData;
@@ -42,6 +43,7 @@ export async function POST(req: Request) {
         summaryData.fullPrompt,
         request.stream ?? false,
         distinctId,
+        'builder_summary_prompt',
       );
 
     default:
@@ -59,6 +61,7 @@ async function createNewPrompt(data: SessionBuilderData, distinctId?: string) {
       createTemplatePrompt,
       createPromptContent(data),
       distinctId,
+      'builder_create_prompt',
     );
 
     console.log('[i] Created new prompt:', fullPrompt);
