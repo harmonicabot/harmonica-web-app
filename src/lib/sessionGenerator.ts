@@ -1,4 +1,5 @@
 import * as db from '@/lib/db';
+import { getSessionOwner } from '@/lib/db';
 import * as llama from '../app/api/llamaUtils';
 import { getUserNameFromContext } from '@/lib/clientUtils';
 import { generateFormAnswers } from './formAnswerGenerator';
@@ -22,6 +23,8 @@ async function isSessionComplete(
   lastQuestion: string,
   sessionData: any,
   distinctId?: string,
+  sessionId?: string,
+  hostId?: string,
 ): Promise<boolean> {
   const llm = getLLM('MAIN', 0.1); // Low temperature for more consistent results
 
@@ -43,6 +46,8 @@ Reply with ONLY "true" if the session should end, or "false" if it should contin
     messages: [{ role: 'user', content: prompt }],
     distinctId,
     tag: 'session_completion_check',
+    sessionIds: sessionId ? [sessionId] : undefined,
+    hostIds: hostId ? [hostId] : undefined,
   });
 
   return response.toLowerCase().includes('true') || false;
@@ -67,6 +72,9 @@ export async function generateSession(config: SessionConfig) {
     if (!sessionData) {
       throw new Error('Session data not found');
     }
+
+    // Get session owner (host) for analytics
+    const hostId = await getSessionOwner(config.sessionId);
 
     // Generate form answers if questions exist
     let userContextPrompt = '';
@@ -134,6 +142,8 @@ export async function generateSession(config: SessionConfig) {
         questionResponse.content,
         sessionData,
         distinctId,
+        config.sessionId,
+        hostId || undefined,
       );
 
       if (shouldEndSession) {
@@ -177,6 +187,8 @@ Additional response guidelines:
         ],
         distinctId,
         tag: 'session_user_response',
+        sessionIds: [config.sessionId],
+        hostIds: hostId ? [hostId] : undefined,
       });
 
       lastUserMessage = userResponse || '';

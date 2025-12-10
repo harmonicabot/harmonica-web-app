@@ -1,5 +1,6 @@
 import { getLLM } from '@/lib/modelConfig';
 import * as db from '@/lib/db';
+import { getSessionOwner } from '@/lib/db';
 
 export async function generateCharacters(sessionId: string): Promise<string> {
   // Get session context
@@ -14,6 +15,9 @@ export async function generateCharacters(sessionId: string): Promise<string> {
   if (!sessionData) {
     throw new Error('Session data not found');
   }
+
+  // Get session owner (host) for analytics
+  const hostId = await getSessionOwner(sessionId);
 
   // Set up LLM with SMALL model configuration
   const llm = getLLM('SMALL', 0.8);
@@ -46,6 +50,8 @@ Create authentic characters with diverse perspectives while avoiding assumptions
   const response = await llm.chat({
     messages: [{ role: 'user', content: prompt }],
     tag: 'character_generation',
+    sessionIds: [sessionId],
+    hostIds: hostId ? [hostId] : undefined,
   });
 
   return response || '';

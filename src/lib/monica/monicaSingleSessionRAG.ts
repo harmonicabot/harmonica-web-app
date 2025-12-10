@@ -4,6 +4,7 @@ import * as db from '@/lib/db';
 import { OpenAI, OpenAIEmbedding } from '@llamaindex/openai';
 import { SentenceSplitter } from 'llamaindex';
 import { getLLM, LLM } from '../modelConfig';
+import { getSessionOwners } from '@/lib/db';
 
 const initialPrompt = `
 ### Guidelines:
@@ -357,6 +358,10 @@ Total Responses: ${messages.length}
 
     const chatEngine: LLM = getLLM("LARGE", 0.3);
 
+    // Get session owners (hosts) for analytics
+    const ownersMap = await getSessionOwners(sessionIds);
+    const hostIds = Array.from(ownersMap.values()).filter((id): id is string => id !== null);
+
     // Construct the full prompt with context
     const response = await chatEngine.chat({
       messages: [
@@ -374,6 +379,8 @@ Please analyze the above context to answer the question.`,
         ...chatHistory.map((msg: any) => ({ role: msg.role, content: msg.content })),
       ],
       tag: 'monica_ai_rag',
+      sessionIds,
+      hostIds: hostIds.length > 0 ? hostIds : undefined,
     });
 
     console.log('[i] Chat engine response:', response);

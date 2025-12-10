@@ -3,6 +3,7 @@ import { OpenAIMessage } from '../types';
 import { getPromptInstructions } from '../promptsCache';
 import { getSessionContent } from './qdrantQuery';
 import { getLLM } from '../modelConfig';
+import { getSessionOwners } from '@/lib/db';
 
 export async function generateMultiSessionAnswer(
   sessionIds: string[],
@@ -149,6 +150,10 @@ ${contextData?.critical ? `Key Points: ${contextData?.critical}` : ''}`,
 
     const chatEngine = getLLM("LARGE", 0.3);
 
+    // Get session owners (hosts) for analytics
+    const ownersMap = await getSessionOwners(sessionIds);
+    const hostIds = Array.from(ownersMap.values()).filter((id): id is string => id !== null);
+
     const chatHistoryWithoutInitialWelcoming = chatHistory.slice(1);
     const chatHistoryForPrompt =
       chatHistoryWithoutInitialWelcoming.length > 0
@@ -202,6 +207,8 @@ ${qdrantContent?.KNOWLEDGE ? `### Relevant Knowledge Content:\n${qdrantContent.K
       ],
       distinctId,
       tag: 'monica_ai',
+      sessionIds,
+      hostIds: hostIds.length > 0 ? hostIds : undefined,
     });
 
     console.log('[i] Received response: ', response);
