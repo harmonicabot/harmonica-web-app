@@ -1,0 +1,6 @@
+{
+  "directory": "./src/components/subframe",
+  "importAlias": "@/subframe/*",
+  "projectId": "4e2c4e6050a0",
+  "cssType": "tailwind"
+}

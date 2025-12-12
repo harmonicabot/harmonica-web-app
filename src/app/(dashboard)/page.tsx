@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChevronRight, PlusCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Button as SubframeButton } from '@/components/subframe/components/Button';
 import { SessionsTable } from './sessions-table';
 import { WorkspacesTable } from './workspaces-table';
 import * as db from '@/lib/db';
@@ -264,10 +265,9 @@ export default async function Dashboard({
 function CreateSessionButton({ text = 'Create Session' }: { text?: string }) {
   return (
     <Link href="/create">
-      <Button>
+      <SubframeButton>
         {text}
-        <ChevronRight />
-      </Button>
+      </SubframeButton>
     </Link>
   );
 }

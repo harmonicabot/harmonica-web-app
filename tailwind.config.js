@@ -6,6 +6,7 @@ module.exports = {
     './src/components/**/*.{ts,tsx}',
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
+    './src/components/subframe/**/*.{tsx,ts,js,jsx}'
   ],
   prefix: '',
   theme: {
@@ -77,4 +78,5 @@ module.exports = {
     },
   },
   plugins: [require('tailwindcss-animate')],
+  presets: [require("./src/components/subframe/tailwind.config.js")]
 };
