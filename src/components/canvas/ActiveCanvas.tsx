@@ -94,32 +94,25 @@ export default function ActiveCanvas({
         />
       ))}
 
-      {/* AI response bubbles - show latest and previous (for animation) */}
-      {aiResponses.length > 0 && (
-        <>
-          {/* Previous message (if exists) - animating out */}
-          {aiResponses.length > 1 && (
-            <AIResponseBubble
-              key={`prev-${aiResponses[aiResponses.length - 2].id}`}
-              content={aiResponses[aiResponses.length - 2].content}
-              position={aiResponses[aiResponses.length - 2].position}
-              isLatest={false}
-              isAnimatingOut={true}
-            />
-          )}
-          {/* Latest message - animating in from below */}
+      {/* AI response bubbles - positioned relative to sticky notes */}
+      {aiResponses.map((response) => {
+        const relatedNote = stickyNotes.find(
+          (note) => note.id === response.stickyNoteId
+        );
+        return (
           <AIResponseBubble
-            key={`latest-${aiResponses[aiResponses.length - 1].id}`}
-            content={aiResponses[aiResponses.length - 1].content}
-            position={aiResponses[aiResponses.length - 1].position}
-            isLatest={true}
+            key={response.id}
+            content={response.content}
+            position={response.position}
+            stickyNotePosition={relatedNote?.position}
+            isLatest={response.id === aiResponses[aiResponses.length - 1].id}
             isAnimatingOut={false}
           />
-        </>
-      )}
+        );
+      })}
 
       {/* Input area at bottom */}
-      <div className="absolute left-1/2 bottom-48 -translate-x-1/2 w-72 z-10">
+      <div className="absolute left-1/2 bottom-24 -translate-x-1/2 w-72 z-10">
         <CanvasInput placeholder="Type idea here" onSubmit={handleSubmit} large />
       </div>
     </div>

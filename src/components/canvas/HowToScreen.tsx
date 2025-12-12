@@ -2,19 +2,11 @@
 
 import CanvasInput from './CanvasInput';
 
-interface WelcomeScreenProps {
-  userName: string;
-  topic: string;
+interface HowToScreenProps {
   onComplete: () => void;
-  isTransitioning?: boolean;
 }
 
-export default function WelcomeScreen({
-  userName,
-  topic,
-  onComplete,
-  isTransitioning = false,
-}: WelcomeScreenProps) {
+export default function HowToScreen({ onComplete }: HowToScreenProps) {
   const handleSubmit = (message: string) => {
     if (message.trim()) {
       onComplete();
@@ -46,44 +38,42 @@ export default function WelcomeScreen({
         exit
       </button>
 
-      {/* Welcome message - animates to top when transitioning */}
-      <div
-        className={`absolute left-1/2 -translate-x-1/2 w-[736px] z-10 transition-all duration-1000 ease-in-out ${
-          isTransitioning ? 'top-7 cursor-pointer' : 'top-60'
-        }`}
-      >
+      {/* How-to message */}
+      <div className="absolute left-1/2 top-60 -translate-x-1/2 w-[736px] z-10">
         <div className="flex flex-col gap-3">
           <p className="text-xs font-medium text-foreground tracking-wide uppercase">
             MONICA
           </p>
           <div className="bg-white border border-border rounded-2xl rounded-tl px-7 py-6">
             <div className="flex flex-col gap-4 text-xl font-medium">
-              <p>
-                Hi {userName},
-              </p>
-              <p>
-                We're going to discuss Marketing Ideas for Q2
-              </p>
-              <p>Ready to start?</p>
+              <p>Here's how it works:</p>
+              <ol className="list-decimal ml-8">
+                <li>I'll share a topic</li>
+                <li>You create ideas</li>
+                <li>I'll help you refine</li>
+              </ol>
+              <p>& repeat with the next topic</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Input area - grows and moves down when transitioning */}
-      <div
-        className={`absolute left-1/2 -translate-x-1/2 z-10 transition-all duration-1000 ease-in-out ${
-          isTransitioning ? 'w-72 bottom-24' : 'w-44 bottom-48'
-        }`}
-      >
+      {/* Small input with "Great!" */}
+      <div className="absolute left-1/2 bottom-48 -translate-x-1/2 w-44 z-10">
         <CanvasInput
-          initialValue={isTransitioning ? '' : "I'm ready"}
-          placeholder={isTransitioning ? "Type idea here" : "Type here"}
+          initialValue="Great!"
+          placeholder="Type here"
           onSubmit={handleSubmit}
-          large={isTransitioning}
+          large={false}
         />
+      </div>
+
+      {/* "I'm still unsure" link - positioned below input */}
+      <div className="absolute left-1/2 bottom-32 -translate-x-1/2 z-10">
+        <button className="text-sm text-gray-600 hover:underline">
+          I'm still unsure
+        </button>
       </div>
     </div>
   );
 }
-

@@ -7,6 +7,7 @@ interface AIResponseBubbleProps {
   position?: { x: number; y: number };
   isLatest?: boolean;
   isAnimatingOut?: boolean;
+  stickyNotePosition?: { x: number; y: number };
 }
 
 export default function AIResponseBubble({
@@ -14,32 +15,45 @@ export default function AIResponseBubble({
   position,
   isLatest = false,
   isAnimatingOut = false,
+  stickyNotePosition,
 }: AIResponseBubbleProps) {
-  // Start from below (+1rem) and animate to center (0)
-  const [shouldAnimateIn, setShouldAnimateIn] = useState(isLatest);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    if (isLatest && !isAnimatingOut) {
-      // Trigger animation: start from below, then transition to center
-      setShouldAnimateIn(true);
-      const timer = setTimeout(() => {
-        setShouldAnimateIn(false);
-      }, 50);
-      return () => clearTimeout(timer);
-    } else {
-      setShouldAnimateIn(false);
-    }
-  }, [isLatest, isAnimatingOut]);
+    // Fade in after mount
+    const fadeInTimer = setTimeout(() => {
+      setIsVisible(true);
+    }, 50);
+
+    // Fade out after 2 seconds
+    const fadeOutTimer = setTimeout(() => {
+      setIsVisible(false);
+    }, 2000);
+
+    return () => {
+      clearTimeout(fadeInTimer);
+      clearTimeout(fadeOutTimer);
+    };
+  }, []);
+
+  // Calculate position: bottom-right of sticky note or center
+  const positionStyles = stickyNotePosition
+    ? {
+        left: `${stickyNotePosition.x + 286 + 16}px`, // sticky note width + gap
+        top: `${stickyNotePosition.y + 100}px`, // bottom area of sticky
+      }
+    : {
+        left: '50%',
+        top: '15rem',
+        transform: 'translateX(-50%)',
+      };
 
   return (
     <div
-      className={`absolute left-1/2 top-60 z-10 transition-all duration-500 ease-in-out -translate-x-1/2 ${
-        isAnimatingOut
-          ? '-translate-y-4 opacity-0'
-          : shouldAnimateIn
-          ? 'translate-y-4 opacity-0'
-          : 'translate-y-0 opacity-100'
+      className={`absolute z-50 transition-opacity duration-500 ${
+        isVisible ? 'opacity-100' : 'opacity-0'
       }`}
+      style={positionStyles}
     >
       <div className="flex flex-col gap-2">
         <p className="text-xs font-medium text-foreground tracking-wide uppercase">
@@ -54,4 +68,3 @@ export default function AIResponseBubble({
     </div>
   );
 }
-
