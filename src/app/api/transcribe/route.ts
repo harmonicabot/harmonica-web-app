@@ -17,7 +17,6 @@ export async function POST(request: Request) {
       smart_format: 'true',
       model: 'nova-2',
       language: 'en-US', // Change to your language
-      mip_opt_out: 'true', // Opt out of Model Improvement Partnership Program
       // Add custom keywords for accuracy if needed:
       // keywords: 'technical:3,specific:2'
     });
