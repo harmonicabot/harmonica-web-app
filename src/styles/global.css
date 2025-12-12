@@ -108,3 +108,23 @@
 [data-panel-id] {
   overflow: visible !important;
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInFromBelow {
+  from {
+    transform: translate(-50%, 1rem);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}

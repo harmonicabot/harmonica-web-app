@@ -11,6 +11,7 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname();
   const isChatPage = pathname?.startsWith('/chat');
+  const isCanvasDemo = pathname?.startsWith('/canvas-demo');
   const isWorkSpacePage = pathname?.startsWith('/workspace');
   const isAdminPage = pathname?.startsWith('/admin');
   const isRootPage = pathname === '/';
@@ -21,7 +22,7 @@ export default function ClientLayout({
         <SmallDonateBanner/>
       )} */}
 
-      {isChatPage ? (
+      {isChatPage || isCanvasDemo ? (
         <div>{children}</div>
       ) : (
         <div className="flex flex-col min-h-screen">
