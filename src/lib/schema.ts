@@ -214,6 +214,15 @@ export type SessionRating = Selectable<SessionRatingsTable>;
 export type NewSessionRating = Insertable<SessionRatingsTable>;
 export type SessionRatingUpdate = Updateable<SessionRatingsTable>;
 
+export interface TranscriptShareTokensTable {
+  id: Generated<string>;
+  token: string;
+  user_session_id: string;
+}
+
+export type TranscriptShareToken = Selectable<TranscriptShareTokensTable>;
+export type NewTranscriptShareToken = Insertable<TranscriptShareTokensTable>;
+
 export async function createDbInstance<T extends Record<string, any>>() {
   try {
     const url = process.env.POSTGRES_URL;

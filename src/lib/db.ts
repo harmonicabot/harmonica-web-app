@@ -43,6 +43,7 @@ interface Databases {
   [promptTypesTableName]: s.PromptTypesTable;
   session_files: s.SessionFilesTable;
   [sessionRatingsTableName]: s.SessionRatingsTable;
+  transcript_share_tokens: s.TranscriptShareTokensTable;
 }
 
 const dbPromise = (async () => {
