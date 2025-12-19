@@ -8,7 +8,9 @@ import { getAllChatMessagesInOrder, getThreadRating } from '@/lib/db';
 import { ParticipantsTableData } from './SessionParticipantsTable';
 import { Spinner } from '../icons';
 import { Switch } from '../ui/switch';
-import { MessageSquare, Star, X } from 'lucide-react';
+import { MessageSquare, Share2, X } from 'lucide-react';
+import { generateShareToken } from '../../app/actions/share-transcript';
+import { toast } from 'hooks/use-toast';
 
 const EMOJI_RATINGS = [
   {
@@ -50,6 +52,28 @@ export default function ParicipantSessionRow({
   const [messages, setMessages] = useState<Message[]>([]);
   const [rating, setRating] = useState<SessionRating | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+
+  const handleShareClick = async () => {
+    setIsSharing(true);
+    try {
+      const url = await generateShareToken(userData.id);
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: 'Transcript link copied',
+        description: 'The shareable link has been copied to your clipboard.',
+      });
+    } catch (error) {
+      console.error('Error generating share link:', error);
+      toast({
+        title: 'Failed to generate share link',
+        description: 'An error occurred while creating the share link.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   const handleIncludeInSummaryUpdate = (updatedIncluded: boolean) => {
     onIncludeChange(userData.id, updatedIncluded);
@@ -184,14 +208,26 @@ export default function ParicipantSessionRow({
                   </div>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleCloseClick}
-                className="rounded-full hover:bg-gray-100"
-              >
-                <X className="h-5 w-5 text-gray-500" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleShareClick}
+                  disabled={isSharing}
+                  className="rounded-full hover:bg-gray-100"
+                  title="Share transcript"
+                >
+                  <Share2 className="h-5 w-5 text-gray-500" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCloseClick}
+                  className="rounded-full hover:bg-gray-100"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </Button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-auto p-4 rounded-b-xl">
