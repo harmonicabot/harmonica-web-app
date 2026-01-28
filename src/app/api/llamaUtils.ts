@@ -21,13 +21,14 @@ let skipCrossPollination = 0;
 export async function finishedResponse(
   systemPrompt: string,
   userPrompt: string,
+  distinctId?: string,
 ) {
   console.log('[i] Generating finished response:', {
     systemPrompt: systemPrompt?.substring(0, 100) + '...',
     userPrompt: userPrompt?.substring(0, 100) + '...',
   });
 
-  // Try primary LLM first (usually Anthropic/Claude)
+  // Try MAIN LLM first
   const primaryEngine = getLLM('MAIN', 0.3);
 
   try {
@@ -42,6 +43,7 @@ export async function finishedResponse(
           content: userPrompt,
         },
       ],
+      distinctId,
     });
 
     console.log('[i] Completion response:', JSON.stringify(response));
@@ -50,19 +52,19 @@ export async function finishedResponse(
   } catch (error) {
     console.error('[x] Primary LLM error:', error);
     
-    // Check if it's an Anthropic overload error (529)
+    // Check if it's an overload error (529)
     const isOverloadError = error instanceof Error && 
       (error.message.includes('529') || 
        error.message.includes('overloaded_error') ||
        error.message.includes('Overloaded'));
     
         if (isOverloadError) {
-          console.log('[i] Anthropic overload detected, trying Gemini fallback...');
+          console.log('[i] MAIN model overload detected, trying SMALL fallback...');
           
           try {
-            // Try Gemini as fallback
-            const fallbackEngine = getLLM('SMALL', 0.3); // Use SMALL for faster response
-            console.log('[i] Fallback engine created, attempting Gemini request...');
+            // Try the small model as fallback
+            const fallbackEngine = getLLM('SMALL', 0.3);
+            console.log('[i] Fallback engine created, attempting request with small model...');
         
         const fallbackResponse = await fallbackEngine.chat({
           messages: [
@@ -75,12 +77,13 @@ export async function finishedResponse(
               content: userPrompt,
             },
           ],
+          distinctId,
         });
 
-        console.log('[i] Gemini fallback successful:', JSON.stringify(fallbackResponse));
+        console.log('[i] Fallback to small model successful:', JSON.stringify(fallbackResponse));
         return fallbackResponse;
       } catch (fallbackError) {
-        console.error('[x] Gemini fallback also failed:', fallbackError);
+        console.error('[x] Small model fallback also failed:', fallbackError);
         throw new Error(`Both primary and fallback LLMs failed. Primary: ${error.message}, Fallback: ${fallbackError}`);
       }
     }
@@ -93,6 +96,7 @@ export async function finishedResponse(
 export async function handleGenerateAnswer(
   messageData: AssistantMessageData,
   crossPollinationEnabled: boolean,
+  distinctId?: string,
 ): Promise<NewMessage> {
   console.log(`[i] Generating answer for message: `, messageData);
 
@@ -203,6 +207,7 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
   try {
     const message = await chatEngine.chat({
       messages: formattedMessages as ChatMessage[],
+      distinctId,
     });
     console.log('[i] Response:', message);
 
@@ -235,9 +240,10 @@ export async function handleResponse(
   systemPrompt: string,
   userPrompt: string,
   stream: boolean,
+  distinctId?: string,
 ) {
   if (stream) {
-    const streamData = streamResponse(systemPrompt, userPrompt);
+    const streamData = streamResponse(systemPrompt, userPrompt, distinctId);
     return new NextResponse(streamData, {
       headers: {
         'Content-Type': 'text/event-stream',
@@ -246,13 +252,13 @@ export async function handleResponse(
       },
     });
   } else {
-    const response = await finishedResponse(systemPrompt, userPrompt);
+    const response = await finishedResponse(systemPrompt, userPrompt, distinctId);
     console.log('response from finishedResponse:', response);
     return NextResponse.json({ fullPrompt: response });
   }
 }
 
-function streamResponse(systemPrompt: string, userPrompt: string) {
+function streamResponse(systemPrompt: string, userPrompt: string, distinctId?: string) {
   const encoder = new TextEncoder();
 
   return new ReadableStream({
@@ -272,6 +278,7 @@ function streamResponse(systemPrompt: string, userPrompt: string) {
               content: userPrompt,
             },
           ],
+          distinctId,
         });
 
         if (response) {
@@ -294,7 +301,7 @@ function streamResponse(systemPrompt: string, userPrompt: string) {
           console.log('[i] Anthropic overload detected in stream, trying Gemini fallback...');
           
           try {
-            // Try Gemini as fallback
+            // Try SMALL as fallback
             const fallbackEngine = getLLM('SMALL', 0.3); // Use SMALL for faster response
             console.log('[i] Stream fallback engine created, attempting Gemini request...');
             
@@ -309,6 +316,7 @@ function streamResponse(systemPrompt: string, userPrompt: string) {
                   content: userPrompt,
                 },
               ],
+              distinctId,
             });
 
             console.log('[i] Gemini fallback successful in stream');

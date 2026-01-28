@@ -9,17 +9,21 @@ import { NextResponse } from 'next/server';
 import * as llama from '../llamaUtils';
 import { createPromptContent } from '../utils';
 import { getPromptInstructions } from '@/lib/promptsCache';
+import { getSession } from '@auth0/nextjs-auth0';
 
 export const maxDuration = 200;
 
 export async function POST(req: Request) {
   const request: RequestData = await req.json();
+  const session = await getSession();
+  const distinctId = session?.user.sub;
+
   // Todo: We should possibly switch this to always use 'handleResponse',
   //  so that we can easier switch between streaming and not. But not now.
   console.log('Action: ', request.action);
   switch (request.action) {
     case ApiAction.CreatePrompt:
-      return await createNewPrompt(request.data as SessionBuilderData);
+      return await createNewPrompt(request.data as SessionBuilderData, distinctId);
     case ApiAction.EditPrompt:
       // console.log('Editing prompt for data: ', data.data);
       const d = request.data as TemplateEditingData;
@@ -29,6 +33,7 @@ export async function POST(req: Request) {
         createTemplatePrompt,
         d.instructions,
         request.stream ?? false,
+        distinctId,
       );
     case ApiAction.SummaryOfPrompt:
       const summaryData = request.data as SummaryOfPromptData;
@@ -36,6 +41,7 @@ export async function POST(req: Request) {
         summaryData.instructions,
         summaryData.fullPrompt,
         request.stream ?? false,
+        distinctId,
       );
 
     default:
@@ -44,7 +50,7 @@ export async function POST(req: Request) {
   }
 }
 
-async function createNewPrompt(data: SessionBuilderData) {
+async function createNewPrompt(data: SessionBuilderData, distinctId?: string) {
   console.log('[i] Creating prompt for data: ', data);
   try {
     const createTemplatePrompt = await getPromptInstructions('CREATE_SESSION');
@@ -52,6 +58,7 @@ async function createNewPrompt(data: SessionBuilderData) {
     const fullPrompt = await llama.finishedResponse(
       createTemplatePrompt,
       createPromptContent(data),
+      distinctId,
     );
 
     console.log('[i] Created new prompt:', fullPrompt);

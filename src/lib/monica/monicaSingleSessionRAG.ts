@@ -1,9 +1,8 @@
 import { Document, Settings, VectorStoreIndex } from 'llamaindex';
 
 import * as db from '@/lib/db';
-import { OpenAIEmbedding } from 'llamaindex';
+import { OpenAI, OpenAIEmbedding } from '@llamaindex/openai';
 import { SentenceSplitter } from 'llamaindex';
-import { OpenAI as LlamaOpenAI } from 'llamaindex';
 import { getLLM, LLM } from '../modelConfig';
 
 const initialPrompt = `
@@ -185,7 +184,7 @@ Total Responses: ${messages.length}
     }
 
     // Determine query type using LlamaIndex chat model
-    const classificationModel = new LlamaOpenAI({
+    const classificationModel = new OpenAI({
       model: 'gpt-4o-mini',
       apiKey: process.env.OPENAI_API_KEY,
     });

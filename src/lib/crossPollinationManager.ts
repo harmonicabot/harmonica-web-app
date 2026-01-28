@@ -6,6 +6,8 @@ import {
   getHostSessionById,
 } from '@/lib/db';
 import { getPromptInstructions } from './promptsCache';
+import { getSession } from '@auth0/nextjs-auth0';
+
 export interface CrossPollinationConfig {
   maxParticipants?: number;
   feedbackFrequency?: number;
@@ -27,12 +29,25 @@ export class CrossPollinationManager {
   private config: CrossPollinationConfig;
   private lastCrossPollination: number | null = null;
   private sessionData: any = null;
+  private distinctId: string | undefined;
 
   constructor(config: CrossPollinationConfig) {
     this.config = config;
     // Initialize with specific models for each purpose
     this.analyzeEngine = getLLM('MAIN', 0.3);
     this.generateEngine = getLLM('LARGE', 0.3);
+  }
+
+  private async getDistinctId() {
+    if (!this.distinctId) {
+        try {
+            const session = await getSession();
+            this.distinctId = session?.user?.sub;
+        } catch (e) {
+            console.warn("Could not fetch session for CrossPollinationManager", e);
+        }
+    }
+    return this.distinctId;
   }
 
   async loadSessionData(): Promise<any> {
@@ -81,6 +96,8 @@ export class CrossPollinationManager {
         'CROSS_POLLINATION_REASONING',
       );
 
+      const distinctId = await this.getDistinctId();
+
       // 4. Analyze the current thread to determine if cross-pollination is appropriate
       const response = await this.analyzeEngine.chat({
         messages: [
@@ -101,6 +118,7 @@ ${currentThreadMessages.map((m) => `${m.role}: ${m.content}`).join('\n\n')}
 Based on this information, should I introduce cross-pollination now? Answer with YES or NO only.`,
           },
         ],
+        distinctId,
       });
 
       const responseText = response.trim().toUpperCase();
@@ -194,6 +212,8 @@ Based on this information, should I introduce cross-pollination now? Answer with
       const crossPollinationPrompt =
         await getPromptInstructions('CROSS_POLLINATION');
 
+      const distinctId = await this.getDistinctId();
+
       // Make a single LLM call to analyze and generate a question
       const response = await this.generateEngine.chat({
         messages: [
@@ -231,6 +251,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
             }),
           },
         ],
+        distinctId,
       });
 
       const responseText = response.trim();

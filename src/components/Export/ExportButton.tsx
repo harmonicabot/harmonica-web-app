@@ -32,7 +32,7 @@ export function ExportButton({
     <TooltipProvider>
       <Tooltip delayDuration={50}>
         <DropdownMenu>
-          <TooltipTrigger>
+          <TooltipTrigger asChild>
             <DropdownMenuTrigger className={className} asChild={true}>
               {children}
             </DropdownMenuTrigger>

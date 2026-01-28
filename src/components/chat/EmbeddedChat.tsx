@@ -13,16 +13,16 @@ export function EmbeddedChat(props: UseChatOptions) {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-full min-h-[80vh]">
       <ChatMessages
         chat={chat}
-        className="flex-1 flex flex-col gap-y-6 px-4 w-full overflow-y-auto"
+        className="flex-1 flex flex-col gap-y-6 p-4 w-full overflow-y-auto"
       />
 
       <ChatInput
         chat={chat}
         hasBottomLeftButtons={false}
-        className="flex-shrink-0 border-t border-gray-200 px-3 py-2"
+        className="border-t px-4 pb-1 pt-0"
       />
     </div>
   );

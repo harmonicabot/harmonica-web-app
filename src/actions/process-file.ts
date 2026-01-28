@@ -2,8 +2,10 @@
 
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { Document, SentenceSplitter } from 'llamaindex';
-import { OpenAIEmbedding } from 'llamaindex';
+import { OpenAIEmbedding } from '@llamaindex/openai';
 import { v4 as uuidv4 } from 'uuid';
+import { getPostHogClient } from '@/lib/posthog-server';
+import { getSession } from '@auth0/nextjs-auth0';
 
 const qdrantClient = new QdrantClient({
   url: process.env.QDRANT_URL,
@@ -30,7 +32,11 @@ export async function processFileForQdrant({
   fileName: string;
   filePurpose: 'TRANSCRIPT' | 'KNOWLEDGE';
 }) {
+  const startTime = Date.now();
   try {
+    const session = await getSession();
+    const distinctId = session?.user?.sub || 'anonymous_server_user';
+
     // Split text into chunks
     const chunks = await textSplitter.splitText(fileContent);
 
@@ -104,9 +110,46 @@ export async function processFileForQdrant({
       }
     }
 
+    const endTime = Date.now();
+    const posthog = getPostHogClient();
+    if (posthog) {
+        posthog.capture({
+            distinctId,
+            event: '$ai_embedding',
+            properties: {
+                $ai_model: 'text-embedding-3-small', // Default for OpenAIEmbedding
+                $ai_provider: 'openai',
+                $ai_input_count: chunks.length,
+                $ai_latency: (endTime - startTime) / 1000,
+                $ai_status: 'success',
+                file_name: fileName,
+                file_purpose: filePurpose,
+                session_id: sessionId
+            }
+        });
+    }
+
     return { success: true, chunks: chunks.length };
   } catch (error) {
     console.error('Error processing file for Qdrant:', error);
+    const posthog = getPostHogClient();
+    if (posthog) {
+        const session = await getSession();
+        const distinctId = session?.user?.sub || 'anonymous_server_user';
+        posthog.capture({
+            distinctId,
+            event: '$ai_embedding',
+            properties: {
+                $ai_model: 'text-embedding-3-small',
+                $ai_provider: 'openai',
+                $ai_status: 'error',
+                $ai_error: error instanceof Error ? error.message : String(error),
+                file_name: fileName,
+                file_purpose: filePurpose,
+                session_id: sessionId
+            }
+        });
+    }
     throw error;
   }
 }

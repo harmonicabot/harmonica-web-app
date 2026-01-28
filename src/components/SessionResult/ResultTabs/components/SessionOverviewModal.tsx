@@ -1,25 +1,24 @@
 'use client';
 
 // Session Overview Modal Component
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, SetStateAction } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Edit2, Check, X, ChevronDown, ChevronRight } from 'lucide-react';
-import { ApiAction, ApiTarget, SessionBuilderData } from '@/lib/types';
-import { HRMarkdown } from '@/components/HRMarkdown';
-import ReviewPrompt from 'app/create/review';
+import { X } from 'lucide-react';
 import { sendApiCall } from '@/lib/clientUtils';
+import { ApiAction, ApiTarget } from '@/lib/types';
 import { VersionedPrompt } from 'app/create/creationFlow';
 import { getPromptInstructions } from '@/lib/promptActions';
+import { QuestionInfo } from 'app/create/types';
+import { FormBuilder } from './FormBuilder';
+import { SessionDetailsTab } from './SessionDetailsTab';
+import { SessionDetailsActionBar } from './SessionDetailsActionBar';
+import { EditSessionTab } from './EditSessionTab';
+import { SidebarNavigation } from './SidebarNavigation';
+
+type TabType = 'session-details' | 'edit-session' | 'pre-survey';
 
 interface SessionOverviewModalProps {
   isOpen: boolean;
@@ -33,175 +32,42 @@ interface SessionOverviewModalProps {
     promptSummary: string;
     facilitationPrompt?: string;
   };
+  questions?: QuestionInfo[];
   onUpdateSession: (updates: any) => Promise<void>;
   onUpdatePrompt?: (prompt: VersionedPrompt) => Promise<void>;
+  onUpdateQuestions?: (questions: QuestionInfo[]) => Promise<void>;
   onEditSession?: () => void;
-}
-
-interface SessionFieldProps {
-  label: string;
-  value: string | boolean;
-  type: 'text' | 'textarea' | 'boolean';
-  onEdit: () => void;
-  isEditing: boolean;
-  onSave: (value: string | boolean) => void;
-  onCancel: () => void;
-  placeholder?: string;
-}
-
-function SessionField({
-  label,
-  value,
-  type,
-  onEdit,
-  isEditing,
-  onSave,
-  onCancel,
-  placeholder,
-}: SessionFieldProps) {
-  const [editValue, setEditValue] = useState(value);
-  const [showEditButton, setShowEditButton] = useState(false);
-
-  const handleSave = () => {
-    onSave(editValue);
-  };
-
-  const handleCancel = () => {
-    setEditValue(value);
-    onCancel();
-  };
-
-  const renderValue = () => {
-    if (type === 'boolean') {
-      return (
-        <div className="flex items-center space-x-2">
-          <Switch checked={value as boolean} disabled />
-          <span className="text-sm text-muted-foreground">
-            Allow participants to see and build upon each other's responses
-          </span>
-        </div>
-      );
-    }
-    
-    if (typeof value === 'string') {
-      return (
-        <div className="text-sm text-gray-700 whitespace-pre-wrap">
-          {value || <span className="text-muted-foreground italic">Not specified</span>}
-        </div>
-      );
-    }
-    
-    return null;
-  };
-
-  const renderEditForm = () => {
-    if (type === 'boolean') {
-      return (
-        <div className="flex items-center space-x-2">
-          <Switch
-            checked={editValue as boolean}
-            onCheckedChange={(checked) => setEditValue(checked)}
-          />
-          <span className="text-sm text-muted-foreground">
-            Allow participants to see and build upon each other's responses
-          </span>
-        </div>
-      );
-    }
-
-    if (type === 'textarea') {
-      return (
-        <Textarea
-          value={editValue as string}
-          onChange={(e) => setEditValue(e.target.value)}
-          placeholder={placeholder}
-        />
-      );
-    }
-
-    return (
-      <Input
-        value={editValue as string}
-        onChange={(e) => setEditValue(e.target.value)}
-        placeholder={placeholder}
-      />
-    );
-  };
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium text-muted-foreground">{label}</Label>
-      </div>
-      
-      <div 
-        className="relative group"
-        onMouseEnter={() => setShowEditButton(true)}
-        onMouseLeave={() => setShowEditButton(false)}
-      >
-        {!isEditing && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onEdit}
-            className={`absolute top-1 right-2 z-10 transition-opacity px-3 ${
-              showEditButton ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            <Edit2 className="h-4 w-4" />
-          </Button>
-        )}
-      
-        {isEditing ? (
-          <div className="space-y-2">
-            {renderEditForm()}
-            <div className="flex space-x-2">
-              <Button size="sm" onClick={handleSave}>
-                <Check className="h-3 w-3" />
-                Save
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleCancel}>
-                <X className="h-3 w-3" />
-                Cancel
-              </Button>
-            </div>
-          </div>
-        ) : (
-          renderValue()
-        )}
-      </div>
-    </div>
-  );
 }
 
 export function SessionOverviewModal({
   isOpen,
   onClose,
   sessionData,
+  questions: initialQuestions = [],
   onUpdateSession,
   onUpdatePrompt,
+  onUpdateQuestions,
   onEditSession,
 }: SessionOverviewModalProps) {
+  const [activeTab, setActiveTab] = useState<TabType>('edit-session');
   const [editingField, setEditingField] = useState<string | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [editingPrompt, setEditingPrompt] = useState(false);
+  const [localQuestions, setLocalQuestions] = useState<QuestionInfo[]>(initialQuestions);
   const initialVersionedPrompt = { id: 0, summary: sessionData.promptSummary, fullPrompt: sessionData.facilitationPrompt || '' };
   const [promptValue, setCurrentVersionedPrompt] = useState<VersionedPrompt>(initialVersionedPrompt);
   const [allFacilitationPrompts, setAllFacilitationPrompts] = useState([initialVersionedPrompt])
-  // This is mainly a requirement of the ReviewPrompt component; theoretically we could also get the version from currentPrompt
   const [currentPromptVersion, setCurrentPromptVersion] = useState(0);
+  const addVersionedPrompt = (prompt: VersionedPrompt) => {
+    setAllFacilitationPrompts((prevPrompts) => [...prevPrompts, prompt]);
+  };
   
+  // Keep local prompt state in sync when the selected version changes
   useEffect(() => {
     const selectedPrompt = allFacilitationPrompts[currentPromptVersion];
     if (selectedPrompt && selectedPrompt !== promptValue) {
-      setCurrentVersionedPrompt(selectedPrompt)
-      handleSavePrompt(selectedPrompt);
+      setCurrentVersionedPrompt(selectedPrompt);
     }
-  }, [currentPromptVersion, allFacilitationPrompts, setCurrentVersionedPrompt])
-
-  const addVersionedPrompt = (prompt: VersionedPrompt) => {
-    setAllFacilitationPrompts([...allFacilitationPrompts, prompt])
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPromptVersion, allFacilitationPrompts]);
 
   const handleReplaceFullPrompt = async (fullPrompt: string) => {
     try {
@@ -269,16 +135,26 @@ export function SessionOverviewModal({
       try {
         const prompt = versionedPromptToSave ? versionedPromptToSave : promptValue
         await onUpdatePrompt(prompt);
-        setEditingPrompt(false);
       } catch (error) {
         console.error('Failed to update prompt:', error);
       }
     }
   };
 
+  const handleQuestionsUpdate = async (questions: QuestionInfo[]) => {
+    setLocalQuestions(questions);
+    if (onUpdateQuestions) {
+      await onUpdateQuestions(questions);
+    }
+  }
+
+  // Update local questions when initialQuestions change
+  useEffect(() => {
+    setLocalQuestions(initialQuestions);
+  }, [initialQuestions]);
+
   const handleCancelPrompt = () => {
     setCurrentVersionedPrompt(initialVersionedPrompt);
-    setEditingPrompt(false);
   };
 
   const handleEditVersionedPrompt = async (editValue: string) => {
@@ -317,157 +193,135 @@ export function SessionOverviewModal({
     addVersionedPrompt(newVersionedPrompt);
   };
 
+  const [sessionDetailsForm, setSessionDetailsForm] = useState({
+    sessionName: '',
+    goal: '',
+    critical: '',
+    context: '',
+  });
+
+  // Initialize form data when sessionData changes
+  useEffect(() => {
+    setSessionDetailsForm({
+      sessionName: sessionData.topic,
+      goal: sessionData.goal,
+      critical: sessionData.critical || '',
+      context: sessionData.context || '',
+    });
+  }, [sessionData]);
+
+  const handleSessionDetailsChange = (field: string, value: string) => {
+    setSessionDetailsForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSessionDetailsSave = async () => {
+    try {
+      await onUpdateSession({
+        sessionName: sessionDetailsForm.sessionName,
+        goal: sessionDetailsForm.goal,
+        critical: sessionDetailsForm.critical,
+        context: sessionDetailsForm.context,
+      });
+    } catch (error) {
+      console.error('Failed to update session details:', error);
+    }
+  };
+
+  const handleSessionDetailsCancel = () => {
+    setSessionDetailsForm({
+      sessionName: sessionData.topic,
+      goal: sessionData.goal,
+      critical: sessionData.critical || '',
+      context: sessionData.context || '',
+    });
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'session-details':
+        return (
+          <SessionDetailsTab
+            formData={sessionDetailsForm}
+            onFieldChange={handleSessionDetailsChange}
+          />
+        );
+
+      case 'edit-session':
+        return (
+          <EditSessionTab
+            sessionData={{
+              crossPollination: sessionData.crossPollination,
+              facilitationPrompt: sessionData.facilitationPrompt,
+            }}
+            allFacilitationPrompts={allFacilitationPrompts}
+            setAllFacilitationPrompts={setAllFacilitationPrompts}
+            handleReplaceFullPrompt={handleReplaceFullPrompt}
+            currentPromptVersion={currentPromptVersion}
+            setCurrentPromptVersion={setCurrentPromptVersion}
+            promptValue={promptValue}
+            setCurrentVersionedPrompt={setCurrentVersionedPrompt}
+            onEditVersionedPrompt={handleEditVersionedPrompt}
+            onSavePrompt={handleSavePrompt}
+            onCancelPrompt={handleCancelPrompt}
+            onUpdateSession={onUpdateSession}
+            editingField={editingField}
+            setEditingField={setEditingField}
+          />
+        );
+
+      case 'pre-survey':
+        return (
+          <FormBuilder
+            questions={localQuestions}
+            onQuestionsUpdate={handleQuestionsUpdate}
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[800px] lg:max-w-[75vw] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl">
-            Session Details
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-8">
-          {/* Session Name */}
-          <SessionField
-            label="Session Name"
-            value={sessionData.topic}
-            type="text"
-            onEdit={() => handleEditField('sessionName')}
-            isEditing={editingField === 'sessionName'}
-            onSave={(value) => handleSaveField('sessionName', value)}
-            onCancel={handleCancelEdit}
-            placeholder="Enter session name"
-          />
-
-          {/* Goal and Critical Info - Side by side */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <SessionField
-              label="Goal"
-              value={sessionData.goal}
-              type="textarea"
-              onEdit={() => handleEditField('goal')}
-              isEditing={editingField === 'goal'}
-              onSave={(value) => handleSaveField('goal', value)}
-              onCancel={handleCancelEdit}
-              placeholder="What is the objective of your session?"
-            />
-            
-            <SessionField
-              label="Critical Info"
-              value={sessionData.critical}
-              type="textarea"
-              onEdit={() => handleEditField('critical')}
-              isEditing={editingField === 'critical'}
-              onSave={(value) => handleSaveField('critical', value)}
-              onCancel={handleCancelEdit}
-              placeholder="What is critical to gather from participants?"
-            />
+      <DialogContent className="sm:max-w-[calc(100vw-100px)] lg:max-w-[1150px] max-h-[calc(100vh-100px)] h-[calc(100%-100px)] p-0 flex flex-col rounded-xl shadow-lg border-0 overflow-hidden [&>button]:hidden">
+        <div className="flex flex-1 overflow-hidden h-full">
+          {/* Sidebar */}
+          <div className="w-[240px] border-r border-border p-2 flex-shrink-0 overflow-y-auto">
+            <div className="flex flex-col justify-between h-full">
+              <SidebarNavigation
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+              />
+            </div>
           </div>
 
-          {/* Context */}
-          <SessionField
-            label="Context"
-            value={sessionData.context}
-            type="textarea"
-            onEdit={() => handleEditField('context')}
-            isEditing={editingField === 'context'}
-            onSave={(value) => handleSaveField('context', value)}
-            onCancel={handleCancelEdit}
-            placeholder="What context would be useful for our AI to know?"
-          />
-
-          {/* Cross Pollination */}
-          <SessionField
-            label="Cross Pollination"
-            value={sessionData.crossPollination}
-            type="boolean"
-            onEdit={() => handleEditField('crossPollination')}
-            isEditing={editingField === 'crossPollination'}
-            onSave={(value) => handleSaveField('crossPollination', value)}
-            onCancel={handleCancelEdit}
-          />
-
-          <ReviewPrompt
-            prompts={allFacilitationPrompts}
-            setPrompts={setAllFacilitationPrompts}
-            summarizedPrompt={promptValue.summary}
-            currentVersion={currentPromptVersion}
-            setCurrentVersion={setCurrentPromptVersion}
-            isEditing={editingField === "ReviewPrompt"}
-            handleEdit={handleEditVersionedPrompt}
-            handleReplaceFullPrompt={handleReplaceFullPrompt}
-          />
-        <Button
-                variant="default"
-                onClick={() => editingField === "ReviewPrompt" ? setEditingField("") : setEditingField("ReviewPrompt")}
-              >
-                Edit Session Design
-              </Button>
-
-          {/* Advanced: See Raw Prompts */}
-          <div className="space-y-2">
-            <button
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center space-x-2 text-sm font-medium text-muted-foreground hover:text-gray-700 transition-colors"
-            >
-              {showAdvanced ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-              <span>Advanced: See Raw Prompts</span>
-            </button>
-            
-            {showAdvanced && (
-              <div className="space-y-4 pl-6 border-l-2 border-gray-200">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium text-muted-foreground">Facilitation Prompt</Label>
-                    {!editingPrompt && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditingPrompt(true)}
-                        className="h-6 w-6 p-0"
-                      >
-                        <Edit2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                  
-                  {editingPrompt ? (
-                    <div className="space-y-2">
-                      <Textarea
-                        value={promptValue.fullPrompt}
-                        onChange={(e) => setCurrentVersionedPrompt({ ...promptValue, fullPrompt: e.target.value })}
-                        placeholder="Enter facilitation prompt..."
-                        className="font-mono text-sm font-medium text-base min-h-[200px]"
-                      />
-                      <div className="flex space-x-2">
-                        <Button size="sm" onClick={() => handleSavePrompt()}>
-                          <Check className="h-3 w-3" />
-                          Save
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={handleCancelPrompt}>
-                          <X className="h-3 w-3" />
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">
-                      {sessionData.facilitationPrompt ? (
-                        <HRMarkdown content={sessionData.facilitationPrompt} />
-                      ) : (
-                        <span className="text-muted-foreground italic">
-                          No facilitation prompt available
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
+          {/* Content Area */}
+          <div className="flex-1 relative h-full overflow-hidden">
+            <div className="flex flex-col w-full h-full bg-background">
+              <div className="flex-grow transform-gpu px-[60px] pt-9 pb-0 overflow-auto relative">
+                {renderTabContent()}
+                
+                {/* Action bar for Session Details tab */}
+                {activeTab === 'session-details' && (
+                  <SessionDetailsActionBar
+                    onSave={handleSessionDetailsSave}
+                    onCancel={handleSessionDetailsCancel}
+                  />
+                )}
               </div>
-            )}
+            </div>
+            {/* Close button */}
+            <div className="absolute top-3 right-3 w-[22px] h-[22px] rounded-full bg-background z-50 pointer-events-auto">
+              <button
+                onClick={onClose}
+                className="select-none transition-[background] duration-200 ease-in cursor-pointer w-full h-full rounded-full flex justify-center items-center bg-transparent hover:bg-muted"
+                aria-label="Close"
+                type="button"
+              >
+                <X className="w-[14px] h-[14px] text-muted-foreground flex-shrink-0" />
+              </button>
+            </div>
           </div>
         </div>
       </DialogContent>

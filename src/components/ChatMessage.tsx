@@ -10,19 +10,21 @@ interface ChatMessageProps {
   message: Partial<Message>;
   sessionId?: string;
   showButtons?: boolean;
+  hideProfilePicture?: boolean;
 }
 
 export function ChatMessage({
   message,
   sessionId,
   showButtons = false,
+  hideProfilePicture = false,
 }: ChatMessageProps) {
   const { isPublic } = usePermissions(sessionId ?? '');
   const isUser = message.role === 'user';
   const router = useRouter();
   return (
     <div className={`${isUser ? 'flex justify-end' : 'flex'}`}>
-      {!isUser && (
+      {!isUser && !hideProfilePicture && (
         <img
           className="h-10 w-10 flex-none rounded-full hidden md:block"
           src="/hm-chat-icon.svg"

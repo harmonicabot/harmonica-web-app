@@ -22,6 +22,9 @@ interface PromptSettingsProps {
     newPrompt: string,
     type: 'facilitation' | 'summary',
   ) => Promise<void>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
 export function PromptSettings({
@@ -29,8 +32,13 @@ export function PromptSettings({
   sessionFacilitationPrompt,
   summaryPrompt,
   onPromptChange,
+  open,
+  onOpenChange,
+  hideTrigger = false,
 }: PromptSettingsProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = open !== undefined ? open : internalOpen;
+  const setIsOpen = onOpenChange || setInternalOpen;
   const [facilitationPrompt, setFacilitationPrompt] = useState(sessionFacilitationPrompt);
   const [summaryPromptText, setSummaryPromptText] = useState(summaryPrompt);
   const [isSaving, setIsSaving] = useState(false);
@@ -71,12 +79,14 @@ export function PromptSettings({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <MessageSquare className="h-4 w-4 mr-2" />
-          Edit Prompts
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="outline">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Edit Prompts
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[800px] h-[80vh] max-h-[800px] flex flex-col p-4">
         <DialogHeader className="pb-2">
           <DialogTitle className="text-xl font-semibold">

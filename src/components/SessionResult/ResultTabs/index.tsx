@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Tabs } from '@radix-ui/react-tabs';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 import SessionResultChat from '../SessionResultChat';
 import SessionParticipantsTable from '../SessionParticipantsTable';
@@ -14,7 +14,7 @@ import {
   UserSession,
 } from '@/lib/schema';
 import { OpenAIMessage } from '@/lib/types';
-import { CirclePlusIcon } from 'lucide-react';
+import { CirclePlusIcon, PinIcon } from 'lucide-react';
 import { CustomResponseCard } from './components/CustomResponseCard';
 import { TabContent } from './components/TabContent';
 import { useCustomResponses } from './hooks/useCustomResponses';
@@ -30,6 +30,7 @@ import { SimScoreTab } from './SimScoreTab';
 import SessionFilesTable from '../SessionFilesTable';
 import { useSessionStore } from '@/stores/SessionStore';
 import { SummaryUpdateManager } from '../../../summary/SummaryUpdateManager';
+import { Button } from '@/components/ui/button';
 
 export interface ResultTabsProps {
   hostData: HostSession[];
@@ -220,15 +221,15 @@ export default function ResultTabs({
       },
       {
         id: 'CUSTOM',
-        label: 'Custom Insights',
+        label: 'Saved Insights',
         isVisible:
           customInsightsEnabled &&
           (visibilityConfig.showCustomInsights || hasMinimumRole('editor')),
         content: draft ? (
           <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
             <div className="text-center space-y-4 max-w-md">
-              <h3 className="text-2xl font-semibold text-gray-700">
-                Custom Insights
+              <h3 className="text-xl font-semibold text-gray-700">
+                Saved Insights
               </h3>
               <p className="text-gray-500">
                 Pin important custom insights by chatting with your results
@@ -236,22 +237,35 @@ export default function ResultTabs({
             </div>
           </Card>
         ) : responses.length > 0 ? (
-          responses.map((response) => (
-            <CustomResponseCard
-              key={response.id}
-              response={response}
-              onRemove={
-                !loadingUserInfo &&
-                (hasMinimumRole('editor') ||
-                  visibilityConfig.allowCustomInsightsEditing)
-                  ? removeResponse
-                  : null
-              }
-            />
-          ))
+          <Card>
+            <CardHeader>
+              <div>
+              <CardTitle className="text-xl flex items-center">Saved Insights</CardTitle>
+              <CardDescription>Insights saved from your Ask AI conversations.</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {responses.map((response) => (
+                <CustomResponseCard
+                  key={response.id}
+                  response={response}
+                  onRemove={
+                    !loadingUserInfo &&
+                    (hasMinimumRole('editor') ||
+                      visibilityConfig.allowCustomInsightsEditing)
+                      ? removeResponse
+                      : null
+                  }
+                />
+              ))}
+            </CardContent>
+          </Card>
         ) : (
           <Card>
-            <CardContent>No custom insights have been added yet</CardContent>
+            <CardHeader>
+              <CardTitle>Saved Insights</CardTitle>
+            </CardHeader>
+            <CardContent>You can save insights by clicking the <PinIcon className="h-4 w-4" /> button in the chat.</CardContent>
           </Card>
         ),
       },
@@ -349,23 +363,24 @@ export default function ResultTabs({
     ) {
       return (
         <>
-          <ChatMessage key={key} message={message} showButtons={false} />
-          <div
-            className="opacity-0 group-hover:opacity-100 flex flex-row 
-            justify-center items-center cursor-pointer rounded-md 
-            transition-all bg-yellow-100"
+          <ChatMessage key={key} message={message} showButtons={false} hideProfilePicture={true} />
+          <div className="p-2 flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => {
               setActiveTab('CUSTOM');
               addResponse(message);
             }}
           >
-            <CirclePlusIcon className="h-4 w-4 mr-4" />
-            Add to Results
+            <PinIcon className="h-4 w-4" />
+            Save insight
+          </Button>
           </div>
         </>
       );
     }
-    return <ChatMessage key={key} message={message} />;
+    return <ChatMessage key={key} message={message} hideProfilePicture={true} />;
   };
 
   // If all tabs are disabled, or no replies are available yet, show some empty message.
@@ -403,10 +418,10 @@ export default function ResultTabs({
 
       <div className="flex flex-col md:flex-row gap-4 w-full">
         {/* Desktop Layout */}
-        <div className="hidden md:block w-full">
-          <ResizablePanelGroup direction="horizontal" className="flex h-full">
-            <ResizablePanel defaultSize={66}>
-              <div className="overflow-auto">
+        <div className="hidden md:block w-full relative" style={{ overflow: 'visible' }}>
+          <ResizablePanelGroup direction="horizontal" className="flex !h-auto items-start" style={{ overflow: 'visible' }}>
+            <ResizablePanel defaultSize={66} style={{ overflow: 'visible' }}>
+              <div>
                 {/* Render the active tab content */}
                 {visibleTabs.map((tab) => (
                   <TabContent key={tab.id} value={tab.id}>
@@ -432,35 +447,34 @@ export default function ResultTabs({
 
             {visibilityConfig.showChat && (
               <>
-                <ResizableHandle withHandle className="mx-2 mt-4" />
-                <ResizablePanel
-                  className="overflow-auto mt-4 gap-4"
-                  defaultSize={34}
-                >
-                  {draft ? (
-                    <Card className="border-2 border-dashed border-gray-300 h-full flex flex-col items-center justify-center p-6">
-                      <div className="text-center space-y-4 max-w-md">
-                        <h3 className="text-2xl font-semibold text-gray-700">
-                          Chat with Your Data
-                        </h3>
-                        <p className="text-gray-500">
-                          Chat with AI that has access to your workspace data
-                          and participant transcripts.
-                        </p>
-                      </div>
-                    </Card>
-                  ) : (
-                    <SessionResultChat
-                      userData={currentUserData}
-                      customMessageEnhancement={
-                        visibilityConfig.allowCustomInsightsEditing
-                          ? enhancedMessage
-                          : undefined
-                      }
-                      entryMessage={chatEntryMessage}
-                      sessionIds={sessionIds}
-                    />
-                  )}
+                <ResizableHandle withHandle className="mx-2 sticky top-4 self-start" style={{ maxHeight: 'calc(100vh - 2rem)' }} />
+                <ResizablePanel defaultSize={34} style={{ overflow: 'visible', alignSelf: 'flex-start' }}>
+                  <div className="sticky top-4" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
+                    {draft ? (
+                      <Card className="border-2 border-dashed border-gray-300 flex flex-col items-center justify-center p-6" style={{ minHeight: '400px' }}>
+                        <div className="text-center space-y-4 max-w-md">
+                          <h3 className="text-2xl font-semibold text-gray-700">
+                            Chat with Your Data
+                          </h3>
+                          <p className="text-gray-500">
+                            Chat with AI that has access to your workspace data
+                            and participant transcripts.
+                          </p>
+                        </div>
+                      </Card>
+                    ) : (
+                      <SessionResultChat
+                        userData={currentUserData}
+                        customMessageEnhancement={
+                          visibilityConfig.allowCustomInsightsEditing
+                            ? enhancedMessage
+                            : undefined
+                        }
+                        entryMessage={chatEntryMessage}
+                        sessionIds={sessionIds}
+                      />
+                    )}
+                  </div>
                 </ResizablePanel>
               </>
             )}

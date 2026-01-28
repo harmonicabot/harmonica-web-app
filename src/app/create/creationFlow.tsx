@@ -234,7 +234,7 @@ IMPORTANT:
         context: formData.context,
         prompt_summary: promptSummary,
         summary_assistant_id: '',
-        cross_pollination: true, // Default to true since we removed the toggle
+        cross_pollination: false, // Default to false since we removed the toggle
         questions: JSON.stringify(
           participantQuestions.map((q) => ({
             id: q.id,
