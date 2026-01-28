@@ -39,7 +39,7 @@ export const ExpandableWithExport = ({
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Spinner />
-              <span>Creating your {title}...</span>
+              <span>Loading your {title}...</span>
             </div>
             <div className="space-y-3 animate-pulse">
               <div className="h-4 w-4/5 bg-gray-200 rounded" />

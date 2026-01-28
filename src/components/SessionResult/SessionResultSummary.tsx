@@ -27,6 +27,8 @@ const SummarySkeleton = () => (
   </Card>
 );
 
+export const maxDuration = 200;
+
 interface SessionResultSummaryProps {
   hostData: HostSession[];
   isProject: boolean;
