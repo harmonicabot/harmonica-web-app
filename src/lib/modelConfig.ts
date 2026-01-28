@@ -63,6 +63,7 @@ export class LLM {
 export const getLLM = (
   type: 'SMALL' | 'MAIN' | 'LARGE',
   temperature = 0.7,
+  maxTokens = 8192,
 ): LLM => {
   const model = process.env[`${type}_LLM_MODEL`];
   const provider = process.env[`${type}_LLM_PROVIDER`] as Provider;
@@ -80,6 +81,8 @@ export const getLLM = (
         model,
         apiKey,
         temperature,
+        maxTokens,
+        timeout: 300000, // 300 seconds
       });
       break;
     case 'anthropic':
@@ -87,12 +90,16 @@ export const getLLM = (
         model,
         apiKey,
         temperature,
+        maxTokens,
+        timeout: 300000, // 300 seconds
       });
       break;
     case 'gemini':
       llm = new Gemini({
         model: getGeminiModel(model),
         temperature,
+        maxTokens
+        // Gemini LlamaIndex wrapper does not expose timeout config
       });
       break;
     default:

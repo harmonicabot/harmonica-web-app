@@ -128,7 +128,7 @@ export const ExpandableWithExport = ({
       <CardContent className="max-h-[80vh] overflow-auto pb-0">
         {loading ? (
           <>
-            <Spinner /> Creating your {title}...
+            <Spinner /> Loading your {title}...
           </>
         ) : (
           <HRMarkdown content={content || ''} />

@@ -10,6 +10,8 @@ import { useSubscription } from 'hooks/useSubscription';
 import { usePermissions } from '@/lib/permissions';
 import { useSummary } from '@/hooks/useSummary';
 
+export const maxDuration = 200;
+
 interface SessionResultSummaryProps {
   hostData: HostSession[];
   isProject: boolean;
