@@ -45,7 +45,7 @@
     "dotenv": "^16.6.1",
     "framer-motion": "^12.23.25",
     "isbot": "^5.1.32",
-    "jspdf": "^3.0.4",
+    "jspdf": "^4.0.0",
     "kysely": "^0.27.6",
     "llamaindex": "^0.12.1",
     "lucide-react": "^0.381.0",
