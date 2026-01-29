@@ -118,10 +118,10 @@ Harmonica supports multiple LLM backends through LlamaIndex:
 
 | Provider | Models | Notes |
 |----------|--------|-------|
-| OpenAI | GPT-4o, GPT-4, GPT-3.5 | Cloud API |
-| Anthropic | Claude 3.5, Claude 3 | Cloud API |
-| Google | Gemini Pro, Gemini Flash | Cloud API |
-| Ollama | Llama 3, Mistral, Qwen | Self-hosted |
+| OpenAI | o3, GPT-4.5, GPT-4o | Cloud API |
+| Anthropic | Claude Opus 4.5, Claude Sonnet 4 | Cloud API |
+| Google | Gemini 2.0 Flash, Gemini 2.5 Pro | Cloud API |
+| Ollama | Llama 4, Qwen 3, DeepSeek-R1 | Self-hosted |
 | vLLM | Any supported model | Self-hosted, OpenAI-compatible |
 | [PublicAI](https://platform.publicai.co/) | Open-source models | Gateway to open AI models |
 
@@ -142,7 +142,7 @@ Harmonica is developed in collaboration with the governance research community:
     </td>
     <td align="center" width="33%">
       <a href="https://metagov.github.io/gov-acc/">
-        <strong>Gov-ACC</strong>
+        <strong>gov/acc</strong>
       </a>
       <br />
       Data collection tool for governance research in web3 communities
