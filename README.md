@@ -5,7 +5,7 @@
 <h1 align="center">Harmonica</h1>
 
 <p align="center">
-  <strong>AI-powered facilitation for group sensemaking and deliberation</strong>
+  <strong>Self-hosted AI facilitation for group sensemaking and deliberation</strong>
 </p>
 
 <p align="center">
@@ -25,7 +25,9 @@
 
 ## What is Harmonica?
 
-Harmonica transforms how groups make decisions. Instead of scattered feedback forms or unproductive meetings, participants engage in AI-facilitated conversations that surface the *why* behind their perspectives.
+Harmonica is an open-source platform for AI-facilitated group deliberation. Deploy it on your own infrastructure with your choice of LLM—whether self-hosted (Ollama, vLLM) or cloud providers (OpenAI, Anthropic, Google).
+
+Instead of scattered feedback forms or unproductive meetings, participants engage in AI-facilitated conversations that surface the *why* behind their perspectives.
 
 **How it works:**
 
@@ -53,7 +55,9 @@ Each participant has a private conversation with a custom AI facilitator. Harmon
 - Node.js 18+
 - PostgreSQL (or [Neon](https://neon.tech) for serverless)
 - Auth0 account
-- OpenAI API key
+- LLM provider (choose one):
+  - **Self-hosted**: Ollama, vLLM, or any OpenAI-compatible endpoint
+  - **Cloud**: OpenAI, Anthropic, Google, or [other supported providers](#llm-providers)
 
 ### Installation
 
@@ -76,9 +80,11 @@ Required variables:
 | Variable | Description |
 |----------|-------------|
 | `POSTGRES_URL` | Neon/PostgreSQL connection string |
-| `OPENAI_API_KEY` | OpenAI API key for LLM and embeddings |
 | `AUTH0_*` | Auth0 configuration (see [Auth0 docs](https://auth0.com/docs)) |
-| `STRIPE_*` | Stripe keys for payments (optional for dev) |
+| `MAIN_LLM_PROVIDER` | LLM provider: `openai`, `anthropic`, `gemini`, `ollama`, etc. |
+| `MAIN_LLM_MODEL` | Model name (e.g., `gpt-4o`, `claude-3-opus`, `llama3.2`) |
+
+For embeddings, set `OPENAI_API_KEY` or configure an alternative embedding provider.
 
 ### Database Setup
 
@@ -101,11 +107,25 @@ Open [http://localhost:3000](http://localhost:3000).
 | Framework | Next.js 14 (App Router) |
 | Database | PostgreSQL (Neon) + Kysely |
 | Auth | Auth0 |
-| LLM | LlamaIndex (OpenAI, Anthropic, Google) |
+| LLM | LlamaIndex with pluggable providers |
 | Vector DB | Qdrant |
-| Payments | Stripe |
 | UI | Tailwind CSS + Radix UI |
-| Hosting | Vercel |
+| Hosting | Vercel (or self-hosted) |
+
+### LLM Providers
+
+Harmonica supports multiple LLM backends through LlamaIndex:
+
+| Provider | Models | Notes |
+|----------|--------|-------|
+| OpenAI | GPT-4o, GPT-4, GPT-3.5 | Cloud API |
+| Anthropic | Claude 3.5, Claude 3 | Cloud API |
+| Google | Gemini Pro, Gemini Flash | Cloud API |
+| Ollama | Llama 3, Mistral, Qwen | Self-hosted |
+| vLLM | Any supported model | Self-hosted, OpenAI-compatible |
+| Swiss AI | Custom models | Research/EU hosting |
+
+Configure via `{TIER}_LLM_PROVIDER` and `{TIER}_LLM_MODEL` environment variables (tiers: SMALL, MAIN, LARGE).
 
 ## Project Structure
 
