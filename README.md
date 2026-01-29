@@ -186,6 +186,15 @@ We welcome contributions! Please see our [Code of Conduct](code_of_conduct.md) b
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## Support the Project
+
+Harmonica is community-funded with no VC backing. If you find it useful, please consider supporting development:
+
+<p align="center">
+  <a href="https://opencollective.com/harmonica"><img src="https://img.shields.io/badge/Open%20Collective-Support%20Us-7FADF2?logo=opencollective" alt="Open Collective"></a>
+  <a href="https://giveth.io/project/harmonica-ai-agents-for-group-sensemaking"><img src="https://img.shields.io/badge/Giveth-Donate-9B59B6" alt="Giveth"></a>
+</p>
+
 ## License
 
 [Apache License 2.0](LICENSE)
