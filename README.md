@@ -123,9 +123,41 @@ Harmonica supports multiple LLM backends through LlamaIndex:
 | Google | Gemini Pro, Gemini Flash | Cloud API |
 | Ollama | Llama 3, Mistral, Qwen | Self-hosted |
 | vLLM | Any supported model | Self-hosted, OpenAI-compatible |
-| Swiss AI | Custom models | Research/EU hosting |
+| [PublicAI](https://platform.publicai.co/) | Open-source models | Gateway to open AI models |
 
 Configure via `{TIER}_LLM_PROVIDER` and `{TIER}_LLM_MODEL` environment variables (tiers: SMALL, MAIN, LARGE).
+
+## Partnerships & Research
+
+Harmonica is developed in collaboration with the governance research community:
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <a href="https://metagov.org/projects/interop">
+        <strong>Metagov Interop</strong>
+      </a>
+      <br />
+      First cohort participant in the Interoperable Deliberative Tools program
+    </td>
+    <td align="center" width="33%">
+      <a href="https://metagov.github.io/gov-acc/">
+        <strong>Gov-ACC</strong>
+      </a>
+      <br />
+      Data collection tool for governance research in web3 communities
+    </td>
+    <td align="center" width="33%">
+      <a href="https://platform.publicai.co/">
+        <strong>PublicAI</strong>
+      </a>
+      <br />
+      Partnered for open-source AI model access
+    </td>
+  </tr>
+</table>
+
+See also: [Open Facilitation Library](https://github.com/Open-Facilitation-Library) — our sister project developing reusable facilitation patterns, also part of Metagov Interop.
 
 ## Project Structure
 
