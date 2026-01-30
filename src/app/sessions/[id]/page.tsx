@@ -6,7 +6,7 @@ import { ResultTabsVisibilityConfig } from '@/lib/schema';
 import { access } from 'fs';
 
 // Increase the maximum execution time for this function on vercel
-export const maxDuration = 60; // in seconds
+export const maxDuration = 200; // in seconds
 export const revalidate = 0; // Disable caching for this page
 
 export async function generateMetadata(
