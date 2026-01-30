@@ -1,0 +1,193 @@
+name: Weekly Analytics Digest
+
+on:
+  schedule:
+    - cron: '0 9 * * 5' # Every Friday at 9 AM UTC
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  post-digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query PostHog - DAUs (last 7 days)
+        id: dau
+        run: |
+          RESPONSE=$(curl -s -X POST "https://us.posthog.com/api/projects/96374/query/" \
+            -H "Authorization: Bearer ${{ secrets.POSTHOG_PERSONAL_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "query": {
+                "kind": "InsightVizNode",
+                "source": {
+                  "kind": "TrendsQuery",
+                  "series": [{"kind": "EventsNode", "event": "$pageview", "math": "dau", "custom_name": "Daily Active Users"}],
+                  "interval": "day",
+                  "dateRange": {"date_from": "-7d"},
+                  "filterTestAccounts": true,
+                  "trendsFilter": {"display": "ActionsLineGraph"}
+                }
+              }
+            }')
+
+          # Extract labels and data arrays, pair them up
+          DAU_TABLE=$(echo "$RESPONSE" | jq -r '
+            .results[0].labels as $labels |
+            .results[0].data as $data |
+            [range(0; $labels | length)] |
+            map("  \($labels[.])  \($data[.] | round)") |
+            join("\n")
+          ')
+
+          # Get latest value for summary
+          DAU_LATEST=$(echo "$RESPONSE" | jq -r '.results[0].data[-1] | round')
+
+          echo "DAU_TABLE<<EOF" >> $GITHUB_OUTPUT
+          echo "$DAU_TABLE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "DAU_LATEST=$DAU_LATEST" >> $GITHUB_OUTPUT
+
+      - name: Query PostHog - WAUs (last 30 days)
+        id: wau
+        run: |
+          RESPONSE=$(curl -s -X POST "https://us.posthog.com/api/projects/96374/query/" \
+            -H "Authorization: Bearer ${{ secrets.POSTHOG_PERSONAL_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "query": {
+                "kind": "InsightVizNode",
+                "source": {
+                  "kind": "TrendsQuery",
+                  "series": [{"kind": "EventsNode", "event": "$pageview", "math": "weekly_active", "custom_name": "Weekly Active Users"}],
+                  "interval": "week",
+                  "dateRange": {"date_from": "-30d"},
+                  "filterTestAccounts": true,
+                  "trendsFilter": {"display": "ActionsLineGraph"}
+                }
+              }
+            }')
+
+          WAU_TABLE=$(echo "$RESPONSE" | jq -r '
+            .results[0].labels as $labels |
+            .results[0].data as $data |
+            [range(0; $labels | length)] |
+            map("  \($labels[.])  \($data[.] | round)") |
+            join("\n")
+          ')
+
+          # Current and previous for trend
+          WAU_CURRENT=$(echo "$RESPONSE" | jq -r '.results[0].data[-1] | round')
+          WAU_PREVIOUS=$(echo "$RESPONSE" | jq -r '.results[0].data[-2] | round')
+
+          if [ "$WAU_PREVIOUS" -gt 0 ] 2>/dev/null; then
+            CHANGE=$(( (WAU_CURRENT - WAU_PREVIOUS) * 100 / WAU_PREVIOUS ))
+            if [ "$CHANGE" -ge 0 ]; then
+              WAU_TREND="up ${CHANGE}%"
+            else
+              WAU_TREND="down ${CHANGE#-}%"
+            fi
+          else
+            WAU_TREND="N/A"
+          fi
+
+          echo "WAU_TABLE<<EOF" >> $GITHUB_OUTPUT
+          echo "$WAU_TABLE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "WAU_CURRENT=$WAU_CURRENT" >> $GITHUB_OUTPUT
+          echo "WAU_TREND=$WAU_TREND" >> $GITHUB_OUTPUT
+
+      - name: Query PostHog - Sessions Launched (last 30 days)
+        id: sessions
+        run: |
+          RESPONSE=$(curl -s -X POST "https://us.posthog.com/api/projects/96374/query/" \
+            -H "Authorization: Bearer ${{ secrets.POSTHOG_PERSONAL_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "query": {
+                "kind": "InsightVizNode",
+                "source": {
+                  "kind": "TrendsQuery",
+                  "series": [{"kind": "EventsNode", "math": "total", "event": null, "name": "All events"}],
+                  "interval": "week",
+                  "dateRange": {"date_from": "-30d"},
+                  "properties": {
+                    "type": "AND",
+                    "values": [{"type": "AND", "values": [{"key": "$el_text", "type": "event", "value": ["Launch"], "operator": "exact"}]}]
+                  },
+                  "filterTestAccounts": true,
+                  "trendsFilter": {}
+                }
+              }
+            }')
+
+          SESSIONS_TABLE=$(echo "$RESPONSE" | jq -r '
+            .results[0].labels as $labels |
+            .results[0].data as $data |
+            [range(0; $labels | length)] |
+            map("  \($labels[.])  \($data[.] | round)") |
+            join("\n")
+          ')
+
+          SESSIONS_TOTAL=$(echo "$RESPONSE" | jq -r '[.results[0].data[] | round] | add')
+          SESSIONS_CURRENT=$(echo "$RESPONSE" | jq -r '.results[0].data[-1] | round')
+          SESSIONS_PREVIOUS=$(echo "$RESPONSE" | jq -r '.results[0].data[-2] | round')
+
+          if [ "$SESSIONS_PREVIOUS" -gt 0 ] 2>/dev/null; then
+            CHANGE=$(( (SESSIONS_CURRENT - SESSIONS_PREVIOUS) * 100 / SESSIONS_PREVIOUS ))
+            if [ "$CHANGE" -ge 0 ]; then
+              SESSIONS_TREND="up ${CHANGE}%"
+            else
+              SESSIONS_TREND="down ${CHANGE#-}%"
+            fi
+          else
+            SESSIONS_TREND="N/A"
+          fi
+
+          echo "SESSIONS_TABLE<<EOF" >> $GITHUB_OUTPUT
+          echo "$SESSIONS_TABLE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "SESSIONS_TOTAL=$SESSIONS_TOTAL" >> $GITHUB_OUTPUT
+          echo "SESSIONS_TREND=$SESSIONS_TREND" >> $GITHUB_OUTPUT
+
+      - name: Post to Discord
+        run: |
+          # Build date range
+          END_DATE=$(date -u +"%b %d, %Y")
+          START_DATE=$(date -u -d "7 days ago" +"%b %d, %Y")
+
+          # Determine trend arrows
+          WAU_ARROW="→"
+          if [[ "${{ steps.wau.outputs.WAU_TREND }}" == up* ]]; then WAU_ARROW="↑"; fi
+          if [[ "${{ steps.wau.outputs.WAU_TREND }}" == down* ]]; then WAU_ARROW="↓"; fi
+
+          SESSIONS_ARROW="→"
+          if [[ "${{ steps.sessions.outputs.SESSIONS_TREND }}" == up* ]]; then SESSIONS_ARROW="↑"; fi
+          if [[ "${{ steps.sessions.outputs.SESSIONS_TREND }}" == down* ]]; then SESSIONS_ARROW="↓"; fi
+
+          # Build the message
+          MESSAGE="**Harmonica Weekly Metrics Summary**
+          _Week of ${START_DATE} - ${END_DATE}_
+
+          **Daily Active Users (last 7 days)**
+          \`\`\`
+          ${{ steps.dau.outputs.DAU_TABLE }}
+          \`\`\`
+
+          **Weekly Active Users (last 4 weeks)** ${WAU_ARROW} ${{ steps.wau.outputs.WAU_TREND }} vs prev week
+          \`\`\`
+          ${{ steps.wau.outputs.WAU_TABLE }}
+          \`\`\`
+
+          **Sessions Launched (last 4 weeks)** ${SESSIONS_ARROW} ${{ steps.sessions.outputs.SESSIONS_TREND }} vs prev week
+          \`\`\`
+          ${{ steps.sessions.outputs.SESSIONS_TABLE }}
+          \`\`\`
+          Total sessions (30d): **${{ steps.sessions.outputs.SESSIONS_TOTAL }}**
+
+          [View full dashboard](https://us.posthog.com/project/96374/dashboard/242543)"
+
+          # Post to Discord
+          jq -n --arg content "$MESSAGE" \
+            '{"username": "Harmonica Analytics", "content": $content}' | \
+            curl -s -X POST "${{ secrets.DISCORD_ANALYTICS_WEBHOOK_URL }}" \
+              -H "Content-Type: application/json" \
+              -d @-
