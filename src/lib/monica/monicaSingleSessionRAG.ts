@@ -38,6 +38,7 @@ export async function generateAnswer(
   sessionIds: string[],
   threadId: string,
   query: string,
+  distinctId?: string,
 ) {
   try {
     // Get session context and objective data for all sessions
@@ -364,7 +365,7 @@ Total Responses: ${messages.length}
         {
           role: 'user',
           content: `
-### User Transcripts: 
+### User Transcripts:
 ${threadDocuments.map((doc) => doc.text).join('\n')}
 
 ### Question: ${query}
@@ -373,6 +374,8 @@ Please analyze the above context to answer the question.`,
         },
         ...chatHistory.map((msg: any) => ({ role: msg.role, content: msg.content })),
       ],
+      distinctId,
+      sessionId: sessionIds[0],
     });
 
     console.log('[i] Chat engine response:', response);

@@ -208,6 +208,7 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
     const message = await chatEngine.chat({
       messages: formattedMessages as ChatMessage[],
       distinctId,
+      sessionId: messageData.sessionId,
     });
     console.log('[i] Response:', message);
 

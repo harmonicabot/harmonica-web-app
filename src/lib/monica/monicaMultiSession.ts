@@ -201,6 +201,7 @@ ${qdrantContent?.KNOWLEDGE ? `### Relevant Knowledge Content:\n${qdrantContent.K
         },
       ],
       distinctId,
+      sessionId: sessionIds[0],
     });
 
     console.log('[i] Received response: ', response);
