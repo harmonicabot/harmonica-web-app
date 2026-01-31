@@ -18,6 +18,14 @@ npm run migrate:down # Rollback migrations
 
 Note: No test or lint scripts are configured. TypeScript strict mode provides type safety.
 
+## Git Workflow
+
+Always create a branch and open a PR for code changes — never commit directly to master. This applies to all application code changes; analytics-only or config changes outside the app don't require PRs.
+
+```
+branch naming: feature/short-description, fix/short-description
+```
+
 ## Architecture
 
 ### Tech Stack
