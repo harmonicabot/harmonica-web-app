@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Changelog entries are automatically added below this line -->
 
+## [Unreleased]
+
+### Added
+- Per-session LLM analytics — `session_id` threaded into PostHog `$ai_generation` events for per-session cost and latency tracking
+- Weekly analytics digest GitHub Actions workflow (PostHog → Discord every Friday at 9 AM UTC)
+
+### Fixed
+- Summary generation timeout
+
 ## [0.2.0] - 2026-01-29
 
 ### Changed
