@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/harmonicabot/harmonica-web-app/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
+  <a href="https://github.com/harmonicabot/harmonica-web-app/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg" alt="License"></a>
   <a href="code_of_conduct.md"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Contributor Covenant"></a>
   <a href="https://harmonica.chat"><img src="https://img.shields.io/badge/demo-harmonica.chat-purple" alt="Demo"></a>
 </p>
@@ -197,7 +197,7 @@ Harmonica is community-funded with no VC backing. If you find it useful, please 
 
 ## License
 
-[Apache License 2.0](LICENSE)
+[AGPL-3.0](LICENSE)
 
 ---
 
