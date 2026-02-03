@@ -72,7 +72,7 @@ export class CrossPollinationManager {
     return traceOperation(
       'cross_pollination_analysis',
       { sessionId: this.config.sessionId, threadId },
-      async ({ operation }) => {
+      async ({ operation, span }) => {
         try {
           // 1. Load session metadata (prompt, summary, etc.)
           const sessionData = await this.loadSessionData();
@@ -125,6 +125,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
             ],
             distinctId,
             operation,
+            span,
           });
 
           const responseText = response.trim().toUpperCase();
@@ -147,7 +148,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
     return traceOperation(
       'cross_pollination_question',
       { sessionId: this.config.sessionId, threadId },
-      async ({ operation }) => {
+      async ({ operation, span }) => {
         try {
           // Load session data
           const sessionData = await this.loadSessionData();
@@ -265,6 +266,7 @@ Based on this information, should I introduce cross-pollination now? Answer with
             ],
             distinctId,
             operation,
+            span,
           });
 
           const responseText = response.trim();

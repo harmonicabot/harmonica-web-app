@@ -13,7 +13,7 @@ export async function analyzeFileContent(
   return traceOperation(
     'file_analysis',
     {},
-    async ({ operation }) => {
+    async ({ operation, span }) => {
   try {
     // Use MAIN model for better analysis
     const chatEngine = getLLM('MAIN', 0.3);
@@ -44,6 +44,7 @@ ${content.substring(0, 4000)} // Limit content length to avoid token limits
         },
       ],
       operation,
+      span,
     });
 
     console.log('[i] Raw analysis response:', response);

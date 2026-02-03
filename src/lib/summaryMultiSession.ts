@@ -7,7 +7,7 @@ export async function generateSummary(sessionIds: string[], summaryPrompt: strin
   return traceOperation(
     'session_summary',
     { sessionIds },
-    async ({ operation }) => {
+    async ({ operation, span }) => {
   console.log('[i] Generating summary for sessions:', sessionIds);
   try {
     const session = await getSession();
@@ -133,6 +133,7 @@ ${messagesContent}
       ],
       distinctId,
       operation,
+      span,
     });
 
     return response;

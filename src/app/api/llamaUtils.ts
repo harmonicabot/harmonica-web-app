@@ -27,7 +27,7 @@ export async function finishedResponse(
   return traceOperation(
     'session_builder',
     { distinctId },
-    async ({ operation }) => {
+    async ({ operation, span }) => {
       console.log('[i] Generating finished response:', {
         systemPrompt: systemPrompt?.substring(0, 100) + '...',
         userPrompt: userPrompt?.substring(0, 100) + '...',
@@ -50,6 +50,7 @@ export async function finishedResponse(
           ],
           distinctId,
           operation,
+          span,
         });
 
         console.log('[i] Completion response:', JSON.stringify(response));
@@ -85,6 +86,7 @@ export async function finishedResponse(
               ],
               distinctId,
               operation,
+              span,
             });
 
             console.log('[i] Fallback to small model successful:', JSON.stringify(fallbackResponse));
@@ -110,7 +112,7 @@ export async function handleGenerateAnswer(
   return traceOperation(
     'chat_facilitation',
     { sessionId: messageData.sessionId, threadId: messageData.threadId, distinctId },
-    async ({ operation }) => {
+    async ({ operation, span }) => {
       console.log(`[i] Generating answer for message: `, messageData);
 
       const messages = messageData.threadId
@@ -223,6 +225,7 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
           distinctId,
           sessionId: messageData.sessionId,
           operation,
+          span,
         });
         console.log('[i] Response:', message);
 
