@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   Boxes, // For types/categories
   FileText, // For instructions/prompts
+  FlaskConical, // For evals
   Settings,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -21,7 +22,11 @@ const navigation = [
     href: '/admin/prompts',
     icon: FileText, // Changed to FileText to represent instructions/documents
   },
-  // Future items can be added here
+  {
+    name: 'Evals',
+    href: '/admin/evals',
+    icon: FlaskConical,
+  },
   {
     name: 'Settings',
     href: '/admin/settings',

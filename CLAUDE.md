@@ -78,6 +78,7 @@ src/
 | `/api/llama` | LLM query endpoint |
 | `/api/webhook/stripe` | Stripe webhooks (subscriptions, refunds → Discord notifications) |
 | `/api/admin/prompts` | Admin prompt management |
+| `/api/admin/evals` | Braintrust experiment results (list + detail) |
 
 ### Core Concepts
 
@@ -151,3 +152,4 @@ Retrieval: `getPromptInstructions(typeId)` in `src/lib/promptActions.ts` checks 
 - `DEEPGRAM_API_KEY` - Transcription
 - `BRAINTRUST_API_KEY` - LLM tracing and observability
 - `DISCORD_OPERATIONS_WEBHOOK_URL` - Stripe event notifications
+- `DISCORD_ANALYTICS_WEBHOOK_URL` - Weekly analytics and evals digests
