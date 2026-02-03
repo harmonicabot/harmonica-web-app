@@ -1,6 +1,7 @@
 import { getLLM } from '@/lib/modelConfig';
 import { Message, UserSession } from '@/lib/schema';
 import { getPromptInstructions } from '../promptsCache';
+import { traceOperation } from '../braintrust';
 
 /**
  * Extracts structured data from user messages using configured LLM
@@ -12,6 +13,10 @@ export async function extractDataWithLlama(
   context: string[],
   exportInstructions: string,
 ): Promise<string> {
+  return traceOperation(
+    'data_export',
+    { conversationCount: context.length },
+    async ({ operation }) => {
   try {
     // Initialize LLM with MAIN model (using lower temperature for structured output)
     const chatEngine = getLLM('LARGE', 0.3);
@@ -45,6 +50,7 @@ export async function extractDataWithLlama(
           content: `Here are the conversations to extract data from:\n\n${formattedContext}\n\n${extractUserPrompt}`,
         },
       ],
+      operation,
     });
 
     // Clean the response if it includes markdown code blocks
@@ -70,6 +76,8 @@ export async function extractDataWithLlama(
     console.error('[llamaExport] LlamaIndex error:', error);
     return JSON.stringify({ error: `Failed to extract data: ${error}` });
   }
+    },
+  );
 }
 
 /**

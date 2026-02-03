@@ -39,6 +39,7 @@
     "@vercel/blob": "^0.27.3",
     "@vercel/postgres": "^0.10.0",
     "@vercel/postgres-kysely": "^0.10.0",
+    "braintrust": "^2.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

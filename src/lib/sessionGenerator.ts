@@ -3,6 +3,7 @@ import * as llama from '../app/api/llamaUtils';
 import { getUserNameFromContext } from '@/lib/clientUtils';
 import { generateFormAnswers } from './formAnswerGenerator';
 import { getLLM } from '@/lib/modelConfig';
+import { traceOperation } from './braintrust';
 
 interface SessionConfig {
   maxTurns: number;
@@ -48,6 +49,10 @@ Reply with ONLY "true" if the session should end, or "false" if it should contin
 }
 
 export async function generateSession(config: SessionConfig) {
+  return traceOperation(
+    'session_generation',
+    { sessionId: config.sessionId },
+    async ({ operation }) => {
   try {
     const { temperature = 0.7, responsePrompt = DEFAULT_RESPONSE_PROMPT, distinctId } =
       config;
@@ -169,6 +174,7 @@ Additional response guidelines:
           },
         ],
         distinctId,
+        operation,
       });
 
       lastUserMessage = userResponse || '';
@@ -194,6 +200,8 @@ Additional response guidelines:
     console.error('[x] Session generation error:', error);
     throw error;
   }
+    },
+  );
 }
 
 function isConversationComplete(message: string): boolean {

@@ -3,6 +3,7 @@ import { OpenAIMessage } from '../types';
 import { getPromptInstructions } from '../promptsCache';
 import { getSessionContent } from './qdrantQuery';
 import { getLLM } from '../modelConfig';
+import { traceOperation } from '../braintrust';
 
 export async function generateMultiSessionAnswer(
   sessionIds: string[],
@@ -10,6 +11,10 @@ export async function generateMultiSessionAnswer(
   query: string,
   distinctId?: string
 ) {
+  return traceOperation(
+    'rag_query',
+    { sessionIds, distinctId },
+    async ({ operation }) => {
   try {
     console.log(
       '[i] Generating multi-session answer for session(s):',
@@ -202,6 +207,7 @@ ${qdrantContent?.KNOWLEDGE ? `### Relevant Knowledge Content:\n${qdrantContent.K
       ],
       distinctId,
       sessionId: sessionIds[0],
+      operation,
     });
 
     console.log('[i] Received response: ', response);
@@ -211,4 +217,6 @@ ${qdrantContent?.KNOWLEDGE ? `### Relevant Knowledge Content:\n${qdrantContent.K
     console.error('[x] LlamaIndex error:', error);
     return `I apologize, but I encountered an error processing your request. ${error}`;
   }
+    },
+  );
 }
