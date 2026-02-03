@@ -16,7 +16,7 @@ export async function extractDataWithLlama(
   return traceOperation(
     'data_export',
     { conversationCount: context.length },
-    async ({ operation }) => {
+    async ({ operation, span }) => {
   try {
     // Initialize LLM with MAIN model (using lower temperature for structured output)
     const chatEngine = getLLM('LARGE', 0.3);
@@ -51,6 +51,7 @@ export async function extractDataWithLlama(
         },
       ],
       operation,
+      span,
     });
 
     // Clean the response if it includes markdown code blocks

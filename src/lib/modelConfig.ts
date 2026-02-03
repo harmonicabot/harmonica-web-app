@@ -80,7 +80,7 @@ async function listAvailableGeminiModels(): Promise<string[]> {
 }
 
 import { getPostHogClient } from './posthog-server';
-import { getBraintrustLogger } from './braintrust';
+import { getBraintrustLogger, Span } from './braintrust';
 
 // A wrapper class that normalizes the chat interface
 // (each LLM's chat & response is unfortunately slightly different,
@@ -101,6 +101,7 @@ export class LLM {
     distinctId?: string;
     sessionId?: string;
     operation?: string;
+    span?: Span;
   }): Promise<string> {
     const startTime = Date.now();
     // All LLMs actually accept the same message format, even though they specify it differently.
@@ -198,24 +199,30 @@ export class LLM {
         });
       }
 
-      // Braintrust logging
-      const bt = getBraintrustLogger();
-      if (bt) {
-        bt.log({
-          input: params.messages,
-          output: responseString,
-          metadata: {
-            model: this.model,
-            provider: this.provider,
-            input_tokens: inputTokens,
-            output_tokens: outputTokens,
-            latency_ms: endTime - startTime,
-            operation: params.operation,
-            session_id: params.sessionId,
-            distinct_id: params.distinctId,
-          },
-          tags: [this.provider, ...(params.operation ? [params.operation] : [])],
-        });
+      // Braintrust logging — use span.log() when inside a traced span,
+      // fall back to top-level logger.log() otherwise
+      const btLogData = {
+        input: params.messages,
+        output: responseString,
+        metadata: {
+          model: this.model,
+          provider: this.provider,
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
+          latency_ms: endTime - startTime,
+          operation: params.operation,
+          session_id: params.sessionId,
+          distinct_id: params.distinctId,
+        },
+        tags: [this.provider, ...(params.operation ? [params.operation] : [])],
+      };
+      if (params.span) {
+        params.span.log(btLogData);
+      } else {
+        const bt = getBraintrustLogger();
+        if (bt) {
+          bt.log(btLogData);
+        }
       }
     } catch (error) {
       console.error('Error in LLM chat:', error);
@@ -267,24 +274,29 @@ export class LLM {
         });
       }
 
-      // Braintrust error logging
-      const bt = getBraintrustLogger();
-      if (bt) {
-        bt.log({
-          input: params.messages,
-          output: error instanceof Error ? error.message : String(error),
-          metadata: {
-            model: this.model,
-            provider: this.provider,
-            latency_ms: endTime - startTime,
-            operation: params.operation,
-            session_id: params.sessionId,
-            distinct_id: params.distinctId,
-            error: true,
-          },
-          scores: { error: 1 },
-          tags: [this.provider, ...(params.operation ? [params.operation] : [])],
-        });
+      // Braintrust error logging — use span.log() when inside a traced span
+      const btErrorData = {
+        input: params.messages,
+        output: error instanceof Error ? error.message : String(error),
+        metadata: {
+          model: this.model,
+          provider: this.provider,
+          latency_ms: endTime - startTime,
+          operation: params.operation,
+          session_id: params.sessionId,
+          distinct_id: params.distinctId,
+          error: true,
+        },
+        scores: { error: 1 },
+        tags: [this.provider, ...(params.operation ? [params.operation] : [])],
+      };
+      if (params.span) {
+        params.span.log(btErrorData);
+      } else {
+        const bt = getBraintrustLogger();
+        if (bt) {
+          bt.log(btErrorData);
+        }
       }
       throw error;
     }

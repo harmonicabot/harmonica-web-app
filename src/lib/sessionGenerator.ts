@@ -52,7 +52,7 @@ export async function generateSession(config: SessionConfig) {
   return traceOperation(
     'session_generation',
     { sessionId: config.sessionId },
-    async ({ operation }) => {
+    async ({ operation, span }) => {
   try {
     const { temperature = 0.7, responsePrompt = DEFAULT_RESPONSE_PROMPT, distinctId } =
       config;
@@ -175,6 +175,7 @@ Additional response guidelines:
         ],
         distinctId,
         operation,
+        span,
       });
 
       lastUserMessage = userResponse || '';

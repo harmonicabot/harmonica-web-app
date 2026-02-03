@@ -38,7 +38,7 @@ export async function generateParticipantAnswer(
   return traceOperation(
     'participant_suggestion',
     { threadId: config.threadId },
-    async ({ operation }) => {
+    async ({ operation, span }) => {
   try {
     const { threadId, temperature = 0.7 } = config;
 
@@ -85,6 +85,7 @@ export async function generateParticipantAnswer(
         },
       ],
       operation,
+      span,
     });
 
     const participantResponse = response

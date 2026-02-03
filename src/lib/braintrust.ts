@@ -1,4 +1,6 @@
-import { initLogger, Logger } from 'braintrust';
+import { initLogger, Logger, Span } from 'braintrust';
+
+export type { Span };
 
 let logger: Logger<boolean> | null = null;
 
@@ -27,7 +29,7 @@ export function getBraintrustLogger(): Logger<boolean> | null {
 export async function traceOperation<T>(
   name: string,
   metadata: Record<string, unknown>,
-  fn: (spanOpts: { operation: string }) => Promise<T>,
+  fn: (spanOpts: { operation: string; span?: Span }) => Promise<T>,
 ): Promise<T> {
   const bt = getBraintrustLogger();
   if (!bt) {
@@ -37,7 +39,7 @@ export async function traceOperation<T>(
   return bt.traced(
     async (span) => {
       try {
-        const result = await fn({ operation: name });
+        const result = await fn({ operation: name, span });
         span.log({ metadata: { ...metadata, operation: name } });
         return result;
       } catch (error) {

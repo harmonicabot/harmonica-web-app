@@ -14,7 +14,7 @@ export async function generateMultiSessionAnswer(
   return traceOperation(
     'rag_query',
     { sessionIds, distinctId },
-    async ({ operation }) => {
+    async ({ operation, span }) => {
   try {
     console.log(
       '[i] Generating multi-session answer for session(s):',
@@ -208,6 +208,7 @@ ${qdrantContent?.KNOWLEDGE ? `### Relevant Knowledge Content:\n${qdrantContent.K
       distinctId,
       sessionId: sessionIds[0],
       operation,
+      span,
     });
 
     console.log('[i] Received response: ', response);
