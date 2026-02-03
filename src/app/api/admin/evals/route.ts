@@ -87,19 +87,53 @@ async function getExperimentDetail(experimentName: string) {
 
   const records = await experiment.fetchedData();
 
-  const formattedRecords = records.map((record: any) => ({
-    input: record.input,
-    output: record.output,
-    scores: record.scores,
-  }));
+  // Braintrust returns two record types:
+  // - Score records: input is nested as { input: { input: {...}, metadata, output }, scores: {scorer: value} }
+  // - Task records: input is flat as { input: {...}, output: "...", scores: null }
+  // Normalize and aggregate into one record per test case with all scores merged.
+  const testCaseMap = new Map<
+    string,
+    { input: any; output: string; scores: Record<string, number> }
+  >();
 
-  // Compute aggregate scores from records since ReadonlyExperiment doesn't have summarize()
+  for (const record of records) {
+    // Normalize input: handle nested structure from score records
+    const input = record.input?.input || record.input;
+    const testName = input?.name || `test-${testCaseMap.size}`;
+
+    if (!testCaseMap.has(testName)) {
+      testCaseMap.set(testName, {
+        input,
+        output: typeof record.output === 'string' ? record.output : '',
+        scores: {},
+      });
+    }
+
+    const entry = testCaseMap.get(testName)!;
+
+    // Prefer the task record's output (string) over score record's output ({score: n})
+    if (typeof record.output === 'string' && record.output) {
+      entry.output = record.output;
+    }
+
+    // Merge scores from score records
+    if (record.scores) {
+      for (const [name, score] of Object.entries(record.scores)) {
+        if (typeof score === 'number') {
+          entry.scores[name] = score;
+        }
+      }
+    }
+  }
+
+  const formattedRecords = Array.from(testCaseMap.values());
+
+  // Compute aggregate scores
   const scoreAggregates: Record<
     string,
     { sum: number; count: number }
   > = {};
   for (const record of formattedRecords) {
-    if (!record.scores) continue;
     for (const [name, score] of Object.entries(record.scores)) {
       if (typeof score !== 'number') continue;
       if (!scoreAggregates[name]) {
