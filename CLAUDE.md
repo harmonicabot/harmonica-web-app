@@ -149,4 +149,5 @@ Retrieval: `getPromptInstructions(typeId)` in `src/lib/promptActions.ts` checks 
 - `QDRANT_URL`, `QDRANT_API_KEY` - Vector search
 - `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` - Analytics
 - `DEEPGRAM_API_KEY` - Transcription
+- `BRAINTRUST_API_KEY` - LLM tracing and observability
 - `DISCORD_OPERATIONS_WEBHOOK_URL` - Stripe event notifications
