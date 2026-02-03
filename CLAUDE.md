@@ -16,7 +16,13 @@ npm run migrate      # Run database migrations
 npm run migrate:down # Rollback migrations
 ```
 
-Note: No test or lint scripts are configured. TypeScript strict mode provides type safety.
+```bash
+# Evals (requires BRAINTRUST_API_KEY, ANTHROPIC_API_KEY, MAIN_LLM_* in .env.local)
+npx tsx evals/facilitation.eval.ts       # Run synthetic facilitation evals
+npx tsx evals/facilitation-real.eval.ts  # Run evals on real production sessions (last 14 days)
+```
+
+Note: No test or lint scripts are configured. TypeScript strict mode provides type safety. Node 18 required (see `.nvmrc`).
 
 ## Git Workflow
 
@@ -77,8 +83,12 @@ src/
 | `/api/user/subscription` | Subscription management |
 | `/api/llama` | LLM query endpoint |
 | `/api/webhook/stripe` | Stripe webhooks (subscriptions, refunds → Discord notifications) |
-| `/api/admin/prompts` | Admin prompt management |
+| `/api/admin/prompts` | Admin prompt management (CRUD) |
+| `/api/admin/prompt-types` | Prompt type management (CRUD) |
 | `/api/admin/evals` | Braintrust experiment results (list + detail) |
+| `/api/participant-suggestion` | Participant suggestions |
+| `/api/sessions/[id]/generate-characters` | Generate conversation character personas |
+| `/api/transcribe` | Audio transcription (Deepgram) |
 
 ### Core Concepts
 
@@ -102,17 +112,20 @@ src/
 
 ### Database
 
-Schema defined in `src/lib/schema.ts`. Key tables:
-- `host_sessions` - Deliberation sessions (prompt, settings, cross_pollination flag)
-- `user_sessions` - Individual participant conversations
-- `messages` - Chat messages per thread
-- `workspaces` - Session containers with visibility settings
-- `permissions` - Role-based access control
-- `prompts` / `prompt_type` - Custom prompt templates
-- `session_files` - Uploaded files (Vercel Blob)
-- `daily_usage` / `usage_limits` - Subscription tracking
+Schema interfaces in `src/lib/schema.ts`, queries in `src/lib/db.ts`. **Actual table names differ from interface names:**
 
-Migrations in `src/db/migrations/` (000-031). Run with `npm run migrate`.
+| Table name | Interface | Purpose |
+|------------|-----------|---------|
+| `host_db` | `HostSessionsTable` | Deliberation sessions (prompt, settings, cross_pollination flag) |
+| `user_db` | `UserSessionsTable` | Individual participant conversations |
+| `messages_db` | `MessagesTable` | Chat messages per thread |
+| `workspaces` | `WorkspacesTable` | Session containers with visibility settings |
+| `permissions` | — | Role-based access control |
+| `prompts` / `prompt_type` | — | Custom prompt templates |
+| `session_files` | — | Uploaded files (Vercel Blob) |
+| `daily_usage` / `usage_limits` | — | Subscription tracking |
+
+Migrations in `src/db/migrations/` (000–031, 32 files). Run with `npm run migrate`.
 
 ### Prompt System
 
@@ -122,6 +135,20 @@ Templates in `src/lib/defaultPrompts.ts`:
 - `PROJECT_SUMMARY_PROMPT` - Multi-session project summary
 
 Retrieval: `getPromptInstructions(typeId)` in `src/lib/promptActions.ts` checks DB first, falls back to defaults.
+
+### Evals
+
+Facilitation quality is measured by 5 LLM-as-judge scorers (defined in `evals/shared/scorers.ts`): relevance, question_quality, goal_alignment, tone, conciseness. Each scores 0.0–1.0 with a reason.
+
+Two eval scripts share these scorers:
+- `evals/facilitation.eval.ts` — 7 synthetic test cases, generates new facilitator responses via the MAIN LLM tier, then judges them. Runs weekly via GitHub Actions (`evals-digest.yml`, Fridays 10 AM UTC).
+- `evals/facilitation-real.eval.ts` — pulls up to 20 real production threads (last 14 days, ≥6 messages) from Neon, judges the actual assistant responses (identity task, no LLM generation). Requires `POSTGRES_URL` in `.env.local`.
+
+Results log to Braintrust under project `harmonica-facilitation` and are viewable at `/admin/evals`.
+
+### Braintrust Integration
+
+`src/lib/braintrust.ts` provides `getBraintrustLogger()` for production LLM call logging and `traceOperation()` for hierarchical spans. Optional — logs a warning if `BRAINTRUST_API_KEY` is not set. The `/api/admin/evals` route queries Braintrust experiments for the admin dashboard.
 
 ## Code Style
 
