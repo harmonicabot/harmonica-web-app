@@ -96,7 +96,7 @@ async function getExperimentDetail(experimentName: string) {
     { input: any; output: string; scores: Record<string, number> }
   >();
 
-  for (const record of records) {
+  for (const record of records as any[]) {
     // Normalize input: handle nested structure from score records
     const input = record.input?.input || record.input;
     const testName = input?.name || `test-${testCaseMap.size}`;
