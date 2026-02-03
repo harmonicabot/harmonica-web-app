@@ -1,8 +1,13 @@
 import * as db from '@/lib/db';
 import { getLLM } from '@/lib/modelConfig';
 import { getSession } from '@auth0/nextjs-auth0';
+import { traceOperation } from './braintrust';
 
 export async function generateSummary(sessionIds: string[], summaryPrompt: string) {
+  return traceOperation(
+    'session_summary',
+    { sessionIds },
+    async ({ operation }) => {
   console.log('[i] Generating summary for sessions:', sessionIds);
   try {
     const session = await getSession();
@@ -127,6 +132,7 @@ ${messagesContent}
         },
       ],
       distinctId,
+      operation,
     });
 
     return response;
@@ -134,4 +140,6 @@ ${messagesContent}
     console.error('[x] LlamaIndex error:', error);
     return `I apologize, but I encountered an error processing your request. ${error}`;
   }
+    },
+  );
 }

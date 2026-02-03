@@ -1,6 +1,7 @@
 import { getLLM } from '@/lib/modelConfig';
 import { getAllChatMessagesInOrder } from '@/lib/db';
 import { NewMessage } from '@/lib/schema';
+import { traceOperation } from './braintrust';
 
 interface AnswerGeneratorConfig {
   threadId: string;
@@ -34,6 +35,10 @@ IMPORTANT: Your responses must be extremely brief, focused, and directly relevan
 export async function generateParticipantAnswer(
   config: AnswerGeneratorConfig,
 ): Promise<NewMessage> {
+  return traceOperation(
+    'participant_suggestion',
+    { threadId: config.threadId },
+    async ({ operation }) => {
   try {
     const { threadId, temperature = 0.7 } = config;
 
@@ -79,6 +84,7 @@ export async function generateParticipantAnswer(
           content: `Here's the conversation so far:\n\n${conversationHistory}\n\nRespond as a creative team member to the most recent message. BE VERY BRIEF (1-2 sentences) and DIRECTLY ADDRESS the content of the last message.`,
         },
       ],
+      operation,
     });
 
     const participantResponse = response
@@ -107,4 +113,6 @@ export async function generateParticipantAnswer(
       created_at: new Date(),
     };
   }
+    },
+  );
 }

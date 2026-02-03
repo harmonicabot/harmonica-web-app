@@ -1,4 +1,5 @@
 import { getLLM } from '../modelConfig';
+import { traceOperation } from '../braintrust';
 
 interface FileAnalysisResult {
   num_participants: number;
@@ -9,6 +10,10 @@ interface FileAnalysisResult {
 export async function analyzeFileContent(
   content: string,
 ): Promise<FileAnalysisResult> {
+  return traceOperation(
+    'file_analysis',
+    {},
+    async ({ operation }) => {
   try {
     // Use MAIN model for better analysis
     const chatEngine = getLLM('MAIN', 0.3);
@@ -38,6 +43,7 @@ ${content.substring(0, 4000)} // Limit content length to avoid token limits
           content: analysisPrompt,
         },
       ],
+      operation,
     });
 
     console.log('[i] Raw analysis response:', response);
@@ -60,4 +66,6 @@ ${content.substring(0, 4000)} // Limit content length to avoid token limits
       key_topics: [],
     };
   }
+    },
+  );
 }

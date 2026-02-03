@@ -80,6 +80,7 @@ async function listAvailableGeminiModels(): Promise<string[]> {
 }
 
 import { getPostHogClient } from './posthog-server';
+import { getBraintrustLogger } from './braintrust';
 
 // A wrapper class that normalizes the chat interface
 // (each LLM's chat & response is unfortunately slightly different,
@@ -99,6 +100,7 @@ export class LLM {
     messages: ChatMessage[];
     distinctId?: string;
     sessionId?: string;
+    operation?: string;
   }): Promise<string> {
     const startTime = Date.now();
     // All LLMs actually accept the same message format, even though they specify it differently.
@@ -126,50 +128,51 @@ export class LLM {
       }
 
       const endTime = Date.now();
+
+      // Extract usage stats if available (structure varies by provider/library version)
+      const rawResponse = response.raw;
+      let inputTokens = 0;
+      let outputTokens = 0;
+
+      // Attempt to parse common usage formats
+      if (rawResponse && typeof rawResponse === 'object') {
+        const raw = rawResponse as any;
+
+        // 1. OpenAI style (often used by LlamaIndex OpenAI provider)
+        // Structure: { usage: { prompt_tokens: 10, completion_tokens: 20, ... } }
+        if (raw.usage) {
+          inputTokens =
+            raw.usage.prompt_tokens || raw.usage.input_tokens || 0;
+          outputTokens =
+            raw.usage.completion_tokens || raw.usage.output_tokens || 0;
+        }
+        // 2. Anthropic style
+        // Structure: { usage: { input_tokens: 10, output_tokens: 20 } }
+        // Note: LlamaIndex might map this to the standard 'usage' object above, but checking raw keys safely
+        else if (
+          raw.input_tokens !== undefined &&
+          raw.output_tokens !== undefined
+        ) {
+          inputTokens = raw.input_tokens;
+          outputTokens = raw.output_tokens;
+        }
+        // 3. Google Gemini style
+        // Structure: { usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 20 } }
+        else if (raw.usageMetadata) {
+          inputTokens = raw.usageMetadata.promptTokenCount || 0;
+          outputTokens = raw.usageMetadata.candidatesTokenCount || 0;
+        }
+      }
+
+      // Map specific internal model names to OpenRouter standard names for PostHog cost calculation
+      // https://openrouter.ai/models
+      let reportedModel = this.model;
+      if (this.model.includes('2_0_FLASH')) {
+        reportedModel = 'google/gemini-2.0-flash-exp';
+      }
+
       const client = getPostHogClient();
       if (client) {
-        // Extract usage stats if available (structure varies by provider/library version)
-        const rawResponse = response.raw;
-        let inputTokens = 0;
-        let outputTokens = 0;
-
-        // Attempt to parse common usage formats
-        if (rawResponse && typeof rawResponse === 'object') {
-          const raw = rawResponse as any;
-
-          // 1. OpenAI style (often used by LlamaIndex OpenAI provider)
-          // Structure: { usage: { prompt_tokens: 10, completion_tokens: 20, ... } }
-          if (raw.usage) {
-            inputTokens =
-              raw.usage.prompt_tokens || raw.usage.input_tokens || 0;
-            outputTokens =
-              raw.usage.completion_tokens || raw.usage.output_tokens || 0;
-          }
-          // 2. Anthropic style
-          // Structure: { usage: { input_tokens: 10, output_tokens: 20 } }
-          // Note: LlamaIndex might map this to the standard 'usage' object above, but checking raw keys safely
-          else if (
-            raw.input_tokens !== undefined &&
-            raw.output_tokens !== undefined
-          ) {
-            inputTokens = raw.input_tokens;
-            outputTokens = raw.output_tokens;
-          }
-          // 3. Google Gemini style
-          // Structure: { usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 20 } }
-          else if (raw.usageMetadata) {
-            inputTokens = raw.usageMetadata.promptTokenCount || 0;
-            outputTokens = raw.usageMetadata.candidatesTokenCount || 0;
-          }
-        }
-
-        // Map specific internal model names to OpenRouter standard names for PostHog cost calculation
-        // https://openrouter.ai/models
-        let reportedModel = this.model;
-        if (this.model.includes('2_0_FLASH')) {
-          reportedModel = 'google/gemini-2.0-flash-exp';
-        }
-
         client.capture({
           distinctId: params.distinctId || 'anonymous_server_user',
           event: '$ai_generation',
@@ -192,6 +195,26 @@ export class LLM {
             $ai_trace_id: crypto.randomUUID(),
             ...(params.sessionId && { session_id: params.sessionId }),
           },
+        });
+      }
+
+      // Braintrust logging
+      const bt = getBraintrustLogger();
+      if (bt) {
+        bt.log({
+          input: params.messages,
+          output: responseString,
+          metadata: {
+            model: this.model,
+            provider: this.provider,
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+            latency_ms: endTime - startTime,
+            operation: params.operation,
+            session_id: params.sessionId,
+            distinct_id: params.distinctId,
+          },
+          tags: [this.provider, ...(params.operation ? [params.operation] : [])],
         });
       }
     } catch (error) {
@@ -241,6 +264,26 @@ export class LLM {
             $ai_trace_id: crypto.randomUUID(),
             ...(params.sessionId && { session_id: params.sessionId }),
           },
+        });
+      }
+
+      // Braintrust error logging
+      const bt = getBraintrustLogger();
+      if (bt) {
+        bt.log({
+          input: params.messages,
+          output: error instanceof Error ? error.message : String(error),
+          metadata: {
+            model: this.model,
+            provider: this.provider,
+            latency_ms: endTime - startTime,
+            operation: params.operation,
+            session_id: params.sessionId,
+            distinct_id: params.distinctId,
+            error: true,
+          },
+          scores: { error: 1 },
+          tags: [this.provider, ...(params.operation ? [params.operation] : [])],
         });
       }
       throw error;
