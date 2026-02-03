@@ -1,0 +1,116 @@
+name: Weekly Evals Digest
+
+on:
+  schedule:
+    - cron: '0 10 * * 5' # Every Friday at 10 AM UTC (1h after analytics digest)
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  run-evals:
+    runs-on: ubuntu-latest
+    env:
+      BRAINTRUST_API_KEY: ${{ secrets.BRAINTRUST_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      MAIN_LLM_MODEL: claude-sonnet-4-20250514
+      MAIN_LLM_PROVIDER: anthropic
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run facilitation evals
+        id: evals
+        run: |
+          # Run evals and capture full output
+          EVAL_OUTPUT=$(npx tsx evals/facilitation.eval.ts 2>&1) || true
+          echo "RAW_OUTPUT<<EOF" >> $GITHUB_OUTPUT
+          echo "$EVAL_OUTPUT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # Extract experiment URL (Braintrust prints it as a URL)
+          EXPERIMENT_URL=$(echo "$EVAL_OUTPUT" | grep -oP 'https://www\.braintrust\.dev/[^\s]+' | tail -1 || echo "")
+          echo "EXPERIMENT_URL=$EXPERIMENT_URL" >> $GITHUB_OUTPUT
+
+          # Parse scores from Braintrust summary table
+          # The Eval() function prints a table with scorer names and average scores
+          SCORES_TABLE=""
+          PARSE_OK="false"
+
+          # Extract lines that look like score rows: "scorer_name  avg_score"
+          SCORE_LINES=$(echo "$EVAL_OUTPUT" | grep -E '^\s*(relevance|question_quality|goal_alignment|tone|conciseness)\s' || echo "")
+
+          if [ -n "$SCORE_LINES" ]; then
+            while IFS= read -r line; do
+              SCORER=$(echo "$line" | awk '{print $1}')
+              SCORE=$(echo "$line" | awk '{for(i=2;i<=NF;i++) if($i ~ /^[0-9]/) {print $i; exit}}')
+
+              if [ -n "$SCORER" ] && [ -n "$SCORE" ]; then
+                # Convert scorer name to title case
+                case "$SCORER" in
+                  relevance)         DISPLAY_NAME="Relevance" ;;
+                  question_quality)  DISPLAY_NAME="Question Quality" ;;
+                  goal_alignment)    DISPLAY_NAME="Goal Alignment" ;;
+                  tone)              DISPLAY_NAME="Tone" ;;
+                  conciseness)       DISPLAY_NAME="Conciseness" ;;
+                  *)                 DISPLAY_NAME="$SCORER" ;;
+                esac
+
+                # Convert decimal to percentage
+                PCT=$(echo "$SCORE" | awk '{printf "%.0f%%", $1 * 100}')
+                SCORES_TABLE="${SCORES_TABLE}| ${DISPLAY_NAME} | ${PCT} |\n"
+                PARSE_OK="true"
+              fi
+            done <<< "$SCORE_LINES"
+          fi
+
+          echo "PARSE_OK=$PARSE_OK" >> $GITHUB_OUTPUT
+          echo "SCORES_TABLE<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$SCORES_TABLE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Post to Discord
+        run: |
+          DATE=$(date -u +"%A, %b %-d, %Y")
+
+          if [ "${{ steps.evals.outputs.PARSE_OK }}" = "true" ]; then
+            # Formatted scores table
+            BODY="**Harmonica Facilitation Evals**
+          _${DATE}_
+
+          | Scorer | Score |
+          |--------|-------|
+          ${{ steps.evals.outputs.SCORES_TABLE }}"
+          else
+            # Fallback: post raw output
+            # Truncate to fit Discord's 2000 char limit
+            RAW=$(echo "${{ steps.evals.outputs.RAW_OUTPUT }}" | tail -40)
+            BODY="**Harmonica Facilitation Evals**
+          _${DATE}_
+
+          Could not parse scores. Raw output:
+          \`\`\`
+          ${RAW}
+          \`\`\`"
+          fi
+
+          # Append Braintrust link if available
+          if [ -n "${{ steps.evals.outputs.EXPERIMENT_URL }}" ]; then
+            BODY="${BODY}
+          [View in Braintrust](<${{ steps.evals.outputs.EXPERIMENT_URL }}>)"
+          fi
+
+          # Post to Discord
+          jq -n --arg content "$BODY" \
+            '{"username": "Harmonica Evals", "content": $content}' | \
+            curl -s -X POST "${{ secrets.DISCORD_ANALYTICS_WEBHOOK_URL }}" \
+              -H "Content-Type: application/json" \
+              -d @-
