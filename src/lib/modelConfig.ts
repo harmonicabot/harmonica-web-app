@@ -200,29 +200,34 @@ export class LLM {
       }
 
       // Braintrust logging — use span.log() when inside a traced span,
-      // fall back to top-level logger.log() otherwise
-      const btLogData = {
-        input: params.messages,
-        output: responseString,
-        metadata: {
-          model: this.model,
-          provider: this.provider,
-          input_tokens: inputTokens,
-          output_tokens: outputTokens,
-          latency_ms: endTime - startTime,
-          operation: params.operation,
-          session_id: params.sessionId,
-          distinct_id: params.distinctId,
-        },
-        tags: [this.provider, ...(params.operation ? [params.operation] : [])],
-      };
-      if (params.span) {
-        params.span.log(btLogData);
-      } else {
-        const bt = getBraintrustLogger();
-        if (bt) {
-          bt.log(btLogData);
+      // fall back to top-level logger.log() otherwise.
+      // Wrapped in try/catch: observability must never break the response.
+      try {
+        const btLogData = {
+          input: params.messages,
+          output: responseString,
+          metadata: {
+            model: this.model,
+            provider: this.provider,
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+            latency_ms: endTime - startTime,
+            operation: params.operation,
+            session_id: params.sessionId,
+            distinct_id: params.distinctId,
+          },
+          tags: [this.provider, ...(params.operation ? [params.operation] : [])],
+        };
+        if (params.span) {
+          params.span.log(btLogData);
+        } else {
+          const bt = getBraintrustLogger();
+          if (bt) {
+            bt.log(btLogData);
+          }
         }
+      } catch (btError) {
+        console.error('[Braintrust] logging failed (non-fatal):', btError);
       }
     } catch (error) {
       console.error('Error in LLM chat:', error);
@@ -274,29 +279,34 @@ export class LLM {
         });
       }
 
-      // Braintrust error logging — use span.log() when inside a traced span
-      const btErrorData = {
-        input: params.messages,
-        output: error instanceof Error ? error.message : String(error),
-        metadata: {
-          model: this.model,
-          provider: this.provider,
-          latency_ms: endTime - startTime,
-          operation: params.operation,
-          session_id: params.sessionId,
-          distinct_id: params.distinctId,
-          error: true,
-        },
-        scores: { error: 1 },
-        tags: [this.provider, ...(params.operation ? [params.operation] : [])],
-      };
-      if (params.span) {
-        params.span.log(btErrorData);
-      } else {
-        const bt = getBraintrustLogger();
-        if (bt) {
-          bt.log(btErrorData);
+      // Braintrust error logging — use span.log() when inside a traced span.
+      // Wrapped in try/catch: observability must never mask the original error.
+      try {
+        const btErrorData = {
+          input: params.messages,
+          output: error instanceof Error ? error.message : String(error),
+          metadata: {
+            model: this.model,
+            provider: this.provider,
+            latency_ms: endTime - startTime,
+            operation: params.operation,
+            session_id: params.sessionId,
+            distinct_id: params.distinctId,
+            error: true,
+          },
+          scores: { error: 1 },
+          tags: [this.provider, ...(params.operation ? [params.operation] : [])],
+        };
+        if (params.span) {
+          params.span.log(btErrorData);
+        } else {
+          const bt = getBraintrustLogger();
+          if (bt) {
+            bt.log(btErrorData);
+          }
         }
+      } catch (btError) {
+        console.error('[Braintrust] error logging failed (non-fatal):', btError);
       }
       throw error;
     }
