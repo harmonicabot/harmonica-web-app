@@ -18,6 +18,7 @@
   <a href="https://harmonica.chat">Website</a> •
   <a href="#features">Features</a> •
   <a href="#quick-start">Quick Start</a> •
+  <a href="#changelog">Changelog</a> •
   <a href="#contributing">Contributing</a>
 </p>
 
@@ -157,7 +158,7 @@ Harmonica is developed in collaboration with the governance research community:
   </tr>
 </table>
 
-See also: [Open Facilitation Library](https://github.com/Open-Facilitation-Library) — our sister project developing reusable facilitation patterns, also part of Metagov Interop.
+See also: [Open Facilitation Library](http://wiki.openfac.org/) — our sister project developing reusable facilitation patterns, also part of Metagov Interop.
 
 ## Project Structure
 
@@ -175,6 +176,17 @@ src/
 │   └── crossPollination.ts
 └── db/migrations/       # Database migrations
 ```
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a full list of changes.
+
+Recent highlights:
+
+- **Braintrust LLM observability** — tracing across 10 operations with token usage, latency, and cost tracking
+- **Facilitation evals** — LLM-as-judge scoring (relevance, question quality, goal alignment, tone, conciseness) on both synthetic and real production sessions
+- **Evals admin dashboard** — score cards and per-test-case breakdown at `/admin/evals`
+- **Weekly automated digests** — analytics and evals results posted to Discord every Friday
 
 ## Contributing
 
