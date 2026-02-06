@@ -12,9 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Per-session LLM analytics — `session_id` threaded into PostHog `$ai_generation` events for per-session cost and latency tracking
 - Weekly analytics digest GitHub Actions workflow (PostHog → Discord every Friday at 9 AM UTC)
+- Braintrust tracing for LLM observability — logs inputs, outputs, token usage, and latency across 10 operations (chat facilitation, session builder, RAG query, cross-pollination, summary, etc.)
+- Evals admin dashboard at `/admin/evals` with score cards and per-test-case breakdown
+- Real-session evals — pulls recent production threads and judges actual facilitator responses (5 LLM-as-judge scorers)
+- Weekly evals cron workflow posting facilitation scores to Discord (Fridays 10 AM UTC)
+
+### Changed
+- License switched from Apache 2.0 to AGPL-3.0
 
 ### Fixed
 - Summary generation timeout
+- Observability never crashes participant responses — all Braintrust logging wrapped in try/catch
+- Braintrust span context correctly passed to `LLM.chat()` inside traced operations
+- Evals dashboard crash from nested Braintrust record structure
 
 ## [0.2.0] - 2026-01-29
 
