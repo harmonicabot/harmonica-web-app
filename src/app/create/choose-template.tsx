@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import templates from '@/lib/templates.json';
 import { SessionBuilderData } from '@/lib/types';
 import {
   Lightbulb,
@@ -19,6 +18,8 @@ import {
   ShieldAlert,
   Sparkles,
   Leaf,
+  Map,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,18 @@ const iconMap = {
   'shield-alert': ShieldAlert,
   sparkles: Sparkles,
   leaf: Leaf,
+  map: Map,
 } as const;
+
+interface DbTemplate {
+  id: string;
+  title: string;
+  description: string | null;
+  icon: string | null;
+  facilitation_prompt: string | null;
+  default_session_name: string | null;
+  is_public: boolean;
+}
 
 interface ChooseTemplateProps {
   onTemplateSelect: (templateDefaults: Partial<SessionBuilderData>, templateId?: string) => void;
@@ -49,6 +61,24 @@ export default function ChooseTemplate({
 }: ChooseTemplateProps) {
   const [objective, setObjective] = useState('');
   const [error, setError] = useState('');
+  const [templates, setTemplates] = useState<DbTemplate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchTemplates() {
+      try {
+        const res = await fetch('/api/admin/templates');
+        if (!res.ok) throw new Error('Failed to fetch templates');
+        const data = await res.json();
+        setTemplates(data);
+      } catch (err) {
+        console.error('Failed to load templates:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchTemplates();
+  }, []);
 
   const handleGenerateClick = () => {
     if (!objective.trim()) {
@@ -60,6 +90,20 @@ export default function ChooseTemplate({
     onTemplateSelect({
       goal: objective,
     });
+    onNext();
+  };
+
+  const handleTemplateSelect = (template: DbTemplate) => {
+    const defaults: Partial<SessionBuilderData> = {};
+
+    if (template.default_session_name) {
+      defaults.sessionName = template.default_session_name;
+    }
+    if (template.facilitation_prompt) {
+      defaults.goal = template.facilitation_prompt;
+    }
+
+    onTemplateSelect(defaults, template.id);
     onNext();
   };
 
@@ -106,7 +150,7 @@ export default function ChooseTemplate({
               <li>Some context about your session</li>
               <li>What you want to know about users</li>
             </ol>
-            <p className="text-sm text-muted-foreground">We’ll brief our AI-facilitator and you can send.</p>
+            <p className="text-sm text-muted-foreground">We'll brief our AI-facilitator and you can send.</p>
           </div>
           <div className="flex justify-between mt-4">
             <span className="text-sm text-muted-foreground">Still need help?</span>
@@ -116,36 +160,39 @@ export default function ChooseTemplate({
       </div>
 
       <h4 className="text-xl font-semibold">Or Select Template</h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {templates.templates.map((template) => {
-          const Icon =
-            iconMap[template.icon as keyof typeof iconMap] ?? Lightbulb;
-          return (
-            <Card key={template.id} className="flex flex-col">
-              <CardHeader>
-                <Icon className="w-6 h-6 mb-2" strokeWidth={1.5} />
-                <CardTitle className="text-xl">{template.title}</CardTitle>
-                <CardDescription className="text-sm text-muted-foreground">
-                  {template.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-end mt-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    onTemplateSelect(template.defaults, template.id);
-                    onNext();
-                  }}
-                  className="flex"
-                >
-                  Use Template
-                </Button>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {templates.map((template) => {
+            const Icon =
+              iconMap[template.icon as keyof typeof iconMap] ?? Lightbulb;
+            return (
+              <Card key={template.id} className="flex flex-col">
+                <CardHeader>
+                  <Icon className="w-6 h-6 mb-2" strokeWidth={1.5} />
+                  <CardTitle className="text-xl">{template.title}</CardTitle>
+                  <CardDescription className="text-sm text-muted-foreground">
+                    {template.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-end mt-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTemplateSelect(template)}
+                    className="flex"
+                  >
+                    Use Template
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

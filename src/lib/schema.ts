@@ -214,6 +214,24 @@ export type SessionRating = Selectable<SessionRatingsTable>;
 export type NewSessionRating = Insertable<SessionRatingsTable>;
 export type SessionRatingUpdate = Updateable<SessionRatingsTable>;
 
+export interface TemplatesTable {
+  id: string;
+  title: string;
+  description: string | null;
+  icon: string | null;
+  facilitation_prompt: string | null;
+  default_session_name: string | null;
+  created_by: string | null;
+  workspace_id: string | null;
+  is_public: boolean;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type Template = Selectable<TemplatesTable>;
+export type NewTemplate = Insertable<TemplatesTable>;
+export type TemplateUpdate = Updateable<TemplatesTable>;
+
 export async function createDbInstance<T extends Record<string, any>>() {
   try {
     const url = process.env.POSTGRES_URL;
