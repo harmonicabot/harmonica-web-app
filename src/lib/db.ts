@@ -28,6 +28,7 @@ const usersTableName = 'users';
 const promptsTableName = 'prompts';
 const promptTypesTableName = 'prompt_type';
 const sessionRatingsTableName = 'session_ratings';
+const templatesTableName = 'templates';
 
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
@@ -43,6 +44,7 @@ interface Databases {
   [promptTypesTableName]: s.PromptTypesTable;
   session_files: s.SessionFilesTable;
   [sessionRatingsTableName]: s.SessionRatingsTable;
+  [templatesTableName]: s.TemplatesTable;
 }
 
 const dbPromise = (async () => {
@@ -1753,5 +1755,109 @@ export async function updateThreadRating(
   } catch (error) {
     console.error('Error updating thread rating:', error);
     return null;
+  }
+}
+
+// ==================== Templates ====================
+
+export async function getTemplates(
+  workspaceId?: string,
+): Promise<s.Template[]> {
+  console.log('[i] Database Operation: getTemplates');
+  try {
+    const db = await dbPromise;
+    let query = db
+      .selectFrom(templatesTableName)
+      .selectAll()
+      .orderBy('created_at', 'desc');
+
+    if (workspaceId) {
+      query = query.where((eb) =>
+        eb.or([
+          eb('is_public', '=', true),
+          eb('workspace_id', '=', workspaceId),
+        ]),
+      );
+    }
+
+    return await query.execute();
+  } catch (error) {
+    console.error('Error getting templates:', error);
+    throw error;
+  }
+}
+
+export async function getTemplateById(
+  id: string,
+): Promise<s.Template | null> {
+  console.log('[i] Database Operation: getTemplateById');
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom(templatesTableName)
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error getting template by id:', error);
+    throw error;
+  }
+}
+
+export async function createTemplate(
+  data: s.NewTemplate,
+): Promise<s.Template> {
+  console.log('[i] Database Operation: createTemplate');
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .insertInto(templatesTableName)
+      .values(data)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return result;
+  } catch (error) {
+    console.error('Error creating template:', error);
+    throw error;
+  }
+}
+
+export async function updateTemplate(
+  id: string,
+  data: s.TemplateUpdate,
+): Promise<s.Template | null> {
+  console.log('[i] Database Operation: updateTemplate');
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .updateTable(templatesTableName)
+      .set(data)
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirst();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error updating template:', error);
+    throw error;
+  }
+}
+
+export async function deleteTemplate(id: string): Promise<boolean> {
+  console.log('[i] Database Operation: deleteTemplate');
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .deleteFrom(templatesTableName)
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    return Number(result?.numDeletedRows ?? 0) > 0;
+  } catch (error) {
+    console.error('Error deleting template:', error);
+    throw error;
   }
 }

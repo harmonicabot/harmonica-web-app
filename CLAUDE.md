@@ -150,6 +150,10 @@ Results log to Braintrust under project `harmonica-facilitation` and are viewabl
 
 `src/lib/braintrust.ts` provides `getBraintrustLogger()` for production LLM call logging and `traceOperation()` for hierarchical spans. Optional — logs a warning if `BRAINTRUST_API_KEY` is not set. The `/api/admin/evals` route queries Braintrust experiments for the admin dashboard.
 
+**Observability safety rule:** All observability code (Braintrust, PostHog) in `LLM.chat()` is wrapped in its own try/catch. Observability must never crash a participant's response. If logging fails, warn to console and move on. When adding new tracing or analytics to the LLM path, always wrap in a non-fatal try/catch.
+
+**Span context:** `traceOperation()` passes a `Span` object to its callback via `{ operation, span }`. When calling `LLM.chat()` inside a `traceOperation` callback, always pass `span` through so the SDK uses `span.log()` instead of the top-level `logger.log()` (which throws inside spans).
+
 ## Code Style
 
 - Prefer React Server Components; minimize `'use client'`
