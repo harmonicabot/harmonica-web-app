@@ -18,7 +18,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, description, icon, facilitation_prompt, default_session_name } = body;
+    const { title, description, icon, facilitation_prompt, default_session_name, template_type, chain_config } = body;
 
     if (!title) {
       return NextResponse.json(
@@ -37,6 +37,8 @@ export async function POST(request: Request) {
       created_by: null,
       workspace_id: null,
       is_public: true,
+      template_type: template_type || 'single',
+      chain_config: chain_config ? JSON.stringify(chain_config) : null,
     });
 
     return NextResponse.json(template);

@@ -224,6 +224,8 @@ export interface TemplatesTable {
   created_by: string | null;
   workspace_id: string | null;
   is_public: boolean;
+  template_type: Generated<string>;
+  chain_config: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

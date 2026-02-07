@@ -8,7 +8,7 @@ export async function PUT(
   try {
     const { id } = params;
     const body = await request.json();
-    const { title, description, icon, facilitation_prompt, default_session_name } = body;
+    const { title, description, icon, facilitation_prompt, default_session_name, template_type, chain_config } = body;
 
     const updated = await db.updateTemplate(id, {
       title,
@@ -16,6 +16,8 @@ export async function PUT(
       icon: icon || null,
       facilitation_prompt: facilitation_prompt || null,
       default_session_name: default_session_name || null,
+      template_type: template_type || 'single',
+      chain_config: chain_config ? JSON.stringify(chain_config) : null,
     });
 
     if (!updated) {
