@@ -1,0 +1,491 @@
+openapi: 3.1.0
+info:
+  title: Harmonica API
+  version: 1.0.0
+  description: |
+    REST API for the Harmonica structured deliberation platform.
+    Provides read access to sessions and their data, plus response submission for active sessions.
+  contact:
+    name: Harmonica
+    url: https://harmonica.chat
+
+servers:
+  - url: https://app.harmonica.chat/api/v1
+    description: Production
+  - url: http://localhost:3000/api/v1
+    description: Local development
+
+security:
+  - apiKey: []
+
+components:
+  securitySchemes:
+    apiKey:
+      type: http
+      scheme: bearer
+      description: |
+        API key authentication. Pass your key as a Bearer token.
+        Keys use the format `hm_live_<32 hex chars>`.
+        Generate keys from your Harmonica dashboard settings.
+
+  schemas:
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        topic:
+          type: string
+        goal:
+          type: string
+        critical:
+          type: string
+          nullable: true
+        context:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, completed]
+        summary:
+          type: string
+          nullable: true
+        participant_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, topic, goal, status, participant_count, created_at, updated_at]
+
+    SessionListItem:
+      type: object
+      description: Abbreviated session object returned in list endpoints.
+      properties:
+        id:
+          type: string
+          format: uuid
+        topic:
+          type: string
+        goal:
+          type: string
+        status:
+          type: string
+          enum: [active, completed]
+        participant_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, topic, goal, status, participant_count, created_at, updated_at]
+
+    Question:
+      type: object
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        position:
+          type: integer
+      required: [id, text, position]
+
+    Participant:
+      type: object
+      properties:
+        participant_name:
+          type: string
+          nullable: true
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+      required: [participant_name, messages]
+
+    Message:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [role, content, created_at]
+
+    ResponseSubmission:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 10000
+      required: [content]
+
+    ResponseCreated:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [id, session_id, content, created_at]
+
+    UserInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        subscription_status:
+          type: string
+          enum: [FREE, PRO, ENTERPRISE]
+        api_key:
+          type: object
+          properties:
+            name:
+              type: string
+              nullable: true
+            key_prefix:
+              type: string
+            created_at:
+              type: string
+              format: date-time
+            last_used_at:
+              type: string
+              format: date-time
+              nullable: true
+      required: [id, email, subscription_status, api_key]
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [total, limit, offset]
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - unauthorized
+                - forbidden
+                - not_found
+                - validation_error
+                - rate_limited
+                - internal_error
+            message:
+              type: string
+          required: [code, message]
+      required: [error]
+
+  parameters:
+    sessionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Session ID
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: unauthorized
+              message: Invalid or missing API key
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: forbidden
+              message: You don't have access to this session
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: not_found
+              message: Session not found
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds to wait before retrying
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: rate_limited
+              message: Rate limit exceeded. Try again in 30 seconds.
+
+paths:
+  /me:
+    get:
+      summary: Get current user
+      description: Returns user info and API key metadata for the authenticated user.
+      operationId: getMe
+      tags: [Account]
+      responses:
+        '200':
+          description: User info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /sessions:
+    get:
+      summary: List sessions
+      description: |
+        Returns sessions the authenticated user has access to (owns or participates in).
+        Results are ordered by most recently updated first.
+      operationId: listSessions
+      tags: [Sessions]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, completed]
+          description: Filter by session status
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search sessions by topic or goal
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Number of results per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SessionListItem'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                required: [data, pagination]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /sessions/{id}:
+    get:
+      summary: Get session
+      description: Returns full details of a session the user has access to.
+      operationId: getSession
+      tags: [Sessions]
+      parameters:
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sessions/{id}/questions:
+    get:
+      summary: Get session questions
+      description: Returns the facilitation questions/prompts for a session.
+      operationId: getSessionQuestions
+      tags: [Sessions]
+      parameters:
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '200':
+          description: Session questions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Question'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sessions/{id}/responses:
+    get:
+      summary: Get session responses
+      description: |
+        Returns all participant responses for a session, grouped by participant.
+        Each participant's conversation thread includes both user messages and assistant (facilitator) messages.
+      operationId: getSessionResponses
+      tags: [Sessions]
+      parameters:
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '200':
+          description: Participant responses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Participant'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      summary: Submit a response
+      description: |
+        Submit a response to an active session as the authenticated user.
+        The session must be active and the user must have at least editor access.
+      operationId: submitResponse
+      tags: [Sessions]
+      parameters:
+        - $ref: '#/components/parameters/sessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResponseSubmission'
+      responses:
+        '201':
+          description: Response submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseCreated'
+        '400':
+          description: Validation error (empty content, session not active)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: validation_error
+                  message: Session is not active
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sessions/{id}/summary:
+    get:
+      summary: Get session summary
+      description: |
+        Returns the AI-generated summary for a completed session.
+        Returns null summary if the session hasn't been summarized yet.
+      operationId: getSessionSummary
+      tags: [Sessions]
+      parameters:
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '200':
+          description: Session summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id:
+                    type: string
+                    format: uuid
+                  summary:
+                    type: string
+                    nullable: true
+                  generated_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                required: [session_id, summary]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'

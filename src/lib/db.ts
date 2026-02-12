@@ -5,7 +5,7 @@ import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
 import { ResultTabsVisibilityConfig } from './schema';
 import { sql } from 'kysely';
-import { Role } from './permissions';
+import { Role } from './roles';
 import { cache } from 'react';
 import { SubscriptionTier } from './schema';
 
@@ -118,6 +118,58 @@ export async function getHostSessionsForIds(
     return result;
   } catch (error) {
     console.error('Error in getHostSessionsForIds:', error);
+    throw error;
+  }
+}
+
+export async function listSessionsForUser(
+  sessionIds: string[],
+  options: {
+    status?: 'active' | 'completed';
+    search?: string;
+    limit: number;
+    offset: number;
+  },
+): Promise<{ sessions: s.HostSession[]; total: number }> {
+  if (!sessionIds.length) return { sessions: [], total: 0 };
+  const db = await dbPromise;
+
+  try {
+    let baseQuery = db
+      .selectFrom(hostTableName)
+      .where('id', 'in', sessionIds);
+
+    if (options.status === 'active') {
+      baseQuery = baseQuery.where('active', '=', true);
+    } else if (options.status === 'completed') {
+      baseQuery = baseQuery.where('active', '=', false);
+    }
+
+    if (options.search) {
+      const searchTerm = `%${options.search}%`;
+      baseQuery = baseQuery.where((eb) =>
+        eb.or([
+          eb('topic', 'ilike', searchTerm),
+          eb('goal', 'ilike', searchTerm),
+        ]),
+      );
+    }
+
+    const countResult = await baseQuery
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .executeTakeFirst();
+    const total = Number(countResult?.count ?? 0);
+
+    const sessions = await baseQuery
+      .selectAll()
+      .orderBy('last_edit', 'desc')
+      .limit(options.limit)
+      .offset(options.offset)
+      .execute();
+
+    return { sessions, total };
+  } catch (error) {
+    console.error('Error in listSessionsForUser:', error);
     throw error;
   }
 }
@@ -271,6 +323,24 @@ export async function getUsersBySessionId(
     else return await query.selectAll().execute();
   } catch (error) {
     console.error('Error getting user session by ID:', error);
+    throw error;
+  }
+}
+
+export async function getUserSessionByUserAndSession(
+  sessionId: string,
+  userId: string,
+): Promise<s.UserSession | undefined> {
+  const db = await dbPromise;
+  try {
+    return await db
+      .selectFrom(userTableName)
+      .selectAll()
+      .where('session_id', '=', sessionId)
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+  } catch (error) {
+    console.error('Error in getUserSessionByUserAndSession:', error);
     throw error;
   }
 }
