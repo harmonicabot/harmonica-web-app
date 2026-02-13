@@ -214,6 +214,20 @@ export type SessionRating = Selectable<SessionRatingsTable>;
 export type NewSessionRating = Insertable<SessionRatingsTable>;
 export type SessionRatingUpdate = Updateable<SessionRatingsTable>;
 
+export interface ApiKeysTable {
+  id: Generated<string>;
+  user_id: string;
+  key_hash: string;
+  key_prefix: string;
+  name: string | null;
+  last_used_at: ColumnType<Date | null, Date | null, Date | null>;
+  created_at: Generated<Date>;
+  revoked_at: ColumnType<Date | null, Date | null, Date | null>;
+}
+
+export type ApiKey = Selectable<ApiKeysTable>;
+export type NewApiKey = Insertable<ApiKeysTable>;
+
 export async function createDbInstance<T extends Record<string, any>>() {
   try {
     const url = process.env.POSTGRES_URL;

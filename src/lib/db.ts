@@ -28,6 +28,7 @@ const usersTableName = 'users';
 const promptsTableName = 'prompts';
 const promptTypesTableName = 'prompt_type';
 const sessionRatingsTableName = 'session_ratings';
+const apiKeysTableName = 'api_keys';
 
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
@@ -43,6 +44,7 @@ interface Databases {
   [promptTypesTableName]: s.PromptTypesTable;
   session_files: s.SessionFilesTable;
   [sessionRatingsTableName]: s.SessionRatingsTable;
+  [apiKeysTableName]: s.ApiKeysTable;
 }
 
 const dbPromise = (async () => {
@@ -1823,5 +1825,92 @@ export async function updateThreadRating(
   } catch (error) {
     console.error('Error updating thread rating:', error);
     return null;
+  }
+}
+
+// ─── API Keys ────────────────────────────────────────────────────────
+
+export async function getApiKeyByHash(
+  keyHash: string,
+): Promise<s.ApiKey | null> {
+  const db = await dbPromise;
+  try {
+    const result = await db
+      .selectFrom(apiKeysTableName)
+      .selectAll()
+      .where('key_hash', '=', keyHash)
+      .where('revoked_at', 'is', null)
+      .executeTakeFirst();
+    return result || null;
+  } catch (error) {
+    console.error('Error in getApiKeyByHash:', error);
+    return null;
+  }
+}
+
+export async function createApiKey(
+  data: s.NewApiKey,
+): Promise<s.ApiKey> {
+  const db = await dbPromise;
+  const result = await db
+    .insertInto(apiKeysTableName)
+    .values(data)
+    .returningAll()
+    .executeTakeFirstOrThrow();
+  return result;
+}
+
+export async function getApiKeysForUser(
+  userId: string,
+): Promise<s.ApiKey[]> {
+  const db = await dbPromise;
+  try {
+    return await db
+      .selectFrom(apiKeysTableName)
+      .selectAll()
+      .where('user_id', '=', userId)
+      .where('revoked_at', 'is', null)
+      .orderBy('created_at', 'desc')
+      .execute();
+  } catch (error) {
+    console.error('Error in getApiKeysForUser:', error);
+    return [];
+  }
+}
+
+export async function revokeApiKey(
+  keyId: string,
+  userId: string,
+): Promise<boolean> {
+  const db = await dbPromise;
+  try {
+    const result = await db
+      .updateTable(apiKeysTableName)
+      .set({ revoked_at: new Date() })
+      .where('id', '=', keyId)
+      .where('user_id', '=', userId)
+      .where('revoked_at', 'is', null)
+      .executeTakeFirst();
+    return Number(result?.numUpdatedRows ?? 0) > 0;
+  } catch (error) {
+    console.error('Error in revokeApiKey:', error);
+    return false;
+  }
+}
+
+export async function updateApiKeyLastUsed(
+  keyHash: string,
+): Promise<void> {
+  const db = await dbPromise;
+  try {
+    await db
+      .updateTable(apiKeysTableName)
+      .set({ last_used_at: new Date() })
+      .where('key_hash', '=', keyHash)
+      .where('revoked_at', 'is', null)
+      .execute();
+  } catch (error) {
+    // Non-critical — don't throw
+    console.error('Error in updateApiKeyLastUsed:', error);
   }
 }
