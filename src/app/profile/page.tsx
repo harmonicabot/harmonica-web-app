@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoaderCircle } from 'lucide-react';
 import { fetchUserData, deleteUserData, deleteUserAccount } from './actions';
 import { useRouter } from 'next/navigation';
+import ApiKeysTab from './ApiKeysTab';
 
 export default function Profile() {
   const { user, error: userError, isLoading: userLoading } = useUser();
@@ -191,6 +192,7 @@ export default function Profile() {
         <TabsList className="mb-4">
           <TabsTrigger value="account">Account Information</TabsTrigger>
           <TabsTrigger value="data">Your Data</TabsTrigger>
+          <TabsTrigger value="api-keys">API Keys</TabsTrigger>
         </TabsList>
 
         <TabsContent value="account">
@@ -334,6 +336,9 @@ export default function Profile() {
               </p>
             </CardFooter>
           </Card>
+        </TabsContent>
+        <TabsContent value="api-keys">
+          <ApiKeysTab />
         </TabsContent>
       </Tabs>
     </div>
