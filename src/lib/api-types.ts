@@ -27,6 +27,21 @@ export interface Session extends SessionListItem {
   summary: string | null;
 }
 
+export interface CreateSessionRequest {
+  topic: string;
+  goal: string;
+  context?: string;
+  critical?: string;
+  prompt?: string;
+  template_id?: string;
+  questions?: Array<{ label: string }>;
+  cross_pollination?: boolean;
+}
+
+export interface SessionCreated extends SessionListItem {
+  join_url: string;
+}
+
 // ─── Questions ───────────────────────────────────────────────────────
 
 export interface Question {

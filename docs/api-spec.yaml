@@ -188,6 +188,71 @@ components:
           type: integer
       required: [total, limit, offset]
 
+    CreateSessionRequest:
+      type: object
+      description: Request body for creating a new session.
+      properties:
+        topic:
+          type: string
+          description: Session topic / title
+        goal:
+          type: string
+          description: What the session aims to achieve
+        context:
+          type: string
+          description: Background context for participants (e.g. SESSION.md from a prior session)
+        critical:
+          type: string
+          description: Critical question or constraint
+        prompt:
+          type: string
+          description: Custom facilitation prompt. If omitted, a default facilitation prompt is used.
+        template_id:
+          type: string
+          description: ID of a template to use
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+            required: [label]
+          description: Pre-session questions shown to participants before they join
+        cross_pollination:
+          type: boolean
+          default: false
+          description: Enable cross-pollination of ideas between participant threads
+      required: [topic, goal]
+
+    SessionCreated:
+      type: object
+      description: Session object returned after creation. Extends SessionListItem with a join URL.
+      properties:
+        id:
+          type: string
+          format: uuid
+        topic:
+          type: string
+        goal:
+          type: string
+        status:
+          type: string
+          enum: [active]
+        participant_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        join_url:
+          type: string
+          format: uri
+          description: Direct URL for participants to join the session
+      required: [id, topic, goal, status, participant_count, created_at, updated_at, join_url]
+
     Error:
       type: object
       properties:
@@ -283,6 +348,39 @@ paths:
           $ref: '#/components/responses/Unauthorized'
 
   /sessions:
+    post:
+      summary: Create session
+      description: |
+        Creates a new deliberation session owned by the authenticated user.
+        If `prompt` is omitted, a default facilitation prompt is used.
+        Returns the created session with a `join_url` for sharing with participants.
+      operationId: createSession
+      tags: [Sessions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionCreated'
+        '400':
+          description: Validation error (missing required fields)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: validation_error
+                  message: topic is required
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     get:
       summary: List sessions
       description: |
