@@ -2,11 +2,16 @@
 
 // For preview deploys, derive AUTH0_BASE_URL from the stable branch URL
 // so Auth0 callbacks work without per-branch env var configuration
-if (!process.env.AUTH0_BASE_URL && process.env.VERCEL_BRANCH_URL) {
-  process.env.AUTH0_BASE_URL = `https://${process.env.VERCEL_BRANCH_URL}`;
-}
+const auth0BaseUrl =
+  process.env.AUTH0_BASE_URL ||
+  (process.env.VERCEL_BRANCH_URL
+    ? `https://${process.env.VERCEL_BRANCH_URL}`
+    : undefined);
 
 const nextConfig = {
+  // Inline AUTH0_BASE_URL at build time so it's available in all runtimes
+  // (edge middleware + serverless functions)
+  ...(auth0BaseUrl ? { env: { AUTH0_BASE_URL: auth0BaseUrl } } : {}),
   async headers() {
     return [
       {
