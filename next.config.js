@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
+  serverExternalPackages: ['braintrust'],
   async headers() {
     return [
       {
