@@ -15,7 +15,7 @@ async function migrate() {
   }
 
   // Damn. At least when running locally on my machine, the .env variables are somehow cached; and not loaded reliably
-  console.log(`Using connection `, process.env.POSTGRES_URL);
+  console.log('Using connection:', process.env.POSTGRES_URL ? 'configured' : 'MISSING POSTGRES_URL');
 
   await askToProceed();
 

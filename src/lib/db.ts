@@ -47,7 +47,7 @@ interface Databases {
 
 const dbPromise = (async () => {
   const url = process.env.POSTGRES_URL;
-  console.log('Using database url: ', url);
+  console.log('Database connected:', url ? 'configured' : 'MISSING POSTGRES_URL');
   const db = await s.createDbInstance<Databases>();
   return db;
 })();
