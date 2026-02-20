@@ -176,6 +176,51 @@ export async function listSessionsForUser(
   }
 }
 
+export async function listPublicSessions(options: {
+  search?: string;
+  limit: number;
+  offset: number;
+}): Promise<{ sessions: s.HostSession[]; total: number }> {
+  const db = await dbPromise;
+
+  try {
+    // Find active sessions that hosts have marked as public
+    let baseQuery = db
+      .selectFrom(hostTableName)
+      .innerJoin('permissions', 'permissions.resource_id', `${hostTableName}.id`)
+      .where('permissions.user_id', '=', 'public')
+      .where('permissions.resource_type', '=', 'SESSION')
+      .where(`${hostTableName}.active`, '=', true);
+
+    if (options.search) {
+      const searchTerm = `%${options.search}%`;
+      baseQuery = baseQuery.where((eb) =>
+        eb.or([
+          eb(`${hostTableName}.topic`, 'ilike', searchTerm),
+          eb(`${hostTableName}.goal`, 'ilike', searchTerm),
+        ]),
+      );
+    }
+
+    const countResult = await baseQuery
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .executeTakeFirst();
+    const total = Number(countResult?.count ?? 0);
+
+    const sessions = await baseQuery
+      .selectAll(hostTableName)
+      .orderBy(`${hostTableName}.last_edit`, 'desc')
+      .limit(options.limit)
+      .offset(options.offset)
+      .execute();
+
+    return { sessions, total };
+  } catch (error) {
+    console.error('Error in listPublicSessions:', error);
+    throw error;
+  }
+}
+
 export async function getHostSessionById(
   sessionId: string,
 ): Promise<s.HostSession> {

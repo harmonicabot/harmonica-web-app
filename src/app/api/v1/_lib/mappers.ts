@@ -1,5 +1,5 @@
 import type { HostSession } from '@/lib/schema';
-import type { Session, SessionListItem } from '@/lib/api-types';
+import type { Session, SessionListItem, PublicSessionListItem } from '@/lib/api-types';
 
 export function toSessionListItem(hs: HostSession): SessionListItem {
   return {
@@ -10,6 +10,16 @@ export function toSessionListItem(hs: HostSession): SessionListItem {
     participant_count: hs.num_sessions,
     created_at: hs.start_time.toISOString(),
     updated_at: hs.last_edit.toISOString(),
+  };
+}
+
+export function toPublicSessionListItem(
+  hs: HostSession,
+  baseUrl: string,
+): PublicSessionListItem {
+  return {
+    ...toSessionListItem(hs),
+    join_url: `${baseUrl}/chat?s=${hs.id}`,
   };
 }
 
