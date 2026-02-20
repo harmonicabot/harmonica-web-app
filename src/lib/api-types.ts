@@ -21,6 +21,10 @@ export interface SessionListItem {
   updated_at: string;
 }
 
+export interface PublicSessionListItem extends SessionListItem {
+  join_url: string;
+}
+
 export interface Session extends SessionListItem {
   critical: string | null;
   context: string | null;
