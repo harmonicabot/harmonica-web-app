@@ -231,7 +231,7 @@ export type NewApiKey = Insertable<ApiKeysTable>;
 export async function createDbInstance<T extends Record<string, any>>() {
   try {
     const url = process.env.POSTGRES_URL;
-    console.log('Creating DB instance with URL:', url);
+    console.log('Creating DB instance:', url ? 'URL configured' : 'MISSING POSTGRES_URL');
     let db;
     if (url?.includes('localhost')) {
       const dialect = new PostgresDialect({
@@ -248,7 +248,7 @@ export async function createDbInstance<T extends Record<string, any>>() {
     return db;
   } catch (e) {
     console.error(e);
-    console.log('POSTGRES_URL: ', process.env.POSTGRES_URL);
+    console.log('POSTGRES_URL:', process.env.POSTGRES_URL ? 'configured but connection failed' : 'MISSING');
     throw e;
   }
 }
