@@ -43,7 +43,6 @@ const routeMetadata: MetadataConfig = {
     'Templates',
     'Choose from ready-made session templates to get started quickly'
   ),
-  '/login': getWithTitleAndDescription('Sign in to Harmonica'),
 };
 
 function getWithTitleAndDescription(
