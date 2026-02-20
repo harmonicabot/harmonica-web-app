@@ -51,6 +51,10 @@ components:
         summary:
           type: string
           nullable: true
+        session_md:
+          type: string
+          nullable: true
+          description: Structured SESSION.md brief (auto-generated after summary)
         participant_count:
           type: integer
         created_at:
@@ -447,6 +451,30 @@ paths:
                 error:
                   code: validation_error
                   message: Session is not active
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sessions/{id}/session-md:
+    get:
+      summary: Get session brief
+      description: |
+        Returns the structured SESSION.md brief as raw markdown.
+        Auto-generated after summary creation. Returns 404 if not yet generated.
+      operationId: getSessionMd
+      tags: [Sessions]
+      parameters:
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '200':
+          description: SESSION.md brief
+          content:
+            text/markdown:
+              schema:
+                type: string
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':

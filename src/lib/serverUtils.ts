@@ -2,6 +2,7 @@
 import * as db from './db';
 import { UserProfile } from '@auth0/nextjs-auth0/client';
 import { generateSummary } from './summaryMultiSession';
+import { generateSessionMd } from './sessionMd';
 import { getSession } from '@auth0/nextjs-auth0';
 import { NewUser, NewHostSession } from './schema';
 import { updateResourcePermission } from 'app/actions/permissions';
@@ -123,6 +124,16 @@ export async function createSummary(sessionId: string) {
     summary: summary.toString(),
     last_edit: new Date(),
   });
+
+  // Generate and store SESSION.md brief
+  try {
+    const session = await db.getHostSessionById(sessionId);
+    const sessionMd = generateSessionMd(session);
+    await db.updateHostSession(sessionId, { session_md: sessionMd });
+  } catch (error) {
+    console.error('Error generating SESSION.md:', error);
+  }
+
   return summary;
 }
 

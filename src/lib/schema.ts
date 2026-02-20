@@ -31,6 +31,7 @@ export interface HostSessionsTable {
   context?: string;
   prompt_summary: string; // Note: This is NOT the prompt that is used to _generate_ the summary, but a _summarization of the full prompt_ that is displayed to the user.
   summary_prompt?: string; // THIS is the prompt used to generate the summary! (if different from the default)
+  session_md?: string;
   questions?: JSON;
   visibility_settings?: ResultTabsVisibilityConfig;
   cross_pollination: Generated<boolean>; // Default to false
