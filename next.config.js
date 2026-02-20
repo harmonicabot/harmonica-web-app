@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-  serverExternalPackages: ['braintrust'],
   async headers() {
     return [
       {
@@ -41,6 +40,7 @@ const nextConfig = {
     ],
   },
   experimental: {
+    serverComponentsExternalPackages: ['braintrust'],
     // This is supposed to prevent route handler caching
     serverActions: {
       allowedOrigins: ['localhost:3000'],
