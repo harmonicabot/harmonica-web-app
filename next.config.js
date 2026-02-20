@@ -1,6 +1,17 @@
 /** @type {import('next').NextConfig} */
 
+// For preview deploys, derive AUTH0_BASE_URL from the stable branch URL
+// so Auth0 callbacks work without per-branch env var configuration
+const auth0BaseUrl =
+  process.env.AUTH0_BASE_URL ||
+  (process.env.VERCEL_BRANCH_URL
+    ? `https://${process.env.VERCEL_BRANCH_URL}`
+    : undefined);
+
 const nextConfig = {
+  // Inline AUTH0_BASE_URL at build time so it's available in all runtimes
+  // (edge middleware + serverless functions)
+  ...(auth0BaseUrl ? { env: { AUTH0_BASE_URL: auth0BaseUrl } } : {}),
   async headers() {
     return [
       {
@@ -40,6 +51,7 @@ const nextConfig = {
     ],
   },
   experimental: {
+    serverComponentsExternalPackages: ['braintrust'],
     // This is supposed to prevent route handler caching
     serverActions: {
       allowedOrigins: ['localhost:3000'],

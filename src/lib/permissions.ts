@@ -2,17 +2,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as db from '@/lib/db';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { PermissionsTable } from '@/lib/schema';
+import { ROLE_HIERARCHY, type Role } from '@/lib/roles';
 
-export const ROLE_HIERARCHY = {
-  none: 0,
-  viewer: 1,
-  editor: 2,
-  owner: 3,
-  admin: 4
-} as const;
-
-export type Role = PermissionsTable['role'];
+export { ROLE_HIERARCHY, type Role };
 
 export function usePermissions(resourceId: string) {
   const [role, setRole] = useState<Role>('none');

@@ -5,7 +5,7 @@ import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
 import { ResultTabsVisibilityConfig } from './schema';
 import { sql } from 'kysely';
-import { Role } from './permissions';
+import { Role } from './roles';
 import { cache } from 'react';
 import { SubscriptionTier } from './schema';
 
@@ -28,6 +28,7 @@ const usersTableName = 'users';
 const promptsTableName = 'prompts';
 const promptTypesTableName = 'prompt_type';
 const sessionRatingsTableName = 'session_ratings';
+const apiKeysTableName = 'api_keys';
 
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
@@ -43,6 +44,7 @@ interface Databases {
   [promptTypesTableName]: s.PromptTypesTable;
   session_files: s.SessionFilesTable;
   [sessionRatingsTableName]: s.SessionRatingsTable;
+  [apiKeysTableName]: s.ApiKeysTable;
 }
 
 const dbPromise = (async () => {
@@ -118,6 +120,58 @@ export async function getHostSessionsForIds(
     return result;
   } catch (error) {
     console.error('Error in getHostSessionsForIds:', error);
+    throw error;
+  }
+}
+
+export async function listSessionsForUser(
+  sessionIds: string[],
+  options: {
+    status?: 'active' | 'completed';
+    search?: string;
+    limit: number;
+    offset: number;
+  },
+): Promise<{ sessions: s.HostSession[]; total: number }> {
+  if (!sessionIds.length) return { sessions: [], total: 0 };
+  const db = await dbPromise;
+
+  try {
+    let baseQuery = db
+      .selectFrom(hostTableName)
+      .where('id', 'in', sessionIds);
+
+    if (options.status === 'active') {
+      baseQuery = baseQuery.where('active', '=', true);
+    } else if (options.status === 'completed') {
+      baseQuery = baseQuery.where('active', '=', false);
+    }
+
+    if (options.search) {
+      const searchTerm = `%${options.search}%`;
+      baseQuery = baseQuery.where((eb) =>
+        eb.or([
+          eb('topic', 'ilike', searchTerm),
+          eb('goal', 'ilike', searchTerm),
+        ]),
+      );
+    }
+
+    const countResult = await baseQuery
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .executeTakeFirst();
+    const total = Number(countResult?.count ?? 0);
+
+    const sessions = await baseQuery
+      .selectAll()
+      .orderBy('last_edit', 'desc')
+      .limit(options.limit)
+      .offset(options.offset)
+      .execute();
+
+    return { sessions, total };
+  } catch (error) {
+    console.error('Error in listSessionsForUser:', error);
     throw error;
   }
 }
@@ -271,6 +325,24 @@ export async function getUsersBySessionId(
     else return await query.selectAll().execute();
   } catch (error) {
     console.error('Error getting user session by ID:', error);
+    throw error;
+  }
+}
+
+export async function getUserSessionByUserAndSession(
+  sessionId: string,
+  userId: string,
+): Promise<s.UserSession | undefined> {
+  const db = await dbPromise;
+  try {
+    return await db
+      .selectFrom(userTableName)
+      .selectAll()
+      .where('session_id', '=', sessionId)
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+  } catch (error) {
+    console.error('Error in getUserSessionByUserAndSession:', error);
     throw error;
   }
 }
@@ -1753,5 +1825,92 @@ export async function updateThreadRating(
   } catch (error) {
     console.error('Error updating thread rating:', error);
     return null;
+  }
+}
+
+// ─── API Keys ────────────────────────────────────────────────────────
+
+export async function getApiKeyByHash(
+  keyHash: string,
+): Promise<s.ApiKey | null> {
+  const db = await dbPromise;
+  try {
+    const result = await db
+      .selectFrom(apiKeysTableName)
+      .selectAll()
+      .where('key_hash', '=', keyHash)
+      .where('revoked_at', 'is', null)
+      .executeTakeFirst();
+    return result || null;
+  } catch (error) {
+    console.error('Error in getApiKeyByHash:', error);
+    return null;
+  }
+}
+
+export async function createApiKey(
+  data: s.NewApiKey,
+): Promise<s.ApiKey> {
+  const db = await dbPromise;
+  const result = await db
+    .insertInto(apiKeysTableName)
+    .values(data)
+    .returningAll()
+    .executeTakeFirstOrThrow();
+  return result;
+}
+
+export async function getApiKeysForUser(
+  userId: string,
+): Promise<s.ApiKey[]> {
+  const db = await dbPromise;
+  try {
+    return await db
+      .selectFrom(apiKeysTableName)
+      .selectAll()
+      .where('user_id', '=', userId)
+      .where('revoked_at', 'is', null)
+      .orderBy('created_at', 'desc')
+      .execute();
+  } catch (error) {
+    console.error('Error in getApiKeysForUser:', error);
+    return [];
+  }
+}
+
+export async function revokeApiKey(
+  keyId: string,
+  userId: string,
+): Promise<boolean> {
+  const db = await dbPromise;
+  try {
+    const result = await db
+      .updateTable(apiKeysTableName)
+      .set({ revoked_at: new Date() })
+      .where('id', '=', keyId)
+      .where('user_id', '=', userId)
+      .where('revoked_at', 'is', null)
+      .executeTakeFirst();
+    return Number(result?.numUpdatedRows ?? 0) > 0;
+  } catch (error) {
+    console.error('Error in revokeApiKey:', error);
+    return false;
+  }
+}
+
+export async function updateApiKeyLastUsed(
+  keyHash: string,
+): Promise<void> {
+  const db = await dbPromise;
+  try {
+    await db
+      .updateTable(apiKeysTableName)
+      .set({ last_used_at: new Date() })
+      .where('key_hash', '=', keyHash)
+      .where('revoked_at', 'is', null)
+      .execute();
+  } catch (error) {
+    // Non-critical — don't throw
+    console.error('Error in updateApiKeyLastUsed:', error);
   }
 }

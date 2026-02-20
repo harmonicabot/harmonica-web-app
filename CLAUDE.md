@@ -22,7 +22,7 @@ npx tsx evals/facilitation.eval.ts       # Run synthetic facilitation evals
 npx tsx evals/facilitation-real.eval.ts  # Run evals on real production sessions (last 14 days)
 ```
 
-Note: No test or lint scripts are configured. TypeScript strict mode provides type safety. Node 18 required (see `.nvmrc`).
+Note: No test or lint scripts are configured. TypeScript strict mode provides type safety. Node 20 required (`"engines": { "node": "20.x" }` in package.json). Use `npx tsc --noEmit` for type checking.
 
 ## Git Workflow
 
@@ -59,7 +59,7 @@ src/
 │   └── workspace/[w_id]/   # Workspace pages
 ├── actions/                # Server actions (file uploads)
 ├── components/             # React components (Shadcn in ui/)
-├── db/migrations/          # 31 Kysely migrations
+├── db/migrations/          # 33 Kysely migrations (000-031, gap at 002, collision at 025)
 ├── lib/
 │   ├── monica/             # RAG/LLM query system
 │   ├── schema.ts           # Database schema types
@@ -76,7 +76,7 @@ src/
 
 | Route | Purpose |
 |-------|---------|
-| `/api/auth/[...nextauth]` | Auth0 authentication |
+| `/api/auth/[...auth0]` | Auth0 authentication |
 | `/api/builder` | Session prompt generation (CreatePrompt, EditPrompt, SummaryOfPrompt) |
 | `/api/sessions` | Session CRUD |
 | `/api/sessions/generate` | Generate session content |
@@ -124,8 +124,10 @@ Schema interfaces in `src/lib/schema.ts`, queries in `src/lib/db.ts`. **Actual t
 | `prompts` / `prompt_type` | — | Custom prompt templates |
 | `session_files` | — | Uploaded files (Vercel Blob) |
 | `daily_usage` / `usage_limits` | — | Subscription tracking |
+| `session_ratings` | `SessionRatingsTable` | Session feedback (1-5 rating, free-text per thread) |
+| `api_keys` | `ApiKeysTable` | User API keys (hashed, with prefix and revocation) |
 
-Migrations in `src/db/migrations/` (000–031, 32 files). Run with `npm run migrate`.
+Migrations in `src/db/migrations/` (33 files, 000–031 with gap at 002 and collision at 025). Run with `npm run migrate`. **Important:** OSS and Pro share the same Neon database — check Pro migrations before adding new ones to avoid conflicts.
 
 ### Prompt System
 
@@ -150,6 +152,26 @@ Results log to Braintrust under project `harmonica-facilitation` and are viewabl
 
 `src/lib/braintrust.ts` provides `getBraintrustLogger()` for production LLM call logging and `traceOperation()` for hierarchical spans. Optional — logs a warning if `BRAINTRUST_API_KEY` is not set. The `/api/admin/evals` route queries Braintrust experiments for the admin dashboard.
 
+### Middleware
+
+`src/middleware.ts` handles auth and bot detection:
+- **Auth**: `withMiddlewareAuthRequired` from `@auth0/nextjs-auth0/edge`
+- **Bot detection**: `isbot` rewrites bots to `/bots/` routes
+- **Public bypass**: `?access=public` query param skips auth on any route
+- **Unauthenticated routes**: `/api`, `/login`, `/chat`, `/canvas-demo`, static assets
+
+### Preview Deploys
+
+`next.config.js` auto-derives `AUTH0_BASE_URL` from `VERCEL_BRANCH_URL` at build time, so preview deploys work with Auth0 without per-branch env var configuration. Access previews via the stable branch alias: `harmonica-web-app-git-{branch}-harmonica.vercel.app`.
+
+**Vercel gotcha:** `$VAR` and `${VAR}` references are NOT expanded inside env var values. System env vars (`VERCEL_URL`, `VERCEL_BRANCH_URL`) must be read in code, not referenced in other env var strings.
+
+### Next.js 14 Config Notes
+
+- External packages go under `experimental.serverComponentsExternalPackages` (NOT top-level `serverExternalPackages` — that's Next.js 15+)
+- `reactStrictMode: false` to prevent components loading twice
+- API routes using `cookies()` need `export const dynamic = 'force-dynamic'` to avoid build warnings
+
 ## Code Style
 
 - Prefer React Server Components; minimize `'use client'`
@@ -162,6 +184,8 @@ Results log to Braintrust under project `harmonica-facilitation` and are viewabl
 - Prettier: single quotes, 2-space tabs, semicolons
 
 ## Environment Variables
+
+**Local dev setup:** Pull env vars with `vercel env pull .env.local`, then set `AUTH0_BASE_URL=http://localhost:3000` (Vercel pulls the production URL which won't work locally).
 
 **Required:**
 - `POSTGRES_URL` - Neon connection string
