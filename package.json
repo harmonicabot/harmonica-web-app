@@ -48,7 +48,7 @@
     "zustand": "^4.5.4"
   },
   "engines": {
-    "node": ">=18"
+    "node": "20.x"
   },
   "devDependencies": {
     "@aws-amplify/adapter-nextjs": "^1.2.4",
