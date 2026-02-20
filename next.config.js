@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 
+// For preview deploys, derive AUTH0_BASE_URL from the stable branch URL
+// so Auth0 callbacks work without per-branch env var configuration
+if (!process.env.AUTH0_BASE_URL && process.env.VERCEL_BRANCH_URL) {
+  process.env.AUTH0_BASE_URL = `https://${process.env.VERCEL_BRANCH_URL}`;
+}
+
 const nextConfig = {
   async headers() {
     return [
