@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileText, Sparkles } from 'lucide-react';
+import { FileText, Sparkles, Users, Target, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import CreateSessionInputClient from './CreateSessionInputClient';
 import OnboardingChat from '@/components/OnboardingChat';
 import {
@@ -17,6 +18,12 @@ const SKIP_KEY = 'harmonica_onboarding_skipped';
 interface WelcomeBannerRightProps {
   showOnboarding: boolean;
 }
+
+const CONTEXT_HINTS = [
+  { icon: Users, text: 'Your team & participants' },
+  { icon: Target, text: 'Goals & decision style' },
+  { icon: MessageSquare, text: 'Facilitation preferences' },
+];
 
 export default function WelcomeBannerRight({ showOnboarding }: WelcomeBannerRightProps) {
   const [showPrompt, setShowPrompt] = useState(false);
@@ -35,26 +42,54 @@ export default function WelcomeBannerRight({ showOnboarding }: WelcomeBannerRigh
   if (showPrompt) {
     return (
       <>
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Help the AI facilitator understand your team, goals, and preferences so every session starts with the right context.
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="rounded-xl bg-white/60 backdrop-blur-sm border border-amber-200/60 p-5 shadow-sm"
+        >
+          <p className="text-[15px] font-medium text-zinc-800 mb-1">
+            Personalize your AI facilitator
           </p>
+          <p className="text-sm text-zinc-500 mb-4">
+            A quick 2-minute chat so every session starts with the right context.
+          </p>
+
+          <div className="space-y-2 mb-5">
+            {CONTEXT_HINTS.map((hint, i) => (
+              <motion.div
+                key={hint.text}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.15 + i * 0.1 }}
+                className="flex items-center gap-2.5 text-sm text-zinc-600"
+              >
+                <hint.icon className="h-3.5 w-3.5 text-amber-600/70 shrink-0" />
+                {hint.text}
+              </motion.div>
+            ))}
+          </div>
+
           <div className="flex items-center gap-3">
-            <Button onClick={() => setShowDialog(true)}>
-              <Sparkles className="h-4 w-4 mr-2" />
-              Set up facilitator context
+            <Button
+              onClick={() => setShowDialog(true)}
+              className="bg-zinc-900 hover:bg-zinc-800 text-white shadow-sm"
+              size="sm"
+            >
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+              Get started
             </Button>
             <button
               onClick={() => {
                 localStorage.setItem(SKIP_KEY, '1');
                 setShowPrompt(false);
               }}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
             >
               Skip for now
             </button>
           </div>
-        </div>
+        </motion.div>
 
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
