@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
@@ -12,8 +15,14 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LoaderCircle } from 'lucide-react';
-import { fetchUserData, deleteUserData, deleteUserAccount } from './actions';
+import { LoaderCircle, Check, Mail, KeyRound, Download, Trash2, AlertTriangle } from 'lucide-react';
+import {
+  fetchUserData,
+  updateUserName,
+  requestPasswordReset,
+  deleteUserData,
+  deleteUserAccount,
+} from './actions';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ApiKeysTab from './ApiKeysTab';
 
@@ -23,12 +32,22 @@ export default function SettingsPage() {
   const initialTab = searchParams.get('tab') || 'profile';
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [exportLoading, setExportLoading] = useState<boolean>(false);
-  const [deleteLoading, setDeleteLoading] = useState<boolean>(false);
-  const [accountDeleteLoading, setAccountDeleteLoading] =
-    useState<boolean>(false);
-  const [message, setMessage] = useState<string>('');
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const router = useRouter();
+
+  // Profile editing state
+  const [editName, setEditName] = useState('');
+  const [nameLoading, setNameLoading] = useState(false);
+  const [nameSaved, setNameSaved] = useState(false);
+
+  // Password reset state
+  const [passwordResetLoading, setPasswordResetLoading] = useState(false);
+  const [passwordResetSent, setPasswordResetSent] = useState(false);
+
+  // Account action states
+  const [exportLoading, setExportLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [accountDeleteLoading, setAccountDeleteLoading] = useState(false);
 
   useEffect(() => {
     if (user && !userLoading) {
@@ -36,16 +55,75 @@ export default function SettingsPage() {
     }
   }, [user, userLoading]);
 
+  // Initialize edit name from user data
+  useEffect(() => {
+    if (userData?.user?.name || user?.name) {
+      setEditName(userData?.user?.name || user?.name || '');
+    }
+  }, [userData, user]);
+
+  const showMessage = (text: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage(null), 5000);
+  };
+
   const loadUserData = async () => {
     setLoading(true);
     try {
       const data = await fetchUserData();
       setUserData(data);
     } catch (error) {
-      setMessage('An error occurred while fetching user data');
+      showMessage('Failed to load user data', 'error');
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveName = async () => {
+    const trimmed = editName.trim();
+    if (!trimmed) return;
+
+    // Don't save if unchanged
+    const currentName = userData?.user?.name || user?.name || '';
+    if (trimmed === currentName) return;
+
+    setNameLoading(true);
+    try {
+      const result = await updateUserName(trimmed);
+      if (result.success) {
+        setNameSaved(true);
+        setTimeout(() => setNameSaved(false), 2000);
+        // Update local state
+        if (userData?.user) {
+          setUserData({ ...userData, user: { ...userData.user, name: trimmed } });
+        }
+      } else {
+        showMessage(result.message || 'Failed to update name', 'error');
+      }
+    } catch (error) {
+      showMessage('Failed to update name', 'error');
+      console.error(error);
+    } finally {
+      setNameLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    setPasswordResetLoading(true);
+    try {
+      const result = await requestPasswordReset();
+      if (result.success) {
+        setPasswordResetSent(true);
+        showMessage('Password reset email sent. Check your inbox.', 'success');
+      } else {
+        showMessage(result.message || 'Failed to send reset email', 'error');
+      }
+    } catch (error) {
+      showMessage('Failed to send password reset email', 'error');
+      console.error(error);
+    } finally {
+      setPasswordResetLoading(false);
     }
   };
 
@@ -56,18 +134,14 @@ export default function SettingsPage() {
         await loadUserData();
       }
 
-      // Remove permissions & add export date
       const exportData = {
         ...userData,
-        permissions: undefined, // We don't want/need to export those I think
+        permissions: undefined,
         exportDate: new Date().toISOString(),
       };
 
-      // Create a Blob from the data
       const jsonString = JSON.stringify(exportData, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
-
-      // Create a download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -77,9 +151,9 @@ export default function SettingsPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      setMessage('Data exported successfully');
+      showMessage('Data exported successfully', 'success');
     } catch (error) {
-      setMessage('An error occurred while exporting user data');
+      showMessage('Failed to export data', 'error');
       console.error(error);
     } finally {
       setExportLoading(false);
@@ -100,12 +174,12 @@ export default function SettingsPage() {
       const result = await deleteUserData();
       if (result.success) {
         setUserData(null);
-        setMessage('All user data has been deleted successfully');
+        showMessage('All user data has been deleted', 'success');
       } else {
-        setMessage(result.message || 'Failed to delete user data');
+        showMessage(result.message || 'Failed to delete user data', 'error');
       }
     } catch (error) {
-      setMessage('An error occurred while deleting user data');
+      showMessage('Failed to delete user data', 'error');
       console.error(error);
     } finally {
       setDeleteLoading(false);
@@ -115,16 +189,15 @@ export default function SettingsPage() {
   const handleDeleteAccount = async () => {
     if (
       !confirm(
-        'WARNING: Are you absolutely sure you want to delete your entire account? This will permanently remove your account and all associated data. This action CANNOT be undone.'
+        'WARNING: This will permanently delete your account and all data. This action CANNOT be undone.'
       )
     ) {
       return;
     }
 
-    // Double confirmation for account deletion
     if (
       !confirm(
-        'Please confirm once more that you want to delete your account. You will be logged out immediately.'
+        'Please confirm once more. You will be logged out immediately after deletion.'
       )
     ) {
       return;
@@ -134,29 +207,35 @@ export default function SettingsPage() {
     try {
       const result = await deleteUserAccount();
       if (result.success) {
-        setMessage(
-          'Your account has been deleted successfully. Redirecting to logout...'
-        );
-        // Redirect to logout after a short delay
+        showMessage('Account deleted. Redirecting to logout...', 'success');
         setTimeout(() => {
           router.push('/api/auth/logout');
         }, 2000);
       } else {
-        setMessage(result.message || 'Failed to delete account');
+        showMessage(result.message || 'Failed to delete account', 'error');
       }
     } catch (error) {
-      setMessage('An error occurred while deleting your account');
+      showMessage('Failed to delete account', 'error');
       console.error(error);
     } finally {
       setAccountDeleteLoading(false);
     }
   };
 
+  const isEmailPasswordUser = user?.sub?.toString().startsWith('auth0|');
+  const loginProvider = isEmailPasswordUser
+    ? 'Email & Password'
+    : user?.sub?.toString().startsWith('google-oauth2|')
+      ? 'Google'
+      : user?.sub?.toString().startsWith('github|')
+        ? 'GitHub'
+        : 'Social login';
+
   if (userLoading || loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <LoaderCircle className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading user data...</span>
+        <span className="ml-2">Loading...</span>
       </div>
     );
   }
@@ -177,168 +256,288 @@ export default function SettingsPage() {
     );
   }
 
+  const messageStyles = {
+    success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+    error: 'bg-red-50 border-red-200 text-red-800',
+    info: 'bg-blue-50 border-blue-200 text-blue-800',
+  };
+
   return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+    <div className="container max-w-3xl mx-auto py-8 px-4">
+      <h1 className="text-2xl font-semibold mb-6">Settings</h1>
 
       {message && (
         <div
-          className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-6"
+          className={`border rounded-lg px-4 py-3 mb-6 text-sm ${messageStyles[message.type]}`}
           role="alert"
         >
-          <p>{message}</p>
+          {message.text}
         </div>
       )}
 
       <Tabs defaultValue={initialTab} className="w-full">
-        <TabsList className="mb-4">
+        <TabsList className="mb-6">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="profile">
+        {/* ── Profile Tab ── */}
+        <TabsContent value="profile" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Profile</CardTitle>
-              <CardDescription>Your personal information</CardDescription>
+              <CardTitle className="text-lg">Profile</CardTitle>
+              <CardDescription>
+                Your personal information visible to other participants
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              {userData ? (
-                <div className="space-y-4">
-                  <div>
-                    <p className="font-medium">Name</p>
-                    <p className="text-muted-foreground">{userData.name || user.name || 'Not provided'}</p>
+            <CardContent className="space-y-6">
+              {/* Avatar */}
+              <div className="flex items-center gap-4">
+                {user.picture ? (
+                  <Image
+                    src={user.picture}
+                    alt="Avatar"
+                    width={64}
+                    height={64}
+                    className="rounded-full"
+                  />
+                ) : (
+                  <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-xl font-medium text-muted-foreground">
+                    {(editName || user.name || '?')[0]?.toUpperCase()}
                   </div>
-                  <div>
-                    <p className="font-medium">Email</p>
-                    <p className="text-muted-foreground">{userData.user.email || user.email || 'Not provided'}</p>
-                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium">{editName || user.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Avatar synced from {loginProvider}
+                  </p>
                 </div>
-              ) : (
-                <p>Loading user information...</p>
-              )}
+              </div>
+
+              {/* Name */}
+              <div className="space-y-2">
+                <Label htmlFor="display-name">Display name</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="display-name"
+                    value={editName}
+                    onChange={(e) => {
+                      setEditName(e.target.value);
+                      setNameSaved(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveName();
+                    }}
+                    placeholder="Your display name"
+                    className="max-w-sm"
+                    maxLength={255}
+                  />
+                  <Button
+                    onClick={handleSaveName}
+                    disabled={
+                      nameLoading ||
+                      !editName.trim() ||
+                      editName.trim() === (userData?.user?.name || user?.name || '')
+                    }
+                    size="sm"
+                    variant={nameSaved ? 'outline' : 'default'}
+                    className="shrink-0"
+                  >
+                    {nameLoading ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : nameSaved ? (
+                      <>
+                        <Check className="h-4 w-4 mr-1" />
+                        Saved
+                      </>
+                    ) : (
+                      'Save'
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  This is how other participants will see you in sessions.
+                </p>
+              </div>
+
+              {/* Email */}
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm">{userData?.user?.email || user.email}</p>
+                  <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                    {loginProvider}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Managed by your authentication provider. Cannot be changed here.
+                </p>
+              </div>
             </CardContent>
           </Card>
+
+          {/* Password section — only for email/password users */}
+          {isEmailPasswordUser && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Password</CardTitle>
+                <CardDescription>
+                  Change your account password
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  We&apos;ll send a password reset link to your email address.
+                </p>
+                <Button
+                  onClick={handlePasswordReset}
+                  disabled={passwordResetLoading || passwordResetSent}
+                  variant="outline"
+                  size="sm"
+                >
+                  {passwordResetLoading ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
+                  ) : passwordResetSent ? (
+                    <Mail className="h-4 w-4 mr-2" />
+                  ) : (
+                    <KeyRound className="h-4 w-4 mr-2" />
+                  )}
+                  {passwordResetSent ? 'Reset email sent' : 'Send reset email'}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
-        <TabsContent value="account">
+        {/* ── Account Tab ── */}
+        <TabsContent value="account" className="space-y-6">
+          {/* Usage overview */}
           <Card>
             <CardHeader>
-              <CardTitle>Account</CardTitle>
+              <CardTitle className="text-lg">Usage</CardTitle>
               <CardDescription>
-                Manage your data and account
+                Your activity on Harmonica
               </CardDescription>
             </CardHeader>
             <CardContent>
               {userData ? (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-medium">Participation</h3>
-                    <p>
-                      You have participated in {userData.sessions?.length || 0}{' '}
-                      sessions and sent {userData.messages?.length || 0} messages.
-                    </p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-3 rounded-lg bg-muted/50">
+                    <p className="text-2xl font-semibold">{userData.sessions?.length || 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Sessions joined</p>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-medium">Owned Sessions</h3>
-                    <p>
-                      You have ownership of {userData.hostSessions?.length || 0}{' '}
-                      session{userData.hostSessions?.length === 1 ? '' : 's'}.
-                    </p>
+                  <div className="text-center p-3 rounded-lg bg-muted/50">
+                    <p className="text-2xl font-semibold">{userData.hostSessions?.length || 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Sessions owned</p>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-medium">Projects</h3>
-                    <p>
-                      You have ownership of {userData.workspaces?.length || 0}{' '}
-                      project{userData.workspaces?.length === 1 ? '' : 's'}.
-                    </p>
-                  </div>
-
-                  <div className="border-t pt-6">
-                    <div className="mt-4 space-y-6">
-                      <div>
-                        <p className="mb-2 text-sm text-gray-600">
-                          You can export all your personal data in a
-                          machine-readable format.
-                        </p>
-                        <Button
-                          onClick={handleExportData}
-                          disabled={exportLoading}
-                          size="sm"
-                        >
-                          {exportLoading ? (
-                            <>
-                              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                              Exporting...
-                            </>
-                          ) : (
-                            'Export My Data'
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-6 border-t pt-6 w-full">
-                    <h3 className="text-lg font-medium text-red-600 mb-2">
-                      Danger Zone
-                    </h3>
-
-                    <div>
-                      <p className="mb-2 text-sm text-gray-600">
-                        You can request the deletion of all your personal data
-                        from our systems. (This includes all your messages, and all the sessions and projects where you are the sole owner)
-                      </p>
-                      <Button
-                        variant="destructive"
-                        onClick={handleDeleteData}
-                        disabled={deleteLoading}
-                        size="sm"
-                      >
-                        {deleteLoading ? (
-                          <>
-                            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                            Deleting...
-                          </>
-                        ) : (
-                          'Delete All My Data'
-                        )}
-                      </Button>
-                    </div>
-                    <div className="mt-6">
-                      <p className="mb-2 text-sm text-gray-600">
-                        Deleting your account will permanently remove all your
-                        data and access to Harmonica services.
-                      </p>
-                      <Button
-                        variant="destructive"
-                        onClick={handleDeleteAccount}
-                        disabled={accountDeleteLoading}
-                      >
-                        {accountDeleteLoading ? (
-                          <>
-                            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                            Deleting Account...
-                          </>
-                        ) : (
-                          'Delete My Account'
-                        )}
-                      </Button>
-                    </div>
+                  <div className="text-center p-3 rounded-lg bg-muted/50">
+                    <p className="text-2xl font-semibold">{userData.workspaces?.length || 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Projects</p>
                   </div>
                 </div>
               ) : (
-                <p>No data available.</p>
+                <p className="text-sm text-muted-foreground">No data available.</p>
               )}
             </CardContent>
-            <CardFooter className="flex flex-col items-start">
-              <p className="text-sm text-gray-500">
-                For any additional GDPR-related requests or questions, please
-                contact our Data Protection Officer at privacy@harmonica.chat
+          </Card>
+
+          {/* Data export */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Export Data</CardTitle>
+              <CardDescription>
+                Download all your personal data in a machine-readable format
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={handleExportData}
+                disabled={exportLoading}
+                variant="outline"
+                size="sm"
+              >
+                {exportLoading ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                {exportLoading ? 'Exporting...' : 'Export My Data'}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Danger zone */}
+          <Card className="border-red-200">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+                Danger Zone
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Delete all data</p>
+                  <p className="text-xs text-muted-foreground">
+                    Remove all your messages, and sessions/projects where you are the sole owner.
+                    Your account will remain active.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleDeleteData}
+                  disabled={deleteLoading}
+                  size="sm"
+                  className="shrink-0 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  {deleteLoading ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
+                  {deleteLoading ? 'Deleting...' : 'Delete data'}
+                </Button>
+              </div>
+
+              <div className="border-t pt-6 flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Delete account</p>
+                  <p className="text-xs text-muted-foreground">
+                    Permanently delete your account and all associated data.
+                    You will be logged out immediately.
+                  </p>
+                </div>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteAccount}
+                  disabled={accountDeleteLoading}
+                  size="sm"
+                  className="shrink-0"
+                >
+                  {accountDeleteLoading ? (
+                    <>
+                      <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete account'
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <p className="text-xs text-muted-foreground">
+                For GDPR-related requests, contact our Data Protection Officer at{' '}
+                <a href="mailto:privacy@harmonica.chat" className="underline">
+                  privacy@harmonica.chat
+                </a>
               </p>
             </CardFooter>
           </Card>
         </TabsContent>
+
+        {/* ── API Keys Tab ── */}
         <TabsContent value="api-keys">
           <ApiKeysTab />
         </TabsContent>
