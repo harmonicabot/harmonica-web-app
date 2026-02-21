@@ -6,16 +6,17 @@ import { WorkspacesTable } from './workspaces-table';
 import * as db from '@/lib/db';
 import Link from 'next/link';
 import { cache } from 'react';
+import { randomBytes, createHash } from 'crypto';
 import ErrorPage from '@/components/Error';
 import { getGeneratedMetadata } from 'app/api/metadata';
 import { Card, CardContent } from '@/components/ui/card';
 import { HostSession, Workspace } from '@/lib/schema';
 import DonateBanner from '@/components/DonateBanner';
+import ConnectAIBanner from '@/components/ConnectAIBanner';
 import { getSession } from '@auth0/nextjs-auth0';
 import ProjectsGrid from './ProjectsGrid';
 import { Textarea } from '@/components/ui/textarea';
 import CreateSessionInputClient from './CreateSessionInputClient';
-import NewUserRedirect from './NewUserRedirect';
 
 export const dynamic = 'force-dynamic'; // getHostSessions is using auth, which can only be done client side
 export const revalidate = 300; // Revalidate the data every 5 minutes (or on page reload)
@@ -29,7 +30,7 @@ const sessionCache = cache(async () => {
 
     if (!userId) {
       console.warn('No user ID found');
-      return { hostSessions: [], workspacesWithSessions: [] };
+      return { hostSessions: [], workspacesWithSessions: [], hasApiKeys: false };
     }
 
     // Query sessions with permissions check
@@ -94,7 +95,8 @@ const sessionCache = cache(async () => {
         hostSessions,
       );
 
-      return { hostSessions, workspacesWithSessions };
+      const adminApiKeys = await db.getApiKeysForUser(userId);
+      return { hostSessions, workspacesWithSessions, hasApiKeys: adminApiKeys.length > 0 };
     }
     const hostSessionIds = userResources
       .filter((r) => r.resource_type === 'SESSION')
@@ -129,10 +131,25 @@ const sessionCache = cache(async () => {
       hostSessions,
     );
 
-    return { hostSessions, workspacesWithSessions };
+    // Auto-generate default API key for new users
+    let apiKeys = await db.getApiKeysForUser(userId);
+    if (hostSessions.length === 0 && workspacesWithSessions.length === 0 && apiKeys.length === 0) {
+      const rawKey = `hm_live_${randomBytes(16).toString('hex')}`;
+      const keyHash = createHash('sha256').update(rawKey).digest('hex');
+      const keyPrefix = rawKey.slice(0, 12);
+      await db.createApiKey({
+        user_id: userId,
+        key_hash: keyHash,
+        key_prefix: keyPrefix,
+        name: 'Default',
+      });
+      apiKeys = [{ id: '', key_hash: '', key_prefix: keyPrefix, name: 'Default', user_id: userId } as any];
+    }
+
+    return { hostSessions, workspacesWithSessions, hasApiKeys: apiKeys.length > 0 };
   } catch (error) {
     console.error('Failed to fetch host sessions: ', error);
-    return { hostSessions: [], workspacesWithSessions: [] };
+    return { hostSessions: [], workspacesWithSessions: [], hasApiKeys: false };
   }
 });
 
@@ -189,17 +206,14 @@ export default async function Dashboard({
 }: {
   searchParams?: { page?: string };
 }) {
-  const { hostSessions, workspacesWithSessions } = await sessionCache();
+  const { hostSessions, workspacesWithSessions, hasApiKeys } = await sessionCache();
   if (!hostSessions) {
     return <ErrorPage title={''} message={''} />;
   }
 
   return (
     <div className="bg-background min-h-screen">
-      <NewUserRedirect 
-        hasSessions={hostSessions.length > 0} 
-        hasWorkspaces={workspacesWithSessions.length > 0} 
-      />
+      <ConnectAIBanner hasApiKeys={hasApiKeys} />
       {Date.now() < new Date('2025-02-14').getTime() && <DonateBanner />}
       {/* Welcome Banner */}
       <div className="border rounded-xl bg-gradient-to-b from-white to-amber-100 p-8 mb-10 flex flex-col md:flex-row items-stretch gap-8">

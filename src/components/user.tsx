@@ -87,7 +87,7 @@ export default function User() {
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <Cog className="h-4 w-4 mr-2" />
-              <a href="/profile">Settings</a>
+              <a href="/settings">Settings</a>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <a href="/api/auth/logout" className="text-red-600">

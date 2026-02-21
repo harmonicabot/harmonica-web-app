@@ -111,6 +111,70 @@ export async function fetchUserData() {
   }
 }
 
+export async function updateUserName(name: string) {
+  const session = await getSession();
+  if (!session || !session.user?.sub) {
+    return { success: false, message: 'Unauthorized' };
+  }
+
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.length > 255) {
+    return { success: false, message: 'Name must be between 1 and 255 characters' };
+  }
+
+  try {
+    const db = await getDbInstance();
+    await db
+      .updateTable(usersTable)
+      .set({ name: trimmed })
+      .where('id', '=', session.user.sub)
+      .execute();
+
+    revalidatePath('/settings');
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating user name:', error);
+    return { success: false, message: 'Failed to update name' };
+  }
+}
+
+export async function requestPasswordReset() {
+  const session = await getSession();
+  if (!session || !session.user?.sub || !session.user?.email) {
+    return { success: false, message: 'Unauthorized' };
+  }
+
+  // Auth0 social login users (Google, GitHub) can't change passwords
+  if (!session.user.sub.startsWith('auth0|')) {
+    return { success: false, message: 'Password change is not available for social login accounts.' };
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.AUTH0_ISSUER_BASE_URL}/dbconnections/change_password`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: process.env.AUTH0_CLIENT_ID,
+          email: session.user.email,
+          connection: 'Username-Password-Authentication',
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      console.error('Auth0 password reset failed:', await response.text());
+      return { success: false, message: 'Failed to send password reset email' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error requesting password reset:', error);
+    return { success: false, message: 'Failed to send password reset email' };
+  }
+}
+
 export async function deleteUserData(existingUserData?: any) {
   const session = await getSession();
   
@@ -228,8 +292,8 @@ export async function deleteUserData(existingUserData?: any) {
     
     console.log('Data deletion completed successfully');
     
-    // Revalidate the profile page to reflect the changes
-    revalidatePath('/profile');
+    // Revalidate the settings page to reflect the changes
+    revalidatePath('/settings');
     
     return { 
       success: true, 
