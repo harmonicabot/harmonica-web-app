@@ -25,6 +25,7 @@ import {
 } from './actions';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ApiKeysTab from './ApiKeysTab';
+import HarmonicaMdTab from './HarmonicaMdTab';
 
 export default function SettingsPage() {
   const { user, error: userError, isLoading: userLoading } = useUser();
@@ -278,6 +279,7 @@ export default function SettingsPage() {
       <Tabs defaultValue={initialTab} className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="harmonica-md">HARMONICA.md</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
         </TabsList>
@@ -408,6 +410,11 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* ── HARMONICA.md Tab ── */}
+        <TabsContent value="harmonica-md">
+          <HarmonicaMdTab />
         </TabsContent>
 
         {/* ── Account Tab ── */}

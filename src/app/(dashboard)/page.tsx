@@ -17,6 +17,7 @@ import { getSession } from '@auth0/nextjs-auth0';
 import ProjectsGrid from './ProjectsGrid';
 import { Textarea } from '@/components/ui/textarea';
 import CreateSessionInputClient from './CreateSessionInputClient';
+import WelcomeBannerRight from './WelcomeBannerRight';
 
 export const dynamic = 'force-dynamic'; // getHostSessions is using auth, which can only be done client side
 export const revalidate = 300; // Revalidate the data every 5 minutes (or on page reload)
@@ -30,7 +31,7 @@ const sessionCache = cache(async () => {
 
     if (!userId) {
       console.warn('No user ID found');
-      return { hostSessions: [], workspacesWithSessions: [], hasApiKeys: false };
+      return { hostSessions: [], workspacesWithSessions: [], hasApiKeys: false, hasHarmonicaMd: false };
     }
 
     // Query sessions with permissions check
@@ -96,7 +97,8 @@ const sessionCache = cache(async () => {
       );
 
       const adminApiKeys = await db.getApiKeysForUser(userId);
-      return { hostSessions, workspacesWithSessions, hasApiKeys: adminApiKeys.length > 0 };
+      const harmonicaMd = await db.getUserHarmonicaMd(userId);
+      return { hostSessions, workspacesWithSessions, hasApiKeys: adminApiKeys.length > 0, hasHarmonicaMd: !!harmonicaMd };
     }
     const hostSessionIds = userResources
       .filter((r) => r.resource_type === 'SESSION')
@@ -146,10 +148,11 @@ const sessionCache = cache(async () => {
       apiKeys = [{ id: '', key_hash: '', key_prefix: keyPrefix, name: 'Default', user_id: userId } as any];
     }
 
-    return { hostSessions, workspacesWithSessions, hasApiKeys: apiKeys.length > 0 };
+    const harmonicaMd = await db.getUserHarmonicaMd(userId);
+    return { hostSessions, workspacesWithSessions, hasApiKeys: apiKeys.length > 0, hasHarmonicaMd: !!harmonicaMd };
   } catch (error) {
     console.error('Failed to fetch host sessions: ', error);
-    return { hostSessions: [], workspacesWithSessions: [], hasApiKeys: false };
+    return { hostSessions: [], workspacesWithSessions: [], hasApiKeys: false, hasHarmonicaMd: false };
   }
 });
 
@@ -206,7 +209,7 @@ export default async function Dashboard({
 }: {
   searchParams?: { page?: string };
 }) {
-  const { hostSessions, workspacesWithSessions, hasApiKeys } = await sessionCache();
+  const { hostSessions, workspacesWithSessions, hasApiKeys, hasHarmonicaMd } = await sessionCache();
   if (!hostSessions) {
     return <ErrorPage title={''} message={''} />;
   }
@@ -227,16 +230,9 @@ export default async function Dashboard({
         </div>
         {/* Right column */}
         <div className="flex-1 flex flex-col justify-center">
-          <div className="flex items-center justify-between mb-2">
-            <label htmlFor="dashboard-objective" className="block text-base font-medium">What do you want to find out?</label>
-            <Link href="/templates">
-              <Button variant="ghost" size="sm">
-                <FileText className="w-4 h-4" />
-                Templates
-              </Button>
-            </Link>
-          </div>
-          <CreateSessionInputClient />
+          <WelcomeBannerRight
+            showOnboarding={hostSessions.length === 0 && !hasHarmonicaMd}
+          />
         </div>
       </div>
       {/* Main dashboard content */}

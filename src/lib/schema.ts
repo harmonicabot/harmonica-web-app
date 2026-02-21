@@ -131,6 +131,7 @@ export interface UsersTable {
   last_login: Generated<Date>;
   created_at: Generated<Date>;
   metadata?: JSON;
+  harmonica_md?: string | null;
   // Subscription fields
   subscription_status: 'FREE' | 'PRO' | 'ENTERPRISE';
   subscription_id?: string;

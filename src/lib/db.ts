@@ -1381,6 +1381,33 @@ export async function getUserById(id: string): Promise<s.User | null> {
   }
 }
 
+export async function getUserHarmonicaMd(userId: string): Promise<string | null> {
+  try {
+    const db = await dbPromise;
+    const result = await db
+      .selectFrom(usersTableName)
+      .select('harmonica_md')
+      .where('id', '=', userId)
+      .executeTakeFirst();
+    return result?.harmonica_md || null;
+  } catch (error) {
+    console.error('Error getting HARMONICA.md:', error);
+    return null;
+  }
+}
+
+export async function updateUserHarmonicaMd(
+  userId: string,
+  content: string | null,
+): Promise<void> {
+  const db = await dbPromise;
+  await db
+    .updateTable(usersTableName)
+    .set({ harmonica_md: content })
+    .where('id', '=', userId)
+    .execute();
+}
+
 /**
  * Get a user by email
  */

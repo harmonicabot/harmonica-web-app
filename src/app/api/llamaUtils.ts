@@ -9,6 +9,8 @@ import {
   getHostSessionById,
   updateUserSession,
   increaseSessionsCount,
+  getPermissions,
+  getUserHarmonicaMd,
 } from '@/lib/db';
 import { initializeCrossPollination } from '@/lib/crossPollination';
 import { getLLM } from '@/lib/modelConfig';
@@ -196,9 +198,25 @@ export async function handleGenerateAnswer(
       const basicFacilitationPrompt = await getPromptInstructions(
         'BASIC_FACILITATION_PROMPT',
       );
+
+      // Fetch the session owner's HARMONICA.md for organizational context
+      let harmonicaMdBlock = '';
+      try {
+        const perms = await getPermissions(messageData.sessionId, 'SESSION');
+        const owner = perms.find(p => p.role === 'owner');
+        if (owner?.user_id) {
+          const md = await getUserHarmonicaMd(owner.user_id);
+          if (md) {
+            harmonicaMdBlock = `Organizational Context (HARMONICA.md):\n${md}\n\n`;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to fetch HARMONICA.md for session:', e);
+      }
+
       // Format context data
       const sessionContext = `
-System Instructions:
+${harmonicaMdBlock}System Instructions:
 ${sessionData?.prompt || basicFacilitationPrompt}
 
 Session Information:
