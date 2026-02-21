@@ -96,7 +96,11 @@ export default function WelcomeBannerRight({ showOnboarding }: WelcomeBannerRigh
         </motion.div>
 
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
-          <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent
+            className="sm:max-w-2xl max-h-[80vh] overflow-y-auto"
+            onInteractOutside={(e) => e.preventDefault()}
+            onEscapeKeyDown={(e) => e.preventDefault()}
+          >
             <OnboardingChat
               onComplete={() => {
                 setShowDialog(false);
@@ -105,8 +109,6 @@ export default function WelcomeBannerRight({ showOnboarding }: WelcomeBannerRigh
               }}
               onSkip={() => {
                 setShowDialog(false);
-                if (skipKey) localStorage.setItem(skipKey, '1');
-                setShowPrompt(false);
               }}
               embedded
             />
