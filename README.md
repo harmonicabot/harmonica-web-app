@@ -183,11 +183,11 @@ See [CHANGELOG.md](CHANGELOG.md) for a full list of changes.
 
 Recent highlights:
 
+- **REST API v1** — public API with Bearer token auth for programmatic session management, plus API key management in the profile page
+- **harmonica-mcp** — MCP server on npm enabling AI agents to create and query sessions
 - **harmonica-chat v2.0.0** — conversational session designer for Claude Code with guided design, project-aware creation, and full lifecycle management
-- **Braintrust LLM observability** — tracing across 10 operations with token usage, latency, and cost tracking
 - **Facilitation evals** — LLM-as-judge scoring on both synthetic and real production sessions
-- **Evals admin dashboard** — score cards and per-test-case breakdown at `/admin/evals`
-- **Weekly automated digests** — analytics and evals results posted to Discord every Friday
+- **Braintrust LLM observability** — tracing across 10 operations with token usage, latency, and cost tracking
 
 ## Contributing
 

@@ -16,7 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Evals admin dashboard at `/admin/evals` with score cards and per-test-case breakdown
 - Real-session evals — pulls recent production threads and judges actual facilitator responses (5 LLM-as-judge scorers)
 - Weekly evals cron workflow posting facilitation scores to Discord (Fridays 10 AM UTC)
+- REST API v1 — public API with Bearer token auth (`hm_live_` keys) for programmatic session management
+- API key management — generate and revoke API keys from the profile page
 - **[harmonica-chat v2.0.0]** Redesigned from API wrapper into conversational Harmonica companion for Claude Code — guided session design with template matching, project-aware accelerated creation, full lifecycle management (status, check, summary, follow-up), invitation drafting, and community participation feed integration
+- **[harmonica-mcp v1.0.0]** MCP server published to npm (`npx harmonica-mcp`), enabling AI agents to create and query deliberation sessions
+- **[harmonica-docs]** API reference, MCP server docs, and host guides on help.harmonica.chat
 
 ### Changed
 - License switched from Apache 2.0 to AGPL-3.0
