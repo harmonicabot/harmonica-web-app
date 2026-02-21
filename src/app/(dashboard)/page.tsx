@@ -17,7 +17,6 @@ import { getSession } from '@auth0/nextjs-auth0';
 import ProjectsGrid from './ProjectsGrid';
 import { Textarea } from '@/components/ui/textarea';
 import CreateSessionInputClient from './CreateSessionInputClient';
-import NewUserRedirect from './NewUserRedirect';
 
 export const dynamic = 'force-dynamic'; // getHostSessions is using auth, which can only be done client side
 export const revalidate = 300; // Revalidate the data every 5 minutes (or on page reload)
@@ -214,10 +213,6 @@ export default async function Dashboard({
 
   return (
     <div className="bg-background min-h-screen">
-      <NewUserRedirect
-        hasSessions={hostSessions.length > 0}
-        hasWorkspaces={workspacesWithSessions.length > 0}
-      />
       <ConnectAIBanner hasApiKeys={hasApiKeys} />
       {Date.now() < new Date('2025-02-14').getTime() && <DonateBanner />}
       {/* Welcome Banner */}
