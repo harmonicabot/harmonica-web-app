@@ -183,8 +183,9 @@ See [CHANGELOG.md](CHANGELOG.md) for a full list of changes.
 
 Recent highlights:
 
+- **harmonica-chat v2.0.0** — conversational session designer for Claude Code with guided design, project-aware creation, and full lifecycle management
 - **Braintrust LLM observability** — tracing across 10 operations with token usage, latency, and cost tracking
-- **Facilitation evals** — LLM-as-judge scoring (relevance, question quality, goal alignment, tone, conciseness) on both synthetic and real production sessions
+- **Facilitation evals** — LLM-as-judge scoring on both synthetic and real production sessions
 - **Evals admin dashboard** — score cards and per-test-case breakdown at `/admin/evals`
 - **Weekly automated digests** — analytics and evals results posted to Discord every Friday
 
