@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { LoaderCircle, Send, ArrowRight, X } from 'lucide-react';
 import { saveHarmonicaMd } from 'app/settings/actions';
+import { usePostHog } from 'posthog-js/react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -86,6 +87,7 @@ function stripHarmonicaMdTag(text: string): string {
 }
 
 export default function OnboardingChat({ onComplete, onSkip, embedded = false }: OnboardingChatProps) {
+  const posthog = usePostHog();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -177,6 +179,9 @@ export default function OnboardingChat({ onComplete, onSkip, embedded = false }:
     try {
       const result = await saveHarmonicaMd(markdown);
       if (result.success) {
+        posthog?.capture('onboarding_completed', {
+          sections_filled: Object.values(reviewSections).filter(s => s.trim()).length,
+        });
         setPhase('completed');
         setTimeout(onComplete, 1500);
       }

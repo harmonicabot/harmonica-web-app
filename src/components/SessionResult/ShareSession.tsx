@@ -5,13 +5,15 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Share } from '../icons';
 import { Copy } from 'lucide-react';
+import { usePostHog } from 'posthog-js/react';
 
 export default function ShareSession({
   makeSessionId,
 }: {
   makeSessionId: string;
 }) {
-  const [chatUrl, setChatUrl] = useState(''); 
+  const posthog = usePostHog();
+  const [chatUrl, setChatUrl] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
@@ -24,6 +26,7 @@ export default function ShareSession({
     navigator.clipboard
       .writeText(url)
       .then(() => {
+        posthog?.capture('session_shared', { session_id: makeSessionId });
         setShowToast(true);
         setTimeout(() => setShowToast(false), 2000);
       })

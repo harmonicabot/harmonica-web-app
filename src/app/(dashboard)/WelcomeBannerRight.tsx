@@ -13,6 +13,7 @@ import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog';
+import { usePostHog } from 'posthog-js/react';
 
 const SKIP_KEY_PREFIX = 'harmonica_onboarding_skipped_';
 
@@ -27,6 +28,7 @@ const CONTEXT_HINTS = [
 ];
 
 export default function WelcomeBannerRight({ showOnboarding }: WelcomeBannerRightProps) {
+  const posthog = usePostHog();
   const [showPrompt, setShowPrompt] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const { user } = useUser();
@@ -85,6 +87,7 @@ export default function WelcomeBannerRight({ showOnboarding }: WelcomeBannerRigh
             </Button>
             <button
               onClick={() => {
+                posthog?.capture('onboarding_skipped');
                 if (skipKey) localStorage.setItem(skipKey, '1');
                 setShowPrompt(false);
               }}
