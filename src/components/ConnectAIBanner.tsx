@@ -43,7 +43,7 @@ export default function ConnectAIBanner({ hasApiKeys }: ConnectAIBannerProps) {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Link href="/profile?tab=api-keys">
+          <Link href="/settings?tab=api-keys">
             <Button
               size="sm"
               className="bg-amber-900 hover:bg-amber-800 text-white"

@@ -12,6 +12,15 @@ const nextConfig = {
   // Inline AUTH0_BASE_URL at build time so it's available in all runtimes
   // (edge middleware + serverless functions)
   ...(auth0BaseUrl ? { env: { AUTH0_BASE_URL: auth0BaseUrl } } : {}),
+  async redirects() {
+    return [
+      {
+        source: '/profile',
+        destination: '/settings',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

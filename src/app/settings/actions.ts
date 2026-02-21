@@ -228,8 +228,8 @@ export async function deleteUserData(existingUserData?: any) {
     
     console.log('Data deletion completed successfully');
     
-    // Revalidate the profile page to reflect the changes
-    revalidatePath('/profile');
+    // Revalidate the settings page to reflect the changes
+    revalidatePath('/settings');
     
     return { 
       success: true, 

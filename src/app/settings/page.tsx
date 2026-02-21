@@ -17,10 +17,10 @@ import { fetchUserData, deleteUserData, deleteUserAccount } from './actions';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ApiKeysTab from './ApiKeysTab';
 
-export default function Profile() {
+export default function SettingsPage() {
   const { user, error: userError, isLoading: userLoading } = useUser();
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'account';
+  const initialTab = searchParams.get('tab') || 'profile';
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [exportLoading, setExportLoading] = useState<boolean>(false);
@@ -172,14 +172,14 @@ export default function Profile() {
   if (!user) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <p>Please sign in to view your profile and data.</p>
+        <p>Please sign in to view your settings.</p>
       </div>
     );
   }
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
+      <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
       {message && (
         <div
@@ -192,27 +192,27 @@ export default function Profile() {
 
       <Tabs defaultValue={initialTab} className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="account">Account Information</TabsTrigger>
-          <TabsTrigger value="data">Your Data</TabsTrigger>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="account">
+        <TabsContent value="profile">
           <Card>
             <CardHeader>
-              <CardTitle>Account Information</CardTitle>
-              <CardDescription>Your personal account details</CardDescription>
+              <CardTitle>Profile</CardTitle>
+              <CardDescription>Your personal information</CardDescription>
             </CardHeader>
             <CardContent>
               {userData ? (
                 <div className="space-y-4">
                   <div>
-                    <p className="font-medium">Username:</p>
-                    <p>{userData.name || user.name || 'Not provided'}</p>
+                    <p className="font-medium">Name</p>
+                    <p className="text-muted-foreground">{userData.name || user.name || 'Not provided'}</p>
                   </div>
                   <div>
-                    <p className="font-medium">Email:</p>
-                    <p>{userData.user.email || user.email || 'Not provided'}</p>
+                    <p className="font-medium">Email</p>
+                    <p className="text-muted-foreground">{userData.user.email || user.email || 'Not provided'}</p>
                   </div>
                 </div>
               ) : (
@@ -222,12 +222,12 @@ export default function Profile() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="data">
+        <TabsContent value="account">
           <Card>
             <CardHeader>
-              <CardTitle>Your Data</CardTitle>
+              <CardTitle>Account</CardTitle>
               <CardDescription>
-                Overview of your data stored in our system
+                Manage your data and account
               </CardDescription>
             </CardHeader>
             <CardContent>
