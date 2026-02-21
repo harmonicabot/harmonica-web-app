@@ -213,7 +213,7 @@ export default function OnboardingChat({ onComplete, onSkip, embedded = false }:
             )}
           </div>
         </div>
-        {phase === 'chatting' && (
+        {phase === 'chatting' && !embedded && (
           <button
             onClick={onSkip}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
