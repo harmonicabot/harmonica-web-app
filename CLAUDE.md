@@ -38,7 +38,7 @@ branch naming: feature/short-description, fix/short-description
 ### Tech Stack
 - **Framework**: Next.js 14 (App Router)
 - **Database**: Neon Postgres with Kysely query builder
-- **Auth**: Auth0 (`@auth0/nextjs-auth0`)
+- **Auth**: Auth0 (`@auth0/nextjs-auth0`, route at `src/app/api/auth/[auth0]/route.ts`)
 - **LLM**: LlamaIndex with OpenAI/Anthropic/Google/PublicAI providers
 - **Vector DB**: Qdrant for RAG queries
 - **State**: Zustand (`src/stores/`)
