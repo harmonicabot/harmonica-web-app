@@ -210,7 +210,7 @@ export default function SettingsPage() {
       if (result.success) {
         showMessage('Account deleted. Redirecting to logout...', 'success');
         setTimeout(() => {
-          router.push('/api/auth/logout');
+          window.location.href = '/api/auth/logout';
         }, 2000);
       } else {
         showMessage(result.message || 'Failed to delete account', 'error');
