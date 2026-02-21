@@ -193,7 +193,7 @@ Results log to Braintrust under project `harmonica-facilitation` and are viewabl
 
 - `harmonica-mcp` — MCP server on npm (`npx harmonica-mcp`), wraps the v1 API
 - `harmonica-chat` — Claude Code slash command for session creation
-- `harmonica-docs` — Mintlify docs site (docs.harmonica.chat)
+- `harmonica-docs` — Mintlify docs site (help.harmonica.chat)
 
 ## Code Style
 
