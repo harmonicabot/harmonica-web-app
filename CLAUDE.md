@@ -29,6 +29,7 @@ Note: No test or lint scripts are configured. TypeScript strict mode provides ty
 Always create a branch and open a PR for code changes — never commit directly to master. This applies to all application code changes; analytics-only or config changes outside the app don't require PRs.
 
 ```
+production branch: master (NOT main — PRs to main don't deploy)
 branch naming: feature/short-description, fix/short-description
 ```
 
@@ -89,6 +90,22 @@ src/
 | `/api/participant-suggestion` | Participant suggestions |
 | `/api/sessions/[id]/generate-characters` | Generate conversation character personas |
 | `/api/transcribe` | Audio transcription (Deepgram) |
+
+### API v1 (`/api/v1/`)
+
+Public REST API with Bearer token auth (`hm_live_` API keys). Routes in `src/app/api/v1/`:
+- `src/lib/api/auth.ts` — `authenticateRequest()` supports both API key (Bearer) and Auth0 session
+- `src/lib/api-types.ts` — Request/response types
+- `src/lib/api/mappers.ts` — DB row → API response mappers
+- `src/lib/api/errors.ts` — Standardized error responses
+
+**Gotcha:** Under API key auth, `authGetSession()` returns null, so `insertHostSessions()` skips setting owner permission. Always call `setPermission(id, 'owner', 'SESSION', user.id)` explicitly after creating resources via the API.
+
+### OpenAPI Spec
+
+API spec is maintained in two places — both must be updated together:
+- `docs/api-spec.yaml` (this repo)
+- `harmonica-docs/api-reference/openapi.yaml` (Mintlify docs site)
 
 ### Core Concepts
 
@@ -171,6 +188,12 @@ Results log to Braintrust under project `harmonica-facilitation` and are viewabl
 - External packages go under `experimental.serverComponentsExternalPackages` (NOT top-level `serverExternalPackages` — that's Next.js 15+)
 - `reactStrictMode: false` to prevent components loading twice
 - API routes using `cookies()` need `export const dynamic = 'force-dynamic'` to avoid build warnings
+
+### Related Repos
+
+- `harmonica-mcp` — MCP server on npm (`npx harmonica-mcp`), wraps the v1 API
+- `harmonica-chat` — Claude Code slash command for session creation
+- `harmonica-docs` — Mintlify docs site (docs.harmonica.chat)
 
 ## Code Style
 
