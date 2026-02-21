@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Key, Plus, Copy, Trash2, Check, LoaderCircle } from 'lucide-react';
+import { Key, Plus, Copy, Trash2, Check, LoaderCircle, Terminal } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface ApiKey {
@@ -46,6 +46,7 @@ export default function ApiKeysTab() {
   const [creating, setCreating] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedInstall, setCopiedInstall] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [revokeLoading, setRevokeLoading] = useState(false);
 
@@ -103,11 +104,22 @@ export default function ApiKeysTab() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const getInstallCommand = (key: string) =>
+    `claude mcp add-json harmonica '{"command":"npx","args":["-y","harmonica-mcp"],"env":{"HARMONICA_API_KEY":"${key}"}}'`;
+
+  const handleCopyInstall = async () => {
+    if (!newKey) return;
+    await navigator.clipboard.writeText(getInstallCommand(newKey));
+    setCopiedInstall(true);
+    setTimeout(() => setCopiedInstall(false), 2000);
+  };
+
   const handleCloseCreate = () => {
     setShowCreate(false);
     setNewKey(null);
     setCreateName('');
     setCopied(false);
+    setCopiedInstall(false);
   };
 
   const handleRevoke = async () => {
@@ -230,7 +242,7 @@ export default function ApiKeysTab() {
           if (!open) handleCloseCreate();
         }}
       >
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle>
               {newKey ? 'Your new API key' : 'Create API Key'}
@@ -261,6 +273,35 @@ export default function ApiKeysTab() {
                   )}
                 </Button>
               </div>
+
+              {/* Install command for Claude Code / MCP clients */}
+              <div className="border-t pt-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Terminal className="h-4 w-4 text-muted-foreground" />
+                  <p className="text-sm font-medium">Connect to Claude Code</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Run this in your terminal to add Harmonica as an MCP server:
+                </p>
+                <div className="relative group">
+                  <pre className="text-xs bg-zinc-900 text-zinc-100 px-3 py-3 rounded-md font-mono break-all whitespace-pre-wrap select-all leading-relaxed">
+                    {getInstallCommand(newKey)}
+                  </pre>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute top-2 right-2 h-7 px-2 bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100"
+                    onClick={handleCopyInstall}
+                  >
+                    {copiedInstall ? (
+                      <Check className="h-3.5 w-3.5 text-green-400" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
               <p className="text-xs text-muted-foreground">
                 Store this key securely. It provides access to your Harmonica
                 sessions and data.

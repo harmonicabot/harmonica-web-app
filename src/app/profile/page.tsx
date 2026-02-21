@@ -14,11 +14,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoaderCircle } from 'lucide-react';
 import { fetchUserData, deleteUserData, deleteUserAccount } from './actions';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import ApiKeysTab from './ApiKeysTab';
 
 export default function Profile() {
   const { user, error: userError, isLoading: userLoading } = useUser();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'account';
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [exportLoading, setExportLoading] = useState<boolean>(false);
@@ -188,7 +190,7 @@ export default function Profile() {
         </div>
       )}
 
-      <Tabs defaultValue="account" className="w-full">
+      <Tabs defaultValue={initialTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="account">Account Information</TabsTrigger>
           <TabsTrigger value="data">Your Data</TabsTrigger>
