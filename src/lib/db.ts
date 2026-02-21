@@ -1341,7 +1341,6 @@ export async function upsertUser(userData: s.NewUser): Promise<s.User | null> {
       .onConflict((oc) =>
         oc.column('id').doUpdateSet({
           email: userData.email,
-          name: userData.name,
           avatar_url: userData.avatar_url,
           last_login: sql`CURRENT_TIMESTAMP`,
           metadata: userData.metadata,
