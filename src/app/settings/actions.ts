@@ -12,6 +12,8 @@ const workspaceSessionsTable = 'workspace_sessions';
 const permissionsTable = 'permissions';
 const hostSessionsTable = 'host_db';
 const workspacesTable = 'workspaces';
+const apiKeysTable = 'api_keys';
+const sessionRatingsTable = 'session_ratings';
 
 export async function fetchUserData() {
   const session = await getSession();
@@ -345,7 +347,19 @@ export async function deleteUserAccount(existingUserData?: any) {
       .deleteFrom('invitations')
       .where('created_by', '=', userSub)
       .execute();
-    
+
+    // Delete API keys
+    await db
+      .deleteFrom(apiKeysTable)
+      .where('user_id', '=', userSub)
+      .execute();
+
+    // Delete session ratings
+    await db
+      .deleteFrom(sessionRatingsTable)
+      .where('user_id', '=', userSub)
+      .execute();
+
     // Finally delete the user record
     await db
       .deleteFrom(usersTable)
