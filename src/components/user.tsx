@@ -27,6 +27,7 @@ import {
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createStripeSession } from '@/lib/stripe';
+import { fetchUserData } from 'app/settings/actions';
 
 export default function User() {
   const { user } = useUser();
@@ -35,7 +36,17 @@ export default function User() {
   const [showPricing, setShowPricing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCanceled, setShowCanceled] = useState(false);
+  const [dbName, setDbName] = useState<string | null>(null);
   const { status, isActive, expiresAt, isLoading } = useSubscription();
+
+  // Fetch display name from DB
+  useEffect(() => {
+    if (user) {
+      fetchUserData().then(data => {
+        if (data?.user?.name) setDbName(data.user.name);
+      }).catch(() => {});
+    }
+  }, [user]);
 
   // Check URL parameters on component mount
   useEffect(() => {
@@ -79,7 +90,7 @@ export default function User() {
               size="sm"
             >
               <User2 className="h-4 w-4" />
-              {user.name || 'Account'}
+              {dbName || user.name || 'Account'}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72">
