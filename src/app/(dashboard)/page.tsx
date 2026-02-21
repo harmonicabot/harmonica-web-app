@@ -6,7 +6,6 @@ import { WorkspacesTable } from './workspaces-table';
 import * as db from '@/lib/db';
 import Link from 'next/link';
 import { cache } from 'react';
-import { randomBytes, createHash } from 'crypto';
 import ErrorPage from '@/components/Error';
 import { getGeneratedMetadata } from 'app/api/metadata';
 import { Card, CardContent } from '@/components/ui/card';
@@ -133,21 +132,7 @@ const sessionCache = cache(async () => {
       hostSessions,
     );
 
-    // Auto-generate default API key for new users
-    let apiKeys = await db.getApiKeysForUser(userId);
-    if (hostSessions.length === 0 && workspacesWithSessions.length === 0 && apiKeys.length === 0) {
-      const rawKey = `hm_live_${randomBytes(16).toString('hex')}`;
-      const keyHash = createHash('sha256').update(rawKey).digest('hex');
-      const keyPrefix = rawKey.slice(0, 12);
-      await db.createApiKey({
-        user_id: userId,
-        key_hash: keyHash,
-        key_prefix: keyPrefix,
-        name: 'Default',
-      });
-      apiKeys = [{ id: '', key_hash: '', key_prefix: keyPrefix, name: 'Default', user_id: userId } as any];
-    }
-
+    const apiKeys = await db.getApiKeysForUser(userId);
     const harmonicaMd = await db.getUserHarmonicaMd(userId);
     return { hostSessions, workspacesWithSessions, hasApiKeys: apiKeys.length > 0, hasHarmonicaMd: !!harmonicaMd };
   } catch (error) {
