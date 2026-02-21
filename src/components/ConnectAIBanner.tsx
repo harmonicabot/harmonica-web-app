@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { X, Plug, Copy, Check, LoaderCircle, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useUser } from '@auth0/nextjs-auth0/client';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const STORAGE_KEY = 'harmonica_connect_ai_dismissed';
+const DISMISS_KEY_PREFIX = 'harmonica_connect_ai_dismissed_';
 
 interface ConnectAIBannerProps {
   hasApiKeys: boolean;
@@ -19,15 +20,20 @@ export default function ConnectAIBanner({ hasApiKeys }: ConnectAIBannerProps) {
   const [generating, setGenerating] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const { user } = useUser();
+
+  const dismissKey = user?.sub ? `${DISMISS_KEY_PREFIX}${user.sub}` : '';
 
   useEffect(() => {
-    setDismissed(!!localStorage.getItem(STORAGE_KEY));
-  }, []);
+    if (dismissKey) {
+      setDismissed(!!localStorage.getItem(dismissKey));
+    }
+  }, [dismissKey]);
 
   if (hasApiKeys || dismissed) return null;
 
   const handleDismiss = () => {
-    localStorage.setItem(STORAGE_KEY, 'true');
+    if (dismissKey) localStorage.setItem(dismissKey, 'true');
     setDismissed(true);
   };
 

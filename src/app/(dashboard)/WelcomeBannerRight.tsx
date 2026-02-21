@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { FileText, Sparkles, Users, Target, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@auth0/nextjs-auth0/client';
 import { motion } from 'framer-motion';
 import CreateSessionInputClient from './CreateSessionInputClient';
 import OnboardingChat from '@/components/OnboardingChat';
@@ -13,7 +14,7 @@ import {
   DialogContent,
 } from '@/components/ui/dialog';
 
-const SKIP_KEY = 'harmonica_onboarding_skipped';
+const SKIP_KEY_PREFIX = 'harmonica_onboarding_skipped_';
 
 interface WelcomeBannerRightProps {
   showOnboarding: boolean;
@@ -28,16 +29,19 @@ const CONTEXT_HINTS = [
 export default function WelcomeBannerRight({ showOnboarding }: WelcomeBannerRightProps) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const { user } = useUser();
   const router = useRouter();
 
+  const skipKey = user?.sub ? `${SKIP_KEY_PREFIX}${user.sub}` : '';
+
   useEffect(() => {
-    if (showOnboarding) {
-      const skipped = localStorage.getItem(SKIP_KEY);
+    if (showOnboarding && skipKey) {
+      const skipped = localStorage.getItem(skipKey);
       if (!skipped) {
         setShowPrompt(true);
       }
     }
-  }, [showOnboarding]);
+  }, [showOnboarding, skipKey]);
 
   if (showPrompt) {
     return (
@@ -81,7 +85,7 @@ export default function WelcomeBannerRight({ showOnboarding }: WelcomeBannerRigh
             </Button>
             <button
               onClick={() => {
-                localStorage.setItem(SKIP_KEY, '1');
+                if (skipKey) localStorage.setItem(skipKey, '1');
                 setShowPrompt(false);
               }}
               className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
@@ -101,7 +105,7 @@ export default function WelcomeBannerRight({ showOnboarding }: WelcomeBannerRigh
               }}
               onSkip={() => {
                 setShowDialog(false);
-                localStorage.setItem(SKIP_KEY, '1');
+                if (skipKey) localStorage.setItem(skipKey, '1');
                 setShowPrompt(false);
               }}
               embedded
