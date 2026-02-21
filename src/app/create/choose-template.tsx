@@ -110,7 +110,7 @@ export default function ChooseTemplate({
           </div>
           <div className="flex justify-between mt-4">
             <span className="text-sm text-muted-foreground">Still need help?</span>
-            <Link target="_blank" href="https://oldspeak.notion.site/Create-a-session-a8e851c3d8e446abab2b514410f916a2" className="text-sm hover:underline">Read Beginners Guide</Link>
+            <Link target="_blank" href="https://help.harmonica.chat" className="text-sm hover:underline">Read Beginners Guide</Link>
           </div>
         </div>
       </div>

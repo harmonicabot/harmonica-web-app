@@ -12,7 +12,7 @@ export const footerConfigs: Record<string, FooterConfig> = {
     quickLinks: [
       {
         label: 'Help Center',
-        url: 'https://oldspeak.notion.site/Help-Center-fcf198f4683b4e3099beddf48971bd40?pvs=4',
+        url: 'https://help.harmonica.chat',
       },
       { label: 'Contact Us', url: 'https://t.me/harmonica_support' },
     ],
@@ -52,12 +52,12 @@ export const footerConfigs: Record<string, FooterConfig> = {
       },
       {
         label: 'Harmonica Help Center',
-        url: 'https://oldspeak.notion.site/Help-Center-fcf198f4683b4e3099beddf48971bd40?pvs=4',
+        url: 'https://help.harmonica.chat',
       },
       { label: 'Contact Harmonica', url: 'https://t.me/harmonica_support' },
       {
         label: 'Privacy Policy',
-        url: 'https://oldspeak.notion.site/Harmonica-Privacy-Policy-195fc9ee9681808fae1cfcf903836cf1',
+        url: 'https://help.harmonica.chat/privacy',
       },
     ],
     contact: {

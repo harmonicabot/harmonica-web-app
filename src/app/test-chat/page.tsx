@@ -313,7 +313,7 @@ Please type your name or "anonymous" if you prefer
                         Finish
                       </Button>
                       <Link
-                        href="https://oldspeak.notion.site/Help-Center-fcf198f4683b4e3099beddf48971bd40"
+                        href="https://help.harmonica.chat"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
