@@ -66,6 +66,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Messages array required' }, { status: 400 });
   }
 
+  // Return a hardcoded greeting for the initial call (no LLM needed, instant response)
+  if (messages.length === 0) {
+    return NextResponse.json({
+      response: "Hey there! Welcome to Harmonica! I'm here to help set up your AI facilitator so it runs great sessions for your team.\n\nFirst things first — tell me about your team or organization. Who are you, and what do you do?",
+    });
+  }
+
   try {
     const llm = getLLM('MAIN', 0.5, 4096);
     const formattedMessages: ChatMessage[] = [

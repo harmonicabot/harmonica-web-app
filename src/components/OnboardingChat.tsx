@@ -201,7 +201,7 @@ export default function OnboardingChat({ onComplete, onSkip, embedded = false }:
       {/* Header */}
       <div className={`flex items-center justify-between ${embedded ? 'pb-4' : 'px-5 pt-5 pb-3'}`}>
         <div className="flex items-center gap-3">
-          <img src="/harmonica-logo-sm.png" alt="" className="w-7 h-7" />
+          <img src="/harmonica-logo-sm.png" alt="" className="h-6 w-auto" />
           <div>
             <h3 className="text-sm font-semibold">
               {phase === 'reviewing' ? 'Review your HARMONICA.md' : phase === 'completed' ? 'All set!' : 'Set up your facilitator context'}
