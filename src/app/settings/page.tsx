@@ -15,6 +15,15 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import { LoaderCircle, Check, Mail, KeyRound, Download, Trash2, AlertTriangle } from 'lucide-react';
 import {
   fetchUserData,
@@ -49,6 +58,8 @@ export default function SettingsPage() {
   const [exportLoading, setExportLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [accountDeleteLoading, setAccountDeleteLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   useEffect(() => {
     if (user && !userLoading) {
@@ -188,24 +199,10 @@ export default function SettingsPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (
-      !confirm(
-        'WARNING: This will permanently delete your account and all data. This action CANNOT be undone.'
-      )
-    ) {
-      return;
-    }
-
-    if (
-      !confirm(
-        'Please confirm once more. You will be logged out immediately after deletion.'
-      )
-    ) {
-      return;
-    }
-
     setAccountDeleteLoading(true);
     try {
+      // Prevent InvitationProcessor from re-creating the user during deletion
+      sessionStorage.setItem('account_deleting', 'true');
       const result = await deleteUserAccount();
       if (result.success) {
         showMessage('Account deleted. Redirecting to logout...', 'success');
@@ -213,12 +210,14 @@ export default function SettingsPage() {
           window.location.href = '/api/auth/logout';
         }, 2000);
       } else {
+        sessionStorage.removeItem('account_deleting');
         showMessage(result.message || 'Failed to delete account', 'error');
+        setAccountDeleteLoading(false);
       }
     } catch (error) {
+      sessionStorage.removeItem('account_deleting');
       showMessage('Failed to delete account', 'error');
       console.error(error);
-    } finally {
       setAccountDeleteLoading(false);
     }
   };
@@ -515,22 +514,57 @@ export default function SettingsPage() {
                     You will be logged out immediately.
                   </p>
                 </div>
-                <Button
-                  variant="destructive"
-                  onClick={handleDeleteAccount}
-                  disabled={accountDeleteLoading}
-                  size="sm"
-                  className="shrink-0"
-                >
-                  {accountDeleteLoading ? (
-                    <>
-                      <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
-                      Deleting...
-                    </>
-                  ) : (
-                    'Delete account'
-                  )}
-                </Button>
+                <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => {
+                  setDeleteDialogOpen(open);
+                  if (!open) setDeleteConfirmText('');
+                }}>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setDeleteDialogOpen(true)}
+                    size="sm"
+                    className="shrink-0"
+                  >
+                    Delete account
+                  </Button>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete account</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete your account ({user?.email}) and all associated data. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="space-y-2">
+                      <Label htmlFor="delete-confirm" className="text-sm">
+                        Type <span className="font-mono font-semibold">DELETE</span> to confirm
+                      </Label>
+                      <Input
+                        id="delete-confirm"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder="DELETE"
+                        disabled={accountDeleteLoading}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={accountDeleteLoading}>Cancel</AlertDialogCancel>
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteAccount}
+                        disabled={deleteConfirmText !== 'DELETE' || accountDeleteLoading}
+                      >
+                        {accountDeleteLoading ? (
+                          <>
+                            <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
+                            Deleting...
+                          </>
+                        ) : (
+                          'Delete account'
+                        )}
+                      </Button>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardContent>
             <CardFooter>
