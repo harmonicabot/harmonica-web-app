@@ -8,10 +8,12 @@ import {
   insertHostSessions,
   setPermission,
   getHostSessionById,
+  getNumUsersAndMessages,
 } from '@/lib/db';
 import type { SessionStatus, CreateSessionRequest } from '@/lib/api-types';
 import type { NewHostSession } from '@/lib/schema';
 import { DEFAULT_PROMPTS } from '@/lib/defaultPrompts';
+import { getUserStats } from '@/lib/clientUtils';
 
 export async function GET(req: NextRequest) {
   const user = await authenticateRequest();
@@ -34,8 +36,15 @@ export async function GET(req: NextRequest) {
       offset,
     });
 
+    const stats = await getNumUsersAndMessages(sessions.map((s) => s.id));
+
     return NextResponse.json({
-      data: sessions.map(toSessionListItem),
+      data: sessions.map((s) => {
+        const count = stats[s.id]
+          ? getUserStats(stats, s.id).totalUsers
+          : 0;
+        return toSessionListItem(s, count);
+      }),
       pagination: { total, limit, offset },
     });
   } catch (error) {
