@@ -3,7 +3,8 @@ import { authenticateRequest } from '../../_lib/auth';
 import { forbidden, internalError, notFound } from '../../_lib/errors';
 import { checkSessionAccess } from '../../_lib/permissions';
 import { toSession } from '../../_lib/mappers';
-import { getHostSessionById } from '@/lib/db';
+import { getHostSessionById, getNumUsersAndMessages } from '@/lib/db';
+import { getUserStats } from '@/lib/clientUtils';
 
 export async function GET(
   _req: Request,
@@ -19,7 +20,9 @@ export async function GET(
     if (!role) return forbidden();
 
     const session = await getHostSessionById(id);
-    return NextResponse.json(toSession(session));
+    const stats = await getNumUsersAndMessages([id]);
+    const count = stats[id] ? getUserStats(stats, id).totalUsers : 0;
+    return NextResponse.json(toSession(session, count));
   } catch (error: any) {
     if (error?.message?.includes('no result')) {
       return notFound('Session not found');
