@@ -8,6 +8,7 @@ import { UserProfile, useUser } from '@auth0/nextjs-auth0/client';
 import { Message } from '@/lib/schema';
 import { getUserNameFromContext } from '@/lib/clientUtils';
 import { getUserSessionById, getAllChatMessagesInOrder } from '@/lib/db';
+import { usePostHog } from 'posthog-js/react';
 
 export interface UseChatOptions {
   sessionIds?: string[];
@@ -52,6 +53,7 @@ export function useChat(options: UseChatOptions) {
   } = options;
 
   const isTesting = false;
+  const posthog = usePostHog();
   const [errorMessage, setErrorMessage] = useState<{
     title: string;
     message: string;
@@ -229,6 +231,10 @@ export function useChat(options: UseChatOptions) {
         .insertUserSessions(data)
         .then((userIds) => {
           if (userIds[0] && setUserSessionId) setUserSessionId(userIds[0]);
+          posthog?.capture('participant_joined', {
+            session_id: sessionId,
+            is_authenticated: !!user?.sub,
+          });
           return userIds[0]; // Return the userId, just in case setUserSessionId is not fast enough
         })
         .catch((error) => {

@@ -7,6 +7,7 @@ import { RatingModal } from './RatingModal';
 import { useState, useEffect, useRef } from 'react';
 import { updateUserSession, increaseSessionsCount } from '@/lib/db';
 import { usePermissions } from '@/lib/permissions';
+import { usePostHog } from 'posthog-js/react';
 
 interface ChatInterfaceProps {
   hostData: {
@@ -38,6 +39,7 @@ export const ChatInterface = ({
   userContext,
   questions,
 }: ChatInterfaceProps) => {
+  const posthog = usePostHog();
   const { hasMinimumRole }  = usePermissions(hostData.id || '');
   const mainPanelRef = useRef<HTMLElement>(null);
   const [showRating, setShowRating] = useState(false);
@@ -93,6 +95,7 @@ export const ChatInterface = ({
           });
 
           await increaseSessionsCount(userSessionId, 'num_finished');
+          posthog?.capture('session_completed', { session_id: hostData.id });
         } catch (error) {
           console.error('Error updating session:', error);
         }

@@ -315,6 +315,51 @@ export async function deleteUserData(existingUserData?: any) {
   }
 }
 
+export async function fetchHarmonicaMd(): Promise<string | null> {
+  const session = await getSession();
+  if (!session?.user?.sub) return null;
+
+  try {
+    const db = await getDbInstance();
+    const result = await db
+      .selectFrom(usersTable)
+      .select('harmonica_md')
+      .where('id', '=', session.user.sub)
+      .executeTakeFirst();
+    return result?.harmonica_md || null;
+  } catch (error) {
+    console.error('Error fetching HARMONICA.md:', error);
+    return null;
+  }
+}
+
+export async function saveHarmonicaMd(content: string) {
+  const session = await getSession();
+  if (!session?.user?.sub) {
+    return { success: false, message: 'Unauthorized' };
+  }
+
+  const trimmed = content.trim();
+  if (trimmed.length > 6000) {
+    return { success: false, message: 'Content exceeds 6000 character limit' };
+  }
+
+  try {
+    const db = await getDbInstance();
+    await db
+      .updateTable(usersTable)
+      .set({ harmonica_md: trimmed || null })
+      .where('id', '=', session.user.sub)
+      .execute();
+
+    revalidatePath('/settings');
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving HARMONICA.md:', error);
+    return { success: false, message: 'Failed to save' };
+  }
+}
+
 export async function deleteUserAccount(existingUserData?: any) {
   const session = await getSession();
   

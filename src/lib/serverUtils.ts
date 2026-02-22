@@ -6,6 +6,7 @@ import { getSession } from '@auth0/nextjs-auth0';
 import { NewUser, NewHostSession } from './schema';
 import { updateResourcePermission } from 'app/actions/permissions';
 import { getPromptInstructions } from '@/lib/promptsCache';
+import { getPostHogClient } from '@/lib/posthog-server';
 
 export async function isAdmin(user: UserProfile) {
   console.log('Admin IDs: ', process.env.ADMIN_ID);
@@ -45,6 +46,9 @@ export async function syncCurrentUser(): Promise<boolean> {
       return false;
     }
 
+    // Check if this is a new user before upserting
+    const existingUser = await db.getUserById(sub);
+
     // Create or update user record
     const userData: NewUser = {
       id: sub,
@@ -55,6 +59,20 @@ export async function syncCurrentUser(): Promise<boolean> {
     };
 
     const result = await db.upsertUser(userData);
+
+    // Track new signups
+    if (!existingUser && result) {
+      const posthog = getPostHogClient();
+      posthog?.capture({
+        distinctId: sub,
+        event: 'user_signed_up',
+        properties: {
+          email: userEmail,
+          auth_provider: sub.split('|')[0] || 'unknown',
+        },
+      });
+    }
+
     return !!result;
   } catch (error) {
     console.error('Error syncing user:', error);

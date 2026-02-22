@@ -27,6 +27,10 @@ function InvitationProcessor() {
       `Checking invitations: IsLoading:${isLoading}; hasUser: ${!!user}`,
     );
     if (!isLoading && user) {
+      // Skip if account is being deleted — prevents syncCurrentUser from
+      // re-creating the user record during the deletion→logout window
+      if (sessionStorage.getItem('account_deleting')) return;
+
       const processInvitations = async () => {
         try {
           // processUserInvitations now includes syncCurrentUser internally

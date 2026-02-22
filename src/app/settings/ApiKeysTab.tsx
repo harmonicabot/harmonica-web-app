@@ -235,6 +235,43 @@ export default function ApiKeysTab() {
         </CardContent>
       </Card>
 
+      {/* MCP Install Instructions — always visible */}
+      <Card className="mt-4">
+        <CardContent className="pt-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Terminal className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm font-medium">Connect to Claude Code</p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Run this in your terminal to add Harmonica as an MCP server. Replace <code className="bg-muted px-1 py-0.5 rounded text-[11px]">&lt;YOUR_API_KEY&gt;</code> with your API key.
+          </p>
+          <div className="relative group">
+            <pre className="text-xs bg-zinc-900 text-zinc-100 px-3 py-3 rounded-md font-mono break-all whitespace-pre-wrap select-all leading-relaxed">
+              {getInstallCommand('<YOUR_API_KEY>')}
+            </pre>
+            <Button
+              variant="outline"
+              size="sm"
+              className="absolute top-2 right-2 h-7 px-2 bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100"
+              onClick={async () => {
+                await navigator.clipboard.writeText(getInstallCommand('<YOUR_API_KEY>'));
+                setCopiedInstall(true);
+                setTimeout(() => setCopiedInstall(false), 2000);
+              }}
+            >
+              {copiedInstall ? (
+                <Check className="h-3.5 w-3.5 text-green-400" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground/70">
+            Works with any MCP-compatible client (Claude Code, Cursor, Windsurf). The full command with your key is shown when you create a new API key.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Create Key Dialog */}
       <Dialog
         open={showCreate}
