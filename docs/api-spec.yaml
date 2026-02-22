@@ -99,18 +99,27 @@ components:
     Participant:
       type: object
       properties:
+        participant_id:
+          type: string
+          format: uuid
         participant_name:
           type: string
           nullable: true
+        active:
+          type: boolean
+          description: Whether the participant is still in conversation
         messages:
           type: array
           items:
             $ref: '#/components/schemas/Message'
-      required: [participant_name, messages]
+      required: [participant_id, participant_name, active, messages]
 
     Message:
       type: object
       properties:
+        id:
+          type: string
+          format: uuid
         role:
           type: string
           enum: [user, assistant]
@@ -119,7 +128,7 @@ components:
         created_at:
           type: string
           format: date-time
-      required: [role, content, created_at]
+      required: [id, role, content, created_at]
 
     ResponseSubmission:
       type: object

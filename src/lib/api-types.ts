@@ -55,13 +55,16 @@ export interface Question {
 export type MessageRole = 'user' | 'assistant';
 
 export interface Message {
+  id: string;
   role: MessageRole;
   content: string;
   created_at: string;
 }
 
 export interface Participant {
+  participant_id: string;
   participant_name: string | null;
+  active: boolean;
   messages: Message[];
 }
 
