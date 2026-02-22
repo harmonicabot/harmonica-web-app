@@ -47,6 +47,7 @@ export async function GET(
     for (const msg of allMessages) {
       const thread = messagesByThread.get(msg.thread_id) || [];
       thread.push({
+        id: msg.id,
         role: msg.role,
         content: msg.content,
         created_at: msg.created_at.toISOString(),
@@ -55,7 +56,9 @@ export async function GET(
     }
 
     const participants: Participant[] = included.map((us) => ({
+      participant_id: us.id,
       participant_name: us.user_name || null,
+      active: us.active,
       messages: messagesByThread.get(us.thread_id) || [],
     }));
 
