@@ -25,5 +25,6 @@ export function toSession(
     critical: hs.critical || null,
     context: hs.context || null,
     summary: hs.summary || null,
+    session_md: hs.session_md || null,
   };
 }

@@ -25,6 +25,7 @@ export interface Session extends SessionListItem {
   critical: string | null;
   context: string | null;
   summary: string | null;
+  session_md: string | null;
 }
 
 export interface CreateSessionRequest {
