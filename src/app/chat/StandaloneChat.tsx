@@ -15,6 +15,7 @@ import { SessionModal } from '@/components/chat/SessionModal';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { QuestionInfo } from 'app/create/types';
 import { usePermissions } from '@/lib/permissions';
+import { usePostHog } from 'posthog-js/react';
 
 const StandaloneChat = () => {
   const [message, setMessage] = useState<OpenAIMessage>({
@@ -24,6 +25,7 @@ Please type your name or "anonymous" if you prefer
 `,
   });
 
+  const posthog = usePostHog();
   const { user } = useUser();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('s');
@@ -78,6 +80,7 @@ Please type your name or "anonymous" if you prefer
         increaseSessionsCount(sessionId!, 'num_finished');
       })
       .then(() => {
+        posthog?.capture('session_completed', { session_id: sessionId });
         setIsLoading(false);
         setUserFinished(true);
       });

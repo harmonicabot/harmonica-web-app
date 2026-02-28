@@ -21,6 +21,7 @@ import { Step, STEPS } from './types';
 import { createPromptContent } from 'app/api/utils';
 import { getPromptInstructions } from '@/lib/promptActions';
 import { linkSessionsToWorkspace } from '@/lib/workspaceActions';
+import { usePostHog } from 'posthog-js/react';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -36,6 +37,7 @@ export type VersionedPrompt = {
 const enabledSteps = [true, false, false];
 
 export default function CreationFlow() {
+  const posthog = usePostHog();
   const route = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
@@ -250,6 +252,12 @@ IMPORTANT:
       const sessionIds = await db.insertHostSessions(data);
       const sessionId = sessionIds[0];
       await db.setPermission(sessionId, 'owner');
+
+      posthog?.capture('session_created', {
+        session_id: sessionId,
+        template_id: templateId || null,
+        has_template: !!templateId,
+      });
 
       // Set cookie
       const expirationDate = new Date();
