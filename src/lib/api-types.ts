@@ -24,6 +24,7 @@ export interface SessionListItem {
 export interface Session extends SessionListItem {
   critical: string | null;
   context: string | null;
+  prompt: string | null;
   summary: string | null;
   session_md: string | null;
 }
@@ -37,6 +38,14 @@ export interface CreateSessionRequest {
   template_id?: string;
   questions?: Array<{ label: string }>;
   cross_pollination?: boolean;
+}
+
+export interface UpdateSessionRequest {
+  topic?: string;
+  goal?: string;
+  context?: string;
+  critical?: string;
+  prompt?: string;
 }
 
 export interface SessionCreated extends SessionListItem {

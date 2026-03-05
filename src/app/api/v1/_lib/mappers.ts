@@ -24,6 +24,7 @@ export function toSession(
     ...toSessionListItem(hs, participantCount),
     critical: hs.critical || null,
     context: hs.context || null,
+    prompt: hs.prompt || null,
     summary: hs.summary || null,
     session_md: hs.session_md || null,
   };
