@@ -1345,7 +1345,6 @@ export async function upsertUser(userData: s.NewUser): Promise<s.User | null> {
       last_login: sql`CURRENT_TIMESTAMP`,
     };
     if (userData.metadata !== undefined) updateSet.metadata = userData.metadata;
-    if (userData.onboarding_completed !== undefined) updateSet.onboarding_completed = userData.onboarding_completed;
 
     const result = await db
       .insertInto(usersTableName)
