@@ -1335,20 +1335,23 @@ export async function upsertUser(userData: s.NewUser): Promise<s.User | null> {
   console.log('[i] Database Operation: upsertUser');
   try {
     const db = await dbPromise;
+    // On conflict (existing user): only update profile fields.
+    // Subscription/billing fields are managed exclusively by updateUserSubscription
+    // (Stripe webhooks) — never overwrite them here.
+    const updateSet: Record<string, any> = {
+      email: userData.email,
+      name: userData.name,
+      avatar_url: userData.avatar_url,
+      last_login: sql`CURRENT_TIMESTAMP`,
+    };
+    if (userData.metadata !== undefined) updateSet.metadata = userData.metadata;
+    if (userData.onboarding_completed !== undefined) updateSet.onboarding_completed = userData.onboarding_completed;
+
     const result = await db
       .insertInto(usersTableName)
       .values(userData)
       .onConflict((oc) =>
-        oc.column('id').doUpdateSet({
-          email: userData.email,
-          avatar_url: userData.avatar_url,
-          last_login: sql`CURRENT_TIMESTAMP`,
-          metadata: userData.metadata,
-          subscription_status: userData.subscription_status,
-          subscription_id: userData.subscription_id,
-          subscription_period_end: userData.subscription_period_end,
-          stripe_customer_id: userData.stripe_customer_id,
-        }),
+        oc.column('id').doUpdateSet(updateSet),
       )
       .returningAll()
       .executeTakeFirst();
