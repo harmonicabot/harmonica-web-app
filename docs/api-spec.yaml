@@ -45,6 +45,10 @@ components:
         context:
           type: string
           nullable: true
+        prompt:
+          type: string
+          nullable: true
+          description: Custom facilitation prompt for the session's AI facilitator
         status:
           type: string
           enum: [active, completed]
@@ -342,6 +346,12 @@ components:
             error:
               code: rate_limited
               message: Rate limit exceeded. Try again in 30 seconds.
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
 
 paths:
   /me:
@@ -461,6 +471,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Update session
+      description: Update session metadata. Requires editor role or higher.
+      operationId: updateSession
+      tags: [Sessions]
+      parameters:
+        - $ref: '#/components/parameters/sessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                topic:
+                  type: string
+                goal:
+                  type: string
+                context:
+                  type: string
+                critical:
+                  type: string
+                prompt:
+                  type: string
+              minProperties: 1
+      responses:
+        '200':
+          description: Updated session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
