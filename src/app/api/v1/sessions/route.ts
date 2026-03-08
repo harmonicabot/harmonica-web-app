@@ -25,6 +25,8 @@ export async function GET(req: NextRequest) {
     const q = searchParams.get('q') || undefined;
     const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '20'), 1), 100);
     const offset = Math.max(parseInt(searchParams.get('offset') || '0'), 0);
+    const distributionChannel = searchParams.get('distribution_channel');
+    const distributionGroupId = searchParams.get('distribution_group_id');
 
     const permissions = await getResourcesForUser(user.id, 'SESSION');
     const sessionIds = permissions.map((p) => p.resource_id);
@@ -34,6 +36,8 @@ export async function GET(req: NextRequest) {
       search: q,
       limit,
       offset,
+      distributionChannel: distributionChannel || undefined,
+      distributionGroupId: distributionGroupId || undefined,
     });
 
     const stats = await getNumUsersAndMessages(sessions.map((s) => s.id));
@@ -88,6 +92,9 @@ export async function POST(req: NextRequest) {
       final_report_sent: false,
       start_time: new Date(),
       cross_pollination: body.cross_pollination ?? false,
+      distribution: body.distribution
+        ? JSON.stringify(body.distribution)
+        : null,
     };
 
     const [sessionId] = await insertHostSessions(newSession);

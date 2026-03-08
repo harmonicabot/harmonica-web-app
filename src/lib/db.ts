@@ -131,6 +131,8 @@ export async function listSessionsForUser(
     search?: string;
     limit: number;
     offset: number;
+    distributionChannel?: string;
+    distributionGroupId?: string;
   },
 ): Promise<{ sessions: s.HostSession[]; total: number }> {
   if (!sessionIds.length) return { sessions: [], total: 0 };
@@ -154,6 +156,45 @@ export async function listSessionsForUser(
           eb('topic', 'ilike', searchTerm),
           eb('goal', 'ilike', searchTerm),
         ]),
+      );
+    }
+
+    if (options.distributionChannel && options.distributionGroupId) {
+      baseQuery = baseQuery.where(({ eb, ref }) =>
+        eb(
+          eb.fn<boolean>('jsonb_path_exists', [
+            ref('distribution'),
+            eb.val(
+              `$[*] ? (@.channel == "${options.distributionChannel}" && @.group_id == "${options.distributionGroupId}")`,
+            ),
+          ]),
+          '=',
+          eb.val(true),
+        ),
+      );
+    } else if (options.distributionChannel) {
+      baseQuery = baseQuery.where(({ eb, ref }) =>
+        eb(
+          eb.fn<boolean>('jsonb_path_exists', [
+            ref('distribution'),
+            eb.val(`$[*] ? (@.channel == "${options.distributionChannel}")`),
+          ]),
+          '=',
+          eb.val(true),
+        ),
+      );
+    } else if (options.distributionGroupId) {
+      baseQuery = baseQuery.where(({ eb, ref }) =>
+        eb(
+          eb.fn<boolean>('jsonb_path_exists', [
+            ref('distribution'),
+            eb.val(
+              `$[*] ? (@.group_id == "${options.distributionGroupId}")`,
+            ),
+          ]),
+          '=',
+          eb.val(true),
+        ),
       );
     }
 
