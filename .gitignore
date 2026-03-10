@@ -46,3 +46,6 @@ tsconfig.tsbuildinfo
 .sourcegraph
 
 *.sql
+
+# sensitive planning docs
+docs/plans/

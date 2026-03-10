@@ -38,6 +38,7 @@ export interface CreateSessionRequest {
   template_id?: string;
   questions?: Array<{ label: string }>;
   cross_pollination?: boolean;
+  distribution?: DistributionTarget[];
 }
 
 export interface UpdateSessionRequest {
@@ -161,6 +162,36 @@ export interface ApiKeyRow {
   last_used_at: Date | null;
   created_at: Date;
   revoked_at: Date | null;
+}
+
+// ─── Chat (Conversational API) ──────────────────────────────────────
+
+export interface ChatRequest {
+  content: string;
+  participant_id: string;
+  participant_name: string;
+}
+
+export interface ChatResponse {
+  message: {
+    role: 'assistant';
+    content: string;
+    is_final: boolean;
+  };
+  thread_id: string;
+}
+
+export interface ChatQuestionsRequest {
+  participant_id: string;
+  participant_name: string;
+  answers: Array<{ question_id: string; answer: string }>;
+}
+
+// ─── Distribution ───────────────────────────────────────────────────
+
+export interface DistributionTarget {
+  channel: string;
+  group_id: string;
 }
 
 // ─── Query Parameters ────────────────────────────────────────────────

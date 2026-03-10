@@ -35,6 +35,7 @@ export interface HostSessionsTable {
   questions?: JSON;
   visibility_settings?: ResultTabsVisibilityConfig;
   cross_pollination: Generated<boolean>; // Default to false
+  distribution: string | null;
 }
 
 export interface UserSessionsTable {
