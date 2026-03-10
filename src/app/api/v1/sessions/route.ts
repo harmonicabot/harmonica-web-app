@@ -82,7 +82,14 @@ export async function POST(req: NextRequest) {
       context: body.context?.trim() || undefined,
       template_id: body.template_id || undefined,
       questions: body.questions
-        ? (JSON.stringify(body.questions) as unknown as JSON)
+        ? (JSON.stringify(
+            body.questions.map((q: { text: string; position?: number }, i: number) => ({
+              id: String(i),
+              label: q.text,
+              type: 'text',
+              required: false,
+            })),
+          ) as unknown as JSON)
         : undefined,
       assistant_id: '',
       summary_assistant_id: '',
