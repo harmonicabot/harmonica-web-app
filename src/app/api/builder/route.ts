@@ -25,13 +25,15 @@ export async function POST(req: Request) {
     case ApiAction.CreatePrompt:
       return await createNewPrompt(request.data as SessionBuilderData, distinctId);
     case ApiAction.EditPrompt:
-      // console.log('Editing prompt for data: ', data.data);
       const d = request.data as TemplateEditingData;
       const createTemplatePrompt =
         await getPromptInstructions('CREATE_SESSION');
+      const editUserPrompt = d.fullPrompt
+        ? `Here is the current session facilitation prompt to edit:\n\n${d.fullPrompt}\n\n---\n\n${d.instructions}`
+        : d.instructions;
       return llama.handleResponse(
         createTemplatePrompt,
-        d.instructions,
+        editUserPrompt,
         request.stream ?? false,
         distinctId,
       );

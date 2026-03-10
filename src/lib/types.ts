@@ -81,6 +81,7 @@ export type TemplateEditingData = {
   threadId: string;
   assistantId: string;
   instructions: string;
+  fullPrompt?: string;
 };
 
 export type AssistantBuilderData = {
