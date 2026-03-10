@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       template_id: body.template_id || undefined,
       questions: body.questions
         ? (JSON.stringify(
-            body.questions.map((q: { text: string; position?: number }, i: number) => ({
+            body.questions.map((q, i) => ({
               id: String(i),
               label: q.text,
               type: 'text',

@@ -36,7 +36,7 @@ export interface CreateSessionRequest {
   critical?: string;
   prompt?: string;
   template_id?: string;
-  questions?: Array<{ label: string }>;
+  questions?: Array<{ text: string }>;
   cross_pollination?: boolean;
   distribution?: DistributionTarget[];
 }
