@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: |
     REST API for the Harmonica structured deliberation platform.
-    Provides read access to sessions and their data, plus response submission for active sessions.
+    Provides access to sessions and their data, including creating, updating, and querying sessions, plus response submission for active sessions.
   contact:
     name: Harmonica
     url: https://harmonica.chat
@@ -92,6 +92,34 @@ components:
           type: string
           format: date-time
       required: [id, topic, goal, status, participant_count, created_at, updated_at]
+
+    PublicSessionListItem:
+      type: object
+      description: Session object returned by the public discovery endpoint. Extends SessionListItem with a join URL.
+      properties:
+        id:
+          type: string
+          format: uuid
+        topic:
+          type: string
+        goal:
+          type: string
+        status:
+          type: string
+          enum: [active]
+        participant_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        join_url:
+          type: string
+          format: uri
+          description: Direct URL for participants to join the session
+      required: [id, topic, goal, status, participant_count, created_at, updated_at, join_url]
 
     Question:
       type: object
@@ -223,7 +251,7 @@ components:
           description: Critical question or constraint
         prompt:
           type: string
-          description: Custom facilitation prompt. If omitted, a default facilitation prompt is used.
+          description: Custom facilitation prompt. If omitted, a prompt is auto-generated from topic, goal, context, and critical fields.
         template_id:
           type: string
           description: ID of a template to use
@@ -232,15 +260,92 @@ components:
           items:
             type: object
             properties:
-              label:
+              text:
                 type: string
-            required: [label]
-          description: Pre-session questions shown to participants before they join
+            required: [text]
+          description: Pre-session questions shown to participants before facilitation begins
         cross_pollination:
           type: boolean
           default: false
           description: Enable cross-pollination of ideas between participant threads
+        distribution:
+          type: array
+          items:
+            $ref: '#/components/schemas/DistributionTarget'
+          description: Distribution channels for the session (e.g. Telegram groups)
       required: [topic, goal]
+
+    DistributionTarget:
+      type: object
+      description: A distribution channel where the session should be announced.
+      properties:
+        channel:
+          type: string
+          enum: [telegram]
+          description: Distribution channel type
+        group_id:
+          type: string
+          description: Channel-specific group identifier (e.g. Telegram chat ID)
+      required: [channel, group_id]
+
+    ChatRequest:
+      type: object
+      description: Send a message in a conversational facilitation session.
+      properties:
+        content:
+          type: string
+          description: The participant's message
+        participant_id:
+          type: string
+          description: Unique identifier for the participant (e.g. Telegram user ID)
+        participant_name:
+          type: string
+          description: Display name of the participant
+      required: [content, participant_id, participant_name]
+
+    ChatQuestionsRequest:
+      type: object
+      description: Submit pre-session question answers to start facilitation.
+      properties:
+        participant_id:
+          type: string
+          description: Unique identifier for the participant
+        participant_name:
+          type: string
+          description: Display name of the participant
+        answers:
+          type: array
+          items:
+            type: object
+            properties:
+              question_id:
+                type: string
+              answer:
+                type: string
+            required: [question_id, answer]
+      required: [participant_id, participant_name, answers]
+
+    ChatResponse:
+      type: object
+      description: Facilitator response to a chat message.
+      properties:
+        message:
+          type: object
+          properties:
+            role:
+              type: string
+              enum: [assistant]
+            content:
+              type: string
+              description: The facilitator's response
+            is_final:
+              type: boolean
+              description: Whether the facilitator considers this conversation complete
+          required: [role, content, is_final]
+        thread_id:
+          type: string
+          description: The participant's thread ID in this session
+      required: [message, thread_id]
 
     SessionCreated:
       type: object
@@ -346,12 +451,6 @@ components:
             error:
               code: rate_limited
               message: Rate limit exceeded. Try again in 30 seconds.
-    ValidationError:
-      description: Validation error
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
 
 paths:
   /me:
@@ -438,6 +537,17 @@ paths:
             default: 0
             minimum: 0
           description: Number of results to skip
+        - name: distribution_channel
+          in: query
+          schema:
+            type: string
+            enum: [telegram]
+          description: Filter by distribution channel
+        - name: distribution_group_id
+          in: query
+          schema:
+            type: string
+          description: Filter by distribution group ID
       responses:
         '200':
           description: List of sessions
@@ -455,6 +565,55 @@ paths:
                 required: [data, pagination]
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /sessions/public:
+    get:
+      summary: List public sessions
+      description: |
+        Returns active sessions that hosts have marked as publicly accessible.
+        No authentication required. Rate-limited by IP address (100 req/min).
+        Use this endpoint to discover participation opportunities.
+      operationId: listPublicSessions
+      tags: [Public]
+      security: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search sessions by topic or goal
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Number of results per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: List of public sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PublicSessionListItem'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                required: [data, pagination]
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /sessions/{id}:
     get:
@@ -479,7 +638,9 @@ paths:
           $ref: '#/components/responses/NotFound'
     patch:
       summary: Update session
-      description: Update session metadata. Requires editor role or higher.
+      description: |
+        Update session metadata. At least one field must be provided.
+        Requires editor role or higher on the session.
       operationId: updateSession
       tags: [Sessions]
       parameters:
@@ -501,6 +662,7 @@ paths:
                   type: string
                 prompt:
                   type: string
+                  description: Custom facilitation prompt for the AI facilitator
               minProperties: 1
       responses:
         '200':
@@ -510,7 +672,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/Session'
         '400':
-          $ref: '#/components/responses/ValidationError'
+          description: Validation error (no valid fields provided)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: validation_error
+                  message: "No valid fields provided. Allowed fields: topic, goal, context, critical, prompt"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -668,6 +838,86 @@ paths:
                     format: date-time
                     nullable: true
                 required: [session_id, summary]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sessions/{id}/chat:
+    post:
+      summary: Send chat message
+      description: |
+        Send a message to a session's AI facilitator as a specific participant.
+        The facilitator responds in a conversational style, guiding the participant
+        through the deliberation topic. When the facilitator considers the conversation
+        complete, `is_final` is set to `true`.
+
+        This endpoint powers channel integrations (e.g. Telegram bot) where participants
+        interact with the facilitator outside the web app.
+      operationId: chatMessage
+      tags: [Chat]
+      parameters:
+        - $ref: '#/components/parameters/sessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Facilitator response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          description: Validation error (missing fields, session not active)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sessions/{id}/chat/questions:
+    post:
+      summary: Submit pre-session answers
+      description: |
+        Submit answers to a session's pre-session questions and receive the
+        facilitator's opening message. This starts the facilitation for the participant.
+
+        Call this once per participant before using the `/chat` endpoint.
+        The answers are passed to the facilitator as context for the conversation.
+      operationId: submitChatQuestions
+      tags: [Chat]
+      parameters:
+        - $ref: '#/components/parameters/sessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatQuestionsRequest'
+      responses:
+        '200':
+          description: Facilitator opening message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          description: Validation error (missing fields, session not active)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
