@@ -73,6 +73,11 @@ export async function PATCH(
       }
     }
 
+    // Keep prompt_summary in sync when prompt changes
+    if (typeof update.prompt === 'string') {
+      update.prompt_summary = update.prompt.substring(0, 500);
+    }
+
     if (Object.keys(update).length === 0) {
       return validationError(
         'No valid fields provided. Allowed fields: ' +
