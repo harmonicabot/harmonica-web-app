@@ -29,6 +29,7 @@ const promptsTableName = 'prompts';
 const promptTypesTableName = 'prompt_type';
 const sessionRatingsTableName = 'session_ratings';
 const apiKeysTableName = 'api_keys';
+const userTelegramGroupsTableName = 'user_telegram_groups';
 
 interface Databases {
   [hostTableName]: s.HostSessionsTable;
@@ -45,6 +46,7 @@ interface Databases {
   session_files: s.SessionFilesTable;
   [sessionRatingsTableName]: s.SessionRatingsTable;
   [apiKeysTableName]: s.ApiKeysTable;
+  [userTelegramGroupsTableName]: s.UserTelegramGroupsTable;
 }
 
 const dbPromise = (async () => {
@@ -1954,5 +1956,73 @@ export async function updateApiKeyLastUsed(
   } catch (error) {
     // Non-critical — don't throw
     console.error('Error in updateApiKeyLastUsed:', error);
+  }
+}
+
+// ─── Telegram Groups ─────────────────────────────────────────────────
+
+export async function listTelegramGroupsForUser(
+  userId: string,
+): Promise<s.UserTelegramGroup[]> {
+  console.log('[i] Database Operation: listTelegramGroupsForUser');
+  const db = await dbPromise;
+  try {
+    return await db
+      .selectFrom(userTelegramGroupsTableName)
+      .selectAll()
+      .where('user_id', '=', userId)
+      .orderBy('created_at', 'desc')
+      .execute();
+  } catch (error) {
+    console.error('Error in listTelegramGroupsForUser:', error);
+    return [];
+  }
+}
+
+export async function upsertTelegramGroup(
+  userId: string,
+  groupId: string,
+  groupName: string | null,
+  topicId: number | null,
+): Promise<s.UserTelegramGroup> {
+  console.log('[i] Database Operation: upsertTelegramGroup');
+  const db = await dbPromise;
+  const result = await db
+    .insertInto(userTelegramGroupsTableName)
+    .values({
+      user_id: userId,
+      group_id: groupId,
+      group_name: groupName,
+      topic_id: topicId,
+    })
+    .onConflict((oc) =>
+      oc
+        .constraint('uq_user_telegram_group')
+        .doUpdateSet({
+          group_name: groupName,
+          topic_id: topicId,
+        }),
+    )
+    .returningAll()
+    .executeTakeFirstOrThrow();
+  return result;
+}
+
+export async function deleteTelegramGroup(
+  userId: string,
+  groupId: string,
+): Promise<boolean> {
+  console.log('[i] Database Operation: deleteTelegramGroup');
+  const db = await dbPromise;
+  try {
+    const result = await db
+      .deleteFrom(userTelegramGroupsTableName)
+      .where('user_id', '=', userId)
+      .where('group_id', '=', groupId)
+      .executeTakeFirst();
+    return Number(result?.numDeletedRows ?? 0) > 0;
+  } catch (error) {
+    console.error('Error in deleteTelegramGroup:', error);
+    return false;
   }
 }

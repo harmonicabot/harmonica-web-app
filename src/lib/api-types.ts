@@ -194,6 +194,21 @@ export interface DistributionTarget {
   group_id: string;
 }
 
+// ─── Telegram Groups ────────────────────────────────────────────────
+
+export interface TelegramGroupResponse {
+  group_id: string;
+  group_name: string | null;
+  topic_id: number | null;
+  created_at: string;
+}
+
+export interface RegisterTelegramGroupRequest {
+  group_id: string;
+  group_name?: string;
+  topic_id?: number;
+}
+
 // ─── Query Parameters ────────────────────────────────────────────────
 
 export interface ListSessionsParams {

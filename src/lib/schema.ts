@@ -230,6 +230,18 @@ export interface ApiKeysTable {
 export type ApiKey = Selectable<ApiKeysTable>;
 export type NewApiKey = Insertable<ApiKeysTable>;
 
+export interface UserTelegramGroupsTable {
+  id: Generated<string>;
+  user_id: string;
+  group_id: string;
+  group_name: string | null;
+  topic_id: number | null;
+  created_at: Generated<Date>;
+}
+
+export type UserTelegramGroup = Selectable<UserTelegramGroupsTable>;
+export type NewUserTelegramGroup = Insertable<UserTelegramGroupsTable>;
+
 export async function createDbInstance<T extends Record<string, any>>() {
   try {
     const url = process.env.POSTGRES_URL;

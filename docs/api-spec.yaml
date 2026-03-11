@@ -347,6 +347,40 @@ components:
           description: The participant's thread ID in this session
       required: [message, thread_id]
 
+    TelegramGroup:
+      type: object
+      description: A Telegram group registered to the user's account.
+      properties:
+        group_id:
+          type: string
+          description: Telegram chat ID
+        group_name:
+          type: string
+          nullable: true
+          description: Telegram group title
+        topic_id:
+          type: integer
+          nullable: true
+          description: Forum topic ID for bot announcements
+        created_at:
+          type: string
+          format: date-time
+      required: [group_id, created_at]
+
+    RegisterTelegramGroupRequest:
+      type: object
+      properties:
+        group_id:
+          type: string
+          description: Telegram chat ID
+        group_name:
+          type: string
+          description: Telegram group title
+        topic_id:
+          type: integer
+          description: Forum topic ID (if group has topics enabled)
+      required: [group_id]
+
     SessionCreated:
       type: object
       description: Session object returned after creation. Extends SessionListItem with a join URL.
@@ -922,5 +956,76 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /integrations/telegram/groups:
+    get:
+      summary: List Telegram groups
+      description: List Telegram groups registered to the authenticated user's account.
+      operationId: listTelegramGroups
+      tags: [Integrations]
+      responses:
+        '200':
+          description: List of registered Telegram groups
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TelegramGroup'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Register a Telegram group
+      description: |
+        Register or update a Telegram group on the authenticated user's account.
+        If the group is already registered (same user + group_id), the name and topic_id are updated.
+        Called by the Telegram bot during `/setup`.
+      operationId: registerTelegramGroup
+      tags: [Integrations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterTelegramGroupRequest'
+      responses:
+        '201':
+          description: Group registered (or updated)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelegramGroup'
+        '400':
+          description: Validation error (missing group_id)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /integrations/telegram/groups/{groupId}:
+    delete:
+      summary: Unregister a Telegram group
+      description: Remove a Telegram group from the authenticated user's account.
+      operationId: deleteTelegramGroup
+      tags: [Integrations]
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Telegram group chat ID
+      responses:
+        '204':
+          description: Group removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
