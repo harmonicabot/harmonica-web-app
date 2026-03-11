@@ -18,7 +18,7 @@ export async function GET() {
       group_id: g.group_id,
       group_name: g.group_name,
       topic_id: g.topic_id,
-      created_at: String(g.created_at),
+      created_at: g.created_at.toISOString(),
     }));
 
     return NextResponse.json({ data });
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       group_id: group.group_id,
       group_name: group.group_name,
       topic_id: group.topic_id,
-      created_at: String(group.created_at),
+      created_at: group.created_at.toISOString(),
     };
 
     return NextResponse.json(data, { status: 201 });

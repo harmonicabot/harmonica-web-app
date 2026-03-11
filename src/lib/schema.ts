@@ -236,7 +236,7 @@ export interface UserTelegramGroupsTable {
   group_id: string;
   group_name: string | null;
   topic_id: number | null;
-  created_at: Generated<string>;
+  created_at: Generated<Date>;
 }
 
 export type UserTelegramGroup = Selectable<UserTelegramGroupsTable>;
