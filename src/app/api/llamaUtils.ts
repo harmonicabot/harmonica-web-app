@@ -10,14 +10,24 @@ import {
   updateUserSession,
   increaseSessionsCount,
 } from '@/lib/db';
-import { initializeCrossPollination } from '@/lib/crossPollination';
+import { generateCrossPollination, ClusterCache } from '@/lib/cross-pollination';
+import type { ClusterInputMessage } from '@/lib/cross-pollination';
 import { getLLM } from '@/lib/modelConfig';
 import { getPromptInstructions } from '@/lib/promptsCache';
 import { isSessionComplete } from '@/lib/sessionGenerator';
 import { traceOperation } from '@/lib/braintrust';
+import { getAllMessagesForSessionSorted } from '@/lib/db';
 
-// Add a new variable to track when we should skip cross-pollination
-let skipCrossPollination = 0;
+// Module-level singletons for cross-pollination (persist across requests)
+const clusterCache = new ClusterCache();
+const priorInsightsMap = new Map<string, string[]>(); // sessionId → prior insights (capped at 10)
+const lastCrossPollinationMap = new Map<string, number>(); // sessionId:threadId → timestamp
+const sessionContextMap = new Map<string, { topic: string; goal: string; description: string }>(); // sessionId → cached context
+const MAX_PRIOR_INSIGHTS = 10;
+const MAX_TRACKED_SESSIONS = 200; // evict oldest entries beyond this
+const MIN_CROSS_POLLINATION_GAP_MS = 2 * 60 * 1000; // 2 minutes
+const MIN_THREAD_MESSAGES_SINCE_LAST = 2;
+const threadMessageCountAtLastCP = new Map<string, number>(); // sessionId:threadId → message count
 
 export async function finishedResponse(
   systemPrompt: string,
@@ -119,69 +129,88 @@ export async function handleGenerateAnswer(
         ? await getAllChatMessagesInOrder(messageData.threadId)
         : [];
 
-      // Skip cross-pollination logic entirely if it's disabled
-      if (crossPollinationEnabled) {
-        // Only attempt cross-pollination if there are enough messages and we're not in skip mode
-        const shouldAttemptCrossPollination =
-          messages.length >= 2 && skipCrossPollination <= 0;
-        console.log(
-          `[i] Message count: ${messages.length}, should attempt cross-pollination: ${shouldAttemptCrossPollination}, skip counter: ${skipCrossPollination}`,
-        );
+      // Cross-pollination: cluster-based pipeline with quality checks
+      if (crossPollinationEnabled && messageData.sessionId && messageData.threadId) {
+        const sessionId = messageData.sessionId;
+        const threadId = messageData.threadId;
+        const cpKey = `${sessionId}:${threadId}`;
 
-        if (
-          shouldAttemptCrossPollination &&
-          messageData.sessionId &&
-          messageData.threadId
-        ) {
+        // Check minimum time gap
+        const lastCP = lastCrossPollinationMap.get(cpKey) || 0;
+        const timeSinceLastCP = Date.now() - lastCP;
+
+        // Check per-thread message count since last cross-pollination
+        const lastCount = threadMessageCountAtLastCP.get(cpKey) || 0;
+        const threadUserMessages = messages.filter((m) => m.role === 'user').length;
+        const newMessagesSinceLastCP = threadUserMessages - lastCount;
+
+        const eligible = timeSinceLastCP >= MIN_CROSS_POLLINATION_GAP_MS
+          && messages.length >= 2
+          && newMessagesSinceLastCP >= MIN_THREAD_MESSAGES_SINCE_LAST;
+
+        if (eligible) {
           try {
-            console.log('[i] Initializing cross-pollination manager');
-            const crossPollination = await initializeCrossPollination(
-              messageData.sessionId,
-            );
+            // Fetch all session messages and map to ClusterInputMessage format
+            const allSessionMessages = await getAllMessagesForSessionSorted(sessionId);
+            const clusterMessages: ClusterInputMessage[] = allSessionMessages.map((m) => ({
+              id: m.id,
+              threadId: m.thread_id,
+              content: m.content,
+              role: m.role,
+            }));
 
-            // Check if we should trigger cross-pollination
-            console.log('[i] Analyzing session state for cross-pollination');
+            // Get session context (cached — topic/goal don't change during a session)
+            let sessionContext = sessionContextMap.get(sessionId);
+            if (!sessionContext) {
+              const sessionData = await getHostSessionById(sessionId);
+              sessionContext = {
+                topic: sessionData?.topic || 'No topic specified',
+                goal: sessionData?.goal || 'No goal specified',
+                description: sessionData?.context || '',
+              };
+              sessionContextMap.set(sessionId, sessionContext);
+            }
 
-            // Use the manager's analyzeSessionState method with threadId
-            const shouldCrossPollinate = await crossPollination.analyzeSessionState(
-              messageData.threadId,
-            );
-            console.log(`[i] Should cross-pollinate: ${shouldCrossPollinate}`);
+            const priorInsights = priorInsightsMap.get(sessionId) || [];
 
-            if (shouldCrossPollinate) {
-              console.log('[i] Cross-pollination triggered');
+            const insight = await generateCrossPollination({
+              allMessages: clusterMessages,
+              threadMessages: messages.map((m) => ({ role: m.role, content: m.content })),
+              threadId,
+              sessionId,
+              sessionContext,
+              priorInsights,
+              cache: clusterCache,
+            });
 
-              // Set the skip counter to 2 (skip next two interactions)
-              skipCrossPollination = 2;
-              crossPollination.setLastCrossPollination();
+            if (insight) {
+              // Track for future novelty checks and timing
+              const updatedInsights = [...priorInsights, insight].slice(-MAX_PRIOR_INSIGHTS);
+              priorInsightsMap.set(sessionId, updatedInsights);
+              lastCrossPollinationMap.set(cpKey, Date.now());
+              threadMessageCountAtLastCP.set(cpKey, threadUserMessages);
 
-              // Generate a cross-pollination question based on other threads
-              const crossPollinationQuestion =
-                await crossPollination.generateCrossPollinationQuestion(
-                  messageData.threadId,
-                );
+              // Basic eviction: if Maps grow too large, clear oldest entries
+              if (priorInsightsMap.size > MAX_TRACKED_SESSIONS) {
+                const firstKey = priorInsightsMap.keys().next().value;
+                if (firstKey) {
+                  priorInsightsMap.delete(firstKey);
+                  sessionContextMap.delete(firstKey);
+                  clusterCache.evict(firstKey);
+                }
+              }
 
-              // Return the cross-pollination question
               return {
-                thread_id: messageData.threadId || '',
+                thread_id: threadId,
                 role: 'assistant' as const,
-                content: `💡 Cross-pollination insight: ${crossPollinationQuestion}`,
+                content: `💡 Cross-pollination insight: ${insight}`,
                 created_at: new Date(),
               };
             }
           } catch (error) {
             console.error('[x] Error in cross-pollination:', error);
-            // Continue with normal processing without cross-pollination
+            // Fall through to normal response generation
           }
-        } else {
-          // Decrement the skip counter if it's greater than 0
-          if (skipCrossPollination > 0) {
-            skipCrossPollination--;
-            console.log(
-              `[i] Skipping cross-pollination, counter decreased to: ${skipCrossPollination}`,
-            );
-          }
-          console.log('[i] Not attempting cross-pollination for this message');
         }
       }
 

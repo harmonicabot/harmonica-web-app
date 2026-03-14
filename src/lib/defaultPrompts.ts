@@ -135,6 +135,7 @@ Use the structure that best expresses the real shape of the conversation.
    - Use generic terms like "a participant" or "several participants"
    - Remove or redact any identifiers from examples`,
 
+  /** @deprecated Use src/lib/cross-pollination/prompts.ts instead. Kept for reference during migration. */
   CROSS_POLLINATION: `You are an expert facilitator managing cross-pollination of ideas between conversations.
 
 Your task is to:
@@ -153,6 +154,7 @@ The question should:
 
 Respond with ONLY the question, no explanations or other text.`,
 
+  /** @deprecated Use src/lib/cross-pollination/prompts.ts instead. Kept for reference during migration. */
   CROSS_POLLINATION_REASONING: `You are an AI facilitator deciding when to introduce cross-pollination of ideas between conversations.
 
 Determine if NOW is the right time to introduce ideas from other conversations based on:

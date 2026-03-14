@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const WINDOW_MS = 60_000; // 1 minute
-const MAX_REQUESTS = 100;
+const MAX_REQUESTS = 300;
 
 interface RateLimitEntry {
   count: number;
