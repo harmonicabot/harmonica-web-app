@@ -130,6 +130,7 @@ export async function handleGenerateAnswer(
         : [];
 
       // Cross-pollination: cluster-based pipeline with quality checks
+      console.log(`[cross-pollination] enabled=${crossPollinationEnabled}, sessionId=${messageData.sessionId}, threadId=${messageData.threadId}`);
       if (crossPollinationEnabled && messageData.sessionId && messageData.threadId) {
         const sessionId = messageData.sessionId;
         const threadId = messageData.threadId;
@@ -147,6 +148,8 @@ export async function handleGenerateAnswer(
         const eligible = timeSinceLastCP >= MIN_CROSS_POLLINATION_GAP_MS
           && messages.length >= 2
           && newMessagesSinceLastCP >= MIN_THREAD_MESSAGES_SINCE_LAST;
+
+        console.log(`[cross-pollination] eligibility: timeSinceLastCP=${Math.round(timeSinceLastCP/1000)}s, messages=${messages.length}, threadUserMessages=${threadUserMessages}, lastCount=${lastCount}, newSinceLastCP=${newMessagesSinceLastCP}, eligible=${eligible}`);
 
         if (eligible) {
           try {
@@ -173,6 +176,7 @@ export async function handleGenerateAnswer(
 
             const priorInsights = priorInsightsMap.get(sessionId) || [];
 
+            console.log(`[cross-pollination] calling generateCrossPollination with ${clusterMessages.length} messages, ${priorInsights.length} prior insights`);
             const insight = await generateCrossPollination({
               allMessages: clusterMessages,
               threadMessages: messages.map((m) => ({ role: m.role, content: m.content })),
@@ -183,6 +187,7 @@ export async function handleGenerateAnswer(
               cache: clusterCache,
             });
 
+            console.log(`[cross-pollination] result: ${insight ? 'GOT INSIGHT' : 'null (skipped)'}`);
             if (insight) {
               // Track for future novelty checks and timing
               const updatedInsights = [...priorInsights, insight].slice(-MAX_PRIOR_INSIGHTS);
