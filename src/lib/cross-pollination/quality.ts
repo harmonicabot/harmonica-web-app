@@ -1,9 +1,11 @@
 import { getLLM } from '@/lib/modelConfig';
-import { createLogger } from '@/lib/logger';
 import { NOVELTY_CHECK_PROMPT, RELEVANCE_CHECK_PROMPT } from './prompts';
 import type { ClusterResult, QualityResult } from './types';
 
-const logger = createLogger('harmonica.crossPollination.quality');
+const logger = {
+  info: (msg: string, data?: object) => console.log(`[cross-pollination:quality] ${msg}`, data || ''),
+  error: (msg: string, data?: object) => console.error(`[cross-pollination:quality] ${msg}`, data || ''),
+};
 
 /** Patterns that indicate individual-level references instead of group synthesis */
 const INDIVIDUAL_REFERENCE_PATTERNS = [

@@ -1,10 +1,13 @@
 import { getLLM } from '@/lib/modelConfig';
-import { createLogger } from '@/lib/logger';
+
 import { ClusterResultSchema } from './types';
 import { CLUSTERING_PROMPT } from './prompts';
 import type { ClusterInputMessage, SessionContext, ClusterResult } from './types';
 
-const logger = createLogger('harmonica.crossPollination.clustering');
+const logger = {
+  info: (msg: string, data?: object) => console.log(`[cross-pollination:clustering] ${msg}`, data || ''),
+  error: (msg: string, data?: object) => console.error(`[cross-pollination:clustering] ${msg}`, data || ''),
+};
 
 const EMPTY_RESULT: ClusterResult = {
   clusters: [],

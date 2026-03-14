@@ -1,12 +1,14 @@
 import { getLLM } from '@/lib/modelConfig';
-import { createLogger } from '@/lib/logger';
 import { clusterResponses } from './clustering';
 import { validateInsight } from './quality';
 import { GENERATION_PROMPT } from './prompts';
 import type { ClusterInputMessage, SessionContext, ClusterResult } from './types';
 import type { ClusterCache } from './cache';
 
-const logger = createLogger('harmonica.crossPollination.generation');
+const logger = {
+  info: (msg: string, data?: object) => console.log(`[cross-pollination:generation] ${msg}`, data || ''),
+  error: (msg: string, data?: object) => console.error(`[cross-pollination:generation] ${msg}`, data || ''),
+};
 
 interface GenerateCrossPollinationParams {
   allMessages: ClusterInputMessage[];
