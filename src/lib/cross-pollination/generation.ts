@@ -80,7 +80,7 @@ export async function generateCrossPollination(
             }),
           },
         ],
-        tag: 'cross_pollination_generation',
+        // tag: 'cross_pollination_generation', // Pro-only
       });
 
       const insight = response.trim();

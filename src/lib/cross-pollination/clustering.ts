@@ -57,7 +57,7 @@ export async function clusterResponses(
           }),
         },
       ],
-      tag: 'cross_pollination_clustering',
+      // tag: 'cross_pollination_clustering', // Pro-only: observability tag
     });
 
     const parsed = ClusterResultSchema.safeParse(JSON.parse(response));

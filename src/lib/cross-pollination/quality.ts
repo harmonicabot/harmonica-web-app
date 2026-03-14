@@ -63,7 +63,7 @@ export async function validateInsight(
             content: `New insight:\n${insight}\n\nPrior insights:\n${priorInsights.map((p, i) => `${i + 1}. ${p}`).join('\n')}`,
           },
         ],
-        tag: 'cross_pollination_novelty_check',
+        // tag: 'cross_pollination_novelty_check', // Pro-only
       });
 
       if (response.trim().toUpperCase().startsWith('FAIL')) {
@@ -92,7 +92,7 @@ export async function validateInsight(
           content: `Insight:\n${insight}\n\nParticipant's messages:\n${threadSummary}`,
         },
       ],
-      tag: 'cross_pollination_relevance_check',
+      // tag: 'cross_pollination_relevance_check', // Pro-only
     });
 
     if (response.trim().toUpperCase().startsWith('FAIL')) {
