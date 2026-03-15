@@ -10,7 +10,7 @@ import {
   updateUserSession,
   increaseSessionsCount,
 } from '@/lib/db';
-import { generateCrossPollination, ClusterCache } from '@/lib/cross-pollination';
+import { generateCrossPollination, ClusterCache, ScratchpadCache, updateScratchpad } from '@/lib/cross-pollination';
 import type { ClusterInputMessage } from '@/lib/cross-pollination';
 import { getLLM } from '@/lib/modelConfig';
 import { getPromptInstructions } from '@/lib/promptsCache';
@@ -20,6 +20,7 @@ import { getAllMessagesForSessionSorted } from '@/lib/db';
 
 // Module-level singletons for cross-pollination (persist across requests)
 const clusterCache = new ClusterCache();
+const scratchpadCache = new ScratchpadCache();
 const priorInsightsMap = new Map<string, string[]>(); // sessionId → prior insights (capped at 10)
 const lastCrossPollinationMap = new Map<string, number>(); // sessionId:threadId → timestamp
 const sessionContextMap = new Map<string, { topic: string; goal: string; description: string }>(); // sessionId → cached context
@@ -129,6 +130,70 @@ export async function handleGenerateAnswer(
         ? await getAllChatMessagesInOrder(messageData.threadId)
         : [];
 
+      // Hoist session messages fetch — used by both cross-pollination and scratchpad.
+      // Trade-off: this runs on every request with CP enabled (not just eligible ones).
+      // Previously it only ran inside the eligibility check. The overhead is one DB query
+      // per participant message in CP-enabled sessions, offset by eliminating double-fetches.
+      let allSessionMessages: Awaited<ReturnType<typeof getAllMessagesForSessionSorted>> | null = null;
+
+      if (crossPollinationEnabled && messageData.sessionId) {
+        allSessionMessages = await getAllMessagesForSessionSorted(messageData.sessionId);
+      }
+
+      // Prepare scratchpad update — will run concurrently with facilitator LLM call
+      let scratchpadUpdatePromise: Promise<void> | null = null;
+
+      if (crossPollinationEnabled && messageData.sessionId && allSessionMessages) {
+        const sessionId = messageData.sessionId;
+        // Scratchpad counts user messages only (distinct from cluster cache which counts all)
+        const userMessageCount = allSessionMessages.filter((m) => m.role === 'user').length;
+
+        if (scratchpadCache.needsUpdate(sessionId, userMessageCount)) {
+          let sessionContext = sessionContextMap.get(sessionId);
+          if (!sessionContext) {
+            const sessionData = await getHostSessionById(sessionId);
+            sessionContext = {
+              topic: sessionData?.topic || 'No topic specified',
+              goal: sessionData?.goal || 'No goal specified',
+              description: sessionData?.context || '',
+            };
+            sessionContextMap.set(sessionId, sessionContext);
+          }
+
+          const currentEntry = scratchpadCache.get(sessionId);
+          const lastMessageCount = currentEntry?.messageCountAtUpdate || 0;
+
+          // Slice new messages since last update. Assumes getAllMessagesForSessionSorted
+          // returns stable append-only ordering (ORDER BY created_at).
+          const newMessages: ClusterInputMessage[] = allSessionMessages
+            .filter((m) => m.role === 'user')
+            .slice(lastMessageCount)
+            .map((m) => ({
+              id: m.id,
+              threadId: m.thread_id,
+              content: m.content,
+              role: m.role as 'user',
+            }));
+
+          // Start the update but don't await yet — will run concurrently with facilitator call
+          scratchpadUpdatePromise = updateScratchpad(
+            currentEntry?.scratchpad ?? null,
+            newMessages,
+            sessionContext,
+          ).then((updated) => {
+            if (updated) {
+              scratchpadCache.set(sessionId, updated, userMessageCount);
+              console.log('[scratchpad] Scratchpad updated for session', {
+                sessionId,
+                themeCount: updated.themes.length,
+              });
+            }
+          }).catch((error) => {
+            console.error('[scratchpad] Scratchpad update failed', { sessionId, error: String(error) });
+          });
+        }
+      }
+
       // Cross-pollination: cluster-based pipeline with quality checks
       console.log(`[cross-pollination] enabled=${crossPollinationEnabled}, sessionId=${messageData.sessionId}, threadId=${messageData.threadId}`);
       if (crossPollinationEnabled && messageData.sessionId && messageData.threadId) {
@@ -153,9 +218,8 @@ export async function handleGenerateAnswer(
 
         if (eligible) {
           try {
-            // Fetch all session messages and map to ClusterInputMessage format
-            const allSessionMessages = await getAllMessagesForSessionSorted(sessionId);
-            const clusterMessages: ClusterInputMessage[] = allSessionMessages.map((m) => ({
+            // allSessionMessages already fetched above
+            const clusterMessages: ClusterInputMessage[] = (allSessionMessages ?? []).map((m) => ({
               id: m.id,
               threadId: m.thread_id,
               content: m.content,
@@ -202,7 +266,14 @@ export async function handleGenerateAnswer(
                   priorInsightsMap.delete(firstKey);
                   sessionContextMap.delete(firstKey);
                   clusterCache.evict(firstKey);
+                  scratchpadCache.evict(firstKey);
                 }
+              }
+
+              // Await scratchpad even on CP early return — Vercel kills dangling promises.
+              // Scratchpad is infrastructure for HAR-487/HAR-482 (not consumed yet).
+              if (scratchpadUpdatePromise) {
+                await scratchpadUpdatePromise;
               }
 
               return {
@@ -270,6 +341,12 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
           isFinal = await isSessionComplete(message, sessionData);
         }
 
+        // Wait for scratchpad update if one was started — runs concurrently with facilitator call
+        // so this await typically resolves instantly (scratchpad update is faster than facilitation)
+        if (scratchpadUpdatePromise) {
+          await scratchpadUpdatePromise;
+        }
+
         return {
           thread_id: messageData.threadId || '',
           role: 'assistant' as const,
@@ -288,6 +365,41 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
       }
     },
   );
+}
+
+/**
+ * Debug getter for cross-pollination state. Returns in-memory cache state
+ * for a given session. Used by admin/scratchpad endpoint.
+ *
+ * Note: In-memory caches are per-serverless-instance. This returns the state
+ * as seen by the instance handling this request — other instances may have
+ * different state.
+ */
+export async function getCrossPollinationDebugState(sessionId: string) {
+  const scratchpadEntry = scratchpadCache.get(sessionId);
+  const clusterEntry = clusterCache.get(sessionId);
+
+  return {
+    sessionId,
+    scratchpad: scratchpadEntry
+      ? {
+          state: scratchpadEntry.scratchpad,
+          messageCountAtUpdate: scratchpadEntry.messageCountAtUpdate,
+        }
+      : null,
+    clusters: clusterEntry
+      ? {
+          result: clusterEntry.clusterResult,
+          messageCountAtClustering: clusterEntry.messageCountAtClustering,
+        }
+      : null,
+    priorInsights: priorInsightsMap.get(sessionId) || [],
+    sessionContext: sessionContextMap.get(sessionId) || null,
+    trackedSessions: {
+      priorInsights: priorInsightsMap.size,
+      sessionContexts: sessionContextMap.size,
+    },
+  };
 }
 
 export async function handleResponse(

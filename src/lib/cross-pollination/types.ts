@@ -40,3 +40,23 @@ export const QualityResultSchema = z.object({
   reason: z.string().optional(),
 });
 export type QualityResult = z.infer<typeof QualityResultSchema>;
+
+// Scratchpad types — persistent structured session state
+export const ScratchpadThemeSchema = z.object({
+  label: z.string(),
+  type: z.enum(['convergence', 'tension', 'outlier']),
+  summary: z.string(),
+  strength: z.number(), // how many participants touched this
+  firstSeen: z.number(), // timestamp when this theme emerged
+});
+export type ScratchpadTheme = z.infer<typeof ScratchpadThemeSchema>;
+
+export const SessionScratchpadSchema = z.object({
+  themes: z.array(ScratchpadThemeSchema),
+  questionsWellCovered: z.array(z.string()),
+  emergingConsensus: z.array(z.string()),
+  openTensions: z.array(z.string()),
+  participantCount: z.number(),
+  lastUpdated: z.number(),
+});
+export type SessionScratchpad = z.infer<typeof SessionScratchpadSchema>;
