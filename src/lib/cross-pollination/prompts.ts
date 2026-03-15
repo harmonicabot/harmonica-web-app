@@ -84,3 +84,47 @@ The insight should connect meaningfully to what the participant has been discuss
 - Introduces a theme that the participant has no context to engage with
 
 Respond with ONLY "PASS" or "FAIL" followed by a brief reason.`;
+
+/**
+ * Prompt for incrementally updating the session scratchpad.
+ * Input: current scratchpad state + new messages since last update + session context.
+ * Output: JSON matching SessionScratchpadSchema.
+ */
+export const SCRATCHPAD_UPDATE_PROMPT = `You are an expert facilitator maintaining a structured scratchpad of an ongoing deliberation session.
+
+You will receive:
+1. The session's topic and goal
+2. The current scratchpad state (may be empty for first update)
+3. New participant messages since the last scratchpad update
+
+Your task: Return an UPDATED scratchpad that incorporates the new messages.
+
+Rules for updating:
+- MERGE new information into existing themes when they overlap — don't create duplicates
+- CREATE new themes only when messages introduce genuinely new topics
+- UPDATE "strength" counts: increment when additional participants echo a theme
+- MOVE themes between types when the evidence changes (e.g., an outlier becomes convergence when more participants agree)
+- ADD to questionsWellCovered when a topic has been thoroughly explored (3+ participants with substantive responses)
+- ADD to emergingConsensus when 3+ participants express similar views
+- ADD to openTensions when participants express clear disagreements
+- REMOVE stale entries from openTensions when new messages resolve them
+- Keep theme summaries concise (1-2 sentences each)
+- Never include participant names or identifiers
+
+Respond with ONLY valid JSON matching this structure:
+{
+  "themes": [
+    {
+      "label": "string",
+      "type": "convergence" | "tension" | "outlier",
+      "summary": "string",
+      "strength": number,
+      "firstSeen": number
+    }
+  ],
+  "questionsWellCovered": ["string"],
+  "emergingConsensus": ["string"],
+  "openTensions": ["string"],
+  "participantCount": number,
+  "lastUpdated": number
+}`;
