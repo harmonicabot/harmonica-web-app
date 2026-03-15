@@ -367,6 +367,41 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
   );
 }
 
+/**
+ * Debug getter for cross-pollination state. Returns in-memory cache state
+ * for a given session. Used by admin/scratchpad endpoint.
+ *
+ * Note: In-memory caches are per-serverless-instance. This returns the state
+ * as seen by the instance handling this request — other instances may have
+ * different state.
+ */
+export async function getCrossPollinationDebugState(sessionId: string) {
+  const scratchpadEntry = scratchpadCache.get(sessionId);
+  const clusterEntry = clusterCache.get(sessionId);
+
+  return {
+    sessionId,
+    scratchpad: scratchpadEntry
+      ? {
+          state: scratchpadEntry.scratchpad,
+          messageCountAtUpdate: scratchpadEntry.messageCountAtUpdate,
+        }
+      : null,
+    clusters: clusterEntry
+      ? {
+          result: clusterEntry.clusterResult,
+          messageCountAtClustering: clusterEntry.messageCountAtClustering,
+        }
+      : null,
+    priorInsights: priorInsightsMap.get(sessionId) || [],
+    sessionContext: sessionContextMap.get(sessionId) || null,
+    trackedSessions: {
+      priorInsights: priorInsightsMap.size,
+      sessionContexts: sessionContextMap.size,
+    },
+  };
+}
+
 export async function handleResponse(
   systemPrompt: string,
   userPrompt: string,
