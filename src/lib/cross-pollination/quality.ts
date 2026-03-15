@@ -77,6 +77,13 @@ export async function validateInsight(
   }
 
   // Gate 4: Relevance check (LLM)
+  // Skip for short threads — participants are still warming up, any group insight is useful
+  const userMessageCount = threadMessages.filter((m) => m.role === 'user').length;
+  if (userMessageCount < 4) {
+    logger.info('Skipping relevance gate for short thread', { userMessageCount });
+    return { passed: true };
+  }
+
   try {
     const llm = getLLM('MAIN', 0.3);
     const threadSummary = threadMessages

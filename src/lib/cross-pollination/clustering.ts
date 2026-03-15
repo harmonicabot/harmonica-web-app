@@ -60,7 +60,9 @@ export async function clusterResponses(
       // tag: 'cross_pollination_clustering', // Pro-only: observability tag
     });
 
-    const parsed = ClusterResultSchema.safeParse(JSON.parse(response));
+    // Strip markdown code fences if present (LLMs often wrap JSON in ```json ... ```)
+    const cleanedResponse = response.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+    const parsed = ClusterResultSchema.safeParse(JSON.parse(cleanedResponse));
 
     if (!parsed.success) {
       logger.error('Failed to parse clustering response', {
