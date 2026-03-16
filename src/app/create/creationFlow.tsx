@@ -21,6 +21,7 @@ import { Step, STEPS } from './types';
 import { createPromptContent } from 'app/api/utils';
 import { getPromptInstructions } from '@/lib/promptActions';
 import { linkSessionsToWorkspace } from '@/lib/workspaceActions';
+import { captureClientEvent } from '@/lib/posthog-client';
 
 export const maxDuration = 60; // Hosting function timeout, in seconds
 
@@ -250,6 +251,15 @@ IMPORTANT:
       const sessionIds = await db.insertHostSessions(data);
       const sessionId = sessionIds[0];
       await db.setPermission(sessionId, 'owner');
+
+      captureClientEvent('session_created', {
+        session_id: sessionId,
+        topic: formData.sessionName,
+        template_id: templateId || null,
+        has_questions: participantQuestions.length > 0,
+        cross_pollination: false,
+        source: 'web_app',
+      });
 
       // Set cookie
       const expirationDate = new Date();

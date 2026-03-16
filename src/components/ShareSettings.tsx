@@ -48,6 +48,7 @@ import { Invitation, PermissionsTable, User, ResultTabsVisibilityConfig } from '
 import { encryptId } from '@/lib/encryptionUtils';
 import { Spinner } from './icons';
 import { Description } from '@radix-ui/react-alert-dialog';
+import { captureClientEvent } from '@/lib/posthog-client';
 
 interface ShareSettingProps {
   resourceId: string;
@@ -319,6 +320,10 @@ export default function ShareSettings({
 
       // Show success/failure message
       if (result.results?.successful.length! > 0) {
+        captureClientEvent('session_shared', {
+          session_id: resourceId,
+          invite_count: result.results?.successful.length,
+        });
         toast({
           title: 'Invitations Sent',
           description: `Successfully sent ${

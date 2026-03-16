@@ -8,6 +8,7 @@ import { UserProfile, useUser } from '@auth0/nextjs-auth0/client';
 import { Message } from '@/lib/schema';
 import { getUserNameFromContext } from '@/lib/clientUtils';
 import { getUserSessionById, getAllChatMessagesInOrder } from '@/lib/db';
+import { captureClientEvent } from '@/lib/posthog-client';
 
 export interface UseChatOptions {
   sessionIds?: string[];
@@ -229,6 +230,10 @@ export function useChat(options: UseChatOptions) {
         .insertUserSessions(data)
         .then((userIds) => {
           if (userIds[0] && setUserSessionId) setUserSessionId(userIds[0]);
+          captureClientEvent('participant_joined', {
+            session_id: sessionId,
+            thread_id: threadIdRef.current,
+          });
           return userIds[0]; // Return the userId, just in case setUserSessionId is not fast enough
         })
         .catch((error) => {
@@ -424,10 +429,16 @@ export function useChat(options: UseChatOptions) {
             !isAskAi && sessionIds?.length === 1 && crossPollination,
           )
           .then((answer) => {
-            if (answer.is_final && setShowRating) {
-              setTimeout(() => {
-                setShowRating(true);
-              }, 2000);
+            if (answer.is_final) {
+              captureClientEvent('participant_completed', {
+                session_id: sessionIds?.[0] || '',
+                thread_id: threadIdRef.current,
+              });
+              if (setShowRating) {
+                setTimeout(() => {
+                  setShowRating(true);
+                }, 2000);
+              }
             }
             setIsLoading(false);
             const now = new Date();

@@ -14,6 +14,7 @@ import type { SessionStatus, CreateSessionRequest } from '@/lib/api-types';
 import type { NewHostSession } from '@/lib/schema';
 import { DEFAULT_PROMPTS } from '@/lib/defaultPrompts';
 import { getUserStats } from '@/lib/clientUtils';
+import { captureProductEvent } from '@/lib/posthog-server';
 
 export async function GET(req: NextRequest) {
   const user = await authenticateRequest();
@@ -109,6 +110,15 @@ export async function POST(req: NextRequest) {
     // Explicit permission — insertHostSessions uses authGetSession() which
     // returns null under API key auth, so the owner permission is skipped.
     await setPermission(sessionId, 'owner', 'SESSION', user.id);
+
+    captureProductEvent(user.id, 'session_created', {
+      session_id: sessionId,
+      topic: body.topic,
+      template_id: body.template_id || null,
+      has_questions: !!body.questions,
+      cross_pollination: body.cross_pollination || false,
+      source: 'api',
+    });
 
     const session = await getHostSessionById(sessionId);
     const baseUrl =

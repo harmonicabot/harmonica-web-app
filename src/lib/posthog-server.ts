@@ -17,3 +17,23 @@ export const getPostHogClient = () => {
   return posthogClient;
 };
 
+export function captureProductEvent(
+  distinctId: string,
+  event: string,
+  properties: Record<string, unknown> = {}
+) {
+  if (!distinctId) return;
+  const client = getPostHogClient();
+  if (!client) return;
+
+  client.capture({
+    distinctId,
+    event,
+    properties: {
+      ...properties,
+      app_version: process.env.APP_VERSION || 'oss',
+      environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'development',
+    },
+  });
+}
+
