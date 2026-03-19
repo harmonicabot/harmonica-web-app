@@ -26,7 +26,7 @@ const threadMessages = [
   { role: 'assistant' as const, content: 'That is an important point about privacy.' },
 ];
 
-describe('validateInsight', () => {
+describe.skip('validateInsight', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

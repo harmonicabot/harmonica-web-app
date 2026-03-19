@@ -1,3 +1,7 @@
+/**
+ * @deprecated Cluster-based cross-pollination pipeline. Superseded by scratchpad-based
+ * progressive disclosure (HAR-487). Kept for reference — remove after HAR-145 evals land.
+ */
 import { getLLM } from '@/lib/modelConfig';
 import { clusterResponses } from './clustering';
 import { validateInsight } from './quality';

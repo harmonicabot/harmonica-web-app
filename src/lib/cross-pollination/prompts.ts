@@ -37,8 +37,9 @@ Respond with ONLY valid JSON matching this structure:
 }`;
 
 /**
+ * @deprecated Used by cluster-based pipeline (generation.ts). Superseded by scratchpad-based
+ * progressive disclosure (HAR-487).
  * Prompt for generating cross-pollination insights from clusters.
- * Replaces the old CROSS_POLLINATION prompt that worked with individual messages.
  */
 export const GENERATION_PROMPT = `You are an expert facilitator introducing cross-pollination of ideas in a structured deliberation session.
 
@@ -60,8 +61,8 @@ The insight should:
 Respond with ONLY the insight and question, no explanations or meta-commentary.`;
 
 /**
+ * @deprecated Used by cluster-based quality pipeline (quality.ts). Superseded by HAR-487.
  * Prompt for the novelty quality check.
- * Given a new insight and prior insights, determines if the new one is substantially different.
  */
 export const NOVELTY_CHECK_PROMPT = `You are checking whether a new cross-pollination insight is substantially different from prior insights shown in this session.
 
@@ -73,8 +74,8 @@ Compare the new insight against the prior insights. The new insight FAILS the no
 Respond with ONLY "PASS" or "FAIL" followed by a brief reason.`;
 
 /**
+ * @deprecated Used by cluster-based quality pipeline (quality.ts). Superseded by HAR-487.
  * Prompt for the relevance quality check.
- * Given an insight and the participant's thread, determines if the insight connects.
  */
 export const RELEVANCE_CHECK_PROMPT = `You are checking whether a cross-pollination insight is relevant to a participant's conversation.
 

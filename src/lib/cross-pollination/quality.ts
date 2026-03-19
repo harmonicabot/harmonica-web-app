@@ -1,3 +1,7 @@
+/**
+ * @deprecated Insight quality validation for cluster-based pipeline. Superseded by scratchpad-based
+ * progressive disclosure (HAR-487). Kept for reference — remove after HAR-145 evals land.
+ */
 import { getLLM } from '@/lib/modelConfig';
 import { NOVELTY_CHECK_PROMPT, RELEVANCE_CHECK_PROMPT } from './prompts';
 import type { ClusterResult, QualityResult } from './types';

@@ -10,7 +10,7 @@ import {
   updateUserSession,
   increaseSessionsCount,
 } from '@/lib/db';
-import { generateCrossPollination, ClusterCache, ScratchpadCache, updateScratchpad } from '@/lib/cross-pollination';
+import { ScratchpadCache, updateScratchpad, formatScratchpadForPrompt } from '@/lib/cross-pollination';
 import type { ClusterInputMessage } from '@/lib/cross-pollination';
 import { getLLM } from '@/lib/modelConfig';
 import { getPromptInstructions } from '@/lib/promptsCache';
@@ -19,16 +19,9 @@ import { traceOperation } from '@/lib/braintrust';
 import { getAllMessagesForSessionSorted } from '@/lib/db';
 
 // Module-level singletons for cross-pollination (persist across requests)
-const clusterCache = new ClusterCache();
 const scratchpadCache = new ScratchpadCache();
-const priorInsightsMap = new Map<string, string[]>(); // sessionId → prior insights (capped at 10)
-const lastCrossPollinationMap = new Map<string, number>(); // sessionId:threadId → timestamp
 const sessionContextMap = new Map<string, { topic: string; goal: string; description: string }>(); // sessionId → cached context
-const MAX_PRIOR_INSIGHTS = 10;
 const MAX_TRACKED_SESSIONS = 200; // evict oldest entries beyond this
-const MIN_CROSS_POLLINATION_GAP_MS = 2 * 60 * 1000; // 2 minutes
-const MIN_THREAD_MESSAGES_SINCE_LAST = 2;
-const threadMessageCountAtLastCP = new Map<string, number>(); // sessionId:threadId → message count
 
 export async function finishedResponse(
   systemPrompt: string,
@@ -130,10 +123,7 @@ export async function handleGenerateAnswer(
         ? await getAllChatMessagesInOrder(messageData.threadId)
         : [];
 
-      // Hoist session messages fetch — used by both cross-pollination and scratchpad.
-      // Trade-off: this runs on every request with CP enabled (not just eligible ones).
-      // Previously it only ran inside the eligibility check. The overhead is one DB query
-      // per participant message in CP-enabled sessions, offset by eliminating double-fetches.
+      // Fetch session messages for scratchpad update
       let allSessionMessages: Awaited<ReturnType<typeof getAllMessagesForSessionSorted>> | null = null;
 
       if (crossPollinationEnabled && messageData.sessionId) {
@@ -194,102 +184,6 @@ export async function handleGenerateAnswer(
         }
       }
 
-      // Cross-pollination: cluster-based pipeline with quality checks
-      console.log(`[cross-pollination] enabled=${crossPollinationEnabled}, sessionId=${messageData.sessionId}, threadId=${messageData.threadId}`);
-      if (crossPollinationEnabled && messageData.sessionId && messageData.threadId) {
-        const sessionId = messageData.sessionId;
-        const threadId = messageData.threadId;
-        const cpKey = `${sessionId}:${threadId}`;
-
-        // Check minimum time gap
-        const lastCP = lastCrossPollinationMap.get(cpKey) || 0;
-        const timeSinceLastCP = Date.now() - lastCP;
-
-        // Check per-thread message count since last cross-pollination
-        const lastCount = threadMessageCountAtLastCP.get(cpKey) || 0;
-        const threadUserMessages = messages.filter((m) => m.role === 'user').length;
-        const newMessagesSinceLastCP = threadUserMessages - lastCount;
-
-        const eligible = timeSinceLastCP >= MIN_CROSS_POLLINATION_GAP_MS
-          && messages.length >= 2
-          && newMessagesSinceLastCP >= MIN_THREAD_MESSAGES_SINCE_LAST;
-
-        console.log(`[cross-pollination] eligibility: timeSinceLastCP=${Math.round(timeSinceLastCP/1000)}s, messages=${messages.length}, threadUserMessages=${threadUserMessages}, lastCount=${lastCount}, newSinceLastCP=${newMessagesSinceLastCP}, eligible=${eligible}`);
-
-        if (eligible) {
-          try {
-            // allSessionMessages already fetched above
-            const clusterMessages: ClusterInputMessage[] = (allSessionMessages ?? []).map((m) => ({
-              id: m.id,
-              threadId: m.thread_id,
-              content: m.content,
-              role: m.role,
-            }));
-
-            // Get session context (cached — topic/goal don't change during a session)
-            let sessionContext = sessionContextMap.get(sessionId);
-            if (!sessionContext) {
-              const sessionData = await getHostSessionById(sessionId);
-              sessionContext = {
-                topic: sessionData?.topic || 'No topic specified',
-                goal: sessionData?.goal || 'No goal specified',
-                description: sessionData?.context || '',
-              };
-              sessionContextMap.set(sessionId, sessionContext);
-            }
-
-            const priorInsights = priorInsightsMap.get(sessionId) || [];
-
-            console.log(`[cross-pollination] calling generateCrossPollination with ${clusterMessages.length} messages, ${priorInsights.length} prior insights`);
-            const insight = await generateCrossPollination({
-              allMessages: clusterMessages,
-              threadMessages: messages.map((m) => ({ role: m.role, content: m.content })),
-              threadId,
-              sessionId,
-              sessionContext,
-              priorInsights,
-              cache: clusterCache,
-            });
-
-            console.log(`[cross-pollination] result: ${insight ? 'GOT INSIGHT' : 'null (skipped)'}`);
-            if (insight) {
-              // Track for future novelty checks and timing
-              const updatedInsights = [...priorInsights, insight].slice(-MAX_PRIOR_INSIGHTS);
-              priorInsightsMap.set(sessionId, updatedInsights);
-              lastCrossPollinationMap.set(cpKey, Date.now());
-              threadMessageCountAtLastCP.set(cpKey, threadUserMessages);
-
-              // Basic eviction: if Maps grow too large, clear oldest entries
-              if (priorInsightsMap.size > MAX_TRACKED_SESSIONS) {
-                const firstKey = priorInsightsMap.keys().next().value;
-                if (firstKey) {
-                  priorInsightsMap.delete(firstKey);
-                  sessionContextMap.delete(firstKey);
-                  clusterCache.evict(firstKey);
-                  scratchpadCache.evict(firstKey);
-                }
-              }
-
-              // Await scratchpad even on CP early return — Vercel kills dangling promises.
-              // Scratchpad is infrastructure for HAR-487/HAR-482 (not consumed yet).
-              if (scratchpadUpdatePromise) {
-                await scratchpadUpdatePromise;
-              }
-
-              return {
-                thread_id: threadId,
-                role: 'assistant' as const,
-                content: `💡 Cross-pollination insight: ${insight}`,
-                created_at: new Date(),
-              };
-            }
-          } catch (error) {
-            console.error('[x] Error in cross-pollination:', error);
-            // Fall through to normal response generation
-          }
-        }
-      }
-
       // Get host session data directly using session_id
       if (!messageData.sessionId) {
         // This is likely a 'test chat' during session creation, for which we don't have a sessionId yet.
@@ -314,8 +208,15 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
 
       const chatEngine = getLLM('MAIN', 0.3);
 
+      // Inject scratchpad context (progressive disclosure)
+      let scratchpadContext = '';
+      if (crossPollinationEnabled && messageData.sessionId) {
+        const scratchpadEntry = scratchpadCache.get(messageData.sessionId);
+        scratchpadContext = formatScratchpadForPrompt(scratchpadEntry?.scratchpad ?? null);
+      }
+
       const formattedMessages = [
-        { role: 'system', content: sessionContext },
+        { role: 'system', content: sessionContext + scratchpadContext },
         ...messages.map((msg) => ({
           role: msg.role as 'user' | 'assistant',
           content: msg.content,
@@ -339,6 +240,15 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
         // Check if this response is final, but only after 6 messages
         if (messageData.sessionId && messages.length >= 6) {
           isFinal = await isSessionComplete(message, sessionData);
+        }
+
+        // Evict oldest cache entries if Maps grow too large
+        if (sessionContextMap.size > MAX_TRACKED_SESSIONS) {
+          const firstKey = sessionContextMap.keys().next().value;
+          if (firstKey) {
+            sessionContextMap.delete(firstKey);
+            scratchpadCache.evict(firstKey);
+          }
         }
 
         // Wait for scratchpad update if one was started — runs concurrently with facilitator call
@@ -377,26 +287,25 @@ ${sessionData?.critical ? `- Key Points: ${sessionData.critical}` : ''}`;
  */
 export async function getCrossPollinationDebugState(sessionId: string) {
   const scratchpadEntry = scratchpadCache.get(sessionId);
-  const clusterEntry = clusterCache.get(sessionId);
+  const scratchpad = scratchpadEntry?.scratchpad ?? null;
+
+  let tier = 0;
+  if (scratchpad && scratchpad.themes.length > 0) {
+    const maxStrength = Math.max(...scratchpad.themes.map((t) => t.strength));
+    tier = maxStrength >= 3 ? 2 : 1;
+  }
 
   return {
     sessionId,
+    tier,
     scratchpad: scratchpadEntry
       ? {
           state: scratchpadEntry.scratchpad,
           messageCountAtUpdate: scratchpadEntry.messageCountAtUpdate,
         }
       : null,
-    clusters: clusterEntry
-      ? {
-          result: clusterEntry.clusterResult,
-          messageCountAtClustering: clusterEntry.messageCountAtClustering,
-        }
-      : null,
-    priorInsights: priorInsightsMap.get(sessionId) || [],
     sessionContext: sessionContextMap.get(sessionId) || null,
     trackedSessions: {
-      priorInsights: priorInsightsMap.size,
       sessionContexts: sessionContextMap.size,
     },
   };
