@@ -32,7 +32,7 @@ export function StepNavigation({
   const isLastStep = currentStep === totalSteps;
 
   return (
-    <div className="flex justify-center gap-8 mt-8 max-w-md mx-auto">
+    <div className="flex justify-between mt-8 md:min-w-[720px]">
       <Button
         type="button"
         variant="outline"
