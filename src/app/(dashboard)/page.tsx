@@ -261,7 +261,7 @@ export default async function Dashboard({
               <p className="text-muted-foreground text-lg mb-4">No sessions yet, create one to get started.</p>
               <div className="flex justify-center gap-4">
                 <CreateSessionButton text="Get Started" />
-                <Link href="https://harmonica.chat/support" target="_blank">
+                <Link href="https://help.harmonica.chat/quickstart" target="_blank">
                   <Button variant="outline">
                     How it works
                   </Button>
