@@ -1,0 +1,71 @@
+{
+  "$schema": "https://fundingjson.org/schema/v1.1.0.json",
+  "version": "v1.1.0",
+  "entity": {
+    "type": "individual",
+    "role": "maintainer",
+    "name": "Artem Zhiganov",
+    "email": "hello@harmonica.chat",
+    "description": "Founder and maintainer of Harmonica, an open-source tool for AI-facilitated group deliberation.",
+    "webpageUrl": {
+      "url": "https://harmonica.chat",
+      "wellKnown": "https://harmonica.chat/.well-known/funding-manifest-urls"
+    }
+  },
+  "projects": [
+    {
+      "guid": "harmonica-web-app",
+      "name": "Harmonica (open-source core)",
+      "description": "Harmonica helps groups think and decide together. An AI facilitator talks with each person in their own time, then brings their views together so the group can see where it agrees, where it differs and what to do next. This repository is the AGPL open-source core; a hosted Pro version is developed separately.",
+      "webpageUrl": {
+        "url": "https://harmonica.chat",
+        "wellKnown": "https://harmonica.chat/.well-known/funding-manifest-urls"
+      },
+      "repositoryUrl": {
+        "url": "https://github.com/harmonicabot/harmonica-web-app"
+      },
+      "licenses": [
+        "spdx:AGPL-3.0-only"
+      ],
+      "tags": [
+        "deliberation",
+        "facilitation",
+        "civic-tech",
+        "democracy",
+        "public-ai"
+      ]
+    }
+  ],
+  "funding": {
+    "channels": [
+      {
+        "guid": "harmonica-opencollective",
+        "type": "payment-provider",
+        "address": "https://opencollective.com/harmonica",
+        "description": "Harmonica's Open Collective page."
+      },
+      {
+        "guid": "harmonica-giveth",
+        "type": "payment-provider",
+        "address": "https://giveth.io/project/harmonica-ai-agents-for-group-sensemaking",
+        "description": "Harmonica's Giveth project page."
+      }
+    ],
+    "plans": [
+      {
+        "guid": "open-core-methods-public-ai",
+        "status": "active",
+        "name": "Open core, public methods and public AI",
+        "description": "About 111 hours: bring the open-source core up to date with a tagged release and self-hosting docs (46 hours); Harmonica adapters so the open core can run the Open Facilitation Library's public method specs (35 hours); and testing full sessions on public AI models, fixing what breaks and publishing a short report including failures (30 hours).",
+        "amount": 10000,
+        "currency": "USD",
+        "frequency": "one-time",
+        "channels": [
+          "harmonica-opencollective",
+          "harmonica-giveth"
+        ]
+      }
+    ],
+    "history": []
+  }
+}
